@@ -1,0 +1,19 @@
+{
+	"bins": 256,
+	"unstable_bins": 0,
+	"reduction_bins": 0,
+	"band": {
+		"1": {
+			"sr": 44100,
+			"hl": 256,
+			"n_fft": 512,
+			"crop_start": 0,
+			"crop_stop": 256,
+			"hpf_start": -1,
+			"res_type": "sinc_best"
+		}
+	},
+	"sr": 44100,
+	"pre_filter_start": 256,
+	"pre_filter_stop": 256
+}

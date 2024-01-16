@@ -1,0 +1,30 @@
+{
+	"bins": 512,
+	"unstable_bins": 7,
+	"reduction_bins": 510,
+	"band": {
+		"1": {
+			"sr": 11025,
+			"hl": 160,
+			"n_fft": 768,
+			"crop_start": 0,
+			"crop_stop": 192,
+			"lpf_start": 41,
+			"lpf_stop": 139,
+			"res_type": "sinc_fastest"
+		},
+		"2": {
+			"sr": 44100,
+			"hl": 640,
+			"n_fft": 1024,
+			"crop_start": 10,
+			"crop_stop": 320,
+			"hpf_start": 47,
+			"hpf_stop": 15,
+			"res_type": "sinc_medium"
+		}
+	},
+	"sr": 44100,
+	"pre_filter_start": 510,
+	"pre_filter_stop": 512
+}
