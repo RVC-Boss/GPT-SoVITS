@@ -1,0 +1,263 @@
+{
+    "equivalent" : [
+        {
+            "model_hash_name" : [
+                {
+                    "hash_name": "47939caf0cfe52a0e81442b85b971dfd",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100.json",
+                    "param_name": "4band_44100"
+                },
+                {
+                    "hash_name": "4e4ecb9764c50a8c414fee6e10395bbe",
+                    "model_params": "lib/lib_v5/modelparams/4band_v2.json",
+                    "param_name": "4band_v2"
+                },
+                {
+                    "hash_name": "ca106edd563e034bde0bdec4bb7a4b36",
+                    "model_params": "lib/lib_v5/modelparams/4band_v2.json",
+                    "param_name": "4band_v2"
+                },
+                {
+                    "hash_name": "e60a1e84803ce4efc0a6551206cc4b71",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100.json",
+                    "param_name": "4band_44100"
+                },
+                {
+                    "hash_name": "a82f14e75892e55e994376edbf0c8435",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100.json",
+                    "param_name": "4band_44100"
+                },
+                {
+                    "hash_name": "6dd9eaa6f0420af9f1d403aaafa4cc06",
+                    "model_params": "lib/lib_v5/modelparams/4band_v2_sn.json",
+                    "param_name": "4band_v2_sn"
+                },
+                {
+                    "hash_name": "08611fb99bd59eaa79ad27c58d137727",
+                    "model_params": "lib/lib_v5/modelparams/4band_v2_sn.json",
+                    "param_name": "4band_v2_sn"
+                },
+                {
+                    "hash_name": "5c7bbca45a187e81abbbd351606164e5",
+                    "model_params": "lib/lib_v5/modelparams/3band_44100_msb2.json",
+                    "param_name": "3band_44100_msb2"
+                },
+                {
+                    "hash_name": "d6b2cb685a058a091e5e7098192d3233",
+                    "model_params": "lib/lib_v5/modelparams/3band_44100_msb2.json",
+                    "param_name": "3band_44100_msb2"
+                },
+                {
+                    "hash_name": "c1b9f38170a7c90e96f027992eb7c62b",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100.json",
+                    "param_name": "4band_44100"
+                },
+                {
+                    "hash_name": "c3448ec923fa0edf3d03a19e633faa53",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100.json",
+                    "param_name": "4band_44100"
+                },
+                {
+                    "hash_name": "68aa2c8093d0080704b200d140f59e54",
+                    "model_params": "lib/lib_v5/modelparams/3band_44100.json",
+                    "param_name": "3band_44100"
+                },
+                {
+                    "hash_name": "fdc83be5b798e4bd29fe00fe6600e147",
+                    "model_params": "lib/lib_v5/modelparams/3band_44100_mid.json",
+                    "param_name": "3band_44100_mid.json"
+                },
+                {
+                    "hash_name": "2ce34bc92fd57f55db16b7a4def3d745",
+                    "model_params": "lib/lib_v5/modelparams/3band_44100_mid.json",
+                    "param_name": "3band_44100_mid.json"
+                },
+                {
+                    "hash_name": "52fdca89576f06cf4340b74a4730ee5f",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100.json",
+                    "param_name": "4band_44100.json"
+                },
+                {
+                    "hash_name": "41191165b05d38fc77f072fa9e8e8a30",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100.json",
+                    "param_name": "4band_44100.json"
+                },
+                {
+                    "hash_name": "89e83b511ad474592689e562d5b1f80e",
+                    "model_params": "lib/lib_v5/modelparams/2band_32000.json",
+                    "param_name": "2band_32000.json"
+                },
+                {
+                    "hash_name": "0b954da81d453b716b114d6d7c95177f",
+                    "model_params": "lib/lib_v5/modelparams/2band_32000.json",
+                    "param_name": "2band_32000.json"
+                }
+
+            ],
+            "v4 Models": [
+                {
+                    "hash_name": "6a00461c51c2920fd68937d4609ed6c8",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr16000_hl512.json",
+                    "param_name": "1band_sr16000_hl512"
+                },
+                {
+                    "hash_name": "0ab504864d20f1bd378fe9c81ef37140",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr32000_hl512.json",
+                    "param_name": "1band_sr32000_hl512"
+                },
+                {
+                    "hash_name": "7dd21065bf91c10f7fccb57d7d83b07f",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr32000_hl512.json",
+                    "param_name": "1band_sr32000_hl512"
+                },
+                {
+                    "hash_name": "80ab74d65e515caa3622728d2de07d23",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr32000_hl512.json",
+                    "param_name": "1band_sr32000_hl512"
+                },
+                {
+                    "hash_name": "edc115e7fc523245062200c00caa847f",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr33075_hl384.json",
+                    "param_name": "1band_sr33075_hl384"
+                },
+                {
+                    "hash_name": "28063e9f6ab5b341c5f6d3c67f2045b7",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr33075_hl384.json",
+                    "param_name": "1band_sr33075_hl384"
+                },
+                {
+                    "hash_name": "b58090534c52cbc3e9b5104bad666ef2",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr44100_hl512.json",
+                    "param_name": "1band_sr44100_hl512"
+                },
+                {
+                    "hash_name": "0cdab9947f1b0928705f518f3c78ea8f",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr44100_hl512.json",
+                    "param_name": "1band_sr44100_hl512"
+                },
+                {
+                    "hash_name": "ae702fed0238afb5346db8356fe25f13",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr44100_hl1024.json",
+                    "param_name": "1band_sr44100_hl1024"
+                }
+            ]
+        }
+    ],
+    "User Models" : [
+        {
+            "1 Band": [
+                {
+                    "hash_name": "1band_sr16000_hl512",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr16000_hl512.json",
+                    "param_name": "1band_sr16000_hl512"
+                },
+                {
+                    "hash_name": "1band_sr32000_hl512",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr32000_hl512.json",
+                    "param_name": "1band_sr16000_hl512"
+                },
+                {
+                    "hash_name": "1band_sr33075_hl384",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr33075_hl384.json",
+                    "param_name": "1band_sr33075_hl384"
+                },
+                {
+                    "hash_name": "1band_sr44100_hl256",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr44100_hl256.json",
+                    "param_name": "1band_sr44100_hl256"
+                },
+                {
+                    "hash_name": "1band_sr44100_hl512",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr44100_hl512.json",
+                    "param_name": "1band_sr44100_hl512"
+                },
+                {
+                    "hash_name": "1band_sr44100_hl1024",
+                    "model_params": "lib/lib_v5/modelparams/1band_sr44100_hl1024.json",
+                    "param_name": "1band_sr44100_hl1024"
+                }
+            ],
+            "2 Band": [
+                {
+                    "hash_name": "2band_44100_lofi",
+                    "model_params": "lib/lib_v5/modelparams/2band_44100_lofi.json",
+                    "param_name": "2band_44100_lofi"
+                },
+                {
+                    "hash_name": "2band_32000",
+                    "model_params": "lib/lib_v5/modelparams/2band_32000.json",
+                    "param_name": "2band_32000"
+                },
+                {
+                    "hash_name": "2band_48000",
+                    "model_params": "lib/lib_v5/modelparams/2band_48000.json",
+                    "param_name": "2band_48000"
+                }
+            ],
+            "3 Band": [
+                {
+                    "hash_name": "3band_44100",
+                    "model_params": "lib/lib_v5/modelparams/3band_44100.json",
+                    "param_name": "3band_44100"
+                },
+                {
+                    "hash_name": "3band_44100_mid",
+                    "model_params": "lib/lib_v5/modelparams/3band_44100_mid.json",
+                    "param_name": "3band_44100_mid"
+                },
+                {
+                    "hash_name": "3band_44100_msb2",
+                    "model_params": "lib/lib_v5/modelparams/3band_44100_msb2.json",
+                    "param_name": "3band_44100_msb2"
+                }
+            ],
+            "4 Band": [
+                {
+                    "hash_name": "4band_44100",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100.json",
+                    "param_name": "4band_44100"
+                },
+                {
+                    "hash_name": "4band_44100_mid",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100_mid.json",
+                    "param_name": "4band_44100_mid"
+                },
+                {
+                    "hash_name": "4band_44100_msb",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100_msb.json",
+                    "param_name": "4band_44100_msb"
+                },
+                {
+                    "hash_name": "4band_44100_msb2",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100_msb2.json",
+                    "param_name": "4band_44100_msb2"
+                },
+                {
+                    "hash_name": "4band_44100_reverse",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100_reverse.json",
+                    "param_name": "4band_44100_reverse"
+                },
+                {
+                    "hash_name": "4band_44100_sw",
+                    "model_params": "lib/lib_v5/modelparams/4band_44100_sw.json",
+                    "param_name": "4band_44100_sw"
+                },
+                {
+                    "hash_name": "4band_v2",
+                    "model_params": "lib/lib_v5/modelparams/4band_v2.json",
+                    "param_name": "4band_v2"
+                },
+                {
+                    "hash_name": "4band_v2_sn",
+                    "model_params": "lib/lib_v5/modelparams/4band_v2_sn.json",
+                    "param_name": "4band_v2_sn"
+                },
+                {
+                    "hash_name": "tmodelparam",
+                    "model_params": "lib/lib_v5/modelparams/tmodelparam.json",
+                    "param_name": "User Model Param Set"
+                }
+            ]
+        }
+    ]
+}
