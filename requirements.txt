@@ -15,4 +15,4 @@ pyopenjtalk
 g2p_en
 modelscope
 sentencepiece
-transformer
+transformers
