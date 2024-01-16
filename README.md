@@ -1,4 +1,3 @@
-I am organizing and uploading the codes. It will be public in one day.
 
 # demo video and features
 
@@ -29,6 +28,8 @@ features:
 6、tiny version and larger-sized TTS models
 
 7、colab scripts
+
+8、more training dataset(2k->10k)
 
 # Requirments (How to install)
 
