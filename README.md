@@ -1,7 +1,11 @@
 
 # demo video and features
 
-https://www.bilibili.com/video/BV12g4y1m7Uw/
+demo video in Chinese: https://www.bilibili.com/video/BV12g4y1m7Uw/
+
+few shot fine tuning demo:
+
+https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
 features:
 
