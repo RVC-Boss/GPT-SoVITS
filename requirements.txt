@@ -17,4 +17,4 @@ torchaudio
 modelscope
 sentencepiece
 transformers
-yaml
+PyYAML
