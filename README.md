@@ -1,157 +1,118 @@
+# GPT-SoVITS - Voice Conversion and Text-to-Speech WebUI
 
-# demo video and features
+## Demo Video and Features
 
-demo video in Chinese: https://www.bilibili.com/video/BV12g4y1m7Uw/
-
-few shot fine tuning demo:
+Check out our demo video in Chinese: [Bilibili Demo](https://www.bilibili.com/video/BV12g4y1m7Uw/)
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
-features:
+### Features:
 
-1、input 5s vocal, zero shot TTS
+1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
 
-2、1min training dataset, fine tune (few shot TTS. The TTS model trained using few-shot techniques exhibits significantly better similarity and realism in the speaker's voice compared to zero-shot.)
+2. **Few-shot TTS:** Fine-tune the model with just 1 minute of training data for improved voice similarity and realism.
 
-3、Cross lingual (inference another language that is different from the training dataset language), now support English, Japanese and Chinese
+3. **Cross-lingual Support:** Inference in languages different from the training dataset, currently supporting English, Japanese, and Chinese.
 
-4、This WebUI integrates tools such as voice accompaniment separation, automatic segmentation of training sets, Chinese ASR, text labeling, etc., to help beginners quickly create their own training datasets and GPT/SoVITS models.
+4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, Chinese ASR, and text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
 
-# todolist
+## Todo List
 
-0、High priority: Localization in Japanese and English. User guide. 
+0. **High Priority:**
+   - Localization in Japanese and English.
+   - User guide.
 
-1、zero shot voice conversion(5s) /few shot voice converion(1min)
+1. **Features:**
+   - Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
+   - TTS speaking speed control.
+   - Enhanced TTS emotion control.
+   - Experiment with changing SoVITS token inputs to probability distribution of vocabs.
+   - Improve English and Japanese text frontend.
+   - Develop tiny and larger-sized TTS models.
+   - Colab scripts.
+   - Expand training dataset (2k -> 10k).
 
-2、TTS speaking speed control
+## Requirements (How to Install)
 
-3、more TTS emotion control
+### Python and PyTorch Version
 
-4、experiment about change sovits token inputs to probability distribution of vocabs
+Tested with Python 3.9, PyTorch 2.0.1, and CUDA 11.
 
-5、better English and Japanese text frontend
+### Pip Packages
 
-6、tiny version and larger-sized TTS models
-
-7、colab scripts
-
-8、more training dataset(2k->10k)
-
-# Requirments (How to install)
-
-## python and pytorch version
-py39+pytorch2.0.1+cu11 passed the test.
-
-## pip packages
+```bash
 pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm==4.59.0 cn2an pypinyin pyopenjtalk g2p_en
+```
 
-## additionally
-If you need the Chinese ASR feature supported by funasr, you should
+### Additional Requirements
 
+If you need Chinese ASR (supported by FunASR), install:
+
+```bash
 pip install modelscope torchaudio sentencepiece funasr
+```
 
-## You need ffmpeg.
+### FFmpeg
 
-### Ubuntu/Debian users
+#### Ubuntu/Debian Users
+
 ```bash
 sudo apt install ffmpeg
 ```
-### MacOS users
+
+#### MacOS Users
+
 ```bash
 brew install ffmpeg
 ```
-### Windows users
-download and put them in the GPT-SoVITS root.
-- download [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe)
 
-- download [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe)
+#### Windows Users
 
-## You need download some pretrained models
+Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
 
-### pretrained GPT-SoVITS models/SSL feature model/Chinese BERT model
+### Pretrained Models
 
-put these files
+Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS\pretrained_models`.
 
-https://huggingface.co/lj1995/GPT-SoVITS
+For Chinese ASR, download models from [Damo ASR Models](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files) and place them in `tools/damo_asr/models`.
 
-to 
+For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
 
-GPT_SoVITS\pretrained_models
+## Dataset Format
 
-### Chinese ASR (Additionally)
+The TTS annotation .list file format:
 
-put these files
+```
+vocal_path|speaker_name|language|text
+```
 
-https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files
+Example:
 
-https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files
+```
+D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
+```
 
-https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files
+Language dictionary:
 
- to 
+- 'zh': Chinese
+- 'ja': Japanese
+- 'en': English
 
-tools/damo_asr/models
+## Credits
 
- ![image](https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/aa376752-9f9d-4101-9a09-867bf4df6f6a)
+Special thanks to the following projects and contributors:
 
-### UVR5 (Vocals/Accompaniment Separation & Reverberation Removal. Additionally) 
-
-put the models you need from 
-
-https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights
-
-to
-
-tools/uvr5/uvr5_weights
-
-# dataset format
-
-The format of the TTS annotation .list file:
-
-vocal path|speaker_name|language|text
-
-e.g. D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
-
-language dictionary:
-
-    'zh': Chinese
-    
-    "ja": Japanese
-    
-    'en': English
-    
-
-
-# Credits
-
-https://github.com/innnky/ar-vits
-
-https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR
-
-https://github.com/jaywalnut310/vits
-
-https://github.com/hcy71o/TransferTTS/blob/master/models.py#L556
-
-https://github.com/TencentGameMate/chinese_speech_pretrain
-
-https://github.com/auspicious3000/contentvec/
-
-https://github.com/jik876/hifi-gan
-
-https://huggingface.co/hfl/chinese-roberta-wwm-ext-large
-
-https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41
-
-https://github.com/Anjok07/ultimatevocalremovergui
-
-https://github.com/openvpi/audio-slicer
-
-https://github.com/cronrpc/SubFix
-
-https://modelscope.cn/models/damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch
-
-https://github.com/FFmpeg/FFmpeg
-
-https://github.com/gradio-app/gradio
-
-
+- [ar-vits](https://github.com/innnky/ar-vits)
+- [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
+- [vits](https://github.com/jaywalnut310/vits)
+- [TransferTTS](https://github.com/hcy71o/TransferTTS/blob/master/models.py#L556)
+- [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
+- [contentvec](https://github.com/auspicious3000/contentvec/)
+- [hifi-gan](https://github.com/jik876/hifi-gan)
+- [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
+- [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
+- [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
+- [audio-slicer](https://github.com/openvpi/audio-slicer)
+- [SubFix](https://github.com/cronrpc/SubFix)
+- [FFmpeg](https://github.com/FFmpeg/FFmpeg)
+- [gradio](https://github.com/gradio-app/gradio)
