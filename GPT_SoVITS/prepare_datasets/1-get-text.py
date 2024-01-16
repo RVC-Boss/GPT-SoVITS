@@ -90,7 +90,15 @@ if(os.path.exists(txt_path)==False):
         lines=f.read().strip("\n").split("\n")
 
     language_v1_to_language_v2={
-        "ZH":"zh"
+        "ZH":"zh",
+        "zh":"zh",
+        "JP":"ja",
+        "jp":"ja",
+        "JA":"ja",
+        "ja":"ja",
+        "EN":"en",
+        "en":"en",
+        "En":"en",
     }
     for line in lines[int(i_part)::int(all_parts)]:
         try:
