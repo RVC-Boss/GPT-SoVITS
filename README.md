@@ -19,6 +19,8 @@ features:
 
 # todolist
 
+0、High priority: Localization in Japanese and English. User guide. 
+
 1、zero shot voice conversion(5s) /few shot voice converion(1min)
 
 2、TTS speaking speed control
