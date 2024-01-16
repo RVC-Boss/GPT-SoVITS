@@ -65,6 +65,8 @@ def get_weights_names():
     return SoVITS_names,GPT_names
 SoVITS_weight_root="SoVITS_weights"
 GPT_weight_root="GPT_weights"
+os.makedirs(SoVITS_weight_root,exist_ok=True)
+os.makedirs(GPT_weight_root,exist_ok=True)
 SoVITS_names,GPT_names = get_weights_names()
 
 def change_choices():
