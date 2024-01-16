@@ -4,7 +4,7 @@ import traceback
 from collections import OrderedDict
 
 import torch
-from i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 def savee(ckpt, name, epoch, steps, hps):
     try:
