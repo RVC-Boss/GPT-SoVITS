@@ -13,6 +13,7 @@ cn2an
 pypinyin
 pyopenjtalk
 g2p_en
+torchaudio
 modelscope
 sentencepiece
 transformers
