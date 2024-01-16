@@ -164,18 +164,32 @@ class Slicer:
         # Apply and return slices.
         ####音频+起始时间+终止时间
         if len(sil_tags) == 0:
-            return [[waveform,0,int(total_frames*self.hop_size)]]
+            return [[waveform, 0, int(total_frames * self.hop_size)]]
         else:
             chunks = []
             if sil_tags[0][0] > 0:
-                chunks.append([self._apply_slice(waveform, 0, sil_tags[0][0]),0,int(sil_tags[0][0]*self.hop_size)])
+                chunks.append(
+                    [
+                        self._apply_slice(waveform, 0, sil_tags[0][0]),
+                        0,
+                        int(sil_tags[0][0] * self.hop_size),
+                    ]
+                )
             for i in range(len(sil_tags) - 1):
                 chunks.append(
-                    [self._apply_slice(waveform, sil_tags[i][1], sil_tags[i + 1][0]),int(sil_tags[i][1]*self.hop_size),int(sil_tags[i + 1][0]*self.hop_size)]
+                    [
+                        self._apply_slice(waveform, sil_tags[i][1], sil_tags[i + 1][0]),
+                        int(sil_tags[i][1] * self.hop_size),
+                        int(sil_tags[i + 1][0] * self.hop_size),
+                    ]
                 )
             if sil_tags[-1][1] < total_frames:
                 chunks.append(
-                    [self._apply_slice(waveform, sil_tags[-1][1], total_frames),int(sil_tags[-1][1]*self.hop_size),int(total_frames*self.hop_size)]
+                    [
+                        self._apply_slice(waveform, sil_tags[-1][1], total_frames),
+                        int(sil_tags[-1][1] * self.hop_size),
+                        int(total_frames * self.hop_size),
+                    ]
                 )
             return chunks
 

@@ -1,7 +1,8 @@
 import os
-import traceback,gradio as gr
+import traceback, gradio as gr
 import logging
 from i18n.i18n import I18nAuto
+
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
@@ -17,8 +18,8 @@ for name in os.listdir(weight_uvr5_root):
     if name.endswith(".pth") or "onnx" in name:
         uvr5_names.append(name.replace(".pth", ""))
 
-device=sys.argv[1]
-is_half=sys.argv[2]
+device = sys.argv[1]
+is_half = sys.argv[2]
 
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
@@ -37,9 +38,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             func = AudioPre if "DeEcho" not in model_name else AudioPreDeEcho
             pre_fun = func(
                 agg=int(agg),
-                model_path=os.path.join(
-                    weight_uvr5_root, model_name + ".pth"
-                ),
+                model_path=os.path.join(weight_uvr5_root, model_name + ".pth"),
                 device=device,
                 is_half=is_half,
             )
@@ -117,8 +116,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
 
 with gr.Blocks(title="RVC WebUI") as app:
     gr.Markdown(
-        value=
-            "本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>."
+        value="本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>."
     )
     with gr.Tabs():
         with gr.TabItem(i18n("伴奏人声分离&去混响&去回声")):
