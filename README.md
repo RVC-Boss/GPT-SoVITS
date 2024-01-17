@@ -38,7 +38,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 Tested with Python 3.9, PyTorch 2.0.1, and CUDA 11.
 
-### Quick Install with Conda
+#### Quick Install with Conda
+
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
