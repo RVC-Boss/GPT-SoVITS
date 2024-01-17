@@ -38,21 +38,21 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 Tested with Python 3.9, PyTorch 2.0.1, and CUDA 11.
 
-#### Quick Install with Conda
+### Quick Install with Conda
 
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
 bash install.sh
 ```
-
-### Pip Packages
+### Install Manually
+#### Pip Packages
 
 ```bash
 pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet
 ```
 
-### Additional Requirements
+#### Additional Requirements
 
 If you need Chinese ASR (supported by FunASR), install:
 
@@ -60,21 +60,26 @@ If you need Chinese ASR (supported by FunASR), install:
 pip install modelscope torchaudio sentencepiece funasr
 ```
 
-### FFmpeg
+#### FFmpeg
 
-#### Ubuntu/Debian Users
+##### Conda Users
+```bash
+conda install ffmpeg
+```
+
+##### Ubuntu/Debian Users
 
 ```bash
 sudo apt install ffmpeg
 ```
 
-#### MacOS Users
+##### MacOS Users
 
 ```bash
 brew install ffmpeg
 ```
 
-#### Windows Users
+##### Windows Users
 
 Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
 
