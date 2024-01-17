@@ -38,10 +38,17 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 Tested with Python 3.9, PyTorch 2.0.1, and CUDA 11.
 
+### Quick Install with Conda
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+bash install.sh
+```
+
 ### Pip Packages
 
 ```bash
-pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm==4.59.0 cn2an pypinyin pyopenjtalk g2p_en
+pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet
 ```
 
 ### Additional Requirements
