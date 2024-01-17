@@ -76,10 +76,8 @@ def kmeans(samples, num_clusters: int, num_iters: int = 10):
 
     print("kmeans start ... ")
     for _ in tqdm(range(num_iters)):
-        diffs = rearrange(samples, "n d -> n () d") - rearrange(
-            means, "c d -> () c d"
-        )
-        dists = -(diffs ** 2).sum(dim=-1)
+        diffs = rearrange(samples, "n d -> n () d") - rearrange(means, "c d -> () c d")
+        dists = -(diffs**2).sum(dim=-1)
 
         buckets = dists.max(dim=-1).indices
         bins = torch.bincount(buckets, minlength=num_clusters)
@@ -110,6 +108,7 @@ class EuclideanCodebook(nn.Module):
             that have an exponential moving average cluster size less than the specified threshold with
             randomly selected vector from the current batch.
     """
+
     def __init__(
         self,
         dim: int,
@@ -122,7 +121,9 @@ class EuclideanCodebook(nn.Module):
     ):
         super().__init__()
         self.decay = decay
-        init_fn: tp.Union[tp.Callable[..., torch.Tensor], tp.Any] = uniform_init if not kmeans_init else torch.zeros
+        init_fn: tp.Union[tp.Callable[..., torch.Tensor], tp.Any] = (
+            uniform_init if not kmeans_init else torch.zeros
+        )
         embed = init_fn(codebook_size, dim)
 
         self.codebook_size = codebook_size
@@ -147,7 +148,7 @@ class EuclideanCodebook(nn.Module):
         self.cluster_size.data.copy_(cluster_size)
         self.inited.data.copy_(torch.Tensor([True]))
         # Make sure all buffers across workers are in sync after initialization
-        #broadcast_tensors(self.buffers())
+        # broadcast_tensors(self.buffers())
 
     def replace_(self, samples, mask):
         modified_codebook = torch.where(
@@ -165,7 +166,7 @@ class EuclideanCodebook(nn.Module):
 
         batch_samples = rearrange(batch_samples, "... d -> (...) d")
         self.replace_(batch_samples, mask=expired_codes)
-        #broadcast_tensors(self.buffers())
+        # broadcast_tensors(self.buffers())
 
     def preprocess(self, x):
         x = rearrange(x, "... d -> (...) d")
@@ -246,6 +247,7 @@ class VectorQuantization(nn.Module):
             randomly selected vector from the current batch.
         commitment_weight (float): Weight for commitment loss.
     """
+
     def __init__(
         self,
         dim: int,
@@ -256,22 +258,31 @@ class VectorQuantization(nn.Module):
         kmeans_init: bool = True,
         kmeans_iters: int = 50,
         threshold_ema_dead_code: int = 2,
-        commitment_weight: float = 1.,
+        commitment_weight: float = 1.0,
     ):
         super().__init__()
         _codebook_dim: int = default(codebook_dim, dim)
 
         requires_projection = _codebook_dim != dim
-        self.project_in = (nn.Linear(dim, _codebook_dim) if requires_projection else nn.Identity())
-        self.project_out = (nn.Linear(_codebook_dim, dim) if requires_projection else nn.Identity())
+        self.project_in = (
+            nn.Linear(dim, _codebook_dim) if requires_projection else nn.Identity()
+        )
+        self.project_out = (
+            nn.Linear(_codebook_dim, dim) if requires_projection else nn.Identity()
+        )
 
         self.epsilon = epsilon
         self.commitment_weight = commitment_weight
 
-        self._codebook = EuclideanCodebook(dim=_codebook_dim, codebook_size=codebook_size,
-                                           kmeans_init=kmeans_init, kmeans_iters=kmeans_iters,
-                                           decay=decay, epsilon=epsilon,
-                                           threshold_ema_dead_code=threshold_ema_dead_code)
+        self._codebook = EuclideanCodebook(
+            dim=_codebook_dim,
+            codebook_size=codebook_size,
+            kmeans_init=kmeans_init,
+            kmeans_iters=kmeans_iters,
+            decay=decay,
+            epsilon=epsilon,
+            threshold_ema_dead_code=threshold_ema_dead_code,
+        )
         self.codebook_size = codebook_size
 
     @property
@@ -316,13 +327,16 @@ class ResidualVectorQuantization(nn.Module):
     """Residual vector quantization implementation.
     Follows Algorithm 1. in https://arxiv.org/pdf/2107.03312.pdf
     """
+
     def __init__(self, *, num_quantizers, **kwargs):
         super().__init__()
         self.layers = nn.ModuleList(
             [VectorQuantization(**kwargs) for _ in range(num_quantizers)]
         )
 
-    def forward(self, x, n_q: tp.Optional[int] = None, layers: tp.Optional[list] = None):
+    def forward(
+        self, x, n_q: tp.Optional[int] = None, layers: tp.Optional[list] = None
+    ):
         quantized_out = 0.0
         residual = x
 
@@ -345,7 +359,9 @@ class ResidualVectorQuantization(nn.Module):
         out_losses, out_indices = map(torch.stack, (all_losses, all_indices))
         return quantized_out, out_indices, out_losses, out_quantized
 
-    def encode(self, x: torch.Tensor, n_q: tp.Optional[int] = None, st: tp.Optional[int]= None) -> torch.Tensor:
+    def encode(
+        self, x: torch.Tensor, n_q: tp.Optional[int] = None, st: tp.Optional[int] = None
+    ) -> torch.Tensor:
         residual = x
         all_indices = []
         n_q = n_q or len(self.layers)
@@ -358,7 +374,7 @@ class ResidualVectorQuantization(nn.Module):
         out_indices = torch.stack(all_indices)
         return out_indices
 
-    def decode(self, q_indices: torch.Tensor, st: int=0) -> torch.Tensor:
+    def decode(self, q_indices: torch.Tensor, st: int = 0) -> torch.Tensor:
         quantized_out = torch.tensor(0.0, device=q_indices.device)
         for i, indices in enumerate(q_indices):
             layer = self.layers[st + i]

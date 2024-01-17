@@ -7,10 +7,11 @@ from torch import nn
 
 class TokenEmbedding(nn.Module):
     def __init__(
-            self,
-            embedding_dim: int,
-            vocab_size: int,
-            dropout: float=0.0, ):
+        self,
+        embedding_dim: int,
+        vocab_size: int,
+        dropout: float = 0.0,
+    ):
         super().__init__()
 
         self.vocab_size = vocab_size
@@ -24,7 +25,7 @@ class TokenEmbedding(nn.Module):
         return self.word_embeddings.weight
 
     def embedding(self, index: int) -> torch.Tensor:
-        return self.word_embeddings.weight[index:index + 1]
+        return self.word_embeddings.weight[index : index + 1]
 
     def forward(self, x: torch.Tensor):
         x = self.word_embeddings(x)
@@ -34,11 +35,12 @@ class TokenEmbedding(nn.Module):
 
 class SinePositionalEmbedding(nn.Module):
     def __init__(
-            self,
-            embedding_dim: int,
-            dropout: float=0.0,
-            scale: bool=False,
-            alpha: bool=False, ):
+        self,
+        embedding_dim: int,
+        dropout: float = 0.0,
+        scale: bool = False,
+        alpha: bool = False,
+    ):
         super().__init__()
         self.embedding_dim = embedding_dim
         self.x_scale = math.sqrt(embedding_dim) if scale else 1.0
@@ -59,13 +61,14 @@ class SinePositionalEmbedding(nn.Module):
         pe = torch.zeros(x.size(1), self.embedding_dim)
         if self.reverse:
             position = torch.arange(
-                x.size(1) - 1, -1, -1.0, dtype=torch.float32).unsqueeze(1)
+                x.size(1) - 1, -1, -1.0, dtype=torch.float32
+            ).unsqueeze(1)
         else:
-            position = torch.arange(
-                0, x.size(1), dtype=torch.float32).unsqueeze(1)
+            position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, self.embedding_dim, 2, dtype=torch.float32) *
-            -(math.log(10000.0) / self.embedding_dim))
+            torch.arange(0, self.embedding_dim, 2, dtype=torch.float32)
+            * -(math.log(10000.0) / self.embedding_dim)
+        )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
@@ -74,5 +77,5 @@ class SinePositionalEmbedding(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         self.extend_pe(x)
         output = x.unsqueeze(-1) if x.ndim == 2 else x
-        output = output * self.x_scale + self.alpha * self.pe[:, :x.size(1)]
+        output = output * self.x_scale + self.alpha * self.pe[:, : x.size(1)]
         return self.dropout(output)
