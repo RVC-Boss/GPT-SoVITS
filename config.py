@@ -1,8 +1,6 @@
-import platform
-
 is_half=True
 exp_root="logs"
-python_exec="runtime\python"if platform.system()=="Windows"else "python"
+python_exec=sys.executable or "python"
 infer_device="cuda"
 
 webui_port_main=9874
