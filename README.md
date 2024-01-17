@@ -121,6 +121,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 - [ ] **High Priority:**
    - [ ] Localization in Japanese and English.
    - [ ] User guide.
+   - [ ] Japanese and English dataset fine tune training.
 
 - [ ] **Features:**
    - [ ] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
@@ -131,7 +132,9 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
    - [ ] Develop tiny and larger-sized TTS models.
    - [ ] Colab scripts.
    - [ ] Expand training dataset (2k -> 10k).
-   
+   - [ ] better sovits base model (enhanced audio quality)
+   - [ ] model mix
+
 ## Credits
 
 Special thanks to the following projects and contributors:
