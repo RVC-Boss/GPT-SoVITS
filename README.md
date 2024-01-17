@@ -34,7 +34,7 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ## Environment Preparation
 
-If you are windows users (tested with win>=10), you don't need read this part. Just download the [Integrated package](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/tree/main), unzip it and double-click go-webui.bat to start GPT-SoVITS-WebUI.
+If you are a **Windows** user (tested with win>=10) you can install directly via the prezip. Just download the [prezip](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true), unzip it and double-click **go-webui.bat** to start GPT-SoVITS-WebUI.
 
 ### Python and PyTorch Version
 
