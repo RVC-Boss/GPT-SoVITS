@@ -6,14 +6,21 @@ from torch.utils.data import DataLoader
 
 
 class Text2SemanticDataModule(LightningDataModule):
-    def __init__(self, config, train_semantic_path, train_phoneme_path,dev_semantic_path=None, dev_phoneme_path=None):
+    def __init__(
+        self,
+        config,
+        train_semantic_path,
+        train_phoneme_path,
+        dev_semantic_path=None,
+        dev_phoneme_path=None,
+    ):
         super().__init__()
         self.config = config
         self.train_semantic_path = train_semantic_path
         self.train_phoneme_path = train_phoneme_path
         self.dev_semantic_path = dev_semantic_path
         self.dev_phoneme_path = dev_phoneme_path
-        self.num_workers = self.config['data']['num_workers']
+        self.num_workers = self.config["data"]["num_workers"]
 
     def prepare_data(self):
         pass
@@ -22,8 +29,9 @@ class Text2SemanticDataModule(LightningDataModule):
         self._train_dataset = Text2SemanticDataset(
             phoneme_path=self.train_phoneme_path,
             semantic_path=self.train_semantic_path,
-            max_sec=self.config['data']['max_sec'],
-            pad_val=self.config['data']['pad_val'])
+            max_sec=self.config["data"]["max_sec"],
+            pad_val=self.config["data"]["pad_val"],
+        )
         self._dev_dataset = self._train_dataset
         # self._dev_dataset = Text2SemanticDataset(
         #     phoneme_path=self.dev_phoneme_path,
@@ -33,9 +41,8 @@ class Text2SemanticDataModule(LightningDataModule):
         #     pad_val=self.config['data']['pad_val'])
 
     def train_dataloader(self):
-        batch_size = self.config['train']['batch_size']
-        sampler = DistributedBucketSampler(
-            self._train_dataset, batch_size=batch_size)
+        batch_size = self.config["train"]["batch_size"]
+        sampler = DistributedBucketSampler(self._train_dataset, batch_size=batch_size)
         return DataLoader(
             self._train_dataset,
             batch_size=batch_size,
@@ -43,7 +50,7 @@ class Text2SemanticDataModule(LightningDataModule):
             collate_fn=self._train_dataset.collate,
             num_workers=self.num_workers,
             persistent_workers=True,
-            prefetch_factor=16
+            prefetch_factor=16,
         )
 
     def val_dataloader(self):
@@ -52,9 +59,9 @@ class Text2SemanticDataModule(LightningDataModule):
             batch_size=1,
             shuffle=False,
             collate_fn=self._train_dataset.collate,
-            num_workers=max(self.num_workers,12),
+            num_workers=max(self.num_workers, 12),
             persistent_workers=True,
-            prefetch_factor=16
+            prefetch_factor=16,
         )
 
     # 这个会使用到嘛？
@@ -63,4 +70,5 @@ class Text2SemanticDataModule(LightningDataModule):
             self._dev_dataset,
             batch_size=1,
             shuffle=False,
-            collate_fn=self._train_dataset.collate)
+            collate_fn=self._train_dataset.collate,
+        )

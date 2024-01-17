@@ -1,11 +1,12 @@
-import os
-import sys
 import traceback
 from collections import OrderedDict
 
 import torch
-from i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto
+
 i18n = I18nAuto()
+
+
 def savee(ckpt, name, epoch, steps, hps):
     try:
         opt = OrderedDict()
@@ -15,8 +16,8 @@ def savee(ckpt, name, epoch, steps, hps):
                 continue
             opt["weight"][key] = ckpt[key].half()
         opt["config"] = hps
-        opt["info"] = "%sepoch_%siteration" % (epoch,steps)
-        torch.save(opt, "%s/%s.pth" % (hps.save_weight_dir,name))
+        opt["info"] = "%sepoch_%siteration" % (epoch, steps)
+        torch.save(opt, "%s/%s.pth" % (hps.save_weight_dir, name))
         return "Success."
     except:
         return traceback.format_exc()
