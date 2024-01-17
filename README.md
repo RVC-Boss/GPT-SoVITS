@@ -1,7 +1,7 @@
 <div align="center">
 
-<h1>GPT-SoVITS</h1>
-A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI based on VITS.<br><br>
+<h1>GPT-SoVITS-WebUI</h1>
+A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange
 )](https://github.com/RVC-Boss/GPT-SoVITS)
@@ -33,6 +33,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, Chinese ASR, and text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
 
 ## Environment Preparation
+
+If you are windows users (tested with win>=10), you don't need read this part. Just download the [Integrated package](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/tree/main), unzip it and double-click go-webui.bat to start GPT-SoVITS-WebUI.
 
 ### Python and PyTorch Version
 
@@ -84,6 +86,16 @@ brew install ffmpeg
 ##### Windows Users
 
 Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
+
+### Pretrained Models
+
+
+Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS\pretrained_models`.
+
+For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/damo_asr/models`.
+
+For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal, additionally), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
+
 
 ## Dataset Format
 
