@@ -1,8 +1,15 @@
 from torch.nn.functional import *
-from torch.nn.functional import _mha_shape_check,_canonical_mask,_none_or_dtype,_in_projection_packed
+from torch.nn.functional import (
+    _mha_shape_check,
+    _canonical_mask,
+    _none_or_dtype,
+    _in_projection_packed,
+)
+
 # import torch
 # Tensor = torch.Tensor
 # from typing import Callable, List, Optional, Tuple, Union
+
 
 def multi_head_attention_forward_patched(
     query: Tensor,
@@ -29,7 +36,8 @@ def multi_head_attention_forward_patched(
     static_k: Optional[Tensor] = None,
     static_v: Optional[Tensor] = None,
     average_attn_weights: bool = True,
-    is_causal: bool = False,cache=None
+    is_causal: bool = False,
+    cache=None,
 ) -> Tuple[Tensor, Optional[Tensor]]:
     r"""
     Args:
@@ -105,7 +113,17 @@ def multi_head_attention_forward_patched(
           :math:`S` is the source sequence length. If ``average_attn_weights=False``, returns attention weights per
           head of shape :math:`(num_heads, L, S)` when input is unbatched or :math:`(N, num_heads, L, S)`.
     """
-    tens_ops = (query, key, value, in_proj_weight, in_proj_bias, bias_k, bias_v, out_proj_weight, out_proj_bias)
+    tens_ops = (
+        query,
+        key,
+        value,
+        in_proj_weight,
+        in_proj_bias,
+        bias_k,
+        bias_v,
+        out_proj_weight,
+        out_proj_bias,
+    )
     if has_torch_function(tens_ops):
         return handle_torch_function(
             multi_head_attention_forward,
@@ -134,10 +152,13 @@ def multi_head_attention_forward_patched(
             v_proj_weight=v_proj_weight,
             static_k=static_k,
             static_v=static_v,
-            average_attn_weights=average_attn_weights,cache=cache
+            average_attn_weights=average_attn_weights,
+            cache=cache,
         )
 
-    is_batched = _mha_shape_check(query, key, value, key_padding_mask, attn_mask, num_heads)
+    is_batched = _mha_shape_check(
+        query, key, value, key_padding_mask, attn_mask, num_heads
+    )
 
     # For unbatched input, we unsqueeze at the expected batch-dim to pretend that the input
     # is batched, run the computation and before returning squeeze the
@@ -159,7 +180,7 @@ def multi_head_attention_forward_patched(
         mask_name="key_padding_mask",
         other_type=_none_or_dtype(attn_mask),
         other_name="attn_mask",
-        target_type=query.dtype
+        target_type=query.dtype,
     )
 
     if is_causal and attn_mask is None:
@@ -184,59 +205,84 @@ def multi_head_attention_forward_patched(
             check_other=False,
         )
 
-
         if key_padding_mask is not None:
             # We have the attn_mask, and use that to merge kpm into it.
             # Turn off use of is_causal hint, as the merged mask is no
             # longer causal.
             is_causal = False
 
-    assert embed_dim == embed_dim_to_check, \
-        f"was expecting embedding dimension of {embed_dim_to_check}, but got {embed_dim}"
+    assert (
+        embed_dim == embed_dim_to_check
+    ), f"was expecting embedding dimension of {embed_dim_to_check}, but got {embed_dim}"
     if isinstance(embed_dim, torch.Tensor):
         # embed_dim can be a tensor when JIT tracing
-        head_dim = embed_dim.div(num_heads, rounding_mode='trunc')
+        head_dim = embed_dim.div(num_heads, rounding_mode="trunc")
     else:
         head_dim = embed_dim // num_heads
-    assert head_dim * num_heads == embed_dim, f"embed_dim {embed_dim} not divisible by num_heads {num_heads}"
+    assert (
+        head_dim * num_heads == embed_dim
+    ), f"embed_dim {embed_dim} not divisible by num_heads {num_heads}"
     if use_separate_proj_weight:
         # allow MHA to have different embedding dimensions when separate projection weights are used
-        assert key.shape[:2] == value.shape[:2], \
-            f"key's sequence and batch dims {key.shape[:2]} do not match value's {value.shape[:2]}"
+        assert (
+            key.shape[:2] == value.shape[:2]
+        ), f"key's sequence and batch dims {key.shape[:2]} do not match value's {value.shape[:2]}"
     else:
-        assert key.shape == value.shape, f"key shape {key.shape} does not match value shape {value.shape}"
+        assert (
+            key.shape == value.shape
+        ), f"key shape {key.shape} does not match value shape {value.shape}"
 
     #
     # compute in-projection
     #
     if not use_separate_proj_weight:
-        assert in_proj_weight is not None, "use_separate_proj_weight is False but in_proj_weight is None"
+        assert (
+            in_proj_weight is not None
+        ), "use_separate_proj_weight is False but in_proj_weight is None"
         q, k, v = _in_projection_packed(query, key, value, in_proj_weight, in_proj_bias)
     else:
-        assert q_proj_weight is not None, "use_separate_proj_weight is True but q_proj_weight is None"
-        assert k_proj_weight is not None, "use_separate_proj_weight is True but k_proj_weight is None"
-        assert v_proj_weight is not None, "use_separate_proj_weight is True but v_proj_weight is None"
+        assert (
+            q_proj_weight is not None
+        ), "use_separate_proj_weight is True but q_proj_weight is None"
+        assert (
+            k_proj_weight is not None
+        ), "use_separate_proj_weight is True but k_proj_weight is None"
+        assert (
+            v_proj_weight is not None
+        ), "use_separate_proj_weight is True but v_proj_weight is None"
         if in_proj_bias is None:
             b_q = b_k = b_v = None
         else:
             b_q, b_k, b_v = in_proj_bias.chunk(3)
-        q, k, v = _in_projection(query, key, value, q_proj_weight, k_proj_weight, v_proj_weight, b_q, b_k, b_v)
-    if(cache!=None):
-        if(cache["first_infer"]==1):
-            cache["k"][cache["stage"]]=k
+        q, k, v = _in_projection(
+            query,
+            key,
+            value,
+            q_proj_weight,
+            k_proj_weight,
+            v_proj_weight,
+            b_q,
+            b_k,
+            b_v,
+        )
+    if cache != None:
+        if cache["first_infer"] == 1:
+            cache["k"][cache["stage"]] = k
             # print(0,cache["k"].shape)
-            cache["v"][cache["stage"]]=v
-        else:###12个layer每个都要留自己的cache_kv
+            cache["v"][cache["stage"]] = v
+        else:  ###12个layer每个都要留自己的cache_kv
             # print(1,cache["k"].shape)
-            cache["k"][cache["stage"]]=torch.cat([cache["k"][cache["stage"]],k],0)##本来时序是1，但是proj的时候可能transpose了所以时序到0维了
-            cache["v"][cache["stage"]]=torch.cat([cache["v"][cache["stage"]],v],0)
+            cache["k"][cache["stage"]] = torch.cat(
+                [cache["k"][cache["stage"]], k], 0
+            )  ##本来时序是1，但是proj的时候可能transpose了所以时序到0维了
+            cache["v"][cache["stage"]] = torch.cat([cache["v"][cache["stage"]], v], 0)
             # print(2, cache["k"].shape)
             src_len = cache["k"][cache["stage"]].shape[0]
-            k=cache["k"][cache["stage"]]
-            v=cache["v"][cache["stage"]]
+            k = cache["k"][cache["stage"]]
+            v = cache["v"][cache["stage"]]
             # if attn_mask is not None:
             #     attn_mask=attn_mask[-1:,]
-                # print(attn_mask.shape,attn_mask)
+            # print(attn_mask.shape,attn_mask)
         cache["stage"] = (cache["stage"] + 1) % cache["all_stage"]
     # print(2333,cache)
     # prep attention mask
@@ -255,14 +301,20 @@ def multi_head_attention_forward_patched(
         if attn_mask.dim() == 2:
             correct_2d_size = (tgt_len, src_len)
             if attn_mask.shape != correct_2d_size:
-                raise RuntimeError(f"The shape of the 2D attn_mask is {attn_mask.shape}, but should be {correct_2d_size}.")
+                raise RuntimeError(
+                    f"The shape of the 2D attn_mask is {attn_mask.shape}, but should be {correct_2d_size}."
+                )
             attn_mask = attn_mask.unsqueeze(0)
         elif attn_mask.dim() == 3:
             correct_3d_size = (bsz * num_heads, tgt_len, src_len)
             if attn_mask.shape != correct_3d_size:
-                raise RuntimeError(f"The shape of the 3D attn_mask is {attn_mask.shape}, but should be {correct_3d_size}.")
+                raise RuntimeError(
+                    f"The shape of the 3D attn_mask is {attn_mask.shape}, but should be {correct_3d_size}."
+                )
         else:
-            raise RuntimeError(f"attn_mask's dimension {attn_mask.dim()} is not supported")
+            raise RuntimeError(
+                f"attn_mask's dimension {attn_mask.dim()} is not supported"
+            )
 
     # add bias along batch dimension (currently second)
     if bias_k is not None and bias_v is not None:
@@ -286,26 +338,34 @@ def multi_head_attention_forward_patched(
         k = k.view(k.shape[0], bsz * num_heads, head_dim).transpose(0, 1)
     else:
         # TODO finish disentangling control flow so we don't do in-projections when statics are passed
-        assert static_k.size(0) == bsz * num_heads, \
-            f"expecting static_k.size(0) of {bsz * num_heads}, but got {static_k.size(0)}"
-        assert static_k.size(2) == head_dim, \
-            f"expecting static_k.size(2) of {head_dim}, but got {static_k.size(2)}"
+        assert (
+            static_k.size(0) == bsz * num_heads
+        ), f"expecting static_k.size(0) of {bsz * num_heads}, but got {static_k.size(0)}"
+        assert (
+            static_k.size(2) == head_dim
+        ), f"expecting static_k.size(2) of {head_dim}, but got {static_k.size(2)}"
         k = static_k
     if static_v is None:
         v = v.view(v.shape[0], bsz * num_heads, head_dim).transpose(0, 1)
     else:
         # TODO finish disentangling control flow so we don't do in-projections when statics are passed
-        assert static_v.size(0) == bsz * num_heads, \
-            f"expecting static_v.size(0) of {bsz * num_heads}, but got {static_v.size(0)}"
-        assert static_v.size(2) == head_dim, \
-            f"expecting static_v.size(2) of {head_dim}, but got {static_v.size(2)}"
+        assert (
+            static_v.size(0) == bsz * num_heads
+        ), f"expecting static_v.size(0) of {bsz * num_heads}, but got {static_v.size(0)}"
+        assert (
+            static_v.size(2) == head_dim
+        ), f"expecting static_v.size(2) of {head_dim}, but got {static_v.size(2)}"
         v = static_v
 
     # add zero attention along batch dimension (now first)
     if add_zero_attn:
         zero_attn_shape = (bsz * num_heads, 1, head_dim)
-        k = torch.cat([k, torch.zeros(zero_attn_shape, dtype=k.dtype, device=k.device)], dim=1)
-        v = torch.cat([v, torch.zeros(zero_attn_shape, dtype=v.dtype, device=v.device)], dim=1)
+        k = torch.cat(
+            [k, torch.zeros(zero_attn_shape, dtype=k.dtype, device=k.device)], dim=1
+        )
+        v = torch.cat(
+            [v, torch.zeros(zero_attn_shape, dtype=v.dtype, device=v.device)], dim=1
+        )
         if attn_mask is not None:
             attn_mask = pad(attn_mask, (0, 1))
         if key_padding_mask is not None:
@@ -316,10 +376,15 @@ def multi_head_attention_forward_patched(
 
     # merge key padding and attention masks
     if key_padding_mask is not None:
-        assert key_padding_mask.shape == (bsz, src_len), \
-            f"expecting key_padding_mask shape of {(bsz, src_len)}, but got {key_padding_mask.shape}"
-        key_padding_mask = key_padding_mask.view(bsz, 1, 1, src_len).   \
-            expand(-1, num_heads, -1, -1).reshape(bsz * num_heads, 1, src_len)
+        assert key_padding_mask.shape == (
+            bsz,
+            src_len,
+        ), f"expecting key_padding_mask shape of {(bsz, src_len)}, but got {key_padding_mask.shape}"
+        key_padding_mask = (
+            key_padding_mask.view(bsz, 1, 1, src_len)
+            .expand(-1, num_heads, -1, -1)
+            .reshape(bsz * num_heads, 1, src_len)
+        )
         if attn_mask is None:
             attn_mask = key_padding_mask
         else:
@@ -337,10 +402,14 @@ def multi_head_attention_forward_patched(
         B, Nt, E = q.shape
         q_scaled = q / math.sqrt(E)
 
-        assert not (is_causal and attn_mask is None), "FIXME: is_causal not implemented for need_weights"
+        assert not (
+            is_causal and attn_mask is None
+        ), "FIXME: is_causal not implemented for need_weights"
 
         if attn_mask is not None:
-            attn_output_weights = torch.baddbmm(attn_mask, q_scaled, k.transpose(-2, -1))
+            attn_output_weights = torch.baddbmm(
+                attn_mask, q_scaled, k.transpose(-2, -1)
+            )
         else:
             attn_output_weights = torch.bmm(q_scaled, k.transpose(-2, -1))
         attn_output_weights = softmax(attn_output_weights, dim=-1)
@@ -349,7 +418,9 @@ def multi_head_attention_forward_patched(
 
         attn_output = torch.bmm(attn_output_weights, v)
 
-        attn_output = attn_output.transpose(0, 1).contiguous().view(tgt_len * bsz, embed_dim)
+        attn_output = (
+            attn_output.transpose(0, 1).contiguous().view(tgt_len * bsz, embed_dim)
+        )
         attn_output = linear(attn_output, out_proj_weight, out_proj_bias)
         attn_output = attn_output.view(tgt_len, bsz, attn_output.size(1))
 
@@ -377,8 +448,12 @@ def multi_head_attention_forward_patched(
         k = k.view(bsz, num_heads, src_len, head_dim)
         v = v.view(bsz, num_heads, src_len, head_dim)
 
-        attn_output = scaled_dot_product_attention(q, k, v, attn_mask, dropout_p, is_causal)
-        attn_output = attn_output.permute(2, 0, 1, 3).contiguous().view(bsz * tgt_len, embed_dim)
+        attn_output = scaled_dot_product_attention(
+            q, k, v, attn_mask, dropout_p, is_causal
+        )
+        attn_output = (
+            attn_output.permute(2, 0, 1, 3).contiguous().view(bsz * tgt_len, embed_dim)
+        )
 
         attn_output = linear(attn_output, out_proj_weight, out_proj_bias)
         attn_output = attn_output.view(tgt_len, bsz, attn_output.size(1))

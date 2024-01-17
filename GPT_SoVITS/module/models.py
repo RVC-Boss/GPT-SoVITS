@@ -12,12 +12,21 @@ from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
 from module.commons import init_weights, get_padding
 from module.mrte_model import MRTE
-from module.quantize import  ResidualVectorQuantizer
+from module.quantize import ResidualVectorQuantizer
 from text import symbols
 from torch.cuda.amp import autocast
 
+
 class StochasticDurationPredictor(nn.Module):
-    def __init__(self, in_channels, filter_channels, kernel_size, p_dropout, n_flows=4, gin_channels=0):
+    def __init__(
+        self,
+        in_channels,
+        filter_channels,
+        kernel_size,
+        p_dropout,
+        n_flows=4,
+        gin_channels=0,
+    ):
         super().__init__()
         filter_channels = in_channels  # it needs to be removed from future version.
         self.in_channels = in_channels
@@ -31,21 +40,29 @@ class StochasticDurationPredictor(nn.Module):
         self.flows = nn.ModuleList()
         self.flows.append(modules.ElementwiseAffine(2))
         for i in range(n_flows):
-            self.flows.append(modules.ConvFlow(2, filter_channels, kernel_size, n_layers=3))
+            self.flows.append(
+                modules.ConvFlow(2, filter_channels, kernel_size, n_layers=3)
+            )
             self.flows.append(modules.Flip())
 
         self.post_pre = nn.Conv1d(1, filter_channels, 1)
         self.post_proj = nn.Conv1d(filter_channels, filter_channels, 1)
-        self.post_convs = modules.DDSConv(filter_channels, kernel_size, n_layers=3, p_dropout=p_dropout)
+        self.post_convs = modules.DDSConv(
+            filter_channels, kernel_size, n_layers=3, p_dropout=p_dropout
+        )
         self.post_flows = nn.ModuleList()
         self.post_flows.append(modules.ElementwiseAffine(2))
         for i in range(4):
-            self.post_flows.append(modules.ConvFlow(2, filter_channels, kernel_size, n_layers=3))
+            self.post_flows.append(
+                modules.ConvFlow(2, filter_channels, kernel_size, n_layers=3)
+            )
             self.post_flows.append(modules.Flip())
 
         self.pre = nn.Conv1d(in_channels, filter_channels, 1)
         self.proj = nn.Conv1d(filter_channels, filter_channels, 1)
-        self.convs = modules.DDSConv(filter_channels, kernel_size, n_layers=3, p_dropout=p_dropout)
+        self.convs = modules.DDSConv(
+            filter_channels, kernel_size, n_layers=3, p_dropout=p_dropout
+        )
         if gin_channels != 0:
             self.cond = nn.Conv1d(gin_channels, filter_channels, 1)
 
@@ -66,7 +83,10 @@ class StochasticDurationPredictor(nn.Module):
             h_w = self.post_pre(w)
             h_w = self.post_convs(h_w, x_mask)
             h_w = self.post_proj(h_w) * x_mask
-            e_q = torch.randn(w.size(0), 2, w.size(2)).to(device=x.device, dtype=x.dtype) * x_mask
+            e_q = (
+                torch.randn(w.size(0), 2, w.size(2)).to(device=x.device, dtype=x.dtype)
+                * x_mask
+            )
             z_q = e_q
             for flow in self.post_flows:
                 z_q, logdet_q = flow(z_q, x_mask, g=(x + h_w))
@@ -74,8 +94,13 @@ class StochasticDurationPredictor(nn.Module):
             z_u, z1 = torch.split(z_q, [1, 1], 1)
             u = torch.sigmoid(z_u) * x_mask
             z0 = (w - u) * x_mask
-            logdet_tot_q += torch.sum((F.logsigmoid(z_u) + F.logsigmoid(-z_u)) * x_mask, [1, 2])
-            logq = torch.sum(-0.5 * (math.log(2 * math.pi) + (e_q ** 2)) * x_mask, [1, 2]) - logdet_tot_q
+            logdet_tot_q += torch.sum(
+                (F.logsigmoid(z_u) + F.logsigmoid(-z_u)) * x_mask, [1, 2]
+            )
+            logq = (
+                torch.sum(-0.5 * (math.log(2 * math.pi) + (e_q**2)) * x_mask, [1, 2])
+                - logdet_tot_q
+            )
 
             logdet_tot = 0
             z0, logdet = self.log_flow(z0, x_mask)
@@ -84,12 +109,18 @@ class StochasticDurationPredictor(nn.Module):
             for flow in flows:
                 z, logdet = flow(z, x_mask, g=x, reverse=reverse)
                 logdet_tot = logdet_tot + logdet
-            nll = torch.sum(0.5 * (math.log(2 * math.pi) + (z ** 2)) * x_mask, [1, 2]) - logdet_tot
+            nll = (
+                torch.sum(0.5 * (math.log(2 * math.pi) + (z**2)) * x_mask, [1, 2])
+                - logdet_tot
+            )
             return nll + logq  # [b]
         else:
             flows = list(reversed(self.flows))
             flows = flows[:-2] + [flows[-1]]  # remove a useless vflow
-            z = torch.randn(x.size(0), 2, x.size(2)).to(device=x.device, dtype=x.dtype) * noise_scale
+            z = (
+                torch.randn(x.size(0), 2, x.size(2)).to(device=x.device, dtype=x.dtype)
+                * noise_scale
+            )
             for flow in flows:
                 z = flow(z, x_mask, g=x, reverse=reverse)
             z0, z1 = torch.split(z, [1, 1], 1)
@@ -98,7 +129,9 @@ class StochasticDurationPredictor(nn.Module):
 
 
 class DurationPredictor(nn.Module):
-    def __init__(self, in_channels, filter_channels, kernel_size, p_dropout, gin_channels=0):
+    def __init__(
+        self, in_channels, filter_channels, kernel_size, p_dropout, gin_channels=0
+    ):
         super().__init__()
 
         self.in_channels = in_channels
@@ -108,9 +141,13 @@ class DurationPredictor(nn.Module):
         self.gin_channels = gin_channels
 
         self.drop = nn.Dropout(p_dropout)
-        self.conv_1 = nn.Conv1d(in_channels, filter_channels, kernel_size, padding=kernel_size // 2)
+        self.conv_1 = nn.Conv1d(
+            in_channels, filter_channels, kernel_size, padding=kernel_size // 2
+        )
         self.norm_1 = modules.LayerNorm(filter_channels)
-        self.conv_2 = nn.Conv1d(filter_channels, filter_channels, kernel_size, padding=kernel_size // 2)
+        self.conv_2 = nn.Conv1d(
+            filter_channels, filter_channels, kernel_size, padding=kernel_size // 2
+        )
         self.norm_2 = modules.LayerNorm(filter_channels)
         self.proj = nn.Conv1d(filter_channels, 1, 1)
 
@@ -135,15 +172,17 @@ class DurationPredictor(nn.Module):
 
 
 class TextEncoder(nn.Module):
-    def __init__(self,
-                 out_channels,
-                 hidden_channels,
-                 filter_channels,
-                 n_heads,
-                 n_layers,
-                 kernel_size,
-                 p_dropout,
-                 latent_channels=192):
+    def __init__(
+        self,
+        out_channels,
+        hidden_channels,
+        filter_channels,
+        n_heads,
+        n_layers,
+        kernel_size,
+        p_dropout,
+        latent_channels=192,
+    ):
         super().__init__()
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
@@ -160,17 +199,14 @@ class TextEncoder(nn.Module):
             hidden_channels,
             filter_channels,
             n_heads,
-            n_layers//2,
+            n_layers // 2,
             kernel_size,
-            p_dropout)
+            p_dropout,
+        )
 
         self.encoder_text = attentions.Encoder(
-            hidden_channels,
-            filter_channels,
-            n_heads,
-            n_layers,
-            kernel_size,
-            p_dropout)
+            hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout
+        )
         self.text_embedding = nn.Embedding(len(symbols), hidden_channels)
 
         self.mrte = MRTE()
@@ -179,21 +215,25 @@ class TextEncoder(nn.Module):
             hidden_channels,
             filter_channels,
             n_heads,
-            n_layers//2,
+            n_layers // 2,
             kernel_size,
-            p_dropout)
-
+            p_dropout,
+        )
 
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, y, y_lengths, text, text_lengths, ge, test=None):
-        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(y.dtype)
+        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(
+            y.dtype
+        )
 
         y = self.ssl_proj(y * y_mask) * y_mask
         y = self.encoder_ssl(y * y_mask, y_mask)
 
-        text_mask = torch.unsqueeze(commons.sequence_mask(text_lengths, text.size(1)), 1).to(y.dtype)
-        if test == 1 :
+        text_mask = torch.unsqueeze(
+            commons.sequence_mask(text_lengths, text.size(1)), 1
+        ).to(y.dtype)
+        if test == 1:
             text[:, :] = 0
         text = self.text_embedding(text).transpose(1, 2)
         text = self.encoder_text(text * text_mask, text_mask)
@@ -208,9 +248,9 @@ class TextEncoder(nn.Module):
     def extract_latent(self, x):
         x = self.ssl_proj(x)
         quantized, codes, commit_loss, quantized_list = self.quantizer(x)
-        return codes.transpose(0,1)
-    def decode_latent(self, codes, y_mask, refer,refer_mask, ge):
+        return codes.transpose(0, 1)
 
+    def decode_latent(self, codes, y_mask, refer, refer_mask, ge):
         quantized = self.quantizer.decode(codes)
 
         y = self.vq_proj(quantized) * y_mask
@@ -224,15 +264,18 @@ class TextEncoder(nn.Module):
         m, logs = torch.split(stats, self.out_channels, dim=1)
         return y, m, logs, y_mask, quantized
 
+
 class ResidualCouplingBlock(nn.Module):
-    def __init__(self,
-                 channels,
-                 hidden_channels,
-                 kernel_size,
-                 dilation_rate,
-                 n_layers,
-                 n_flows=4,
-                 gin_channels=0):
+    def __init__(
+        self,
+        channels,
+        hidden_channels,
+        kernel_size,
+        dilation_rate,
+        n_layers,
+        n_flows=4,
+        gin_channels=0,
+    ):
         super().__init__()
         self.channels = channels
         self.hidden_channels = hidden_channels
@@ -245,8 +288,16 @@ class ResidualCouplingBlock(nn.Module):
         self.flows = nn.ModuleList()
         for i in range(n_flows):
             self.flows.append(
-                modules.ResidualCouplingLayer(channels, hidden_channels, kernel_size, dilation_rate, n_layers,
-                                              gin_channels=gin_channels, mean_only=True))
+                modules.ResidualCouplingLayer(
+                    channels,
+                    hidden_channels,
+                    kernel_size,
+                    dilation_rate,
+                    n_layers,
+                    gin_channels=gin_channels,
+                    mean_only=True,
+                )
+            )
             self.flows.append(modules.Flip())
 
     def forward(self, x, x_mask, g=None, reverse=False):
@@ -260,14 +311,16 @@ class ResidualCouplingBlock(nn.Module):
 
 
 class PosteriorEncoder(nn.Module):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 hidden_channels,
-                 kernel_size,
-                 dilation_rate,
-                 n_layers,
-                 gin_channels=0):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        hidden_channels,
+        kernel_size,
+        dilation_rate,
+        n_layers,
+        gin_channels=0,
+    ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -278,13 +331,21 @@ class PosteriorEncoder(nn.Module):
         self.gin_channels = gin_channels
 
         self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
-        self.enc = modules.WN(hidden_channels, kernel_size, dilation_rate, n_layers, gin_channels=gin_channels)
+        self.enc = modules.WN(
+            hidden_channels,
+            kernel_size,
+            dilation_rate,
+            n_layers,
+            gin_channels=gin_channels,
+        )
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, x, x_lengths, g=None):
-        if(g!=None):
+        if g != None:
             g = g.detach()
-        x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
+        x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(
+            x.dtype
+        )
         x = self.pre(x) * x_mask
         x = self.enc(x, x_mask, g=g)
         stats = self.proj(x) * x_mask
@@ -294,14 +355,16 @@ class PosteriorEncoder(nn.Module):
 
 
 class WNEncoder(nn.Module):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 hidden_channels,
-                 kernel_size,
-                 dilation_rate,
-                 n_layers,
-                 gin_channels=0):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        hidden_channels,
+        kernel_size,
+        dilation_rate,
+        n_layers,
+        gin_channels=0,
+    ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -312,11 +375,20 @@ class WNEncoder(nn.Module):
         self.gin_channels = gin_channels
 
         self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
-        self.enc = modules.WN(hidden_channels, kernel_size, dilation_rate, n_layers, gin_channels=gin_channels)
+        self.enc = modules.WN(
+            hidden_channels,
+            kernel_size,
+            dilation_rate,
+            n_layers,
+            gin_channels=gin_channels,
+        )
         self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
         self.norm = modules.LayerNorm(out_channels)
+
     def forward(self, x, x_lengths, g=None):
-        x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
+        x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(
+            x.dtype
+        )
         x = self.pre(x) * x_mask
         x = self.enc(x, x_mask, g=g)
         out = self.proj(x) * x_mask
@@ -325,24 +397,45 @@ class WNEncoder(nn.Module):
 
 
 class Generator(torch.nn.Module):
-    def __init__(self, initial_channel, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates,
-                 upsample_initial_channel, upsample_kernel_sizes, gin_channels=0):
+    def __init__(
+        self,
+        initial_channel,
+        resblock,
+        resblock_kernel_sizes,
+        resblock_dilation_sizes,
+        upsample_rates,
+        upsample_initial_channel,
+        upsample_kernel_sizes,
+        gin_channels=0,
+    ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_rates)
-        self.conv_pre = Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3)
-        resblock = modules.ResBlock1 if resblock == '1' else modules.ResBlock2
+        self.conv_pre = Conv1d(
+            initial_channel, upsample_initial_channel, 7, 1, padding=3
+        )
+        resblock = modules.ResBlock1 if resblock == "1" else modules.ResBlock2
 
         self.ups = nn.ModuleList()
         for i, (u, k) in enumerate(zip(upsample_rates, upsample_kernel_sizes)):
-            self.ups.append(weight_norm(
-                ConvTranspose1d(upsample_initial_channel // (2 ** i), upsample_initial_channel // (2 ** (i + 1)),
-                                k, u, padding=(k - u) // 2)))
+            self.ups.append(
+                weight_norm(
+                    ConvTranspose1d(
+                        upsample_initial_channel // (2**i),
+                        upsample_initial_channel // (2 ** (i + 1)),
+                        k,
+                        u,
+                        padding=(k - u) // 2,
+                    )
+                )
+            )
 
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
             ch = upsample_initial_channel // (2 ** (i + 1))
-            for j, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+            for j, (k, d) in enumerate(
+                zip(resblock_kernel_sizes, resblock_dilation_sizes)
+            ):
                 self.resblocks.append(resblock(ch, k, d))
 
         self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
@@ -373,7 +466,7 @@ class Generator(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        print('Removing weight norm...')
+        print("Removing weight norm...")
         for l in self.ups:
             remove_weight_norm(l)
         for l in self.resblocks:
@@ -386,13 +479,55 @@ class DiscriminatorP(torch.nn.Module):
         self.period = period
         self.use_spectral_norm = use_spectral_norm
         norm_f = weight_norm if use_spectral_norm == False else spectral_norm
-        self.convs = nn.ModuleList([
-            norm_f(Conv2d(1, 32, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
-            norm_f(Conv2d(32, 128, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
-            norm_f(Conv2d(128, 512, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
-            norm_f(Conv2d(512, 1024, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
-            norm_f(Conv2d(1024, 1024, (kernel_size, 1), 1, padding=(get_padding(kernel_size, 1), 0))),
-        ])
+        self.convs = nn.ModuleList(
+            [
+                norm_f(
+                    Conv2d(
+                        1,
+                        32,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+                norm_f(
+                    Conv2d(
+                        32,
+                        128,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+                norm_f(
+                    Conv2d(
+                        128,
+                        512,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+                norm_f(
+                    Conv2d(
+                        512,
+                        1024,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+                norm_f(
+                    Conv2d(
+                        1024,
+                        1024,
+                        (kernel_size, 1),
+                        1,
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+            ]
+        )
         self.conv_post = norm_f(Conv2d(1024, 1, (3, 1), 1, padding=(1, 0)))
 
     def forward(self, x):
@@ -421,14 +556,16 @@ class DiscriminatorS(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(DiscriminatorS, self).__init__()
         norm_f = weight_norm if use_spectral_norm == False else spectral_norm
-        self.convs = nn.ModuleList([
-            norm_f(Conv1d(1, 16, 15, 1, padding=7)),
-            norm_f(Conv1d(16, 64, 41, 4, groups=4, padding=20)),
-            norm_f(Conv1d(64, 256, 41, 4, groups=16, padding=20)),
-            norm_f(Conv1d(256, 1024, 41, 4, groups=64, padding=20)),
-            norm_f(Conv1d(1024, 1024, 41, 4, groups=256, padding=20)),
-            norm_f(Conv1d(1024, 1024, 5, 1, padding=2)),
-        ])
+        self.convs = nn.ModuleList(
+            [
+                norm_f(Conv1d(1, 16, 15, 1, padding=7)),
+                norm_f(Conv1d(16, 64, 41, 4, groups=4, padding=20)),
+                norm_f(Conv1d(64, 256, 41, 4, groups=16, padding=20)),
+                norm_f(Conv1d(256, 1024, 41, 4, groups=64, padding=20)),
+                norm_f(Conv1d(1024, 1024, 41, 4, groups=256, padding=20)),
+                norm_f(Conv1d(1024, 1024, 5, 1, padding=2)),
+            ]
+        )
         self.conv_post = norm_f(Conv1d(1024, 1, 3, 1, padding=1))
 
     def forward(self, x):
@@ -451,7 +588,9 @@ class MultiPeriodDiscriminator(torch.nn.Module):
         periods = [2, 3, 5, 7, 11]
 
         discs = [DiscriminatorS(use_spectral_norm=use_spectral_norm)]
-        discs = discs + [DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods]
+        discs = discs + [
+            DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods
+        ]
         self.discriminators = nn.ModuleList(discs)
 
     def forward(self, y, y_hat):
@@ -469,31 +608,40 @@ class MultiPeriodDiscriminator(torch.nn.Module):
 
         return y_d_rs, y_d_gs, fmap_rs, fmap_gs
 
+
 class ReferenceEncoder(nn.Module):
-    '''
+    """
     inputs --- [N, Ty/r, n_mels*r]  mels
     outputs --- [N, ref_enc_gru_size]
-    '''
+    """
 
     def __init__(self, spec_channels, gin_channels=0):
-
         super().__init__()
         self.spec_channels = spec_channels
         ref_enc_filters = [32, 32, 64, 64, 128, 128]
         K = len(ref_enc_filters)
         filters = [1] + ref_enc_filters
-        convs = [weight_norm(nn.Conv2d(in_channels=filters[i],
-                                       out_channels=filters[i + 1],
-                                       kernel_size=(3, 3),
-                                       stride=(2, 2),
-                                       padding=(1, 1))) for i in range(K)]
+        convs = [
+            weight_norm(
+                nn.Conv2d(
+                    in_channels=filters[i],
+                    out_channels=filters[i + 1],
+                    kernel_size=(3, 3),
+                    stride=(2, 2),
+                    padding=(1, 1),
+                )
+            )
+            for i in range(K)
+        ]
         self.convs = nn.ModuleList(convs)
         # self.wns = nn.ModuleList([weight_norm(num_features=ref_enc_filters[i]) for i in range(K)])
 
         out_channels = self.calculate_channels(spec_channels, 3, 2, 1, K)
-        self.gru = nn.GRU(input_size=ref_enc_filters[-1] * out_channels,
-                          hidden_size=256 // 2,
-                          batch_first=True)
+        self.gru = nn.GRU(
+            input_size=ref_enc_filters[-1] * out_channels,
+            hidden_size=256 // 2,
+            batch_first=True,
+        )
         self.proj = nn.Linear(128, gin_channels)
 
     def forward(self, inputs):
@@ -527,23 +675,31 @@ class Quantizer_module(torch.nn.Module):
         self.embedding.weight.data.uniform_(-1.0 / n_e, 1.0 / n_e)
 
     def forward(self, x):
-        d = torch.sum(x ** 2, 1, keepdim=True) + torch.sum(self.embedding.weight ** 2, 1) - 2 * torch.matmul(x, self.embedding.weight.T)
+        d = (
+            torch.sum(x**2, 1, keepdim=True)
+            + torch.sum(self.embedding.weight**2, 1)
+            - 2 * torch.matmul(x, self.embedding.weight.T)
+        )
         min_indicies = torch.argmin(d, 1)
         z_q = self.embedding(min_indicies)
         return z_q, min_indicies
+
 
 class Quantizer(torch.nn.Module):
     def __init__(self, embed_dim=512, n_code_groups=4, n_codes=160):
         super(Quantizer, self).__init__()
         assert embed_dim % n_code_groups == 0
-        self.quantizer_modules = nn.ModuleList([
-            Quantizer_module(n_codes, embed_dim // n_code_groups) for _ in range(n_code_groups)
-        ])
+        self.quantizer_modules = nn.ModuleList(
+            [
+                Quantizer_module(n_codes, embed_dim // n_code_groups)
+                for _ in range(n_code_groups)
+            ]
+        )
         self.n_code_groups = n_code_groups
         self.embed_dim = embed_dim
 
     def forward(self, xin):
-        #B, C, T
+        # B, C, T
         B, C, T = xin.shape
         xin = xin.transpose(1, 2)
         x = xin.reshape(-1, self.embed_dim)
@@ -553,38 +709,41 @@ class Quantizer(torch.nn.Module):
         for _x, m in zip(x, self.quantizer_modules):
             _z_q, _min_indicies = m(_x)
             z_q.append(_z_q)
-            min_indicies.append(_min_indicies) #B * T,
+            min_indicies.append(_min_indicies)  # B * T,
         z_q = torch.cat(z_q, -1).reshape(xin.shape)
-        loss = 0.25 * torch.mean((z_q.detach() - xin) ** 2) + torch.mean((z_q - xin.detach()) ** 2)
+        loss = 0.25 * torch.mean((z_q.detach() - xin) ** 2) + torch.mean(
+            (z_q - xin.detach()) ** 2
+        )
         z_q = xin + (z_q - xin).detach()
         z_q = z_q.transpose(1, 2)
         codes = torch.stack(min_indicies, -1).reshape(B, T, self.n_code_groups)
         return z_q, loss, codes.transpose(1, 2)
 
     def embed(self, x):
-        #idx: N, 4, T
-        x=x.transpose(1, 2)
+        # idx: N, 4, T
+        x = x.transpose(1, 2)
         x = torch.split(x, 1, 2)
         ret = []
         for q, embed in zip(x, self.quantizer_modules):
             q = embed.embedding(q.squeeze(-1))
             ret.append(q)
         ret = torch.cat(ret, -1)
-        return ret.transpose(1, 2) #N, C, T
+        return ret.transpose(1, 2)  # N, C, T
 
 
 class CodePredictor(nn.Module):
-    def __init__(self,
-                 hidden_channels,
-                 filter_channels,
-                 n_heads,
-                 n_layers,
-                 kernel_size,
-                 p_dropout,
-                 n_q=8,
-                 dims=1024,
-                 ssl_dim=768
-                 ):
+    def __init__(
+        self,
+        hidden_channels,
+        filter_channels,
+        n_heads,
+        n_layers,
+        kernel_size,
+        p_dropout,
+        n_q=8,
+        dims=1024,
+        ssl_dim=768,
+    ):
         super().__init__()
         self.hidden_channels = hidden_channels
         self.filter_channels = filter_channels
@@ -594,19 +753,18 @@ class CodePredictor(nn.Module):
         self.p_dropout = p_dropout
 
         self.vq_proj = nn.Conv1d(ssl_dim, hidden_channels, 1)
-        self.ref_enc = modules.MelStyleEncoder(ssl_dim, style_vector_dim=hidden_channels)
+        self.ref_enc = modules.MelStyleEncoder(
+            ssl_dim, style_vector_dim=hidden_channels
+        )
 
         self.encoder = attentions.Encoder(
-            hidden_channels,
-            filter_channels,
-            n_heads,
-            n_layers,
-            kernel_size,
-            p_dropout)
+            hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout
+        )
 
-        self.out_proj = nn.Conv1d(hidden_channels, (n_q-1) * dims, 1)
+        self.out_proj = nn.Conv1d(hidden_channels, (n_q - 1) * dims, 1)
         self.n_q = n_q
         self.dims = dims
+
     def forward(self, x, x_mask, refer, codes, infer=False):
         x = x.detach()
         x = self.vq_proj(x * x_mask) * x_mask
@@ -614,7 +772,9 @@ class CodePredictor(nn.Module):
         x = x + g
         x = self.encoder(x * x_mask, x_mask)
         x = self.out_proj(x * x_mask) * x_mask
-        logits = x.reshape(x.shape[0], self.n_q - 1, self.dims, x.shape[-1]).transpose(2, 3)
+        logits = x.reshape(x.shape[0], self.n_q - 1, self.dims, x.shape[-1]).transpose(
+            2, 3
+        )
         target = codes[1:].transpose(0, 1)
         if not infer:
             logits = logits.reshape(-1, self.dims)
@@ -626,44 +786,44 @@ class CodePredictor(nn.Module):
             correct_top10 = torch.any(top10_preds == target.unsqueeze(-1), dim=-1)
             top3_acc = 100 * torch.mean(correct_top10.float()).detach().cpu().item()
 
-            print('Top-10 Accuracy:', top3_acc, "%")
+            print("Top-10 Accuracy:", top3_acc, "%")
 
             pred_codes = torch.argmax(logits, dim=-1)
             acc = 100 * torch.mean((pred_codes == target).float()).detach().cpu().item()
-            print('Top-1 Accuracy:', acc, "%")
+            print("Top-1 Accuracy:", acc, "%")
 
             return pred_codes.transpose(0, 1)
 
 
-
 class SynthesizerTrn(nn.Module):
     """
-  Synthesizer for Training
-  """
+    Synthesizer for Training
+    """
 
-    def __init__(self,
-                 spec_channels,
-                 segment_size,
-                 inter_channels,
-                 hidden_channels,
-                 filter_channels,
-                 n_heads,
-                 n_layers,
-                 kernel_size,
-                 p_dropout,
-                 resblock,
-                 resblock_kernel_sizes,
-                 resblock_dilation_sizes,
-                 upsample_rates,
-                 upsample_initial_channel,
-                 upsample_kernel_sizes,
-                 n_speakers=0,
-                 gin_channels=0,
-                 use_sdp=True,
-                 semantic_frame_rate=None,
-                 freeze_quantizer=None,
-                 **kwargs):
-
+    def __init__(
+        self,
+        spec_channels,
+        segment_size,
+        inter_channels,
+        hidden_channels,
+        filter_channels,
+        n_heads,
+        n_layers,
+        kernel_size,
+        p_dropout,
+        resblock,
+        resblock_kernel_sizes,
+        resblock_dilation_sizes,
+        upsample_rates,
+        upsample_initial_channel,
+        upsample_kernel_sizes,
+        n_speakers=0,
+        gin_channels=0,
+        use_sdp=True,
+        semantic_frame_rate=None,
+        freeze_quantizer=None,
+        **kwargs
+    ):
         super().__init__()
         self.spec_channels = spec_channels
         self.inter_channels = inter_channels
@@ -685,34 +845,50 @@ class SynthesizerTrn(nn.Module):
 
         self.use_sdp = use_sdp
         self.enc_p = TextEncoder(
-                                 inter_channels,
-                                 hidden_channels,
-                                 filter_channels,
-                                 n_heads,
-                                 n_layers,
-                                 kernel_size,
-                                 p_dropout)
-        self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates,
-                             upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
-        self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, 16,
-                                      gin_channels=gin_channels)
-        self.flow = ResidualCouplingBlock(inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels)
+            inter_channels,
+            hidden_channels,
+            filter_channels,
+            n_heads,
+            n_layers,
+            kernel_size,
+            p_dropout,
+        )
+        self.dec = Generator(
+            inter_channels,
+            resblock,
+            resblock_kernel_sizes,
+            resblock_dilation_sizes,
+            upsample_rates,
+            upsample_initial_channel,
+            upsample_kernel_sizes,
+            gin_channels=gin_channels,
+        )
+        self.enc_q = PosteriorEncoder(
+            spec_channels,
+            inter_channels,
+            hidden_channels,
+            5,
+            1,
+            16,
+            gin_channels=gin_channels,
+        )
+        self.flow = ResidualCouplingBlock(
+            inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels
+        )
 
-        self.ref_enc = modules.MelStyleEncoder(spec_channels, style_vector_dim=gin_channels)
+        self.ref_enc = modules.MelStyleEncoder(
+            spec_channels, style_vector_dim=gin_channels
+        )
 
         ssl_dim = 768
-        assert semantic_frame_rate in ['25hz', "50hz"]
+        assert semantic_frame_rate in ["25hz", "50hz"]
         self.semantic_frame_rate = semantic_frame_rate
-        if semantic_frame_rate == '25hz':
+        if semantic_frame_rate == "25hz":
             self.ssl_proj = nn.Conv1d(ssl_dim, ssl_dim, 2, stride=2)
         else:
             self.ssl_proj = nn.Conv1d(ssl_dim, ssl_dim, 1, stride=1)
 
-        self.quantizer = ResidualVectorQuantizer(
-            dimension=ssl_dim,
-            n_q=1,
-            bins=1024
-        )
+        self.quantizer = ResidualVectorQuantizer(dimension=ssl_dim, n_q=1, bins=1024)
         if freeze_quantizer:
             self.ssl_proj.requires_grad_(False)
             self.quantizer.requires_grad_(False)
@@ -721,56 +897,85 @@ class SynthesizerTrn(nn.Module):
             # self.enc_p.mrte.requires_grad_(False)
 
     def forward(self, ssl, y, y_lengths, text, text_lengths):
-        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(y.dtype)
+        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(
+            y.dtype
+        )
         ge = self.ref_enc(y * y_mask, y_mask)
 
         with autocast(enabled=False):
             ssl = self.ssl_proj(ssl)
-            quantized, codes, commit_loss, quantized_list = self.quantizer(ssl, layers=[0])
+            quantized, codes, commit_loss, quantized_list = self.quantizer(
+                ssl, layers=[0]
+            )
 
-        if self.semantic_frame_rate == '25hz':
-            quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
+        if self.semantic_frame_rate == "25hz":
+            quantized = F.interpolate(
+                quantized, size=int(quantized.shape[-1] * 2), mode="nearest"
+            )
 
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
+        x, m_p, logs_p, y_mask = self.enc_p(
+            quantized, y_lengths, text, text_lengths, ge
+        )
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=ge)
         z_p = self.flow(z, y_mask, g=ge)
 
-        z_slice, ids_slice = commons.rand_slice_segments(z, y_lengths, self.segment_size)
+        z_slice, ids_slice = commons.rand_slice_segments(
+            z, y_lengths, self.segment_size
+        )
         o = self.dec(z_slice, g=ge)
-        return o, commit_loss, ids_slice, y_mask, y_mask, (z, z_p, m_p, logs_p, m_q, logs_q), quantized
+        return (
+            o,
+            commit_loss,
+            ids_slice,
+            y_mask,
+            y_mask,
+            (z, z_p, m_p, logs_p, m_q, logs_q),
+            quantized,
+        )
 
     def infer(self, ssl, y, y_lengths, text, text_lengths, test=None, noise_scale=0.5):
-        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(y.dtype)
+        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(
+            y.dtype
+        )
         ge = self.ref_enc(y * y_mask, y_mask)
 
-        ssl =  self.ssl_proj(ssl)
+        ssl = self.ssl_proj(ssl)
         quantized, codes, commit_loss, _ = self.quantizer(ssl, layers=[0])
-        if self.semantic_frame_rate == '25hz':
-            quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
+        if self.semantic_frame_rate == "25hz":
+            quantized = F.interpolate(
+                quantized, size=int(quantized.shape[-1] * 2), mode="nearest"
+            )
 
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge, test=test)
+        x, m_p, logs_p, y_mask = self.enc_p(
+            quantized, y_lengths, text, text_lengths, ge, test=test
+        )
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
 
         o = self.dec((z * y_mask)[:, :, :], g=ge)
-        return o,y_mask, (z, z_p, m_p, logs_p)
-
+        return o, y_mask, (z, z_p, m_p, logs_p)
 
     @torch.no_grad()
-    def decode(self, codes,text, refer, noise_scale=0.5):
+    def decode(self, codes, text, refer, noise_scale=0.5):
         refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
-        refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, refer.size(2)), 1).to(refer.dtype)
+        refer_mask = torch.unsqueeze(
+            commons.sequence_mask(refer_lengths, refer.size(2)), 1
+        ).to(refer.dtype)
         ge = self.ref_enc(refer * refer_mask, refer_mask)
 
-        y_lengths = torch.LongTensor([codes.size(2)*2]).to(codes.device)
+        y_lengths = torch.LongTensor([codes.size(2) * 2]).to(codes.device)
         text_lengths = torch.LongTensor([text.size(-1)]).to(text.device)
 
         quantized = self.quantizer.decode(codes)
-        if self.semantic_frame_rate == '25hz':
-            quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
+        if self.semantic_frame_rate == "25hz":
+            quantized = F.interpolate(
+                quantized, size=int(quantized.shape[-1] * 2), mode="nearest"
+            )
 
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
+        x, m_p, logs_p, y_mask = self.enc_p(
+            quantized, y_lengths, text, text_lengths, ge
+        )
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
@@ -779,6 +984,6 @@ class SynthesizerTrn(nn.Module):
         return o
 
     def extract_latent(self, x):
-        ssl =  self.ssl_proj(x)
+        ssl = self.ssl_proj(x)
         quantized, codes, commit_loss, quantized_list = self.quantizer(ssl)
-        return codes.transpose(0,1)
+        return codes.transpose(0, 1)

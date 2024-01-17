@@ -71,6 +71,8 @@ conda install ffmpeg
 
 ```bash
 sudo apt install ffmpeg
+sudo apt install libsox-dev
+conda install -c conda-forge 'ffmpeg<7'
 ```
 
 ##### MacOS Users

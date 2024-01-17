@@ -18,3 +18,4 @@ modelscope
 sentencepiece
 transformers
 chardet
+PyYAML
