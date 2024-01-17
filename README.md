@@ -34,6 +34,21 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ## Requirements (How to Install)
 
+### Visual Studio Enterprise 2017 (for windows)
+Before installing this project, please check if you have Visual studio Enterprise 2017, as version 2022 will cause issues with pyopenjtalk. If you dont have it installed, you can subscribe to **Visual Studio Dev Essentials**(free) by clicking [here](https://my.visualstudio.com/Subscriptions).
+
+Then, install Visual Studio Enterprise 2017 by clicking[here](https://my.visualstudio.com/Downloads?q=Visual%20Studio%202017), choose the top one that says **Visual Studio Enterprise 2017** and click **Download**. Finally, follow the instructions to install Visual Studio Enterprise 2017 on your windows computer.
+
+### Add cmake and hostx64 into *Path* in System Environment Variables
+Please add these two file directories into **Path** in System Environment Variables (type environment in Windows search bar, click '**Edit the system environment variables**', then click **Environment Variables**
+```bash
+{Your path for VS 2017}\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin
+{Your path for VS 2017}\VC\Tools\MSVC\14.16.27023\bin\Hostx64\x64
+```
+
+**Special thanks to YulKe on CSDN in providing [this tutorial](https://blog.csdn.net/weixin_42033112/article/details/133427964).
+
+
 ### Python and PyTorch Version
 
 Tested with Python 3.9, PyTorch 2.0.1, and CUDA 11.
