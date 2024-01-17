@@ -1,13 +1,31 @@
-# GPT-SoVITS - Voice Conversion and Text-to-Speech WebUI
+<div align="center">
 
-## Demo Video and Features
+<h1>GPT-SoVITS</h1>
+A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI based on VITS.<br><br>
 
-Check out our demo video in Chinese: [Bilibili Demo](https://www.bilibili.com/video/BV12g4y1m7Uw/)
+[![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange
+)](https://github.com/RVC-Boss/GPT-SoVITS)
+
+<img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
+
+[![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
+[![Huggingface](https://img.shields.io/badge/🤗%20-Spaces-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
+
+[![Discord](https://img.shields.io/badge/RVC%20Developers-Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/HcsmBBGyVk)
+
+[**English**](./README.md) | [**中文简体**](./docs/cn/README.md)
+
+</div>
+
+------
+
+
+
+> Check out our [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw) here!
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
-### Features:
-
+## Features:
 1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
 
 2. **Few-shot TTS:** Fine-tune the model with just 1 minute of training data for improved voice similarity and realism.
@@ -16,27 +34,11 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, Chinese ASR, and text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
 
-## Todo List
-
-0. **High Priority:**
-   - Localization in Japanese and English.
-   - User guide.
-
-1. **Features:**
-   - Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
-   - TTS speaking speed control.
-   - Enhanced TTS emotion control.
-   - Experiment with changing SoVITS token inputs to probability distribution of vocabs.
-   - Improve English and Japanese text frontend.
-   - Develop tiny and larger-sized TTS models.
-   - Colab scripts.
-   - Expand training dataset (2k -> 10k).
-
-## Requirements (How to Install)
+## Environment Preparation
 
 ### Python and PyTorch Version
 
-Tested with Python 3.9, PyTorch 2.0.1, and CUDA 11.
+Tested with Python 3.9, PyTorch 2.0.1, and CUDA 11. 
 
 ### Quick Install with Conda
 
@@ -85,14 +87,6 @@ brew install ffmpeg
 
 Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
 
-### Pretrained Models
-
-Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS\pretrained_models`.
-
-For Chinese ASR, download models from [Damo ASR Models](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files) and place them in `tools/damo_asr/models`.
-
-For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
-
 ## Dataset Format
 
 The TTS annotation .list file format:
@@ -101,18 +95,33 @@ The TTS annotation .list file format:
 vocal_path|speaker_name|language|text
 ```
 
-Example:
-
-```
-D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
-```
-
 Language dictionary:
 
 - 'zh': Chinese
 - 'ja': Japanese
 - 'en': English
 
+Example:
+
+```
+D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
+```
+## Todo List
+
+0. **High Priority:**
+   - Localization in Japanese and English.
+   - User guide.
+
+1. **Features:**
+   - Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
+   - TTS speaking speed control.
+   - Enhanced TTS emotion control.
+   - Experiment with changing SoVITS token inputs to probability distribution of vocabs.
+   - Improve English and Japanese text frontend.
+   - Develop tiny and larger-sized TTS models.
+   - Colab scripts.
+   - Expand training dataset (2k -> 10k).
+   
 ## Credits
 
 Special thanks to the following projects and contributors:
@@ -131,3 +140,8 @@ Special thanks to the following projects and contributors:
 - [SubFix](https://github.com/cronrpc/SubFix)
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - [gradio](https://github.com/gradio-app/gradio)
+
+## Thanks to all contributors for their efforts
+<a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
+  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
+</a>
