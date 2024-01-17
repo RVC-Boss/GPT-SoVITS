@@ -7,7 +7,7 @@ pytorch-lightning
 gradio==3.14.0
 ffmpeg-python
 onnxruntime
-tqdm==4.59.0
+tqdm
 funasr
 cn2an
 pypinyin
@@ -17,3 +17,4 @@ torchaudio
 modelscope
 sentencepiece
 transformers
+chardet
