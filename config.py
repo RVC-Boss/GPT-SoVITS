@@ -1,3 +1,4 @@
+import sys
 is_half=True
 exp_root="logs"
 python_exec=sys.executable or "python"
