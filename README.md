@@ -108,19 +108,19 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 ## Todo List
 
-0. **High Priority:**
-   - Localization in Japanese and English.
-   - User guide.
+- [ ] **High Priority:**
+   - [ ] Localization in Japanese and English.
+   - [ ] User guide.
 
-1. **Features:**
-   - Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
-   - TTS speaking speed control.
-   - Enhanced TTS emotion control.
-   - Experiment with changing SoVITS token inputs to probability distribution of vocabs.
-   - Improve English and Japanese text frontend.
-   - Develop tiny and larger-sized TTS models.
-   - Colab scripts.
-   - Expand training dataset (2k -> 10k).
+- [ ] **Features:**
+   - [ ] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
+   - [ ] TTS speaking speed control.
+   - [ ] Enhanced TTS emotion control.
+   - [ ] Experiment with changing SoVITS token inputs to probability distribution of vocabs.
+   - [ ] Improve English and Japanese text frontend.
+   - [ ] Develop tiny and larger-sized TTS models.
+   - [ ] Colab scripts.
+   - [ ] Expand training dataset (2k -> 10k).
    
 ## Credits
 
