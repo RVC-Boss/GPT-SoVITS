@@ -24,7 +24,7 @@ import gradio as gr
 from subprocess import Popen
 import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix
-from i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 from scipy.io import wavfile
 from tools.my_utils import load_audio
