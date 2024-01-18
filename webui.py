@@ -12,13 +12,19 @@ tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
 import site
-site_packages_root="%s/runtime/Lib/site-packages"%now_dir
+site_packages_roots = []
 for path in site.getsitepackages():
-    if("site-packages"in path):site_packages_root=path
-os.environ["OPENBLAS_NUM_THREADS"] = "4"
+    if "packages" in path:
+        site_packages_roots.append(path)
+if(site_packages_roots==[]):site_packages_roots=["%s/runtime/Lib/site-packages" % now_dir]
+#os.environ["OPENBLAS_NUM_THREADS"] = "4"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
-with open("%s/users.pth"%(site_packages_root),"w")as f:
-    f.write("%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"%(now_dir,now_dir,now_dir,now_dir,now_dir))
+for site_packages_root in site_packages_roots:
+    with open("%s/users.pth" % (site_packages_root), "w") as f:
+        f.write(
+            "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+            % (now_dir, now_dir, now_dir, now_dir, now_dir)
+        )
 import traceback
 sys.path.append(now_dir)
 import shutil
