@@ -1,5 +1,8 @@
 import json,yaml,warnings,torch
 import platform
+import psutil
+import os
+import signal
 
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
@@ -30,7 +33,7 @@ from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
 n_cpu=cpu_count()
-
+           
 # 判断是否有能用来训练和加速推理的N卡
 ngpu = torch.cuda.device_count()
 gpu_infos = []
@@ -78,15 +81,33 @@ p_uvr5=None
 p_asr=None
 p_tts_inference=None
 
+def kill_proc_tree(pid, including_parent=True):  
+    try:
+        parent = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        # Process already terminated
+        return
+
+    children = parent.children(recursive=True)
+    for child in children:
+        try:
+            os.kill(child.pid, signal.SIGTERM)  # or signal.SIGKILL
+        except OSError:
+            pass
+    if including_parent:
+        try:
+            os.kill(parent.pid, signal.SIGTERM)  # or signal.SIGKILL
+        except OSError:
+            pass
+
 system=platform.system()
 def kill_process(pid):
     if(system=="Windows"):
         cmd = "taskkill /t /f /pid %s" % pid
+        os.system(cmd)
     else:
-        cmd = "kill -9 %s"%pid
-    print(cmd)
-    os.system(cmd)###linux上杀了webui，可能还会没杀干净。。。
-    # os.kill(p_label.pid,19)#主进程#控制台进程#python子进程###不好使，连主进程的webui一起关了，辣鸡
+        kill_proc_tree(pid)
+    
 
 def change_label(if_label,path_list):
     global p_label
