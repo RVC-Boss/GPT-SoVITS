@@ -56,8 +56,7 @@ else:
 def name2go(wav_name):
     hubert_path="%s/%s.pt"%(hubert_dir,wav_name)
     if(os.path.exists(hubert_path)):return
-    if(inp_wav_dir!=""):
-        wav_path="%s/%s"%(inp_wav_dir,wav_name)
+    wav_path="%s/%s"%(inp_wav_dir,wav_name)
     tmp_audio = load_audio(wav_path, 32000)
     tmp_max = np.abs(tmp_audio).max()
     if tmp_max > 2.2:
