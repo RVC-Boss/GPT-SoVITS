@@ -532,7 +532,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
             ps1abc=[]
             #############################1c
             path_semantic = "%s/6-name2semantic.tsv" % opt_dir
-            if(os.path.exists(path_semantic)==False or (os.path.exists(path_semantic)==True and os.path.getsize(path_semantic)<28)):
+            if(os.path.exists(path_semantic)==False or (os.path.exists(path_semantic)==True and os.path.getsize(path_semantic)<31)):
                 config={
                     "inp_text":inp_text,
                     "exp_name":exp_name,
