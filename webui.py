@@ -317,11 +317,12 @@ ps1a=[]
 def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
     if (ps1a == []):
+        opt_dir="%s/%s"%(exp_root,exp_name)
         config={
             "inp_text":inp_text,
             "inp_wav_dir":inp_wav_dir,
             "exp_name":exp_name,
-            "opt_dir":"%s/%s"%(exp_root,exp_name),
+            "opt_dir":opt_dir,
             "bert_pretrained_dir":bert_pretrained_dir,
         }
         gpu_names=gpu_numbers.split("-")
@@ -335,7 +336,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
                     "is_half": str(is_half)
                 }
             )
-            os.environ.update(config)
+            os.environ.update(config)#
             cmd = '"%s" GPT_SoVITS/prepare_datasets/1-get-text.py'%python_exec
             print(cmd)
             p = Popen(cmd, shell=True)
@@ -343,6 +344,15 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
         yield "文本进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1a:
             p.wait()
+        opt = []
+        for i_part in range(all_parts):
+            txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
+            with open(txt_path, "r", encoding="utf8") as f:
+                opt += f.read().strip("\n").split("\n")
+            os.remove(txt_path)
+        path_text = "%s/2-name2text.txt" % opt_dir
+        with open(path_text, "w", encoding="utf8") as f:
+            f.write("\n".join(opt) + "\n")
         ps1a=[]
         yield "文本进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
@@ -426,10 +436,11 @@ ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
     if (ps1c == []):
+        opt_dir="%s/%s"%(exp_root,exp_name)
         config={
             "inp_text":inp_text,
             "exp_name":exp_name,
-            "opt_dir":"%s/%s"%(exp_root,exp_name),
+            "opt_dir":opt_dir,
             "pretrained_s2G":pretrained_s2G_path,
             "s2config_path":"GPT_SoVITS/configs/s2.json",
             "is_half": str(is_half)
@@ -452,6 +463,15 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
         yield "语义token提取进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1c:
             p.wait()
+        opt = ["item_name	semantic_audio"]
+        path_semantic = "%s/6-name2semantic.tsv" % opt_dir
+        for i_part in range(all_parts):
+            semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
+            with open(semantic_path, "r", encoding="utf8") as f:
+                opt += f.read().strip("\n").split("\n")
+            os.remove(semantic_path)
+        with open(path_semantic, "w", encoding="utf8") as f:
+            f.write("\n".join(opt) + "\n")
         ps1c=[]
         yield "语义token提取进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
@@ -476,7 +496,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
         try:
             #############################1a
             path_text="%s/2-name2text.txt" % opt_dir
-            if(os.path.exists(path_text)==False):
+            if(os.path.exists(path_text)==False or (os.path.exists(path_text)==True and os.path.getsize(path_text)<10)):
                 config={
                     "inp_text":inp_text,
                     "inp_wav_dir":inp_wav_dir,
@@ -543,7 +563,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
             ps1abc=[]
             #############################1c
             path_semantic = "%s/6-name2semantic.tsv" % opt_dir
-            if(os.path.exists(path_semantic)==False):
+            if(os.path.exists(path_semantic)==False or (os.path.exists(path_semantic)==True and os.path.getsize(path_semantic)<28)):
                 config={
                     "inp_text":inp_text,
                     "exp_name":exp_name,
