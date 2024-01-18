@@ -736,6 +736,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     app.queue(concurrency_count=511, max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
+        share=True,
         server_port=webui_port_main,
         quiet=True,
     )
