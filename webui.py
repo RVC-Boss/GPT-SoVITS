@@ -179,10 +179,6 @@ def close_asr():
         p_asr=None
     return "已终止ASR进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
-'''
-            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D], [info1Bb,button1Ba_open,button1Ba_close])
-            button1Ba_close.click(close1Ba, [], [info1Bb,button1Ba_open,button1Ba_close])
-'''
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
     global p_train_SoVITS
@@ -303,16 +299,6 @@ def close_slice():
         ps_slice=[]
     return "已终止所有切割进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
-'''
-inp_text=                           os.environ.get("inp_text")
-inp_wav_dir=                        os.environ.get("inp_wav_dir")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")#"/data/docker/liujing04/gpt-vits/fine_tune_dataset/%s"%exp_name
-bert_pretrained_dir=                os.environ.get("bert_pretrained_dir")#"/data/docker/liujing04/bert-vits2/Bert-VITS2-master20231106/bert/chinese-roberta-wwm-ext-large"
-'''
 ps1a=[]
 def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
@@ -368,16 +354,7 @@ def close1a():
                 traceback.print_exc()
         ps1a=[]
     return "已终止所有1a进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
-'''
-inp_text=                           os.environ.get("inp_text")
-inp_wav_dir=                        os.environ.get("inp_wav_dir")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")
-cnhubert.cnhubert_base_path=                os.environ.get("cnhubert_base_dir")
-'''
+
 ps1b=[]
 def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
     global ps1b
@@ -423,15 +400,7 @@ def close1b():
                 traceback.print_exc()
         ps1b=[]
     return "已终止所有1b进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
-'''
-inp_text=                           os.environ.get("inp_text")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")
-pretrained_s2G=                     os.environ.get("pretrained_s2G")
-'''
+
 ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
@@ -682,7 +651,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 gr.Markdown(value="输出logs/实验名目录下应有23456开头的文件和文件夹")
                 with gr.Row():
                     inp_text = gr.Textbox(label="*文本标注文件",value=r"D:\RVC1006\GPT-SoVITS\raw\xxx.list",interactive=True)
-                    inp_wav_dir = gr.Textbox(label="*训练集音频文件目录",value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",interactive=True)
+                    inp_wav_dir = gr.Textbox(
+                        label="*训练集音频文件目录",
+                        # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
+                        interactive=True,
+                        placeholder="训练集音频文件目录拼list文件的目录。如果list文件已经是绝对路径，这里应该为空。"
+                    )
                 gr.Markdown(value="1Aa-文本内容")
                 with gr.Row():
                     gpu_numbers1a = gr.Textbox(label="GPU卡号以-分割，每个卡号一个进程",value="%s-%s"%(gpus,gpus),interactive=True)
@@ -759,15 +733,6 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     tts_info = gr.Textbox(label="TTS推理WebUI进程输出信息")
                     if_tts.change(change_tts_inference, [if_tts,bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown], [tts_info])
         with gr.TabItem("2-GPT-SoVITS-变声"):gr.Markdown(value="施工中，请静候佳音")
-
-    '''
-            os.environ["gpt_path"]=gpt_path
-            os.environ["sovits_path"]=sovits_path#bert_pretrained_dir
-            os.environ["cnhubert_base_path"]=cnhubert_base_path#cnhubert_base_dir
-            os.environ["bert_path"]=bert_path
-            os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_number
-    '''
-
     app.queue(concurrency_count=511, max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
