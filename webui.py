@@ -655,7 +655,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         label="*训练集音频文件目录",
                         # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
                         interactive=True,
-                        placeholder="训练集音频文件目录拼list文件的目录。如果list文件已经是绝对路径，这里应该为空。"
+                        placeholder="训练集音频文件目录 拼接 list文件里波形对应的文件名。"
                     )
                 gr.Markdown(value="1Aa-文本内容")
                 with gr.Row():
