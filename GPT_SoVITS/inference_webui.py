@@ -175,6 +175,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         dtype=np.float16 if is_half == True else np.float32,
     )
     for text in texts:
+        # 解决输入目标文本的空行导致报错的问题
+        if (len(text.strip()) == 0):
+            continue
         phones2, word2ph2, norm_text2 = clean_text(text, text_language)
         phones2 = cleaned_text_to_sequence(phones2)
         if prompt_language == "zh":
