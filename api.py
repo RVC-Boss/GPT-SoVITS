@@ -19,16 +19,17 @@ from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from module.mel_processing import spectrogram_torch
 from my_utils import load_audio
+from config import python_exec, infer_device, is_half, api_port
 
-DEFAULT_PORT = 9880
+DEFAULT_PORT = api_port
 DEFAULT_CNHUBERT = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 DEFAULT_BERT = "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
-DEFAULT_HALF = True
+DEFAULT_HALF = is_half
 
 DEFAULT_GPT = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
 DEFAULT_SOVITS = "GPT_SoVITS/pretrained_models/s2G488k.pth"
 
-AVAILABLE_COMPUTE = "cuda" if torch.cuda.is_available() else "cpu"
+# AVAILABLE_COMPUTE = "cuda" if torch.cuda.is_available() else "cpu"
 
 parser = argparse.ArgumentParser(description="GPT-SoVITS api")
 
@@ -40,7 +41,7 @@ parser.add_argument("-dr", "--default_refer_path", type=str, default="",
 parser.add_argument("-dt", "--default_refer_text", type=str, default="", help="默认参考音频文本")
 parser.add_argument("-dl", "--default_refer_language", type=str, default="", help="默认参考音频语种")
 
-parser.add_argument("-d", "--device", type=str, default=AVAILABLE_COMPUTE, help="cuda / cpu")
+parser.add_argument("-d", "--device", type=str, default=infer_device, help="cuda / cpu")
 parser.add_argument("-p", "--port", type=int, default=DEFAULT_PORT, help="default: 9880")
 parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 127.0.0.1")
 parser.add_argument("-hp", "--half_precision", action='store_true', default=False)
@@ -253,14 +254,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
     yield hps.data.sampling_rate, (np.concatenate(audio_opt, 0) * 32768).astype(np.int16)
 
 
-def restart():
-    python = sys.executable
-    os.execl(python, python, *sys.argv)
-
-
 def handle(command, refer_wav_path, prompt_text, prompt_language, text, text_language):
     if command == "/restart":
-        restart()
+        os.execl(python_exec, python_exec, *sys.argv)
     elif command == "/exit":
         os.kill(os.getpid(), signal.SIGTERM)
         exit(0)
