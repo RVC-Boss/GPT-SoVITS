@@ -20,3 +20,6 @@ transformers
 chardet
 PyYAML
 psutil
+soundfile
+fastapi
+uvicorn
