@@ -19,12 +19,13 @@ from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from module.mel_processing import spectrogram_torch
 from my_utils import load_audio
-from config import python_exec, infer_device, is_half, api_port
+from config import python_exec, infer_device, api_port
+from config import is_half as config_is_half
 
 DEFAULT_PORT = api_port
 DEFAULT_CNHUBERT = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 DEFAULT_BERT = "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
-DEFAULT_HALF = is_half
+DEFAULT_HALF = config_is_half
 
 DEFAULT_GPT = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
 DEFAULT_SOVITS = "GPT_SoVITS/pretrained_models/s2G488k.pth"
@@ -44,7 +45,8 @@ parser.add_argument("-dl", "--default_refer_language", type=str, default="", hel
 parser.add_argument("-d", "--device", type=str, default=infer_device, help="cuda / cpu")
 parser.add_argument("-p", "--port", type=int, default=DEFAULT_PORT, help="default: 9880")
 parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 127.0.0.1")
-parser.add_argument("-hp", "--half_precision", action='store_true', default=False)
+parser.add_argument("-fp", "--full_precision", action='store_true', default=False, help="覆盖config.py使用全精度")
+parser.add_argument("-hp", "--half_precision", action='store_true', default=False, help="覆盖config.py使用半精度")
 
 parser.add_argument("-hb", "--hubert_path", type=str, default=DEFAULT_CNHUBERT)
 parser.add_argument("-b", "--bert_path", type=str, default=DEFAULT_BERT)
@@ -62,7 +64,6 @@ has_preset = False
 device = args.device
 port = args.port
 host = args.bind_addr
-is_half = args.half_precision
 
 cnhubert_base_path = args.hubert_path
 bert_path = args.bert_path
@@ -84,17 +85,25 @@ else:
     print(f"[INFO] 默认参考音频语种: {default_refer_language}")
     has_preset = True
 
+is_half = DEFAULT_HALF
+if args.full_precision:
+    is_half = False
+if args.half_precision:
+    is_half = True
+if args.full_precision and args.half_precision:
+    is_half = DEFAULT_HALF  # 炒饭fallback
+
+print(f"[INFO] 半精: {is_half}")
+
 cnhubert.cnhubert_base_path = cnhubert_base_path
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
-# bert_model = AutoModelForSequenceClassification.from_pretrained(bert_path, config=bert_path+"/config.json")
 if (is_half == True):
     bert_model = bert_model.half().to(device)
 else:
     bert_model = bert_model.to(device)
 
 
-# bert_model=bert_model.to(device)
 def get_bert_feature(text, word2ph):
     with torch.no_grad():
         inputs = tokenizer(text, return_tensors="pt")
