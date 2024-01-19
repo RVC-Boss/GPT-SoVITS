@@ -20,11 +20,12 @@ if(site_packages_roots==[]):site_packages_roots=["%s/runtime/Lib/site-packages" 
 #os.environ["OPENBLAS_NUM_THREADS"] = "4"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 for site_packages_root in site_packages_roots:
-    with open("%s/users.pth" % (site_packages_root), "w") as f:
-        f.write(
-            "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
-            % (now_dir, now_dir, now_dir, now_dir, now_dir)
-        )
+    if os.path.exists("%s/users.pth" % (site_packages_root)):
+        with open("%s/users.pth" % (site_packages_root), "w") as f:
+            f.write(
+                "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+                % (now_dir, now_dir, now_dir, now_dir, now_dir)
+            )
 import traceback
 sys.path.append(now_dir)
 import shutil
