@@ -1,5 +1,8 @@
 import json,yaml,warnings,torch
 import platform
+import psutil
+import os
+import signal
 
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
@@ -9,13 +12,20 @@ tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
 import site
-site_packages_root="%s/runtime/Lib/site-packages"%now_dir
+site_packages_roots = []
 for path in site.getsitepackages():
-    if("site-packages"in path):site_packages_root=path
-os.environ["OPENBLAS_NUM_THREADS"] = "4"
+    if "packages" in path:
+        site_packages_roots.append(path)
+if(site_packages_roots==[]):site_packages_roots=["%s/runtime/Lib/site-packages" % now_dir]
+#os.environ["OPENBLAS_NUM_THREADS"] = "4"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
-with open("%s/users.pth"%(site_packages_root),"w")as f:
-    f.write("%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"%(now_dir,now_dir,now_dir,now_dir,now_dir))
+for site_packages_root in site_packages_roots:
+    if os.path.exists(site_packages_root):
+        with open("%s/users.pth" % (site_packages_root), "w") as f:
+            f.write(
+                "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+                % (now_dir, now_dir, now_dir, now_dir, now_dir)
+            )
 import traceback
 sys.path.append(now_dir)
 import shutil
@@ -24,13 +34,13 @@ import gradio as gr
 from subprocess import Popen
 import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix
-from i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
 n_cpu=cpu_count()
-
+           
 # 判断是否有能用来训练和加速推理的N卡
 ngpu = torch.cuda.device_count()
 gpu_infos = []
@@ -78,15 +88,33 @@ p_uvr5=None
 p_asr=None
 p_tts_inference=None
 
+def kill_proc_tree(pid, including_parent=True):  
+    try:
+        parent = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        # Process already terminated
+        return
+
+    children = parent.children(recursive=True)
+    for child in children:
+        try:
+            os.kill(child.pid, signal.SIGTERM)  # or signal.SIGKILL
+        except OSError:
+            pass
+    if including_parent:
+        try:
+            os.kill(parent.pid, signal.SIGTERM)  # or signal.SIGKILL
+        except OSError:
+            pass
+
 system=platform.system()
 def kill_process(pid):
     if(system=="Windows"):
         cmd = "taskkill /t /f /pid %s" % pid
+        os.system(cmd)
     else:
-        cmd = "kill -9 %s"%pid
-    print(cmd)
-    os.system(cmd)###linux上杀了webui，可能还会没杀干净。。。
-    # os.kill(p_label.pid,19)#主进程#控制台进程#python子进程###不好使，连主进程的webui一起关了，辣鸡
+        kill_proc_tree(pid)
+    
 
 def change_label(if_label,path_list):
     global p_label
@@ -152,10 +180,6 @@ def close_asr():
         p_asr=None
     return "已终止ASR进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
-'''
-            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D], [info1Bb,button1Ba_open,button1Ba_close])
-            button1Ba_close.click(close1Ba, [], [info1Bb,button1Ba_open,button1Ba_close])
-'''
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
     global p_train_SoVITS
@@ -276,25 +300,16 @@ def close_slice():
         ps_slice=[]
     return "已终止所有切割进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
-'''
-inp_text=                           os.environ.get("inp_text")
-inp_wav_dir=                        os.environ.get("inp_wav_dir")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")#"/data/docker/liujing04/gpt-vits/fine_tune_dataset/%s"%exp_name
-bert_pretrained_dir=                os.environ.get("bert_pretrained_dir")#"/data/docker/liujing04/bert-vits2/Bert-VITS2-master20231106/bert/chinese-roberta-wwm-ext-large"
-'''
 ps1a=[]
 def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
     if (ps1a == []):
+        opt_dir="%s/%s"%(exp_root,exp_name)
         config={
             "inp_text":inp_text,
             "inp_wav_dir":inp_wav_dir,
             "exp_name":exp_name,
-            "opt_dir":"%s/%s"%(exp_root,exp_name),
+            "opt_dir":opt_dir,
             "bert_pretrained_dir":bert_pretrained_dir,
         }
         gpu_names=gpu_numbers.split("-")
@@ -308,7 +323,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
                     "is_half": str(is_half)
                 }
             )
-            os.environ.update(config)
+            os.environ.update(config)#
             cmd = '"%s" GPT_SoVITS/prepare_datasets/1-get-text.py'%python_exec
             print(cmd)
             p = Popen(cmd, shell=True)
@@ -316,6 +331,15 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
         yield "文本进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1a:
             p.wait()
+        opt = []
+        for i_part in range(all_parts):
+            txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
+            with open(txt_path, "r", encoding="utf8") as f:
+                opt += f.read().strip("\n").split("\n")
+            os.remove(txt_path)
+        path_text = "%s/2-name2text.txt" % opt_dir
+        with open(path_text, "w", encoding="utf8") as f:
+            f.write("\n".join(opt) + "\n")
         ps1a=[]
         yield "文本进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
@@ -331,16 +355,7 @@ def close1a():
                 traceback.print_exc()
         ps1a=[]
     return "已终止所有1a进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
-'''
-inp_text=                           os.environ.get("inp_text")
-inp_wav_dir=                        os.environ.get("inp_wav_dir")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")
-cnhubert.cnhubert_base_path=                os.environ.get("cnhubert_base_dir")
-'''
+
 ps1b=[]
 def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
     global ps1b
@@ -386,23 +401,16 @@ def close1b():
                 traceback.print_exc()
         ps1b=[]
     return "已终止所有1b进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
-'''
-inp_text=                           os.environ.get("inp_text")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")
-pretrained_s2G=                     os.environ.get("pretrained_s2G")
-'''
+
 ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
     if (ps1c == []):
+        opt_dir="%s/%s"%(exp_root,exp_name)
         config={
             "inp_text":inp_text,
             "exp_name":exp_name,
-            "opt_dir":"%s/%s"%(exp_root,exp_name),
+            "opt_dir":opt_dir,
             "pretrained_s2G":pretrained_s2G_path,
             "s2config_path":"GPT_SoVITS/configs/s2.json",
             "is_half": str(is_half)
@@ -425,6 +433,15 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
         yield "语义token提取进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1c:
             p.wait()
+        opt = ["item_name	semantic_audio"]
+        path_semantic = "%s/6-name2semantic.tsv" % opt_dir
+        for i_part in range(all_parts):
+            semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
+            with open(semantic_path, "r", encoding="utf8") as f:
+                opt += f.read().strip("\n").split("\n")
+            os.remove(semantic_path)
+        with open(path_semantic, "w", encoding="utf8") as f:
+            f.write("\n".join(opt) + "\n")
         ps1c=[]
         yield "语义token提取进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
@@ -449,7 +466,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
         try:
             #############################1a
             path_text="%s/2-name2text.txt" % opt_dir
-            if(os.path.exists(path_text)==False):
+            if(os.path.exists(path_text)==False or (os.path.exists(path_text)==True and os.path.getsize(path_text)<10)):
                 config={
                     "inp_text":inp_text,
                     "inp_wav_dir":inp_wav_dir,
@@ -516,7 +533,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
             ps1abc=[]
             #############################1c
             path_semantic = "%s/6-name2semantic.tsv" % opt_dir
-            if(os.path.exists(path_semantic)==False):
+            if(os.path.exists(path_semantic)==False or (os.path.exists(path_semantic)==True and os.path.getsize(path_semantic)<31)):
                 config={
                     "inp_text":inp_text,
                     "exp_name":exp_name,
@@ -635,7 +652,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 gr.Markdown(value="输出logs/实验名目录下应有23456开头的文件和文件夹")
                 with gr.Row():
                     inp_text = gr.Textbox(label="*文本标注文件",value=r"D:\RVC1006\GPT-SoVITS\raw\xxx.list",interactive=True)
-                    inp_wav_dir = gr.Textbox(label="*训练集音频文件目录",value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",interactive=True)
+                    inp_wav_dir = gr.Textbox(
+                        label="*训练集音频文件目录",
+                        # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
+                        interactive=True,
+                        placeholder="训练集音频文件目录 拼接 list文件里波形对应的文件名。"
+                    )
                 gr.Markdown(value="1Aa-文本内容")
                 with gr.Row():
                     gpu_numbers1a = gr.Textbox(label="GPU卡号以-分割，每个卡号一个进程",value="%s-%s"%(gpus,gpus),interactive=True)
@@ -712,18 +734,10 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     tts_info = gr.Textbox(label="TTS推理WebUI进程输出信息")
                     if_tts.change(change_tts_inference, [if_tts,bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown], [tts_info])
         with gr.TabItem("2-GPT-SoVITS-变声"):gr.Markdown(value="施工中，请静候佳音")
-
-    '''
-            os.environ["gpt_path"]=gpt_path
-            os.environ["sovits_path"]=sovits_path#bert_pretrained_dir
-            os.environ["cnhubert_base_path"]=cnhubert_base_path#cnhubert_base_dir
-            os.environ["bert_path"]=bert_path
-            os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_number
-    '''
-
     app.queue(concurrency_count=511, max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
+        share=True,
         server_port=webui_port_main,
         quiet=True,
     )
