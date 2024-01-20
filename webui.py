@@ -1,5 +1,8 @@
 import json,yaml,warnings,torch
 import platform
+import psutil
+import os
+import signal
 
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
@@ -9,13 +12,20 @@ tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
 import site
-site_packages_root="%s/runtime/Lib/site-packages"%now_dir
+site_packages_roots = []
 for path in site.getsitepackages():
-    if("site-packages"in path):site_packages_root=path
-os.environ["OPENBLAS_NUM_THREADS"] = "4"
+    if "packages" in path:
+        site_packages_roots.append(path)
+if(site_packages_roots==[]):site_packages_roots=["%s/runtime/Lib/site-packages" % now_dir]
+#os.environ["OPENBLAS_NUM_THREADS"] = "4"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
-with open("%s/users.pth"%(site_packages_root),"w")as f:
-    f.write("%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"%(now_dir,now_dir,now_dir,now_dir,now_dir))
+for site_packages_root in site_packages_roots:
+    if os.path.exists(site_packages_root):
+        with open("%s/users.pth" % (site_packages_root), "w") as f:
+            f.write(
+                "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+                % (now_dir, now_dir, now_dir, now_dir, now_dir)
+            )
 import traceback
 sys.path.append(now_dir)
 import shutil
@@ -24,13 +34,13 @@ import gradio as gr
 from subprocess import Popen
 import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix
-from i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
 n_cpu=cpu_count()
-
+           
 # 判断是否有能用来训练和加速推理的N卡
 ngpu = torch.cuda.device_count()
 gpu_infos = []
@@ -78,39 +88,57 @@ p_uvr5=None
 p_asr=None
 p_tts_inference=None
 
+def kill_proc_tree(pid, including_parent=True):  
+    try:
+        parent = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        # Process already terminated
+        return
+
+    children = parent.children(recursive=True)
+    for child in children:
+        try:
+            os.kill(child.pid, signal.SIGTERM)  # or signal.SIGKILL
+        except OSError:
+            pass
+    if including_parent:
+        try:
+            os.kill(parent.pid, signal.SIGTERM)  # or signal.SIGKILL
+        except OSError:
+            pass
+
 system=platform.system()
 def kill_process(pid):
     if(system=="Windows"):
         cmd = "taskkill /t /f /pid %s" % pid
+        os.system(cmd)
     else:
-        cmd = "kill -9 %s"%pid
-    print(cmd)
-    os.system(cmd)###linux上杀了webui，可能还会没杀干净。。。
-    # os.kill(p_label.pid,19)#主进程#控制台进程#python子进程###不好使，连主进程的webui一起关了，辣鸡
+        kill_proc_tree(pid)
+    
 
 def change_label(if_label,path_list):
     global p_label
     if(if_label==True and p_label==None):
         cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s'%(python_exec,path_list,webui_port_subfix)
-        yield "打标工具WebUI已开启"
+        yield i18n("打标工具WebUI已开启")
         print(cmd)
         p_label = Popen(cmd, shell=True)
     elif(if_label==False and p_label!=None):
         kill_process(p_label.pid)
         p_label=None
-        yield "打标工具WebUI已关闭"
+        yield i18n("打标工具WebUI已关闭")
 
 def change_uvr5(if_uvr5):
     global p_uvr5
     if(if_uvr5==True and p_uvr5==None):
         cmd = '"%s" tools/uvr5/webui.py "%s" %s %s'%(python_exec,infer_device,is_half,webui_port_uvr5)
-        yield "UVR5已开启"
+        yield i18n("UVR5已开启")
         print(cmd)
         p_uvr5 = Popen(cmd, shell=True)
     elif(if_uvr5==False and p_uvr5!=None):
         kill_process(p_uvr5.pid)
         p_uvr5=None
-        yield "UVR5已关闭"
+        yield i18n("UVR5已关闭")
 
 def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path,sovits_path):
     global p_tts_inference
@@ -123,13 +151,13 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         os.environ["is_half"]=str(is_half)
         os.environ["infer_ttswebui"]=str(webui_port_infer_tts)
         cmd = '"%s" GPT_SoVITS/inference_webui.py'%(python_exec)
-        yield "TTS推理进程已开启"
+        yield i18n("TTS推理进程已开启")
         print(cmd)
         p_tts_inference = Popen(cmd, shell=True)
     elif(if_tts==False and p_tts_inference!=None):
         kill_process(p_tts_inference.pid)
         p_tts_inference=None
-        yield "TTS推理进程已关闭"
+        yield i18n("TTS推理进程已关闭")
 
 
 def open_asr(asr_inp_dir):
@@ -152,10 +180,6 @@ def close_asr():
         p_asr=None
     return "已终止ASR进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
-'''
-            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D], [info1Bb,button1Ba_open,button1Ba_close])
-            button1Ba_close.click(close1Ba, [], [info1Bb,button1Ba_open,button1Ba_close])
-'''
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
     global p_train_SoVITS
@@ -276,25 +300,16 @@ def close_slice():
         ps_slice=[]
     return "已终止所有切割进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
-'''
-inp_text=                           os.environ.get("inp_text")
-inp_wav_dir=                        os.environ.get("inp_wav_dir")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")#"/data/docker/liujing04/gpt-vits/fine_tune_dataset/%s"%exp_name
-bert_pretrained_dir=                os.environ.get("bert_pretrained_dir")#"/data/docker/liujing04/bert-vits2/Bert-VITS2-master20231106/bert/chinese-roberta-wwm-ext-large"
-'''
 ps1a=[]
 def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
     if (ps1a == []):
+        opt_dir="%s/%s"%(exp_root,exp_name)
         config={
             "inp_text":inp_text,
             "inp_wav_dir":inp_wav_dir,
             "exp_name":exp_name,
-            "opt_dir":"%s/%s"%(exp_root,exp_name),
+            "opt_dir":opt_dir,
             "bert_pretrained_dir":bert_pretrained_dir,
         }
         gpu_names=gpu_numbers.split("-")
@@ -308,7 +323,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
                     "is_half": str(is_half)
                 }
             )
-            os.environ.update(config)
+            os.environ.update(config)#
             cmd = '"%s" GPT_SoVITS/prepare_datasets/1-get-text.py'%python_exec
             print(cmd)
             p = Popen(cmd, shell=True)
@@ -316,6 +331,15 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
         yield "文本进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1a:
             p.wait()
+        opt = []
+        for i_part in range(all_parts):
+            txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
+            with open(txt_path, "r", encoding="utf8") as f:
+                opt += f.read().strip("\n").split("\n")
+            os.remove(txt_path)
+        path_text = "%s/2-name2text.txt" % opt_dir
+        with open(path_text, "w", encoding="utf8") as f:
+            f.write("\n".join(opt) + "\n")
         ps1a=[]
         yield "文本进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
@@ -331,16 +355,7 @@ def close1a():
                 traceback.print_exc()
         ps1a=[]
     return "已终止所有1a进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
-'''
-inp_text=                           os.environ.get("inp_text")
-inp_wav_dir=                        os.environ.get("inp_wav_dir")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")
-cnhubert.cnhubert_base_path=                os.environ.get("cnhubert_base_dir")
-'''
+
 ps1b=[]
 def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
     global ps1b
@@ -386,23 +401,16 @@ def close1b():
                 traceback.print_exc()
         ps1b=[]
     return "已终止所有1b进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
-'''
-inp_text=                           os.environ.get("inp_text")
-exp_name=                           os.environ.get("exp_name")
-i_part=                             os.environ.get("i_part")
-all_parts=                          os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
-opt_dir=                            os.environ.get("opt_dir")
-pretrained_s2G=                     os.environ.get("pretrained_s2G")
-'''
+
 ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
     if (ps1c == []):
+        opt_dir="%s/%s"%(exp_root,exp_name)
         config={
             "inp_text":inp_text,
             "exp_name":exp_name,
-            "opt_dir":"%s/%s"%(exp_root,exp_name),
+            "opt_dir":opt_dir,
             "pretrained_s2G":pretrained_s2G_path,
             "s2config_path":"GPT_SoVITS/configs/s2.json",
             "is_half": str(is_half)
@@ -425,6 +433,15 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
         yield "语义token提取进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1c:
             p.wait()
+        opt = ["item_name	semantic_audio"]
+        path_semantic = "%s/6-name2semantic.tsv" % opt_dir
+        for i_part in range(all_parts):
+            semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
+            with open(semantic_path, "r", encoding="utf8") as f:
+                opt += f.read().strip("\n").split("\n")
+            os.remove(semantic_path)
+        with open(path_semantic, "w", encoding="utf8") as f:
+            f.write("\n".join(opt) + "\n")
         ps1c=[]
         yield "语义token提取进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
@@ -449,7 +466,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
         try:
             #############################1a
             path_text="%s/2-name2text.txt" % opt_dir
-            if(os.path.exists(path_text)==False):
+            if(os.path.exists(path_text)==False or (os.path.exists(path_text)==True and os.path.getsize(path_text)<10)):
                 config={
                     "inp_text":inp_text,
                     "inp_wav_dir":inp_wav_dir,
@@ -516,7 +533,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
             ps1abc=[]
             #############################1c
             path_semantic = "%s/6-name2semantic.tsv" % opt_dir
-            if(os.path.exists(path_semantic)==False):
+            if(os.path.exists(path_semantic)==False or (os.path.exists(path_semantic)==True and os.path.getsize(path_semantic)<31)):
                 config={
                     "inp_text":inp_text,
                     "exp_name":exp_name,
@@ -574,93 +591,98 @@ def close1abc():
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
         value=
-            "本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>."
+            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
     )
     with gr.Tabs():
-        with gr.TabItem("0-前置数据集获取工具"):#提前随机切片防止uvr5爆内存->uvr5->slicer->asr->打标
-            gr.Markdown(value="0a-UVR5人声伴奏分离&去混响去延迟工具")
+        with gr.TabItem(i18n("0-前置数据集获取工具")):#提前随机切片防止uvr5爆内存->uvr5->slicer->asr->打标
+            gr.Markdown(value=i18n("0a-UVR5人声伴奏分离&去混响去延迟工具"))
             with gr.Row():
-                if_uvr5 = gr.Checkbox(label="是否开启UVR5-WebUI",show_label=True)
-                uvr5_info = gr.Textbox(label="UVR5进程输出信息")
-            gr.Markdown(value="0b-语音切分工具")
+                if_uvr5 = gr.Checkbox(label=i18n("是否开启UVR5-WebUI"),show_label=True)
+                uvr5_info = gr.Textbox(label=i18n("UVR5进程输出信息"))
+            gr.Markdown(value=i18n("0b-语音切分工具"))
             with gr.Row():
                 with gr.Row():
-                    slice_inp_path=gr.Textbox(label="音频自动切分输入路径，可文件可文件夹",value="")
-                    slice_opt_root=gr.Textbox(label="切分后的子音频的输出根目录",value="output/slicer_opt")
-                    threshold=gr.Textbox(label="threshold:音量小于这个值视作静音的备选切割点",value="-34")
-                    min_length=gr.Textbox(label="min_length:每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值",value="4000")
-                    min_interval=gr.Textbox(label="min_interval:最短切割间隔",value="300")
-                    hop_size=gr.Textbox(label="hop_size:怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）",value="10")
-                    max_sil_kept=gr.Textbox(label="max_sil_kept:切完后静音最多留多长",value="500")
+                    slice_inp_path=gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"),value="")
+                    slice_opt_root=gr.Textbox(label=i18n("切分后的子音频的输出根目录"),value="output/slicer_opt")
+                    threshold=gr.Textbox(label=i18n("threshold:音量小于这个值视作静音的备选切割点"),value="-34")
+                    min_length=gr.Textbox(label=i18n("min_length:每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值"),value="4000")
+                    min_interval=gr.Textbox(label=i18n("min_interval:最短切割间隔"),value="300")
+                    hop_size=gr.Textbox(label=i18n("hop_size:怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）"),value="10")
+                    max_sil_kept=gr.Textbox(label=i18n("max_sil_kept:切完后静音最多留多长"),value="500")
                 with gr.Row():
-                    open_slicer_button=gr.Button("开启语音切割", variant="primary",visible=True)
-                    close_slicer_button=gr.Button("终止语音切割", variant="primary",visible=False)
-                    _max=gr.Slider(minimum=0,maximum=1,step=0.05,label="max:归一化后最大值多少",value=0.9,interactive=True)
-                    alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label="alpha_mix:混多少比例归一化后音频进来",value=0.25,interactive=True)
-                    n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label="切割使用的进程数",value=4,interactive=True)
-                    slicer_info = gr.Textbox(label="语音切割进程输出信息")
-            gr.Markdown(value="0c-中文批量离线ASR工具")
+                    open_slicer_button=gr.Button(i18n("开启语音切割"), variant="primary",visible=True)
+                    close_slicer_button=gr.Button(i18n("终止语音切割"), variant="primary",visible=False)
+                    _max=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("max:归一化后最大值多少"),value=0.9,interactive=True)
+                    alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)
+                    n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
+                    slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
+            gr.Markdown(value=i18n("0c-中文批量离线ASR工具"))
             with gr.Row():
-                open_asr_button = gr.Button("开启离线批量ASR", variant="primary",visible=True)
-                close_asr_button = gr.Button("终止ASR进程", variant="primary",visible=False)
+                open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
+                close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)
                 asr_inp_dir = gr.Textbox(
-                    label="批量ASR(中文only)输入文件夹路径",
+                    label=i18n("批量ASR(中文only)输入文件夹路径"),
                     value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx",
                     interactive=True,
                 )
-                asr_info = gr.Textbox(label="ASR进程输出信息")
-            gr.Markdown(value="0d-语音文本校对标注工具")
+                asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
+            gr.Markdown(value=i18n("0d-语音文本校对标注工具"))
             with gr.Row():
-                if_label = gr.Checkbox(label="是否开启打标WebUI",show_label=True)
+                if_label = gr.Checkbox(label=i18n("是否开启打标WebUI"),show_label=True)
                 path_list = gr.Textbox(
-                    label="打标数据标注文件路径",
+                    label=i18n("打标数据标注文件路径"),
                     value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx.list",
                     interactive=True,
                 )
-                label_info = gr.Textbox(label="打标工具进程输出信息")
+                label_info = gr.Textbox(label=i18n("打标工具进程输出信息"))
             if_label.change(change_label, [if_label,path_list], [label_info])
             if_uvr5.change(change_uvr5, [if_uvr5], [uvr5_info])
             open_asr_button.click(open_asr, [asr_inp_dir], [asr_info,open_asr_button,close_asr_button])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
             open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button])
             close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
-        with gr.TabItem("1-GPT-SoVITS-TTS"):
+        with gr.TabItem(i18n("1-GPT-SoVITS-TTS")):
             with gr.Row():
-                exp_name = gr.Textbox(label="*实验/模型名", value="xxx", interactive=True)
-                gpu_info = gr.Textbox(label="显卡信息", value=gpu_info, visible=True, interactive=False)
-                pretrained_s2G = gr.Textbox(label="预训练的SoVITS-G模型路径", value="GPT_SoVITS/pretrained_models/s2G488k.pth", interactive=True)
-                pretrained_s2D = gr.Textbox(label="预训练的SoVITS-D模型路径", value="GPT_SoVITS/pretrained_models/s2D488k.pth", interactive=True)
-                pretrained_s1 = gr.Textbox(label="预训练的GPT模型路径", value="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt", interactive=True)
-            with gr.TabItem("1A-训练集格式化工具"):
-                gr.Markdown(value="输出logs/实验名目录下应有23456开头的文件和文件夹")
+                exp_name = gr.Textbox(label=i18n("*实验/模型名"), value="xxx", interactive=True)
+                gpu_info = gr.Textbox(label=i18n("显卡信息"), value=gpu_info, visible=True, interactive=False)
+                pretrained_s2G = gr.Textbox(label=i18n("预训练的SoVITS-G模型路径"), value="GPT_SoVITS/pretrained_models/s2G488k.pth", interactive=True)
+                pretrained_s2D = gr.Textbox(label=i18n("预训练的SoVITS-D模型路径"), value="GPT_SoVITS/pretrained_models/s2D488k.pth", interactive=True)
+                pretrained_s1 = gr.Textbox(label=i18n("预训练的GPT模型路径"), value="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt", interactive=True)
+            with gr.TabItem(i18n("1A-训练集格式化工具")):
+                gr.Markdown(value=i18n("输出logs/实验名目录下应有23456开头的文件和文件夹"))
                 with gr.Row():
-                    inp_text = gr.Textbox(label="*文本标注文件",value=r"D:\RVC1006\GPT-SoVITS\raw\xxx.list",interactive=True)
-                    inp_wav_dir = gr.Textbox(label="*训练集音频文件目录",value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",interactive=True)
-                gr.Markdown(value="1Aa-文本内容")
+                    inp_text = gr.Textbox(label=i18n("*文本标注文件"),value=r"D:\RVC1006\GPT-SoVITS\raw\xxx.list",interactive=True)
+                    inp_wav_dir = gr.Textbox(
+                        label=i18n("*训练集音频文件目录"),
+                        # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
+                        interactive=True,
+                        placeholder=i18n("训练集音频文件目录 拼接 list文件里波形对应的文件名。")
+                    )
+                gr.Markdown(value=i18n("1Aa-文本内容"))
                 with gr.Row():
-                    gpu_numbers1a = gr.Textbox(label="GPU卡号以-分割，每个卡号一个进程",value="%s-%s"%(gpus,gpus),interactive=True)
-                    bert_pretrained_dir = gr.Textbox(label="预训练的中文BERT模型路径",value="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",interactive=False)
-                    button1a_open = gr.Button("开启文本获取", variant="primary",visible=True)
-                    button1a_close = gr.Button("终止文本获取进程", variant="primary",visible=False)
-                    info1a=gr.Textbox(label="文本进程输出信息")
-                gr.Markdown(value="1Ab-SSL自监督特征提取")
+                    gpu_numbers1a = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"),value="%s-%s"%(gpus,gpus),interactive=True)
+                    bert_pretrained_dir = gr.Textbox(label=i18n("预训练的中文BERT模型路径"),value="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",interactive=False)
+                    button1a_open = gr.Button(i18n("开启文本获取"), variant="primary",visible=True)
+                    button1a_close = gr.Button(i18n("终止文本获取进程"), variant="primary",visible=False)
+                    info1a=gr.Textbox(label=i18n("文本进程输出信息"))
+                gr.Markdown(value=i18n("1Ab-SSL自监督特征提取"))
                 with gr.Row():
-                    gpu_numbers1Ba = gr.Textbox(label="GPU卡号以-分割，每个卡号一个进程",value="%s-%s"%(gpus,gpus),interactive=True)
-                    cnhubert_base_dir = gr.Textbox(label="预训练的SSL模型路径",value="GPT_SoVITS/pretrained_models/chinese-hubert-base",interactive=False)
-                    button1b_open = gr.Button("开启SSL提取", variant="primary",visible=True)
-                    button1b_close = gr.Button("终止SSL提取进程", variant="primary",visible=False)
-                    info1b=gr.Textbox(label="SSL进程输出信息")
-                gr.Markdown(value="1Ac-语义token提取")
+                    gpu_numbers1Ba = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"),value="%s-%s"%(gpus,gpus),interactive=True)
+                    cnhubert_base_dir = gr.Textbox(label=i18n("预训练的SSL模型路径"),value="GPT_SoVITS/pretrained_models/chinese-hubert-base",interactive=False)
+                    button1b_open = gr.Button(i18n("开启SSL提取"), variant="primary",visible=True)
+                    button1b_close = gr.Button(i18n("终止SSL提取进程"), variant="primary",visible=False)
+                    info1b=gr.Textbox(label=i18n("SSL进程输出信息"))
+                gr.Markdown(value=i18n("1Ac-语义token提取"))
                 with gr.Row():
-                    gpu_numbers1c = gr.Textbox(label="GPU卡号以-分割，每个卡号一个进程",value="%s-%s"%(gpus,gpus),interactive=True)
-                    button1c_open = gr.Button("开启语义token提取", variant="primary",visible=True)
-                    button1c_close = gr.Button("终止语义token提取进程", variant="primary",visible=False)
-                    info1c=gr.Textbox(label="语义token提取进程输出信息")
-                gr.Markdown(value="1Aabc-训练集格式化一键三连")
+                    gpu_numbers1c = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"),value="%s-%s"%(gpus,gpus),interactive=True)
+                    button1c_open = gr.Button(i18n("开启语义token提取"), variant="primary",visible=True)
+                    button1c_close = gr.Button(i18n("终止语义token提取进程"), variant="primary",visible=False)
+                    info1c=gr.Textbox(label=i18n("语义token提取进程输出信息"))
+                gr.Markdown(value=i18n("1Aabc-训练集格式化一键三连"))
                 with gr.Row():
-                    button1abc_open = gr.Button("开启一键三连", variant="primary",visible=True)
-                    button1abc_close = gr.Button("终止一键三连", variant="primary",visible=False)
-                    info1abc=gr.Textbox(label="一键三连进程输出信息")
+                    button1abc_open = gr.Button(i18n("开启一键三连"), variant="primary",visible=True)
+                    button1abc_close = gr.Button(i18n("终止一键三连"), variant="primary",visible=False)
+                    info1abc=gr.Textbox(label=i18n("一键三连进程输出信息"))
             button1a_open.click(open1a, [inp_text,inp_wav_dir,exp_name,gpu_numbers1a,bert_pretrained_dir], [info1a,button1a_open,button1a_close])
             button1a_close.click(close1a, [], [info1a,button1a_open,button1a_close])
             button1b_open.click(open1b, [inp_text,inp_wav_dir,exp_name,gpu_numbers1Ba,cnhubert_base_dir], [info1b,button1b_open,button1b_close])
@@ -669,61 +691,53 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             button1c_close.click(close1c, [], [info1c,button1c_open,button1c_close])
             button1abc_open.click(open1abc, [inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numbers1c,bert_pretrained_dir,cnhubert_base_dir,pretrained_s2G], [info1abc,button1abc_open,button1abc_close])
             button1abc_close.click(close1abc, [], [info1abc,button1abc_open,button1abc_close])
-            with gr.TabItem("1B-微调训练"):
-                gr.Markdown(value="1Ba-SoVITS训练。用于分享的模型文件输出在SoVITS_weights下。")
+            with gr.TabItem(i18n("1B-微调训练")):
+                gr.Markdown(value=i18n("1Ba-SoVITS训练。用于分享的模型文件输出在SoVITS_weights下。"))
                 with gr.Row():
                     batch_size = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
                     total_epoch = gr.Slider(minimum=1,maximum=20,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=8,interactive=True)
-                    text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label="文本模块学习率权重",value=0.4,interactive=True)
+                    text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,interactive=True)
                     save_every_epoch = gr.Slider(minimum=1,maximum=50,step=1,label=i18n("保存频率save_every_epoch"),value=4,interactive=True)
                     if_save_latest = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                     if_save_every_weights = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
-                    gpu_numbers1Ba = gr.Textbox(label="GPU卡号以-分割，每个卡号一个进程", value="%s" % (gpus), interactive=True)
+                    gpu_numbers1Ba = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"), value="%s" % (gpus), interactive=True)
                 with gr.Row():
-                    button1Ba_open = gr.Button("开启SoVITS训练", variant="primary",visible=True)
-                    button1Ba_close = gr.Button("终止SoVITS训练", variant="primary",visible=False)
-                    info1Ba=gr.Textbox(label="SoVITS训练进程输出信息")
-                gr.Markdown(value="1Bb-GPT训练。用于分享的模型文件输出在GPT_weights下。")
+                    button1Ba_open = gr.Button(i18n("开启SoVITS训练"), variant="primary",visible=True)
+                    button1Ba_close = gr.Button(i18n("终止SoVITS训练"), variant="primary",visible=False)
+                    info1Ba=gr.Textbox(label=i18n("SoVITS训练进程输出信息"))
+                gr.Markdown(value=i18n("1Bb-GPT训练。用于分享的模型文件输出在GPT_weights下。"))
                 with gr.Row():
                     batch_size1Bb = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
                     total_epoch1Bb = gr.Slider(minimum=2,maximum=100,step=1,label=i18n("总训练轮数total_epoch"),value=15,interactive=True)
                     if_save_latest1Bb = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                     if_save_every_weights1Bb = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
                     save_every_epoch1Bb = gr.Slider(minimum=1,maximum=50,step=1,label=i18n("保存频率save_every_epoch"),value=5,interactive=True)
-                    gpu_numbers1Bb = gr.Textbox(label="GPU卡号以-分割，每个卡号一个进程", value="%s" % (gpus), interactive=True)
+                    gpu_numbers1Bb = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"), value="%s" % (gpus), interactive=True)
                 with gr.Row():
-                    button1Bb_open = gr.Button("开启GPT训练", variant="primary",visible=True)
-                    button1Bb_close = gr.Button("终止GPT训练", variant="primary",visible=False)
-                    info1Bb=gr.Textbox(label="GPT训练进程输出信息")
+                    button1Bb_open = gr.Button(i18n("开启GPT训练"), variant="primary",visible=True)
+                    button1Bb_close = gr.Button(i18n("终止GPT训练"), variant="primary",visible=False)
+                    info1Bb=gr.Textbox(label=i18n("GPT训练进程输出信息"))
             button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D], [info1Ba,button1Ba_open,button1Ba_close])
             button1Ba_close.click(close1Ba, [], [info1Ba,button1Ba_open,button1Ba_close])
             button1Bb_open.click(open1Bb, [batch_size1Bb,total_epoch1Bb,exp_name,if_save_latest1Bb,if_save_every_weights1Bb,save_every_epoch1Bb,gpu_numbers1Bb,pretrained_s1],   [info1Bb,button1Bb_open,button1Bb_close])
             button1Bb_close.click(close1Bb, [], [info1Bb,button1Bb_open,button1Bb_close])
-            with gr.TabItem("1C-推理"):
-                gr.Markdown(value="选择训练完存放在SoVITS_weights和GPT_weights下的模型。默认的一个是底模，体验5秒Zero Shot TTS用。")
+            with gr.TabItem(i18n("1C-推理")):
+                gr.Markdown(value=i18n("选择训练完存放在SoVITS_weights和GPT_weights下的模型。默认的一个是底模，体验5秒Zero Shot TTS用。"))
                 with gr.Row():
-                    GPT_dropdown = gr.Dropdown(label="*GPT模型列表", choices=sorted(GPT_names),value=pretrained_gpt_name)
-                    SoVITS_dropdown = gr.Dropdown(label="*SoVITS模型列表", choices=sorted(SoVITS_names),value=pretrained_sovits_name)
-                    gpu_number_1C=gr.Textbox(label="GPU卡号,只能填1个整数", value=gpus, interactive=True)
-                    refresh_button = gr.Button("刷新模型路径", variant="primary")
+                    GPT_dropdown = gr.Dropdown(label=i18n("*GPT模型列表"), choices=sorted(GPT_names),value=pretrained_gpt_name)
+                    SoVITS_dropdown = gr.Dropdown(label=i18n("*SoVITS模型列表"), choices=sorted(SoVITS_names),value=pretrained_sovits_name)
+                    gpu_number_1C=gr.Textbox(label=i18n("GPU卡号,只能填1个整数"), value=gpus, interactive=True)
+                    refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
                     refresh_button.click(fn=change_choices,inputs=[],outputs=[SoVITS_dropdown,GPT_dropdown])
                 with gr.Row():
-                    if_tts = gr.Checkbox(label="是否开启TTS推理WebUI", show_label=True)
-                    tts_info = gr.Textbox(label="TTS推理WebUI进程输出信息")
+                    if_tts = gr.Checkbox(label=i18n("是否开启TTS推理WebUI"), show_label=True)
+                    tts_info = gr.Textbox(label=i18n("TTS推理WebUI进程输出信息"))
                     if_tts.change(change_tts_inference, [if_tts,bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown], [tts_info])
-        with gr.TabItem("2-GPT-SoVITS-变声"):gr.Markdown(value="施工中，请静候佳音")
-
-    '''
-            os.environ["gpt_path"]=gpt_path
-            os.environ["sovits_path"]=sovits_path#bert_pretrained_dir
-            os.environ["cnhubert_base_path"]=cnhubert_base_path#cnhubert_base_dir
-            os.environ["bert_path"]=bert_path
-            os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_number
-    '''
-
+        with gr.TabItem(i18n("2-GPT-SoVITS-变声")):gr.Markdown(value=i18n("施工中，请静候佳音"))
     app.queue(concurrency_count=511, max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
+        share=True,
         server_port=webui_port_main,
         quiet=True,
     )
