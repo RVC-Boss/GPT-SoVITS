@@ -19,40 +19,37 @@ from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from module.mel_processing import spectrogram_torch
 from my_utils import load_audio
-from config import python_exec, infer_device, is_half, api_port
+import config as global_config
 
-DEFAULT_PORT = api_port
-DEFAULT_CNHUBERT = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
-DEFAULT_BERT = "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
-DEFAULT_HALF = is_half
-
-DEFAULT_GPT = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
-DEFAULT_SOVITS = "GPT_SoVITS/pretrained_models/s2G488k.pth"
+g_config = global_config.Config()
 
 # AVAILABLE_COMPUTE = "cuda" if torch.cuda.is_available() else "cpu"
 
 parser = argparse.ArgumentParser(description="GPT-SoVITS api")
 
-parser.add_argument("-g", "--gpt_path", type=str, default="", help="GPT模型路径")
-parser.add_argument("-s", "--sovits_path", type=str, default="", help="SoVITS模型路径")
+parser.add_argument("-s", "--sovits_path", type=str, default=g_config.sovits_path, help="SoVITS模型路径")
+parser.add_argument("-g", "--gpt_path", type=str, default=g_config.gpt_path, help="GPT模型路径")
 
 parser.add_argument("-dr", "--default_refer_path", type=str, default="",
                     help="默认参考音频路径, 请求缺少参考音频时调用")
 parser.add_argument("-dt", "--default_refer_text", type=str, default="", help="默认参考音频文本")
 parser.add_argument("-dl", "--default_refer_language", type=str, default="", help="默认参考音频语种")
 
-parser.add_argument("-d", "--device", type=str, default=infer_device, help="cuda / cpu")
-parser.add_argument("-p", "--port", type=int, default=DEFAULT_PORT, help="default: 9880")
+parser.add_argument("-d", "--device", type=str, default=g_config.infer_device, help="cuda / cpu")
+parser.add_argument("-p", "--port", type=int, default=g_config.api_port, help="default: 9880")
 parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 127.0.0.1")
-parser.add_argument("-hp", "--half_precision", action='store_true', default=False)
+parser.add_argument("-fp", "--full_precision", action="store_true", default=False, help="覆盖config.is_half为False, 使用全精度")
+parser.add_argument("-hp", "--half_precision", action="store_true", default=False, help="覆盖config.is_half为True, 使用半精度")
+# bool值的用法为 `python ./api.py -fp ...`
+# 此时 full_precision==True, half_precision==False
 
-parser.add_argument("-hb", "--hubert_path", type=str, default=DEFAULT_CNHUBERT)
-parser.add_argument("-b", "--bert_path", type=str, default=DEFAULT_BERT)
+parser.add_argument("-hb", "--hubert_path", type=str, default=g_config.cnhubert_path, help="覆盖config.cnhubert_path")
+parser.add_argument("-b", "--bert_path", type=str, default=g_config.bert_path, help="覆盖config.bert_path")
 
 args = parser.parse_args()
 
-gpt_path = args.gpt_path
 sovits_path = args.sovits_path
+gpt_path = args.gpt_path
 
 default_refer_path = args.default_refer_path
 default_refer_text = args.default_refer_text
@@ -62,18 +59,15 @@ has_preset = False
 device = args.device
 port = args.port
 host = args.bind_addr
-is_half = args.half_precision
 
-cnhubert_base_path = args.hubert_path
-bert_path = args.bert_path
-
-if gpt_path == "":
-    gpt_path = DEFAULT_GPT
-    print("[WARN] 未指定GPT模型路径")
 if sovits_path == "":
-    sovits_path = DEFAULT_SOVITS
-    print("[WARN] 未指定SoVITS模型路径")
+    sovits_path = g_config.pretrained_sovits_path
+    print(f"[WARN] 未指定SoVITS模型路径, fallback后当前值: {sovits_path}")
+if gpt_path == "":
+    gpt_path = g_config.pretrained_gpt_path
+    print(f"[WARN] 未指定GPT模型路径, fallback后当前值: {gpt_path}")
 
+# 指定默认参考音频, 调用方 未提供/未给全 参考音频参数时使用
 if default_refer_path == "" or default_refer_text == "" or default_refer_language == "":
     default_refer_path, default_refer_text, default_refer_language = "", "", ""
     print("[INFO] 未指定默认参考音频")
@@ -84,17 +78,28 @@ else:
     print(f"[INFO] 默认参考音频语种: {default_refer_language}")
     has_preset = True
 
+is_half = g_config.is_half
+if args.full_precision:
+    is_half = False
+if args.half_precision:
+    is_half = True
+if args.full_precision and args.half_precision:
+    is_half = g_config.is_half  # 炒饭fallback
+
+print(f"[INFO] 半精: {is_half}")
+
+cnhubert_base_path = args.hubert_path
+bert_path = args.bert_path
+
 cnhubert.cnhubert_base_path = cnhubert_base_path
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
-# bert_model = AutoModelForSequenceClassification.from_pretrained(bert_path, config=bert_path+"/config.json")
-if (is_half == True):
+if is_half:
     bert_model = bert_model.half().to(device)
 else:
     bert_model = bert_model.to(device)
 
 
-# bert_model=bert_model.to(device)
 def get_bert_feature(text, word2ph):
     with torch.no_grad():
         inputs = tokenizer(text, return_tensors="pt")
@@ -256,7 +261,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
 
 def handle(command, refer_wav_path, prompt_text, prompt_language, text, text_language):
     if command == "/restart":
-        os.execl(python_exec, python_exec, *sys.argv)
+        os.execl(g_config.python_exec, g_config.python_exec, *sys.argv)
     elif command == "/exit":
         os.kill(os.getpid(), signal.SIGTERM)
         exit(0)
