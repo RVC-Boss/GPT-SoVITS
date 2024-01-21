@@ -79,6 +79,7 @@ def b_change_index(index, batch):
 
 
 def b_next_index(index, batch):
+    b_save_file()
     if (index + batch) <= g_max_json_index:
         return index + batch , *b_change_index(index + batch, batch)
     else:
@@ -86,6 +87,7 @@ def b_next_index(index, batch):
 
 
 def b_previous_index(index, batch):
+    b_save_file()
     if (index - batch) >= 0:
         return index - batch , *b_change_index(index - batch, batch)
     else:
@@ -294,6 +296,7 @@ def set_global(load_json, load_list, json_key_text, json_key_path, batch):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--load_json', default="None", help='source file, like demo.json')
+    parser.add_argument('--is_share', default="False", help='whether webui is_share=True')
     parser.add_argument('--load_list', default="None", help='source file, like demo.list')
     parser.add_argument('--webui_port_subfix', default=9871, help='source file, like demo.list')
     parser.add_argument('--json_key_text', default="text", help='the text key name in json, Default: text')
@@ -488,5 +491,6 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         inbrowser=True,
         quiet=True,
+        share=eval(args.is_share),
         server_port=int(args.webui_port_subfix)
     )
