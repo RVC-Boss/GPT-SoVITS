@@ -30,16 +30,18 @@ inference_pipeline = pipeline(
     punc_model='tools/damo_asr/models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch',
 )
 
+
 def process_audio_file(dir,filename,name,opt_name):
 
     try:
         text = inference_pipeline(audio_in="%s/%s" % (dir, name))["text"]
 
         with lock:
-            with open(filename,"a",encoding="utf-8")as f:f.write("%s/%s|%s|ZH|%s\n" % (dir, name, opt_name, text))
+            with open(filename,"a",encoding="utf-8")as f:f.write("%s/%s|%s|ZH|%s\n" % (dir, name, opt_name, text.strip()))
 
     except:
         print(traceback.format_exc())
+
 
 def run__process():  # 主进程
 
@@ -52,6 +54,8 @@ def run__process():  # 主进程
     with multiprocessing.Pool(processes=processes) as pool:
         pool.starmap(process_audio_file, [(dir,filename,name ,opt_name) for name in os.listdir(dir)])
     
+
 if __name__ == '__main__':
     
     run__process()
+

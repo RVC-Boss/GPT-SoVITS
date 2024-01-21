@@ -19,3 +19,4 @@ sentencepiece
 transformers
 chardet
 PyYAML
+psutil
