@@ -19,7 +19,8 @@ for name in os.listdir(weight_uvr5_root):
 
 device=sys.argv[1]
 is_half=sys.argv[2]
-
+webui_port_uvr5=int(sys.argv[3])
+is_share=eval(sys.argv[4])
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []
@@ -179,6 +180,7 @@ with gr.Blocks(title="RVC WebUI") as app:
 app.queue(concurrency_count=511, max_size=1022).launch(
     server_name="0.0.0.0",
     inbrowser=True,
-    server_port=9873,
+    share=is_share,
+    server_port=webui_port_uvr5,
     quiet=True,
 )
