@@ -1,7 +1,7 @@
 import json,yaml,warnings,torch
 import platform
 import psutil
-import os
+import os,shutil
 import signal
 
 warnings.filterwarnings("ignore")
@@ -11,6 +11,12 @@ now_dir = os.getcwd()
 tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
+if(os.path.exists(tmp)):
+    for name in os.listdir(tmp):
+        if(name=="jieba.cache"):continue
+        path="%s/%s"%(tmp,name)
+        delete=os.remove if os.path.isfile(path) else shutil.rmtree
+        delete(path)
 import site
 site_packages_roots = []
 for path in site.getsitepackages():
