@@ -11,7 +11,8 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 [![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Spaces-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
-[**English**](./README.md) | [**中文简体**](./README_ZH.md)
+
+[**English**](./README.md) | [**中文简体**](./docs/cn/README.md) | [**日本語**](./docs/ja/README.md)
 
 </div>
 
@@ -36,9 +37,12 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 If you are a Windows user (tested with win>=10) you can install directly via the prezip. Just download the [prezip](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true), unzip it and double-click go-webui.bat to start GPT-SoVITS-WebUI.
 
-### Python and PyTorch Version
+### Tested Environments
 
-Tested with Python 3.9, PyTorch 2.0.1, and CUDA 11. 
+- Python 3.9, PyTorch 2.0.1, CUDA 11
+- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
+
+_Note: numba==0.56.4 require py<3.11_
 
 ### Quick Install with Conda
 
@@ -48,6 +52,12 @@ conda activate GPTSoVits
 bash install.sh
 ```
 ### Install Manually
+#### Make sure you have the distutils for python3.9 installed
+
+```bash
+sudo apt-get install python3.9-distutils
+```
+
 #### Pip Packages
 
 ```bash
@@ -90,7 +100,7 @@ Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWeb
 ### Pretrained Models
 
 
-Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS\pretrained_models`.
+Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS/pretrained_models`.
 
 For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/damo_asr/models`.
 
@@ -131,7 +141,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
    - [ ] Improve English and Japanese text frontend.
    - [ ] Develop tiny and larger-sized TTS models.
    - [ ] Colab scripts.
-   - [ ] Expand training dataset (2k -> 10k).
+   - [ ] Try expand training dataset (2k hours -> 10k hours).
    - [ ] better sovits base model (enhanced audio quality)
    - [ ] model mix
 
