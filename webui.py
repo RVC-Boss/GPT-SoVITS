@@ -39,6 +39,7 @@ i18n = I18nAuto()
 from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
+from GPT_SoVITS.inference_webui import Inference, cut1, cut2, cut3
 n_cpu=cpu_count()
            
 # 判断是否有能用来训练和加速推理的N卡
@@ -86,7 +87,8 @@ def change_choices():
 p_label=None
 p_uvr5=None
 p_asr=None
-p_tts_inference=None
+# p_tts_inference=None
+p_infer = Inference(is_half, GPT_weight_root, SoVITS_weight_root)
 
 def kill_proc_tree(pid, including_parent=True):  
     try:
@@ -729,15 +731,52 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     gpu_number_1C=gr.Textbox(label="GPU卡号,只能填1个整数", value=gpus, interactive=True)
                     refresh_button = gr.Button("刷新模型路径", variant="primary")
                     refresh_button.click(fn=change_choices,inputs=[],outputs=[SoVITS_dropdown,GPT_dropdown])
+
                 with gr.Row():
-                    if_tts = gr.Checkbox(label="是否开启TTS推理WebUI", show_label=True)
-                    tts_info = gr.Textbox(label="TTS推理WebUI进程输出信息")
-                    if_tts.change(change_tts_inference, [if_tts,bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown], [tts_info])
+                    load_tts_model = gr.Button("加载模型")
+                    unload_tts_model = gr.Button('卸载模型')
+                    info_model = gr.Textbox('模型加载信息')
+                    load_tts_model.click(p_infer.update_envs, [GPT_dropdown, SoVITS_dropdown, cnhubert_base_dir, bert_pretrained_dir], [info_model])
+                    unload_tts_model.click(p_infer.unload_model, outputs=[info_model])
+
+                with gr.Group():
+                    gr.Markdown(value="*请上传并填写参考信息")
+                    with gr.Row():
+                        inp_ref = gr.Audio(label="请上传参考音频", type="filepath")
+                        prompt_text = gr.Textbox(label="参考音频的文本", value="")
+                        prompt_language = gr.Dropdown(
+                            label="参考音频的语种", choices=["中文", "英文", "日文"], value="中文"
+                        )
+                    gr.Markdown(value="*请填写需要合成的目标文本")
+                    with gr.Row():
+                        text = gr.Textbox(label="需要合成的文本", value="")
+                        text_language = gr.Dropdown(
+                            label="需要合成的语种", choices=["中文", "英文", "日文"], value="中文"
+                        )
+                        inference_button = gr.Button("合成语音", variant="primary")
+                        output = gr.Audio(label="输出的语音")
+                    inference_button.click(
+                        p_infer.get_tts_wav,
+                        [inp_ref, prompt_text, prompt_language, text, text_language],
+                        [output],
+                    )
+
+                    gr.Markdown(value="文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。")
+                    with gr.Row():
+                        text_inp = gr.Textbox(label="需要合成的切分前文本", value="")
+                        button1 = gr.Button("凑五句一切", variant="primary")
+                        button2 = gr.Button("凑50字一切", variant="primary")
+                        button3 = gr.Button("按中文句号。切", variant="primary")
+                        text_opt = gr.Textbox(label="切分后文本", value="")
+                        button1.click(cut1, [text_inp], [text_opt])
+                        button2.click(cut2, [text_inp], [text_opt])
+                        button3.click(cut3, [text_inp], [text_opt])
+                    gr.Markdown(value="后续将支持混合语种编码文本输入。")
+
         with gr.TabItem("2-GPT-SoVITS-变声"):gr.Markdown(value="施工中，请静候佳音")
     app.queue(concurrency_count=511, max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
-        share=True,
         server_port=webui_port_main,
         quiet=True,
     )
