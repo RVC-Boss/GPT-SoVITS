@@ -30,7 +30,7 @@ inference_pipeline = pipeline(
     punc_model='tools/damo_asr/models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch',
 )
 
-def process_audio_file(dir,name,opt_name):
+def process_audio_file(dir,filename,name,opt_name):
 
     try:
         text = inference_pipeline(audio_in="%s/%s" % (dir, name))["text"]
@@ -46,10 +46,11 @@ def run__process():  # 主进程
     opt_dir="output/asr_opt"
     os.makedirs(opt_dir,exist_ok=True)
     filename = "%s/%s.list"%(opt_dir,opt_name)
-    os.remove(filename,exist_ok=True)
+    if os.path.exists(filename):
+        os.remove(filename)
 
     with multiprocessing.Pool(processes=processes) as pool:
-        pool.starmap(process_audio_file, [(dir, name ,opt_name) for name in os.listdir(dir)])
+        pool.starmap(process_audio_file, [(dir,filename,name ,opt_name) for name in os.listdir(dir)])
     
 if __name__ == '__main__':
     
