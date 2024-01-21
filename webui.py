@@ -33,7 +33,7 @@ import pdb
 import gradio as gr
 from subprocess import Popen
 import signal
-from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix
+from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
 from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 from scipy.io import wavfile
@@ -119,7 +119,7 @@ def kill_process(pid):
 def change_label(if_label,path_list):
     global p_label
     if(if_label==True and p_label==None):
-        cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s'%(python_exec,path_list,webui_port_subfix)
+        cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s'%(python_exec,path_list,webui_port_subfix,is_share)
         yield i18n("打标工具WebUI已开启")
         print(cmd)
         p_label = Popen(cmd, shell=True)
@@ -131,7 +131,7 @@ def change_label(if_label,path_list):
 def change_uvr5(if_uvr5):
     global p_uvr5
     if(if_uvr5==True and p_uvr5==None):
-        cmd = '"%s" tools/uvr5/webui.py "%s" %s %s'%(python_exec,infer_device,is_half,webui_port_uvr5)
+        cmd = '"%s" tools/uvr5/webui.py "%s" %s %s %s'%(python_exec,infer_device,is_half,webui_port_uvr5,is_share)
         yield i18n("UVR5已开启")
         print(cmd)
         p_uvr5 = Popen(cmd, shell=True)
@@ -150,6 +150,7 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_number
         os.environ["is_half"]=str(is_half)
         os.environ["infer_ttswebui"]=str(webui_port_infer_tts)
+        os.environ["is_share"]=str(is_share)
         cmd = '"%s" GPT_SoVITS/inference_webui.py'%(python_exec)
         yield i18n("TTS推理进程已开启")
         print(cmd)
@@ -656,7 +657,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         label=i18n("*训练集音频文件目录"),
                         # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
                         interactive=True,
-                        placeholder=i18n("训练集音频文件目录 拼接 list文件里波形对应的文件名。")
+                        placeholder=i18n("训练集音频文件目录-拼接-list文件里波形对应的文件名（不是全路径）。")
                     )
                 gr.Markdown(value=i18n("1Aa-文本内容"))
                 with gr.Row():
@@ -737,7 +738,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     app.queue(concurrency_count=511, max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
-        share=True,
+        share=is_share,
         server_port=webui_port_main,
         quiet=True,
     )
