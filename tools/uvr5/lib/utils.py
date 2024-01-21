@@ -24,7 +24,7 @@ def make_padding(width, cropsize, offset):
 
 def inference(X_spec, device, model, aggressiveness, data):
     """
-    data ： dic configs
+    data : dic configs
     """
 
     def _execute(
