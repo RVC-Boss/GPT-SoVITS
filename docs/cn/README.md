@@ -1,7 +1,7 @@
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
-少样本强大的声音转换与文本到语音网络界面。<br><br>
+强大的少样本语音转换与语音合成Web用户界面。<br><br>
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange
 )](https://github.com/RVC-Boss/GPT-SoVITS)
