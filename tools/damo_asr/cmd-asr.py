@@ -6,11 +6,18 @@ import sys,os,traceback
 dir=sys.argv[1]
 # opt_name=dir.split("\\")[-1].split("/")[-1]
 opt_name=os.path.basename(dir)
+
+path_asr='tools/damo_asr/models/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch'
+path_vad='tools/damo_asr/models/speech_fsmn_vad_zh-cn-16k-common-pytorch'
+path_punc='tools/damo_asr/models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch'
+path_asr=path_asr if os.path.exists(path_asr)else "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+path_vad=path_vad if os.path.exists(path_vad)else "damo/speech_fsmn_vad_zh-cn-16k-common-pytorch"
+path_punc=path_punc if os.path.exists(path_punc)else "damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch"
 inference_pipeline = pipeline(
     task=Tasks.auto_speech_recognition,
-    model='tools/damo_asr/models/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
-    vad_model='tools/damo_asr/models/speech_fsmn_vad_zh-cn-16k-common-pytorch',
-    punc_model='tools/damo_asr/models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch',
+    model=path_asr,
+    vad_model=path_vad,
+    punc_model=path_punc,
 )
 
 opt=[]
