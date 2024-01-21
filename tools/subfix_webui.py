@@ -79,6 +79,7 @@ def b_change_index(index, batch):
 
 
 def b_next_index(index, batch):
+    b_save_file()
     if (index + batch) <= g_max_json_index:
         return index + batch , *b_change_index(index + batch, batch)
     else:
@@ -86,6 +87,7 @@ def b_next_index(index, batch):
 
 
 def b_previous_index(index, batch):
+    b_save_file()
     if (index - batch) >= 0:
         return index - batch , *b_change_index(index - batch, batch)
     else:
