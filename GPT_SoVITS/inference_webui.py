@@ -358,9 +358,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         with gr.Row():
             text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"),value="")
-            button1 = gr.Button(label=i18n("凑五句一切"), variant="primary")
-            button2 = gr.Button(label=i18n("凑50字一切"), variant="primary")
-            button3 = gr.Button(label=i18n("按中文句号。切"), variant="primary")
+            button1 = gr.Button(i18n("凑五句一切"), variant="primary")
+            button2 = gr.Button(i18n("凑50字一切"), variant="primary")
+            button3 = gr.Button(i18n("按中文句号。切"), variant="primary")
             text_opt = gr.Textbox(label=i18n("切分后文本"), value="")
             button1.click(cut1, [text_inp], [text_opt])
             button2.click(cut2, [text_inp], [text_opt])
