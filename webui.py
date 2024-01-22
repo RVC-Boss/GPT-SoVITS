@@ -171,14 +171,14 @@ def open_asr(asr_inp_dir):
     global p_asr
     if(p_asr==None):
         cmd = '"%s" tools/damo_asr/cmd-asr.py "%s"'%(python_exec,asr_inp_dir)
-        yield f"{i18n('ASR任务开启')}：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("ASR任务开启：%s")%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
         p_asr = Popen(cmd, shell=True)
         p_asr.wait()
         p_asr=None
         yield i18n("ASR任务完成"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield f"{i18n('已有正在进行的ASR任务，需先终止才能开启下一次任务')}",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("已有正在进行的ASR任务，需先终止才能开启下一次任务"),{"__type__":"update","visible":False},{"__type__":"update","visible":True}
 
 def close_asr():
     global p_asr
@@ -212,14 +212,14 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         with open(tmp_config_path,"w")as f:f.write(json.dumps(data))
 
         cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
-        yield i18n("SoVITS训练开始：%s"%cmd),{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("SoVITS训练开始：%s")%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
         p_train_SoVITS.wait()
         p_train_SoVITS=None
         yield i18n("SoVITS训练完成"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield f"{i18n('已有正在进行的SoVITS训练任务，需先终止才能开启下一次任务')}",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("已有正在进行的SoVITS训练任务，需先终止才能开启下一次任务"),{"__type__":"update","visible":False},{"__type__":"update","visible":True}
 
 def close1Ba():
     global p_train_SoVITS
@@ -255,7 +255,7 @@ def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights
         with open(tmp_config_path, "w") as f:f.write(yaml.dump(data, default_flow_style=False))
         # cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" --train_semantic_path "%s/6-name2semantic.tsv" --train_phoneme_path "%s/2-name2text.txt" --output_dir "%s/logs_s1"'%(python_exec,tmp_config_path,s1_dir,s1_dir,s1_dir)
         cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" '%(python_exec,tmp_config_path)
-        yield f"{i18n('GPT训练开始')}：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("GPT训练开始：%s")%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
         p_train_GPT = Popen(cmd, shell=True)
         p_train_GPT.wait()
@@ -363,7 +363,7 @@ def close1a():
             except:
                 traceback.print_exc()
         ps1a=[]
-    return i18n("已终止所有文本进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+    return i18n("已终止所有1a进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
 ps1b=[]
 def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
@@ -499,11 +499,11 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
-                yield i18n("文本进程执行中"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+                yield i18n("进度：1a-ing"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
                 for p in ps1abc:p.wait()
 
                 opt = []
-                for i_part in range(all_parts):
+                for i_part in range(all_parts):#txt_path="%s/2-name2text-%s.txt"%(opt_dir,i_part)
                     txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
                     with open(txt_path, "r",encoding="utf8") as f:
                         opt += f.read().strip("\n").split("\n")
@@ -511,7 +511,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                 with open(path_text, "w",encoding="utf8") as f:
                     f.write("\n".join(opt) + "\n")
 
-            yield i18n("文本进程结束"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+            yield i18n("进度：1a-done"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc=[]
             #############################1b
             config={
@@ -536,9 +536,9 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                 print(cmd)
                 p = Popen(cmd, shell=True)
                 ps1abc.append(p)
-            yield i18n("文本进程结束, SSL提取进程执行中"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+            yield i18n("进度：1a-done, 1b-ing"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             for p in ps1abc:p.wait()
-            yield i18n("文本进程结束, SSL提取进程结束"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+            yield i18n("进度：1a1b-done"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc=[]
             #############################1c
             path_semantic = "%s/6-name2semantic.tsv" % opt_dir
@@ -565,7 +565,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
-                yield i18n("SSL提取进程结束, 语义token提取进程执行中"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+                yield i18n("进度：1a1b-done, 1cing"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
                 for p in ps1abc:p.wait()
 
                 opt = ["item_name	semantic_audio"]
@@ -576,7 +576,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     os.remove(semantic_path)
                 with open(path_semantic, "w",encoding="utf8") as f:
                     f.write("\n".join(opt) + "\n")
-                yield i18n("语义token提取进程结束"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+                yield i18n("进度：all-done"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc = []
             yield i18n("一键三连进程结束"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
         except:
@@ -597,7 +597,7 @@ def close1abc():
         ps1abc=[]
     return i18n("已终止所有一键三连进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
-with gr.Blocks(title="GPT-SoVITS WebUI") as app:
+with gr.Blocks(title=i18n("GPT-SoVITS WebUI")) as app:
     gr.Markdown(
         value=
             i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
