@@ -4,13 +4,10 @@ sys.path.append(now_dir)
 import json,yaml,warnings,torch
 import platform
 import psutil
-import os
 import signal
 
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
-import os,pdb,sys
-now_dir = os.getcwd()
 tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
@@ -43,7 +40,7 @@ import gradio as gr
 from subprocess import Popen
 import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
-from i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 from scipy.io import wavfile
 from tools.my_utils import load_audio
@@ -653,7 +650,7 @@ with gr.Blocks(title=i18n("GPT-SoVITS WebUI")) as app:
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
             open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button])
             close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
-        with gr.TabItem("1-GPT-SoVITS-TTS"):
+        with gr.TabItem(i18n("1-GPT-SoVITS-TTS")):
             with gr.Row():
                 exp_name = gr.Textbox(label=i18n("*实验/模型名"), value="xxx", interactive=True)
                 gpu_info = gr.Textbox(label=i18n("显卡信息"), value=gpu_info, visible=True, interactive=False)
@@ -749,7 +746,7 @@ with gr.Blocks(title=i18n("GPT-SoVITS WebUI")) as app:
     app.queue(concurrency_count=511, max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
-        share=True,
+        share=is_share,
         server_port=webui_port_main,
         quiet=True,
     )
