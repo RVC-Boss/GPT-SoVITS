@@ -3,6 +3,7 @@ import platform
 import psutil
 import os,shutil
 import signal
+from tools import my_utils
 
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
@@ -274,6 +275,8 @@ def close1Bb():
 ps_slice=[]
 def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_parts):
     global ps_slice
+    inp = my_utils.clean_path(inp)
+    opt_root = my_utils.clean_path(opt_root)
     if(os.path.exists(inp)==False):
         yield "输入路径不存在",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
         return
