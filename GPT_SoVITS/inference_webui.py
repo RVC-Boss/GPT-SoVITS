@@ -1,4 +1,5 @@
 import os
+import i18n
 
 gpt_path = os.environ.get(
     "gpt_path", "pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
@@ -31,6 +32,8 @@ from text.cleaner import clean_text
 from time import time as ttime
 from module.mel_processing import spectrogram_torch
 from my_utils import load_audio
+from i18n.i18n import I18nAuto
+i18n = I18nAuto()
 
 device = "cuda"
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
@@ -143,7 +146,11 @@ def get_spepc(hps, filename):
     return spec
 
 
-dict_language = {"中文": "zh", "英文": "en", "日文": "ja"}
+dict_language={
+    i18n("中文"):"zh",
+    i18n("英文"):"en",
+    i18n("日文"):"ja"
+}
 
 
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language):
@@ -322,43 +329,43 @@ def cut3(inp):
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
-        value="本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>."
+        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
     )
     # with gr.Tabs():
     #     with gr.TabItem(i18n("伴奏人声分离&去混响&去回声")):
     with gr.Group():
-        gr.Markdown(value="*请上传并填写参考信息")
+        gr.Markdown(value=i18n("*请上传并填写参考信息"))
         with gr.Row():
-            inp_ref = gr.Audio(label="请上传参考音频", type="filepath")
-            prompt_text = gr.Textbox(label="参考音频的文本", value="")
+            inp_ref = gr.Audio(label=i18n("请上传参考音频"), type="filepath")
+            prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="")
             prompt_language = gr.Dropdown(
-                label="参考音频的语种", choices=["中文", "英文", "日文"], value="中文"
+                label=i18n("参考音频的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文"))
             )
-        gr.Markdown(value="*请填写需要合成的目标文本")
+        gr.Markdown(value=i18n("*请填写需要合成的目标文本"))
         with gr.Row():
-            text = gr.Textbox(label="需要合成的文本", value="")
+            text = gr.Textbox(label=i18n("需要合成的文本"), value="")
             text_language = gr.Dropdown(
-                label="需要合成的语种", choices=["中文", "英文", "日文"], value="中文"
+                label=i18n("需要合成的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文")"
             )
-            inference_button = gr.Button("合成语音", variant="primary")
-            output = gr.Audio(label="输出的语音")
+            inference_button = gr.Button(i18n("合成语音"), variant="primary")
+            output = gr.Audio(label=i18n("输出的语音"))
         inference_button.click(
             get_tts_wav,
             [inp_ref, prompt_text, prompt_language, text, text_language],
             [output],
         )
 
-        gr.Markdown(value="文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。")
+        gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         with gr.Row():
-            text_inp = gr.Textbox(label="需要合成的切分前文本", value="")
-            button1 = gr.Button("凑五句一切", variant="primary")
-            button2 = gr.Button("凑50字一切", variant="primary")
-            button3 = gr.Button("按中文句号。切", variant="primary")
-            text_opt = gr.Textbox(label="切分后文本", value="")
+            text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"),value="")
+            button1 = gr.Button(label=i18n("凑五句一切"), variant="primary")
+            button2 = gr.Button(label=i18n("凑50字一切"), variant="primary")
+            button3 = gr.Button(label=i18n("按中文句号。切"), variant="primary")
+            text_opt = gr.Textbox(label=i18n("切分后文本"), value="")
             button1.click(cut1, [text_inp], [text_opt])
             button2.click(cut2, [text_inp], [text_opt])
             button3.click(cut3, [text_inp], [text_opt])
-        gr.Markdown(value="后续将支持混合语种编码文本输入。")
+        gr.Markdown(value=i18n("后续将支持混合语种编码文本输入。"))
 
 app.queue(concurrency_count=511, max_size=1022).launch(
     server_name="0.0.0.0",
