@@ -5,7 +5,8 @@ from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
-import ffmpeg
+import librosa
+import soundfile as sf
 import torch
 import sys
 from mdxnet import MDXNetDereverb
@@ -54,16 +55,17 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             need_reformat = 1
             done = 0
             try:
-                info = ffmpeg.probe(inp_path, cmd="ffprobe")
-                if (
-                    info["streams"][0]["channels"] == 2
-                    and info["streams"][0]["sample_rate"] == "44100"
-                ):
+                y, sr = librosa.load(inp_path, sr=None)
+                info = sf.info(inp_path)
+                channels = info.channels
+                if channels == 2 and sr == 44100:
                     need_reformat = 0
                     pre_fun._path_audio_(
                         inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
                     )
                     done = 1
+                else:
+                    need_reformat = 1
             except:
                 need_reformat = 1
                 traceback.print_exc()
@@ -72,10 +74,8 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                     os.path.join(os.environ["TEMP"]),
                     os.path.basename(inp_path),
                 )
-                os.system(
-                    "ffmpeg -i %s -vn -acodec pcm_s16le -ac 2 -ar 44100 %s -y"
-                    % (inp_path, tmp_path)
-                )
+                y_resampled = librosa.resample(y, sr, 44100)
+                sf.write(tmp_path, y_resampled, 44100, "PCM_16")
                 inp_path = tmp_path
             try:
                 if done == 0:
