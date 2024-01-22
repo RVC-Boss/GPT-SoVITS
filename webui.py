@@ -1,3 +1,6 @@
+import os,shutil,sys,pdb
+now_dir = os.getcwd()
+sys.path.append(now_dir)
 import json,yaml,warnings,torch
 import platform
 import psutil
@@ -11,6 +14,12 @@ now_dir = os.getcwd()
 tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
+if(os.path.exists(tmp)):
+    for name in os.listdir(tmp):
+        if(name=="jieba.cache"):continue
+        path="%s/%s"%(tmp,name)
+        delete=os.remove if os.path.isfile(path) else shutil.rmtree
+        delete(path)
 import site
 site_packages_roots = []
 for path in site.getsitepackages():
@@ -26,14 +35,14 @@ for site_packages_root in site_packages_roots:
                 "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
                 % (now_dir, now_dir, now_dir, now_dir, now_dir)
             )
+from tools import my_utils
 import traceback
-sys.path.append(now_dir)
 import shutil
 import pdb
 import gradio as gr
 from subprocess import Popen
 import signal
-from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix
+from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
 from i18n.i18n import I18nAuto
 i18n = I18nAuto()
 from scipy.io import wavfile
@@ -119,7 +128,7 @@ def kill_process(pid):
 def change_label(if_label,path_list):
     global p_label
     if(if_label==True and p_label==None):
-        cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s'%(python_exec,path_list,webui_port_subfix)
+        cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s'%(python_exec,path_list,webui_port_subfix,is_share)
         yield i18n("打标工具WebUI已开启")
         print(cmd)
         p_label = Popen(cmd, shell=True)
@@ -131,7 +140,7 @@ def change_label(if_label,path_list):
 def change_uvr5(if_uvr5):
     global p_uvr5
     if(if_uvr5==True and p_uvr5==None):
-        cmd = '"%s" tools/uvr5/webui.py "%s" %s %s'%(python_exec,infer_device,is_half,webui_port_uvr5)
+        cmd = '"%s" tools/uvr5/webui.py "%s" %s %s %s'%(python_exec,infer_device,is_half,webui_port_uvr5,is_share)
         yield i18n("UVR5已开启")
         print(cmd)
         p_uvr5 = Popen(cmd, shell=True)
@@ -150,6 +159,7 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_number
         os.environ["is_half"]=str(is_half)
         os.environ["infer_ttswebui"]=str(webui_port_infer_tts)
+        os.environ["is_share"]=str(is_share)
         cmd = '"%s" GPT_SoVITS/inference_webui.py'%(python_exec)
         yield i18n("TTS推理进程已开启")
         print(cmd)
@@ -267,6 +277,8 @@ def close1Bb():
 ps_slice=[]
 def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_parts):
     global ps_slice
+    inp = my_utils.clean_path(inp)
+    opt_root = my_utils.clean_path(opt_root)
     if(os.path.exists(inp)==False):
         yield i18n("输入路径不存在"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
         return
@@ -588,11 +600,10 @@ def close1abc():
         ps1abc=[]
     return i18n("已终止所有一键三连进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
-with gr.Blocks(title="GPT-SoVITS WebUI") as app:
+with gr.Blocks(title=i18n("GPT-SoVITS WebUI")) as app:
     gr.Markdown(
-        value=i18n(
+        value=
             i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
-        )
     )
     with gr.Tabs():
         with gr.TabItem(i18n("0-前置数据集获取工具")):#提前随机切片防止uvr5爆内存->uvr5->slicer->asr->打标
@@ -657,9 +668,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         label=i18n("*训练集音频文件目录"),
                         # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
                         interactive=True,
-                        placeholder=i18n("训练集音频文件目录 拼接 list文件里波形对应的文件名。")
+                        placeholder=i18n("训练集音频文件目录-拼接-list文件里波形对应的文件名（不是全路径）。")
                     )
-                gr.Markdown(value="1Aa-文本内容")
+                gr.Markdown(value=i18n("1Aa-文本内容"))
                 with gr.Row():
                     gpu_numbers1a = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"),value="%s-%s"%(gpus,gpus),interactive=True)
                     bert_pretrained_dir = gr.Textbox(label=i18n("预训练的中文BERT模型路径"),value="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",interactive=False)
@@ -697,7 +708,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     batch_size = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
                     total_epoch = gr.Slider(minimum=1,maximum=20,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=8,interactive=True)
-                    text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label="文本模块学习率权重",value=0.4,interactive=True)
+                    text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,interactive=True)
                     save_every_epoch = gr.Slider(minimum=1,maximum=50,step=1,label=i18n("保存频率save_every_epoch"),value=4,interactive=True)
                     if_save_latest = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                     if_save_every_weights = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
