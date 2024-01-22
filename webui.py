@@ -1,14 +1,13 @@
+import os,shutil,sys,pdb
+now_dir = os.getcwd()
+sys.path.append(now_dir)
 import json,yaml,warnings,torch
 import platform
 import psutil
-import os,shutil
 import signal
-from tools import my_utils
 
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
-import os,pdb,sys
-now_dir = os.getcwd()
 tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
@@ -33,8 +32,8 @@ for site_packages_root in site_packages_roots:
                 "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
                 % (now_dir, now_dir, now_dir, now_dir, now_dir)
             )
+from tools import my_utils
 import traceback
-sys.path.append(now_dir)
 import shutil
 import pdb
 import gradio as gr
