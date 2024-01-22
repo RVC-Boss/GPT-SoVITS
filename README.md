@@ -69,7 +69,7 @@ pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-l
 If you need Chinese ASR (supported by FunASR), install:
 
 ```bash
-pip install modelscope torchaudio sentencepiece funasr
+pip install modelscope torchaudio sentencepiece funasr>=1.0.0
 ```
 
 #### FFmpeg
