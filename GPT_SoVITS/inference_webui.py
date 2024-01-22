@@ -1,5 +1,4 @@
 import os
-import i18n
 
 gpt_path = os.environ.get(
     "gpt_path", "pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
@@ -32,7 +31,7 @@ from text.cleaner import clean_text
 from time import time as ttime
 from module.mel_processing import spectrogram_torch
 from my_utils import load_audio
-from i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
 device = "cuda"
