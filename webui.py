@@ -171,21 +171,21 @@ def open_asr(asr_inp_dir):
     global p_asr
     if(p_asr==None):
         cmd = '"%s" tools/damo_asr/cmd-asr.py "%s"'%(python_exec,asr_inp_dir)
-        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("ASR任务开启：%s")%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
         p_asr = Popen(cmd, shell=True)
         p_asr.wait()
         p_asr=None
-        yield "ASR任务完成",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("ASR任务完成"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("已有正在进行的ASR任务，需先终止才能开启下一次任务"),{"__type__":"update","visible":False},{"__type__":"update","visible":True}
 
 def close_asr():
     global p_asr
     if(p_asr!=None):
         kill_process(p_asr.pid)
         p_asr=None
-    return "已终止ASR进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    return i18n("已终止ASR进程"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
@@ -212,21 +212,21 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         with open(tmp_config_path,"w")as f:f.write(json.dumps(data))
 
         cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
-        yield "SoVITS训练开始：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("SoVITS训练开始：%s")%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
         p_train_SoVITS.wait()
         p_train_SoVITS=None
-        yield "SoVITS训练完成",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("SoVITS训练完成"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的SoVITS训练任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("已有正在进行的SoVITS训练任务，需先终止才能开启下一次任务"),{"__type__":"update","visible":False},{"__type__":"update","visible":True}
 
 def close1Ba():
     global p_train_SoVITS
     if(p_train_SoVITS!=None):
         kill_process(p_train_SoVITS.pid)
         p_train_SoVITS=None
-    return "已终止SoVITS训练",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    return i18n("已终止SoVITS训练"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
 p_train_GPT=None
 def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers,pretrained_s1):
@@ -255,21 +255,21 @@ def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights
         with open(tmp_config_path, "w") as f:f.write(yaml.dump(data, default_flow_style=False))
         # cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" --train_semantic_path "%s/6-name2semantic.tsv" --train_phoneme_path "%s/2-name2text.txt" --output_dir "%s/logs_s1"'%(python_exec,tmp_config_path,s1_dir,s1_dir,s1_dir)
         cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" '%(python_exec,tmp_config_path)
-        yield "GPT训练开始：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("GPT训练开始：%s")%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
         p_train_GPT = Popen(cmd, shell=True)
         p_train_GPT.wait()
         p_train_GPT=None
-        yield "GPT训练完成",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("GPT训练完成"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的GPT训练任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield i18n("已有正在进行的GPT训练任务，需先终止才能开启下一次任务"),{"__type__":"update","visible":False},{"__type__":"update","visible":True}
 
 def close1Bb():
     global p_train_GPT
     if(p_train_GPT!=None):
         kill_process(p_train_GPT.pid)
         p_train_GPT=None
-    return "已终止GPT训练",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    return i18n("已终止GPT训练"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
 ps_slice=[]
 def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_parts):
@@ -277,12 +277,12 @@ def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_k
     inp = my_utils.clean_path(inp)
     opt_root = my_utils.clean_path(opt_root)
     if(os.path.exists(inp)==False):
-        yield "输入路径不存在",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("输入路径不存在"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
         return
     if os.path.isfile(inp):n_parts=1
     elif os.path.isdir(inp):pass
     else:
-        yield "输入路径存在但既不是文件也不是文件夹",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("输入路径存在但既不是文件也不是文件夹"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
         return
     if (ps_slice == []):
         for i_part in range(n_parts):
@@ -290,13 +290,13 @@ def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_k
             print(cmd)
             p = Popen(cmd, shell=True)
             ps_slice.append(p)
-        yield "切割执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("切割执行中"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps_slice:
             p.wait()
         ps_slice=[]
-        yield "切割结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("切割结束"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的切割任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("已有正在进行的切割任务，需先终止才能开启下一次任务"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
 def close_slice():
     global ps_slice
@@ -307,7 +307,7 @@ def close_slice():
             except:
                 traceback.print_exc()
         ps_slice=[]
-    return "已终止所有切割进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+    return i18n("已终止所有切割进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
 ps1a=[]
 def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
@@ -337,7 +337,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1a.append(p)
-        yield "文本进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("文本进程执行中"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1a:
             p.wait()
         opt = []
@@ -350,9 +350,9 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
         with open(path_text, "w", encoding="utf8") as f:
             f.write("\n".join(opt) + "\n")
         ps1a=[]
-        yield "文本进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("文本进程结束"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的文本任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("已有正在进行的文本任务，需先终止才能开启下一次任务"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
 def close1a():
     global ps1a
@@ -363,7 +363,7 @@ def close1a():
             except:
                 traceback.print_exc()
         ps1a=[]
-    return "已终止所有1a进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+    return i18n("已终止所有1a进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
 ps1b=[]
 def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
@@ -392,13 +392,13 @@ def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1b.append(p)
-        yield "SSL提取进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("SSL提取进程执行中"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1b:
             p.wait()
         ps1b=[]
-        yield "SSL提取进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("SSL提取进程结束"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的SSL提取任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("已有正在进行的SSL提取任务，需先终止才能开启下一次任务"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
 def close1b():
     global ps1b
@@ -409,7 +409,7 @@ def close1b():
             except:
                 traceback.print_exc()
         ps1b=[]
-    return "已终止所有1b进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+    return i18n("已终止所有1b进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
 ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
@@ -439,7 +439,7 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1c.append(p)
-        yield "语义token提取进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("语义token提取进程执行中"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1c:
             p.wait()
         opt = ["item_name	semantic_audio"]
@@ -452,9 +452,9 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
         with open(path_semantic, "w", encoding="utf8") as f:
             f.write("\n".join(opt) + "\n")
         ps1c=[]
-        yield "语义token提取进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield i18n("语义token提取进程结束"),{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的语义token提取任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("已有正在进行的语义token提取任务，需先终止才能开启下一次任务"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
 def close1c():
     global ps1c
@@ -465,7 +465,7 @@ def close1c():
             except:
                 traceback.print_exc()
         ps1c=[]
-    return "已终止所有语义token进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+    return i18n("已终止所有语义token进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 #####inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numbers1c,bert_pretrained_dir,cnhubert_base_dir,pretrained_s2G
 ps1abc=[]
 def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numbers1c,bert_pretrained_dir,ssl_pretrained_dir,pretrained_s2G_path):
@@ -499,7 +499,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
-                yield "进度：1a-ing", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+                yield i18n("进度：1a-ing"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
                 for p in ps1abc:p.wait()
 
                 opt = []
@@ -511,7 +511,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                 with open(path_text, "w",encoding="utf8") as f:
                     f.write("\n".join(opt) + "\n")
 
-            yield "进度：1a-done", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+            yield i18n("进度：1a-done"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc=[]
             #############################1b
             config={
@@ -536,9 +536,9 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                 print(cmd)
                 p = Popen(cmd, shell=True)
                 ps1abc.append(p)
-            yield "进度：1a-done, 1b-ing", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+            yield i18n("进度：1a-done, 1b-ing"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             for p in ps1abc:p.wait()
-            yield "进度：1a1b-done", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+            yield i18n("进度：1a1b-done"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc=[]
             #############################1c
             path_semantic = "%s/6-name2semantic.tsv" % opt_dir
@@ -565,7 +565,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
-                yield "进度：1a1b-done, 1cing", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+                yield i18n("进度：1a1b-done, 1cing"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
                 for p in ps1abc:p.wait()
 
                 opt = ["item_name	semantic_audio"]
@@ -576,15 +576,15 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     os.remove(semantic_path)
                 with open(path_semantic, "w",encoding="utf8") as f:
                     f.write("\n".join(opt) + "\n")
-                yield "进度：all-done", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+                yield i18n("进度：all-done"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc = []
-            yield "一键三连进程结束", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+            yield i18n("一键三连进程结束"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
         except:
             traceback.print_exc()
             close1abc()
-            yield "一键三连中途报错", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+            yield i18n("一键三连中途报错"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
     else:
-        yield "已有正在进行的一键三连任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield i18n("已有正在进行的一键三连任务，需先终止才能开启下一次任务"), {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
 def close1abc():
     global ps1abc
@@ -595,9 +595,9 @@ def close1abc():
             except:
                 traceback.print_exc()
         ps1abc=[]
-    return "已终止所有一键三连进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+    return i18n("已终止所有一键三连进程"), {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
-with gr.Blocks(title="GPT-SoVITS WebUI") as app:
+with gr.Blocks(title=i18n("GPT-SoVITS WebUI")) as app:
     gr.Markdown(
         value=
             i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
