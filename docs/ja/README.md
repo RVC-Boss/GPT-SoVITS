@@ -93,6 +93,30 @@ brew install ffmpeg
 
 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートディレクトリに置きます。
 
+### Dockerの使用
+
+#### docker-compose.yamlの設定
+
+1. 環境変数：
+    - `is_half`：半精度／倍精度の制御。"SSL抽出"ステップ中に`4-cnhubert/5-wav32k`ディレクトリ内の内容が正しく生成されない場合、通常これが原因です。実際の状況に応じてTrueまたはFalseに調整してください。
+
+2. ボリューム設定：コンテナ内のアプリケーションのルートディレクトリは`/workspace`に設定されます。デフォルトの`docker-compose.yaml`には、アップロード／ダウンロードの内容の実例がいくつか記載されています。
+3. `shm_size`：WindowsのDocker Desktopのデフォルトの利用可能メモリが小さすぎるため、異常な動作を引き起こす可能性があります。状況に応じて適宜設定してください。
+4. `deploy`セクションのGPUに関連する内容は、システムと実際の状況に応じて慎重に設定してください。
+
+#### docker composeで実行する
+```markdown
+docker compose -f "docker-compose.yaml" up -d
+```
+
+#### dockerコマンドで実行する
+
+上記と同様に、実際の状況に基づいて対応するパラメータを変更し、次のコマンドを実行します：
+```markdown
+docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9870:9870 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:dev-20240123.03
+```
+
+
 ### 事前訓練済みモデル
 
 

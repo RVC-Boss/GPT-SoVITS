@@ -20,4 +20,4 @@ transformers
 chardet
 PyYAML
 psutil
-jieba
+jieba_fast
