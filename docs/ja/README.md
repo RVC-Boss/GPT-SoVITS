@@ -48,11 +48,6 @@ conda activate GPTSoVits
 bash install.sh
 ```
 ### 手動インストール
-#### python3.9 用の distutils がインストールされていることを確認する
-
-```bash
-sudo apt-get install python3.9-distutils
-```
 
 #### Pip パッケージ
 
