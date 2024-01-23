@@ -5,7 +5,6 @@ import sys,os,traceback
 from funasr import AutoModel
 
 dir=sys.argv[1]
-
 # opt_name=dir.split("\\")[-1].split("/")[-1]
 opt_name=os.path.basename(dir)
 
@@ -16,11 +15,11 @@ path_asr=path_asr if os.path.exists(path_asr)else "damo/speech_paraformer-large_
 path_vad=path_vad if os.path.exists(path_vad)else "damo/speech_fsmn_vad_zh-cn-16k-common-pytorch"
 path_punc=path_punc if os.path.exists(path_punc)else "damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch"
 
-model = AutoModel(model=path_asr, model_revision="v2.0.3",
+model = AutoModel(model=path_asr, model_revision="v2.0.4",
                   vad_model=path_vad,
-                  vad_model_revision="v2.0.2",
+                  vad_model_revision="v2.0.4",
                   punc_model=path_punc,
-                  punc_model_revision="v2.0.3",
+                  punc_model_revision="v2.0.4",
                   )
 
 
