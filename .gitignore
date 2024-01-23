@@ -7,3 +7,5 @@ runtime
 TEMP
 ffmpeg.exe
 ffprobe.exe
+GPT_weights/
+SoVITS_weights/

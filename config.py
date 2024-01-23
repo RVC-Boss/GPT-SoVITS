@@ -1,5 +1,12 @@
 import sys
 
+#model type name
+MODEL_TYPE_GPT = "GPT"
+MODEL_TYPE_SOVITS = "SOVITS"
+
+#model folder path
+MODEL_FOLDER_PATH_GPT = "GPT_weights"
+MODEL_FOLDER_PATH_SOVITS = "SoVITS_weights"
 
 # 推理用的指定模型
 sovits_path = ""
