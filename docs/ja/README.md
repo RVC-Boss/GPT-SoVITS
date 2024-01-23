@@ -24,7 +24,7 @@
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
 ## 機能:
-1. **セロショット TTS:** 5秒間のボーカルサンプルを入力すると、即座にテキストから音声に変換されます。
+1. **ゼロショット TTS:** 5秒間のボーカルサンプルを入力すると、即座にテキストから音声に変換されます。
 
 2. **数ショット TTS:** わずか1分間のトレーニングデータでモデルを微調整し、音声の類似性とリアリズムを向上。
 
@@ -57,7 +57,7 @@ sudo apt-get install python3.9-distutils
 #### Pip パッケージ
 
 ```bash
-pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet
+pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet transformers
 ```
 
 #### 追加要件
