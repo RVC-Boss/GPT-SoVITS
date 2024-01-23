@@ -52,11 +52,6 @@ conda activate GPTSoVits
 bash install.sh
 ```
 ### Install Manually
-#### Make sure you have the distutils for python3.9 installed
-
-```bash
-sudo apt-get install python3.9-distutils
-```
 
 #### Pip Packages
 
