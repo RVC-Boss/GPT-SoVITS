@@ -1,4 +1,4 @@
-import platform
+import platform,os
 import ffmpeg
 import numpy as np
 
