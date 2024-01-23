@@ -4,7 +4,7 @@ import sys,os
 # 推理用的指定模型
 sovits_path = ""
 gpt_path = ""
-is_half = eval(os.environ.get("is_half",True))
+is_half = eval(os.environ.get("is_half","True"))
 is_share=False
 
 cnhubert_path = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
