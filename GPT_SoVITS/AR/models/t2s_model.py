@@ -302,6 +302,8 @@ class Text2SemanticDecoder(nn.Module):
                 xy_dec[:, -1]
             )  ##不用改，如果用了cache的默认就是只有一帧，取最后一帧一样的
             # samples = topk_sampling(logits, top_k=top_k, top_p=1.0, temperature=temperature)
+            if(idx==0):###第一次跑不能EOS否则没有了
+                logits = logits[:, :-1]  ###刨除1024终止符号的概率
             samples = sample(
                 logits[0], y, top_k=top_k, top_p=1.0, repetition_penalty=1.35
             )[0].unsqueeze(0)
