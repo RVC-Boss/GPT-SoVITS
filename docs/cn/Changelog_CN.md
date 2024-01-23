@@ -21,5 +21,11 @@
 3-音频路径检查。如果尝试读取输入错的路径报错路径不存在，而非ffmpeg错误。
 
 ### 20240123更新
-1-hubert提取在half下出现nan概率更高的问题
 
+1-解决hubert提取nan导致SoVITS/GPT训练报错ZeroDivisionError的问题
+
+2-支持推理界面快速切换模型
+
+3-优化模型文件排序逻辑
+
+4-中文分词使用jieba_fast代替jieba
