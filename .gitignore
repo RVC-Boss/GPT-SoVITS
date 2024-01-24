@@ -4,8 +4,3 @@ __pycache__
 env
 runtime
 .idea
-TEMP
-ffmpeg.exe
-ffprobe.exe
-GPT_weights/
-SoVITS_weights/
