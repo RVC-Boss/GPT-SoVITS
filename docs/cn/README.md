@@ -23,6 +23,8 @@
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
+中国地区用户可使用AutoDL云端镜像进行体验：https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official
+
 ## 功能：
 1. **零样本文本到语音（TTS）：** 输入5秒的声音样本，即刻体验文本到语音转换。
 
