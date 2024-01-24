@@ -47,7 +47,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             )
         is_hp3 = "HP3" in model_name
         if inp_root != "":
-            paths = [os.path.join(inp_root, name) for name in os.listdir(inp_root)]
+            paths = [name for name in os.listdir(inp_root)]
         else:
             paths = [path.name for path in paths]
         for path in paths:
