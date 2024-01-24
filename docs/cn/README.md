@@ -51,7 +51,7 @@ bash install.sh
 #### Pip包
 
 ```bash
-pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet
+pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet transformers
 ```
 
 #### 额外要求
@@ -86,6 +86,32 @@ brew install ffmpeg
 ##### Windows 使用者
 
 下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下。
+
+### 在 Docker 中使用
+
+#### docker-compose.yaml 设置
+
+1. 环境变量：
+  - is_half: 半精度/双精度控制。在进行 "SSL extracting" 步骤时如果无法正确生成 4-cnhubert/5-wav32k 目录下的内容时，一般都是它引起的，可以根据实际情况来调整为True或者False。
+
+2. Volume设置，容器内的应用根目录设置为 /workspace。 默认的 docker-compose.yaml 中列出了一些实际的例子，便于上传/下载内容。
+3. shm_size：Windows下的Docker Desktop默认可用内存过小，会导致运行异常，根据自己情况酌情设置。
+4. deploy小节下的gpu相关内容，请根据您的系统和实际情况酌情设置。
+
+
+
+#### 通过 docker compose运行
+```
+docker compose -f "docker-compose.yaml" up -d
+```
+
+#### 通过 docker 命令运行
+
+同上，根据您自己的实际情况修改对应的参数，然后运行如下命令：
+```
+docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9870:9870 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:dev-20240123.03
+```
+
 
 ### 预训练模型
 

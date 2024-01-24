@@ -1,4 +1,4 @@
-import os,shutil,sys,pdb
+import os,shutil,sys,pdb,re
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import json,yaml,warnings,torch
@@ -85,9 +85,16 @@ os.makedirs(SoVITS_weight_root,exist_ok=True)
 os.makedirs(GPT_weight_root,exist_ok=True)
 SoVITS_names,GPT_names = get_weights_names()
 
+def custom_sort_key(s):
+    # 使用正则表达式提取字符串中的数字部分和非数字部分
+    parts = re.split('(\d+)', s)
+    # 将数字部分转换为整数，非数字部分保持不变
+    parts = [int(part) if part.isdigit() else part for part in parts]
+    return parts
+
 def change_choices():
     SoVITS_names, GPT_names = get_weights_names()
-    return {"choices": sorted(SoVITS_names), "__type__": "update"}, {"choices": sorted(GPT_names), "__type__": "update"}
+    return {"choices": sorted(SoVITS_names,key=custom_sort_key), "__type__": "update"}, {"choices": sorted(GPT_names,key=custom_sort_key), "__type__": "update"}
 
 p_label=None
 p_uvr5=None
@@ -442,7 +449,7 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
         yield "语义token提取进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1c:
             p.wait()
-        opt = ["item_name	semantic_audio"]
+        opt = ["item_name\tsemantic_audio"]
         path_semantic = "%s/6-name2semantic.tsv" % opt_dir
         for i_part in range(all_parts):
             semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
@@ -475,7 +482,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
         try:
             #############################1a
             path_text="%s/2-name2text.txt" % opt_dir
-            if(os.path.exists(path_text)==False or (os.path.exists(path_text)==True and os.path.getsize(path_text)<10)):
+            if(os.path.exists(path_text)==False or (os.path.exists(path_text)==True and len(open(path_text,"r",encoding="utf8").read().strip("\n").split("\n"))<2)):
                 config={
                     "inp_text":inp_text,
                     "inp_wav_dir":inp_wav_dir,
@@ -568,7 +575,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                 yield "进度：1a1b-done, 1cing", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
                 for p in ps1abc:p.wait()
 
-                opt = ["item_name	semantic_audio"]
+                opt = ["item_name\tsemantic_audio"]
                 for i_part in range(all_parts):
                     semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
                     with open(semantic_path, "r",encoding="utf8") as f:
@@ -704,9 +711,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 gr.Markdown(value=i18n("1Ba-SoVITS训练。用于分享的模型文件输出在SoVITS_weights下。"))
                 with gr.Row():
                     batch_size = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
-                    total_epoch = gr.Slider(minimum=1,maximum=20,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=8,interactive=True)
+                    total_epoch = gr.Slider(minimum=1,maximum=25,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=8,interactive=True)
                     text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,interactive=True)
-                    save_every_epoch = gr.Slider(minimum=1,maximum=50,step=1,label=i18n("保存频率save_every_epoch"),value=4,interactive=True)
+                    save_every_epoch = gr.Slider(minimum=1,maximum=25,step=1,label=i18n("保存频率save_every_epoch"),value=4,interactive=True)
                     if_save_latest = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                     if_save_every_weights = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
                     gpu_numbers1Ba = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"), value="%s" % (gpus), interactive=True)
@@ -717,7 +724,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 gr.Markdown(value=i18n("1Bb-GPT训练。用于分享的模型文件输出在GPT_weights下。"))
                 with gr.Row():
                     batch_size1Bb = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
-                    total_epoch1Bb = gr.Slider(minimum=2,maximum=100,step=1,label=i18n("总训练轮数total_epoch"),value=15,interactive=True)
+                    total_epoch1Bb = gr.Slider(minimum=2,maximum=50,step=1,label=i18n("总训练轮数total_epoch"),value=15,interactive=True)
                     if_save_latest1Bb = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                     if_save_every_weights1Bb = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
                     save_every_epoch1Bb = gr.Slider(minimum=1,maximum=50,step=1,label=i18n("保存频率save_every_epoch"),value=5,interactive=True)
@@ -733,8 +740,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.TabItem(i18n("1C-推理")):
                 gr.Markdown(value=i18n("选择训练完存放在SoVITS_weights和GPT_weights下的模型。默认的一个是底模，体验5秒Zero Shot TTS用。"))
                 with gr.Row():
-                    GPT_dropdown = gr.Dropdown(label=i18n("*GPT模型列表"), choices=sorted(GPT_names),value=pretrained_gpt_name)
-                    SoVITS_dropdown = gr.Dropdown(label=i18n("*SoVITS模型列表"), choices=sorted(SoVITS_names),value=pretrained_sovits_name)
+                    GPT_dropdown = gr.Dropdown(label=i18n("*GPT模型列表"), choices=sorted(GPT_names,key=custom_sort_key),value=pretrained_gpt_name,interactive=True)
+                    SoVITS_dropdown = gr.Dropdown(label=i18n("*SoVITS模型列表"), choices=sorted(SoVITS_names,key=custom_sort_key),value=pretrained_sovits_name,interactive=True)
                     gpu_number_1C=gr.Textbox(label=i18n("GPU卡号,只能填1个整数"), value=gpus, interactive=True)
                     refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
                     refresh_button.click(fn=change_choices,inputs=[],outputs=[SoVITS_dropdown,GPT_dropdown])
