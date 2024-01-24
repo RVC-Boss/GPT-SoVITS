@@ -354,6 +354,33 @@ def get_weights_names():
     return SoVITS_names,GPT_names
 SoVITS_names,GPT_names = get_weights_names()
 
+#region 输出音频历史记录相关
+output_history =[]
+history_max_num = 12
+
+def add_to_history(audio,input_text):
+    result = []
+    #TODO change to audio type
+    # if len(textbox_list_value) == history_max_num:
+    #     output_history.pop()
+    # output_history.insert(0,text)
+    # for _ in range(history_max_num):
+    #     result.append(gr.Textbox())
+    # for index,value in enumerate(output_history):
+    #     result[index]._constructor_args[0]['value'] =value
+
+    return result
+
+def shown_audio_num_change(audio_num):
+    audio_numr = int(audio_num)
+    result = []
+    for _ in range(audio_num):
+        result.append(gr.Audio(visible=True))
+    for _ in range(audio_num,history_max_num):
+        result.append(gr.Audio(visible=False))
+    return result
+#endregion
+
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
         value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
@@ -387,7 +414,20 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             [inp_ref, prompt_text, prompt_language, text, text_language],
             [output],
         )
-
+        history_audio = []
+        with gr.Accordion("生成历史"):
+            shown_audio_num = gr.Slider(0,12,8,step=1,interactive=True)
+            with gr.Group():
+                with gr.Row():
+                    for _ in range(4):
+                        history_audio.append(gr.Audio(label=""))
+                with gr.Row():
+                    for _ in range(4):
+                        history_audio.append(gr.Audio(label=""))
+                with gr.Row():
+                    for _ in range(4):
+                        history_audio.append(gr.Audio(label=""))
+            
         gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         with gr.Row():
             text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"),value="")
