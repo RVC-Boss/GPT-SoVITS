@@ -38,7 +38,7 @@ semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
 if os.path.exists(semantic_path) == False:
     os.makedirs(opt_dir, exist_ok=True)
 
-    device = "cuda:0"
+    device = "cuda:0" if torch.cuda.is_available() else "mps"
     hps = utils.get_hparams_from_file(s2config_path)
     vq_model = SynthesizerTrn(
         hps.data.filter_length // 2 + 1,
