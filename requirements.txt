@@ -21,3 +21,4 @@ chardet
 PyYAML
 psutil
 jieba_fast
+pandas
