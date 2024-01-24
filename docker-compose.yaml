@@ -7,10 +7,10 @@ services:
     environment:
       - is_half=False
     volumes:
-      - G:/GPT-SoVITS-DockerTest/output:/workspace/output
-      - G:/GPT-SoVITS-DockerTest/logs:/workspace/logs
-      - G:/GPT-SoVITS-DockerTest/SoVITS_weights:/workspace/SoVITS_weights
-      - G:/GPT-SoVITS-DockerTest/reference:/workspace/reference
+      - ./output:/workspace/output
+      - ./logs:/workspace/logs
+      - ./SoVITS_weights:/workspace/SoVITS_weights
+      - ./reference:/workspace/reference
     working_dir: /workspace
     ports:
       - "9870:9870"
