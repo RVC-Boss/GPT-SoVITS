@@ -30,25 +30,25 @@ endpoint: `/`
 
 使用执行参数指定的参考音频:
 GET:
-    `http://127.0.0.1:9880?text=你所热爱的，就是你的生活。&text_language=zh`
+    `http://127.0.0.1:9880?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh`
 POST:
 ```json
 {
-    "text": "你所热爱的，就是你的生活。",
+    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
     "text_language": "zh"
 }
 ```
 
 手动指定当次推理所使用的参考音频:
 GET:
-    `http://127.0.0.1:9880?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh&text=你所热爱的，就是你的生活。&text_language=zh`
+    `http://127.0.0.1:9880?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh&text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh`
 POST:
 ```json
 {
     "refer_wav_path": "123.wav",
     "prompt_text": "一二三。",
     "prompt_language": "zh",
-    "text": "你所热爱的，就是你的生活。",
+    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
     "text_language": "zh"
 }
 ```
@@ -138,7 +138,8 @@ parser.add_argument("-dr", "--default_refer_path", type=str, default="", help="�
 parser.add_argument("-dt", "--default_refer_text", type=str, default="", help="默认参考音频文本")
 parser.add_argument("-dl", "--default_refer_language", type=str, default="", help="默认参考音频语种")
 
-parser.add_argument("-d", "--device", type=str, default=g_config.infer_device, help="cuda / cpu")
+parser.add_argument("-d", "--device", type=str, default=g_config.infer_device, help="cuda / cpu / mps")
+parser.add_argument("-p", "--port", type=int, default=g_config.api_port, help="default: 9880")
 parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 127.0.0.1")
 parser.add_argument("-p", "--port", type=int, default=g_config.api_port, help="default: 9880")
 parser.add_argument("-fp", "--full_precision", action="store_true", default=False, help="覆盖config.is_half为False, 使用全精度")
@@ -278,7 +279,7 @@ vq_model.eval()
 print(vq_model.load_state_dict(dict_s2["weight"], strict=False))
 hz = 50
 max_sec = config['data']['max_sec']
-t2s_model = Text2SemanticLightningModule(config, "ojbk", is_train=False)
+t2s_model = Text2SemanticLightningModule(config, "****", is_train=False)
 t2s_model.load_state_dict(dict_s1["weight"])
 if is_half:
     t2s_model = t2s_model.half()
@@ -439,6 +440,7 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language):
     wav.seek(0)
 
     torch.cuda.empty_cache()
+    torch.mps.empty_cache()
     return StreamingResponse(wav, media_type="audio/wav")
 
 
