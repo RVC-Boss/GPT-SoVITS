@@ -4,17 +4,17 @@ tensorboard
 librosa==0.9.2
 numba==0.56.4
 pytorch-lightning
-gradio==3.14.0
+gradio==3.38.0
 ffmpeg-python
 onnxruntime
 tqdm
-funasr
+funasr==0.8.7
 cn2an
 pypinyin
 pyopenjtalk
 g2p_en
 torchaudio
-modelscope
+modelscope==1.10.0
 sentencepiece
 transformers
 chardet
@@ -22,3 +22,4 @@ PyYAML
 psutil
 jieba_fast
 pandas
+jieba
