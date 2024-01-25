@@ -47,7 +47,7 @@ os.makedirs(wav32dir,exist_ok=True)
 
 maxx=0.95
 alpha=0.5
-device="cuda:0"
+device="cuda:0" if torch.cuda.is_available() else "mps"
 model=cnhubert.get_model()
 # is_half=False
 if(is_half==True):
