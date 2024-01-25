@@ -1,4 +1,9 @@
-import os,re
+import os,re,logging
+logging.getLogger("markdown_it").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+logging.getLogger("httpcore").setLevel(logging.ERROR)
+logging.getLogger("httpx").setLevel(logging.ERROR)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
 import pdb
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 gpt_path = os.environ.get(
