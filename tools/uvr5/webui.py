@@ -1,12 +1,11 @@
 import os
 import traceback,gradio as gr
 import logging
-from tools.i18n.i18n import I18nAuto
+from i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
-import librosa
-import soundfile as sf
+import ffmpeg
 import torch
 import sys
 from mdxnet import MDXNetDereverb
@@ -20,8 +19,7 @@ for name in os.listdir(weight_uvr5_root):
 
 device=sys.argv[1]
 is_half=sys.argv[2]
-webui_port_uvr5=int(sys.argv[3])
-is_share=eval(sys.argv[4])
+
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []
@@ -55,17 +53,16 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             need_reformat = 1
             done = 0
             try:
-                y, sr = librosa.load(inp_path, sr=None)
-                info = sf.info(inp_path)
-                channels = info.channels
-                if channels == 2 and sr == 44100:
+                info = ffmpeg.probe(inp_path, cmd="ffprobe")
+                if (
+                    info["streams"][0]["channels"] == 2
+                    and info["streams"][0]["sample_rate"] == "44100"
+                ):
                     need_reformat = 0
                     pre_fun._path_audio_(
                         inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
                     )
                     done = 1
-                else:
-                    need_reformat = 1
             except:
                 need_reformat = 1
                 traceback.print_exc()
@@ -74,8 +71,10 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                     os.path.join(os.environ["TEMP"]),
                     os.path.basename(inp_path),
                 )
-                y_resampled = librosa.resample(y, sr, 44100)
-                sf.write(tmp_path, y_resampled, 44100, "PCM_16")
+                os.system(
+                    "ffmpeg -i %s -vn -acodec pcm_s16le -ac 2 -ar 44100 %s -y"
+                    % (inp_path, tmp_path)
+                )
                 inp_path = tmp_path
             try:
                 if done == 0:
@@ -116,10 +115,10 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
     yield "\n".join(infos)
 
 
-with gr.Blocks(title="RVC WebUI") as app:
+with gr.Blocks(title="UVR5 WebUI") as app:
     gr.Markdown(
         value=
-            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
+            "MIT license. https://github.com/Anjok07/ultimatevocalremovergui"
     )
     with gr.Tabs():
         with gr.TabItem(i18n("伴奏人声分离&去混响&去回声")):
@@ -144,7 +143,7 @@ with gr.Blocks(title="RVC WebUI") as app:
                             minimum=0,
                             maximum=20,
                             step=1,
-                            label=i18n("人声提取激进程度"),
+                            label="人声提取激进程度",
                             value=10,
                             interactive=True,
                             visible=False,  # 先不开放调整
@@ -180,7 +179,6 @@ with gr.Blocks(title="RVC WebUI") as app:
 app.queue(concurrency_count=511, max_size=1022).launch(
     server_name="0.0.0.0",
     inbrowser=True,
-    share=is_share,
-    server_port=webui_port_uvr5,
+    server_port=9873,
     quiet=True,
 )
