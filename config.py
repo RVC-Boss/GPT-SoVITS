@@ -29,6 +29,19 @@ webui_port_subfix = 9871
 
 api_port = 9880
 
+gpu_name = torch.cuda.get_device_name(0)
+if (
+        ("16" in gpu_name and "V100" not in gpu_name.upper())
+        or "P40" in gpu_name.upper()
+        or "P10" in gpu_name.upper()
+        or "1060" in gpu_name
+        or "1070" in gpu_name
+        or "1080" in gpu_name
+):
+    is_half=False
+
+if(is_half==False and infer_device=="cuda"):infer_device="cpu"
+
 
 class Config:
     def __init__(self):
