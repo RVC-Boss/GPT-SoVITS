@@ -64,6 +64,23 @@ elif torch.backends.mps.is_available():
 else:
     device = "cpu"
 
+# 操作记忆功能
+    
+file_path = './audio_log.txt'
+
+upload_audio_path = None
+upload_audio_text = ""
+upload_audio_lanuage = "中文"
+
+if os.path.exists(file_path):
+    with open(file_path, 'r',encoding="utf-8") as file:
+        text_data = file.read()
+        text_data = text_data.split("|")
+
+        upload_audio_path = text_data[0]
+        upload_audio_text = text_data[1]
+        upload_audio_lanuage = text_data[2]
+
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
 if is_half == True:
@@ -183,6 +200,7 @@ dict_language={
 
 
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language):
+    with open("./audio_log.txt","w",encoding="utf-8")as f:f.write(f"{wav_path_log}|{prompt_text}|{prompt_language}")
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
     prompt_language, text = prompt_language, text.strip("\n")
