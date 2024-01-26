@@ -296,7 +296,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         phones1, word2ph1, norm_text1 = clean_text_inf(prompt_text, prompt_language)
     else:
         phones1, word2ph1, norm_text1 = nonen_clean_text_inf(prompt_text, prompt_language)
-    texts = text.split("\n")
+    texts = text.replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n").split("\n")
     audio_opt = []
     if prompt_language == "en":
         bert1 = get_bert_inf(phones1, word2ph1, norm_text1, prompt_language)
