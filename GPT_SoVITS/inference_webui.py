@@ -277,6 +277,10 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         phones1, word2ph1, norm_text1 = nonen_clean_text_inf(prompt_text, prompt_language)
     texts = text.split("\n")
     audio_opt = []
+    if prompt_language == "en":
+        bert1 = get_bert_inf(phones1, word2ph1, norm_text1, prompt_language)
+    else:
+        bert1 = nonen_get_bert_inf(prompt_text, prompt_language)
     for text in texts:
         # 解决输入目标文本的空行导致报错的问题
         if (len(text.strip()) == 0):
@@ -286,11 +290,6 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
             phones2, word2ph2, norm_text2 = clean_text_inf(text, text_language)
         else:
             phones2, word2ph2, norm_text2 = nonen_clean_text_inf(text, text_language)
-
-        if prompt_language == "en":
-            bert1 = get_bert_inf(phones1, word2ph1, norm_text1, prompt_language)
-        else:
-            bert1 = nonen_get_bert_inf(prompt_text, prompt_language)
         
         if text_language == "en":
             bert2 = get_bert_inf(phones2, word2ph2, norm_text2, text_language)
