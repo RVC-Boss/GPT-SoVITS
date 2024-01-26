@@ -40,8 +40,7 @@ if (
 ):
     is_half=False
 
-if(is_half==False and infer_device=="cuda"):infer_device="cpu"
-
+if(infer_device=="cpu"):is_half=False
 
 class Config:
     def __init__(self):
