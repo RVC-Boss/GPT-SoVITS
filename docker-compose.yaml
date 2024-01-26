@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  gpt-sovits:
+    image: breakstring/gpt-sovits:dev-20240123.03
+    container_name: gpt-sovits-container
+    environment:
+      - is_half=False
+    volumes:
+      - ./output:/workspace/output
+      - ./logs:/workspace/logs
+      - ./SoVITS_weights:/workspace/SoVITS_weights
+      - ./reference:/workspace/reference
+    working_dir: /workspace
+    ports:
+      - "9870:9870"
+      - "9871:9871"
+      - "9872:9872"
+      - "9873:9873"
+      - "9874:9874"
+    shm_size: 16G
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: "all"
+            capabilities: [gpu]
+    stdin_open: true
+    tty: true
+    restart: unless-stopped

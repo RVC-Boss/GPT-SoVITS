@@ -24,7 +24,7 @@
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
 ## 機能:
-1. **セロショット TTS:** 5秒間のボーカルサンプルを入力すると、即座にテキストから音声に変換されます。
+1. **ゼロショット TTS:** 5秒間のボーカルサンプルを入力すると、即座にテキストから音声に変換されます。
 
 2. **数ショット TTS:** わずか1分間のトレーニングデータでモデルを微調整し、音声の類似性とリアリズムを向上。
 
@@ -37,9 +37,26 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 Windows ユーザーであれば（win>=10 にてテスト済み）、prezip 経由で直接インストールできます。[prezip](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) をダウンロードして解凍し、go-webui.bat をダブルクリックするだけで GPT-SoVITS-WebUI が起動します。
 
 ### Python と PyTorch のバージョン
+- Python 3.9, PyTorch 2.0.1, CUDA 11
+- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
+- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple Silicon, MPS)
 
-Python 3.9、PyTorch 2.0.1、CUDA 11でテスト済。
+_注記: numba==0.56.4 は py<3.11 が必要です_
 
+### Macユーザーへ
+Macユーザーの方は、以下のコマンドを使用してインストールしてください。
+#### 環境作成
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+```
+#### Pip パッケージ
+```bash
+pip install -r requirements.txt
+pip uninstall torch torchaudio
+pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+```
+_注記: UVR5を使用した前処理には、[元のプロジェクトGUIをダウンロード](https://github.com/Anjok07/ultimatevocalremovergui)して、操作にGPUを選択することを推奨します。さらに、Macを使用して推論する際にメモリリークの問題が発生する可能性がありますが、推論のwebUIを再起動することでメモリを解放できます。_
 ### Conda によるクイックインストール
 
 ```bash
@@ -48,24 +65,11 @@ conda activate GPTSoVits
 bash install.sh
 ```
 ### 手動インストール
-#### python3.9 用の distutils がインストールされていることを確認する
-
-```bash
-sudo apt-get install python3.9-distutils
-```
 
 #### Pip パッケージ
 
 ```bash
-pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet
-```
-
-#### 追加要件
-
-中国語の ASR（FunASR がサポート）が必要な場合は、以下をインストールしてください:
-
-```bash
-pip install modelscope torchaudio sentencepiece funasr
+pip install -r requirementx.txt
 ```
 
 #### FFmpeg
@@ -92,6 +96,30 @@ brew install ffmpeg
 ##### Windows ユーザー
 
 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートディレクトリに置きます。
+
+### Dockerの使用
+
+#### docker-compose.yamlの設定
+
+1. 環境変数：
+    - `is_half`：半精度／倍精度の制御。"SSL抽出"ステップ中に`4-cnhubert/5-wav32k`ディレクトリ内の内容が正しく生成されない場合、通常これが原因です。実際の状況に応じてTrueまたはFalseに調整してください。
+
+2. ボリューム設定：コンテナ内のアプリケーションのルートディレクトリは`/workspace`に設定されます。デフォルトの`docker-compose.yaml`には、アップロード／ダウンロードの内容の実例がいくつか記載されています。
+3. `shm_size`：WindowsのDocker Desktopのデフォルトの利用可能メモリが小さすぎるため、異常な動作を引き起こす可能性があります。状況に応じて適宜設定してください。
+4. `deploy`セクションのGPUに関連する内容は、システムと実際の状況に応じて慎重に設定してください。
+
+#### docker composeで実行する
+```markdown
+docker compose -f "docker-compose.yaml" up -d
+```
+
+#### dockerコマンドで実行する
+
+上記と同様に、実際の状況に基づいて対応するパラメータを変更し、次のコマンドを実行します：
+```markdown
+docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9870:9870 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:dev-20240123.03
+```
+
 
 ### 事前訓練済みモデル
 
