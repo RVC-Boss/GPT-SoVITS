@@ -302,7 +302,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     elif(how_to_cut==i18n("按中文句号。切")):text=cut3(text)
     elif(how_to_cut==i18n("按英文句号.切")):text=cut4(text)
     text = text.replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
-    if(text[-1]not in splits):text+="。"if text_language=="zh"else "."
+    if(text[-1]not in splits):text+="。"if text_language!="en"else "."
     texts=text.split("\n")
     audio_opt = []
     if prompt_language == "en":
