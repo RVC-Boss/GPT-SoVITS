@@ -9,7 +9,7 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 <img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
 
 [![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-Spaces-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
+[![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
 
 [**English**](./README.md) | [**中文简体**](./docs/cn/README.md) | [**日本語**](./docs/ja/README.md)
