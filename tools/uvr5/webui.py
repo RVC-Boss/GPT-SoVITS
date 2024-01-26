@@ -81,7 +81,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 try:
                     if done == 0:
                         pre_fun._path_audio_(
-                            inp_path, save_root_ins, save_root_vocal, format0
+                            inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
                         )
                     infos.append("%s->Success" % (os.path.basename(inp_path)))
                     yield "\n".join(infos)
@@ -89,7 +89,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                     try:
                         if done == 0:
                             pre_fun._path_audio_(
-                                inp_path, save_root_ins, save_root_vocal, format0
+                                inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
                             )
                         infos.append("%s->Success" % (os.path.basename(inp_path)))
                         yield "\n".join(infos)
