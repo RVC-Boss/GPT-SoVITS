@@ -5,6 +5,9 @@ logging.getLogger("httpcore").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 import pdb
+from modelscope.pipelines import pipeline
+from modelscope.utils.constant import Tasks
+import soundfile as sf
 
 gpt_path = os.environ.get(
     "gpt_path", "pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
@@ -55,6 +58,20 @@ if is_half == True:
     bert_model = bert_model.half().to(device)
 else:
     bert_model = bert_model.to(device)
+
+# 音频降噪
+
+def reset_tts_wav(audio):
+
+
+    sf.write('./output.wav', audio[1], audio[0], 'PCM_24')
+
+    ans = pipeline(
+    Tasks.acoustic_noise_suppression,
+    model='damo/speech_frcrn_ans_cirm_16k')
+    ans('./output.wav',output_path='./output.wav')
+
+    return "./output.wav"
 
 def get_bert_feature(text, word2ph):
     with torch.no_grad():
@@ -396,10 +413,19 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             )
             inference_button = gr.Button(i18n("合成语音"), variant="primary")
             output = gr.Audio(label=i18n("输出的语音"))
+            reset_button = gr.Button(i18n("推理音频降噪"))
+            reset_output = gr.Audio(label=i18n("降噪后的音频"))
         inference_button.click(
             get_tts_wav,
             [inp_ref, prompt_text, prompt_language, text, text_language],
             [output],
+        )
+
+        # 音频降噪逻辑
+        reset_button.click(
+            reset_tts_wav,
+            [output],
+            [reset_output],
         )
 
         gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
