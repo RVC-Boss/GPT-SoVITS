@@ -37,9 +37,26 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 Windows ユーザーであれば（win>=10 にてテスト済み）、prezip 経由で直接インストールできます。[prezip](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) をダウンロードして解凍し、go-webui.bat をダブルクリックするだけで GPT-SoVITS-WebUI が起動します。
 
 ### Python と PyTorch のバージョン
+- Python 3.9, PyTorch 2.0.1, CUDA 11
+- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
+- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple Silicon, MPS)
 
-Python 3.9、PyTorch 2.0.1、CUDA 11でテスト済。
+_注記: numba==0.56.4 は py<3.11 が必要です_
 
+### Macユーザーへ
+Macユーザーの方は、以下のコマンドを使用してインストールしてください。
+#### 環境作成
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+```
+#### Pip パッケージ
+```bash
+pip install -r requirements.txt
+pip uninstall torch torchaudio
+pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+```
+_注記: UVR5を使用した前処理には、[元のプロジェクトGUIをダウンロード](https://github.com/Anjok07/ultimatevocalremovergui)して、操作にGPUを選択することを推奨します。さらに、Macを使用して推論する際にメモリリークの問題が発生する可能性がありますが、推論のwebUIを再起動することでメモリを解放できます。_
 ### Conda によるクイックインストール
 
 ```bash
@@ -52,15 +69,7 @@ bash install.sh
 #### Pip パッケージ
 
 ```bash
-pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet transformers
-```
-
-#### 追加要件
-
-中国語の ASR（FunASR がサポート）が必要な場合は、以下をインストールしてください:
-
-```bash
-pip install modelscope torchaudio sentencepiece funasr
+pip install -r requirementx.txt
 ```
 
 #### FFmpeg

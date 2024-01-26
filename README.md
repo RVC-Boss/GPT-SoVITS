@@ -24,6 +24,8 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
+For users in China region, you can use AutoDL Cloud Docker to experience the full functionality online: https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official
+
 ## Features:
 1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
 
@@ -41,9 +43,24 @@ If you are a Windows user (tested with win>=10) you can install directly via the
 
 - Python 3.9, PyTorch 2.0.1, CUDA 11
 - Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
+- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple Silicon, MPS)
 
 _Note: numba==0.56.4 require py<3.11_
 
+### For Mac Users
+If you are a Mac user, please install by using the following commands:
+#### Create  Environment
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+```
+#### Install Requirements
+```bash
+pip install -r requirements.txt
+pip uninstall torch torchaudio
+pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+```
+_Note: For preprocessing with UVR5, it is recommended to [download the original project GUI](https://github.com/Anjok07/ultimatevocalremovergui) and select GPU for operation. Additionally, there may be memory leak issues when using Mac for inference, restarting the inference webUI can release the memory._
 ### Quick Install with Conda
 
 ```bash
@@ -56,16 +73,9 @@ bash install.sh
 #### Pip Packages
 
 ```bash
-pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet transformers jieba_fast
+pip install -r requirements.txt
 ```
 
-#### Additional Requirements
-
-If you need Chinese ASR (supported by FunASR), install:
-
-```bash
-pip install modelscope torchaudio sentencepiece funasr
-```
 
 #### FFmpeg
 

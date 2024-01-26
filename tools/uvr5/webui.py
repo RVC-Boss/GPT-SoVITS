@@ -52,39 +52,32 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             paths = [path.name for path in paths]
         for path in paths:
             inp_path = os.path.join(inp_root, path)
-            need_reformat = 1
-            done = 0
+            if(os.path.isfile(inp_path)==False):continue
             try:
-                y, sr = librosa.load(inp_path, sr=None)
-                info = sf.info(inp_path)
-                channels = info.channels
-                if channels == 2 and sr == 44100:
-                    need_reformat = 0
-                    pre_fun._path_audio_(
-                        inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
-                    )
-                    done = 1
-                else:
+                done = 0
+                try:
+                    y, sr = librosa.load(inp_path, sr=None)
+                    info = sf.info(inp_path)
+                    channels = info.channels
+                    if channels == 2 and sr == 44100:
+                        need_reformat = 0
+                        pre_fun._path_audio_(
+                            inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
+                        )
+                        done = 1
+                    else:
+                        need_reformat = 1
+                except:
                     need_reformat = 1
-            except:
-                need_reformat = 1
-                traceback.print_exc()
-            if need_reformat == 1:
-                tmp_path = "%s/%s.reformatted.wav" % (
-                    os.path.join(os.environ["TEMP"]),
-                    os.path.basename(inp_path),
-                )
-                y_resampled = librosa.resample(y, sr, 44100)
-                sf.write(tmp_path, y_resampled, 44100, "PCM_16")
-                inp_path = tmp_path
-            try:
-                if done == 0:
-                    pre_fun._path_audio_(
-                        inp_path, save_root_ins, save_root_vocal, format0
+                    traceback.print_exc()
+                if need_reformat == 1:
+                    tmp_path = "%s/%s.reformatted.wav" % (
+                        os.path.join(os.environ["TEMP"]),
+                        os.path.basename(inp_path),
                     )
-                infos.append("%s->Success" % (os.path.basename(inp_path)))
-                yield "\n".join(infos)
-            except:
+                    y_resampled = librosa.resample(y, sr, 44100)
+                    sf.write(tmp_path, y_resampled, 44100, "PCM_16")
+                    inp_path = tmp_path
                 try:
                     if done == 0:
                         pre_fun._path_audio_(
@@ -93,10 +86,21 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                     infos.append("%s->Success" % (os.path.basename(inp_path)))
                     yield "\n".join(infos)
                 except:
-                    infos.append(
-                        "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
-                    )
-                    yield "\n".join(infos)
+                    try:
+                        if done == 0:
+                            pre_fun._path_audio_(
+                                inp_path, save_root_ins, save_root_vocal, format0
+                            )
+                        infos.append("%s->Success" % (os.path.basename(inp_path)))
+                        yield "\n".join(infos)
+                    except:
+                        infos.append(
+                            "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
+                        )
+                        yield "\n".join(infos)
+            except:
+                infos.append("Oh my god. %s->%s"%(os.path.basename(inp_path), traceback.format_exc()))
+                yield "\n".join(infos)
     except:
         infos.append(traceback.format_exc())
         yield "\n".join(infos)
