@@ -424,7 +424,7 @@ def cut2(inp):
     inp = inp.strip("\n")
     inps = split(inp)
     if len(inps) < 2:
-        return [inp]
+        return "\n".join([inp])
     opts = []
     summ = 0
     tmp_str = ""
