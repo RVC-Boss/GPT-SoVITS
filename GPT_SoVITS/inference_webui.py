@@ -185,19 +185,22 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
     phones1 = cleaned_text_to_sequence(phones1)
     texts = text.split("\n")
     audio_opt = []
+    
+    if prompt_language == "zh":
+        bert1 = get_bert_feature(norm_text1, word2ph1).to(device)
+    else:
+        bert1 = torch.zeros(
+            (1024, len(phones1)),
+            dtype=torch.float16 if is_half == True else torch.float32,
+        ).to(device)
+    
     for text in texts:
         # 解决输入目标文本的空行导致报错的问题
         if (len(text.strip()) == 0):
             continue
         phones2, word2ph2, norm_text2 = clean_text(text, text_language)
         phones2 = cleaned_text_to_sequence(phones2)
-        if prompt_language == "zh":
-            bert1 = get_bert_feature(norm_text1, word2ph1).to(device)
-        else:
-            bert1 = torch.zeros(
-                (1024, len(phones1)),
-                dtype=torch.float16 if is_half == True else torch.float32,
-            ).to(device)
+
         if text_language == "zh":
             bert2 = get_bert_feature(norm_text2, word2ph2).to(device)
         else:
