@@ -135,7 +135,8 @@ def change_sovits_weights(sovits_path):
         n_speakers=hps.data.n_speakers,
         **hps.model
     )
-    del vq_model.enc_q
+    if("pretrained"not in sovits_path):
+        del vq_model.enc_q
     if is_half == True:
         vq_model = vq_model.half().to(device)
     else:
@@ -261,8 +262,8 @@ def nonen_get_bert_inf(text, language):
 
     return bert
 
-
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language):
+#i18n("不切"),i18n("凑五句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切")
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,how_to_cut=i18n("不切")):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
     prompt_language, text = prompt_language, text.strip("\n")
@@ -296,7 +297,13 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         phones1, word2ph1, norm_text1 = clean_text_inf(prompt_text, prompt_language)
     else:
         phones1, word2ph1, norm_text1 = nonen_clean_text_inf(prompt_text, prompt_language)
-    texts = text.replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n").split("\n")
+    if(how_to_cut==i18n("凑五句一切")):text=cut1(text)
+    elif(how_to_cut==i18n("凑50字一切")):text=cut2(text)
+    elif(how_to_cut==i18n("按中文句号。切")):text=cut3(text)
+    elif(how_to_cut==i18n("按英文句号.切")):text=cut4(text)
+    text = text.replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
+    if(text[-1]not in splits):text+="。"if text_language=="zh"else "."
+    texts=text.split("\n")
     audio_opt = []
     if prompt_language == "en":
         bert1 = get_bert_inf(phones1, word2ph1, norm_text1, prompt_language)
@@ -439,6 +446,9 @@ def cut2(inp):
 def cut3(inp):
     inp = inp.strip("\n")
     return "\n".join(["%s。" % item for item in inp.strip("。").split("。")])
+def cut4(inp):
+    inp = inp.strip("\n")
+    return "\n".join(["%s." % item for item in inp.strip(".").split(".")])
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
@@ -487,17 +497,24 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             prompt_language = gr.Dropdown(
                 label=i18n("参考音频的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文")
             )
-        gr.Markdown(value=i18n("*请填写需要合成的目标文本"))
+        gr.Markdown(value=i18n("*请填写需要合成的目标文本。中英混合选中文，日英混合选日文，中日混合暂不支持，非目标语言文本自动遗弃。"))
         with gr.Row():
             text = gr.Textbox(label=i18n("需要合成的文本"), value="")
             text_language = gr.Dropdown(
                 label=i18n("需要合成的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文")
             )
+            how_to_cut = gr.Radio(
+                label=i18n("怎么切"),
+                choices=[i18n("不切"),i18n("凑五句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切"),],
+                value=i18n("凑50字一切"),
+                interactive=True,
+            )
             inference_button = gr.Button(i18n("合成语音"), variant="primary")
             output = gr.Audio(label=i18n("输出的语音"))
+
         inference_button.click(
             get_tts_wav,
-            [inp_ref, prompt_text, prompt_language, text, text_language],
+            [inp_ref, prompt_text, prompt_language, text, text_language,how_to_cut],
             [output],
         )
 
@@ -507,10 +524,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             button1 = gr.Button(i18n("凑五句一切"), variant="primary")
             button2 = gr.Button(i18n("凑50字一切"), variant="primary")
             button3 = gr.Button(i18n("按中文句号。切"), variant="primary")
+            button4 = gr.Button(i18n("按英文句号.切"), variant="primary")
             text_opt = gr.Textbox(label=i18n("切分后文本"), value="")
             button1.click(cut1, [text_inp], [text_opt])
             button2.click(cut2, [text_inp], [text_opt])
             button3.click(cut3, [text_inp], [text_opt])
+            button4.click(cut4, [text_inp], [text_opt])
         gr.Markdown(value=i18n("后续将支持混合语种编码文本输入。"))
 
 app.queue(concurrency_count=511, max_size=1022).launch(
