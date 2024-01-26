@@ -49,6 +49,23 @@ elif torch.backends.mps.is_available():
 else:
     device = "cpu"
 
+# 操作记忆功能
+    
+file_path = './audio_log.txt'
+
+upload_audio_path = None
+upload_audio_text = ""
+upload_audio_lanuage = "中文"
+
+if os.path.exists(file_path):
+    with open(file_path, 'r',encoding="utf-8") as file:
+        text_data = file.read()
+        text_data = text_data.split("|")
+
+        upload_audio_path = text_data[0]
+        upload_audio_text = text_data[1]
+        upload_audio_lanuage = text_data[2]
+
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
 if is_half == True:
@@ -383,10 +400,10 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             GPT_dropdown.change(change_gpt_weights,[GPT_dropdown],[])
         gr.Markdown(value=i18n("*请上传并填写参考信息"))
         with gr.Row():
-            inp_ref = gr.Audio(label=i18n("请上传参考音频"), type="filepath")
-            prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="")
+            inp_ref = gr.Audio(label=i18n("请上传参考音频"), type="filepath",value=upload_audio_path)
+            prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value=upload_audio_text)
             prompt_language = gr.Dropdown(
-                label=i18n("参考音频的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文")
+                label=i18n("参考音频的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n(upload_audio_lanuage)
             )
         gr.Markdown(value=i18n("*请填写需要合成的目标文本"))
         with gr.Row():
