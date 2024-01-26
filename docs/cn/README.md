@@ -23,6 +23,8 @@
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
+中国地区用户可使用AutoDL云端镜像进行体验：https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official
+
 ## 功能：
 1. **零样本文本到语音（TTS）：** 输入5秒的声音样本，即刻体验文本到语音转换。
 
@@ -36,10 +38,29 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 如果你是Windows用户（已在win>=10上测试），可以直接通过预打包文件安装。只需下载[预打包文件](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击go-webui.bat即可启动GPT-SoVITS-WebUI。
 
-### Python和PyTorch版本
 
-已在Python 3.9、PyTorch 2.0.1和CUDA 11上测试。
+### 测试通过的Python和PyTorch版本
 
+- Python 3.9、PyTorch 2.0.1和CUDA 11
+- Python 3.10.13, PyTorch 2.1.2和CUDA 12.3
+- Python 3.9、Pytorch 2.3.0.dev20240122和macOS 14.3（Apple 芯片，MPS）
+
+_注意: numba==0.56.4 需要 python<3.11_
+
+### Mac 用户
+如果你是Mac用户，请使用以下命令安装：
+#### 创建环境
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+```
+#### 安装依赖
+```bash
+pip install -r requirements.txt
+pip uninstall torch torchaudio
+pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+```
+_注意：如需使用UVR5进行预处理，建议[下载原项目GUI](https://github.com/Anjok07/ultimatevocalremovergui)，勾选GPU运行。另外，使用Mac推理时可能存在内存泄漏问题，重启推理UI即可释放内存。_
 ### 使用Conda快速安装
 
 ```bash
@@ -51,15 +72,7 @@ bash install.sh
 #### Pip包
 
 ```bash
-pip install torch numpy scipy tensorboard librosa==0.9.2 numba==0.56.4 pytorch-lightning gradio==3.14.0 ffmpeg-python onnxruntime tqdm cn2an pypinyin pyopenjtalk g2p_en chardet transformers
-```
-
-#### 额外要求
-
-如果你需要中文自动语音识别（由FunASR支持），请安装：
-
-```bash
-pip install modelscope torchaudio sentencepiece funasr
+pip install -r requirements.txt
 ```
 
 #### FFmpeg
