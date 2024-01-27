@@ -25,13 +25,21 @@ for path in site.getsitepackages():
 if(site_packages_roots==[]):site_packages_roots=["%s/runtime/Lib/site-packages" % now_dir]
 #os.environ["OPENBLAS_NUM_THREADS"] = "4"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
+os.environ["all_proxy"] = ""
+
 for site_packages_root in site_packages_roots:
     if os.path.exists(site_packages_root):
-        with open("%s/users.pth" % (site_packages_root), "w") as f:
-            f.write(
-                "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
-                % (now_dir, now_dir, now_dir, now_dir, now_dir)
-            )
+        print(site_packages_roots)
+        try:
+            with open("%s/users.pth" % (site_packages_root), "w+") as f:
+                f.write(
+                    "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+                    % (now_dir, now_dir, now_dir, now_dir, now_dir)
+                )
+            break
+        except PermissionError:
+            pass
+
 from tools import my_utils
 import traceback
 import shutil
