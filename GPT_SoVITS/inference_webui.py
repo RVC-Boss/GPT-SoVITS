@@ -29,10 +29,10 @@ else:
 # )
 # sovits_path = os.environ.get("sovits_path", "pretrained_models/s2G488k.pth")
 cnhubert_base_path = os.environ.get(
-    "cnhubert_base_path", "pretrained_models/chinese-hubert-base"
+    "cnhubert_base_path", "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 )
 bert_path = os.environ.get(
-    "bert_path", "pretrained_models/chinese-roberta-wwm-ext-large"
+    "bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
 )
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
