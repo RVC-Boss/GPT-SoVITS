@@ -30,7 +30,7 @@ os.environ["all_proxy"] = ""
 for site_packages_root in site_packages_roots:
     if os.path.exists(site_packages_root):
         try:
-            with open("%s/users.pth" % (site_packages_root), "w+") as f:
+            with open("%s/users.pth" % (site_packages_root), "w") as f:
                 f.write(
                     "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
                     % (now_dir, now_dir, now_dir, now_dir, now_dir)
