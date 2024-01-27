@@ -101,7 +101,7 @@ brew install ffmpeg
 
 #### docker-compose.yamlの設定 
 
-0. イメージのタグについて：コードベースの更新が速いため、[Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) での最新（latest）タグのイメージのパッケージングを一時停止し、代わりに現在対象としているgitリポジトリの最新のコミットのハッシュ値を用います。例えば、breakstring/gpt-sovits:dev-20240127.f9387e0 のようなイメージ名とタグを見ることができます。これは、2024年1月27日にf9387e0のコミットに対してパッケージされたイメージを意味します。また、使用時はdocker-compose.yamlやdockerのコマンドラインのパラメータを変更することに注意してください。または、ご自身のニーズに合わせてDockerfileを使ってローカルでビルドすることができます。
+0. イメージのタグについて：コードベースの更新が速く、イメージのパッケージングとテストが遅いため、[Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) で現在パッケージされている最新のイメージをご覧になり、ご自身の状況に応じて選択するか、またはご自身のニーズに応じてDockerfileを使用してローカルで構築してください。
 1. 環境変数：
     - `is_half`：半精度／倍精度の制御。"SSL抽出"ステップ中に`4-cnhubert/5-wav32k`ディレクトリ内の内容が正しく生成されない場合、通常これが原因です。実際の状況に応じてTrueまたはFalseに調整してください。
 
@@ -118,7 +118,7 @@ docker compose -f "docker-compose.yaml" up -d
 
 上記と同様に、実際の状況に基づいて対応するパラメータを変更し、次のコマンドを実行します：
 ```markdown
-docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9870:9870 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:dev-20240123.03
+docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9870:9870 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
 ```
 
 
