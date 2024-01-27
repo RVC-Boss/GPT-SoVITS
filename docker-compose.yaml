@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   gpt-sovits:
-    image: breakstring/gpt-sovits:dev-20240123.03
+    image: breakstring/gpt-sovits:dev-20240127.f9387e0
     container_name: gpt-sovits-container
     environment:
       - is_half=False

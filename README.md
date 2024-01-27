@@ -114,8 +114,9 @@ For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal, additionally)
 
 ### Using Docker
 
-#### docker-compose.yaml configuration
+#### docker-compose.yaml configuration 
 
+0. Regarding image tags: Due to rapid updates in the codebase, the packaging of images with the 'latest' tag on [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) has been temporarily suspended, shifting instead to using the hash value of the most current commit from the targeted git repo. For instance, you might see image names and tags such as: breakstring/gpt-sovits:dev-20240127.f9387e0. This signifies the image was packaged for the commit f9387e0 on January 27, 2024. Additionally, when using these images, please remember to modify the parameters in your docker-compose.yaml or docker command line accordingly. Alternatively, you can build locally using a Dockerfile according to your own needs.
 1. Environment Variables：
   - is_half: Controls half-precision/double-precision. This is typically the cause if the content under the directories 4-cnhubert/5-wav32k is not generated correctly during the "SSL extracting" step. Adjust to True or False based on your actual situation.
 

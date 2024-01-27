@@ -99,8 +99,9 @@ brew install ffmpeg
 
 ### Dockerの使用
 
-#### docker-compose.yamlの設定
+#### docker-compose.yamlの設定 
 
+0. イメージのタグについて：コードベースの更新が速いため、[Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) での最新（latest）タグのイメージのパッケージングを一時停止し、代わりに現在対象としているgitリポジトリの最新のコミットのハッシュ値を用います。例えば、breakstring/gpt-sovits:dev-20240127.f9387e0 のようなイメージ名とタグを見ることができます。これは、2024年1月27日にf9387e0のコミットに対してパッケージされたイメージを意味します。また、使用時はdocker-compose.yamlやdockerのコマンドラインのパラメータを変更することに注意してください。または、ご自身のニーズに合わせてDockerfileを使ってローカルでビルドすることができます。
 1. 環境変数：
     - `is_half`：半精度／倍精度の制御。"SSL抽出"ステップ中に`4-cnhubert/5-wav32k`ディレクトリ内の内容が正しく生成されない場合、通常これが原因です。実際の状況に応じてTrueまたはFalseに調整してください。
 
