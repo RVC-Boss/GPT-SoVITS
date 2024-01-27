@@ -2,7 +2,7 @@
 FROM cnstark/pytorch:2.0.1-py3.9.17-cuda11.8.0-ubuntu20.04
 
 LABEL maintainer="breakstring@hotmail.com"
-LABEL version="dev-20240127.f9387e0"
+LABEL version="dev-20240127"
 LABEL description="Docker image for GPT-SoVITS"
 
 
