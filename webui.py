@@ -29,7 +29,6 @@ os.environ["all_proxy"] = ""
 
 for site_packages_root in site_packages_roots:
     if os.path.exists(site_packages_root):
-        print(site_packages_roots)
         try:
             with open("%s/users.pth" % (site_packages_root), "w+") as f:
                 f.write(
