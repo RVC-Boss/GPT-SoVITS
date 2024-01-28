@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   gpt-sovits:
-    image: breakstring/gpt-sovits:dev-20240123.03
+    image: breakstring/gpt-sovits:xxxxx   # please change the image name and tag base your environment
     container_name: gpt-sovits-container
     environment:
       - is_half=False
