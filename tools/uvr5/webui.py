@@ -5,8 +5,7 @@ from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
-import librosa
-import soundfile as sf
+import ffmpeg
 import torch
 import sys
 from mdxnet import MDXNetDereverb
@@ -20,8 +19,7 @@ for name in os.listdir(weight_uvr5_root):
 
 device=sys.argv[1]
 is_half=sys.argv[2]
-webui_port_uvr5=int(sys.argv[3])
-is_share=eval(sys.argv[4])
+
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []
@@ -52,55 +50,52 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             paths = [path.name for path in paths]
         for path in paths:
             inp_path = os.path.join(inp_root, path)
-            if(os.path.isfile(inp_path)==False):continue
+            need_reformat = 1
+            done = 0
             try:
-                done = 0
-                try:
-                    y, sr = librosa.load(inp_path, sr=None)
-                    info = sf.info(inp_path)
-                    channels = info.channels
-                    if channels == 2 and sr == 44100:
-                        need_reformat = 0
-                        pre_fun._path_audio_(
-                            inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
-                        )
-                        done = 1
-                    else:
-                        need_reformat = 1
-                except:
-                    need_reformat = 1
-                    traceback.print_exc()
-                if need_reformat == 1:
-                    tmp_path = "%s/%s.reformatted.wav" % (
-                        os.path.join(os.environ["TEMP"]),
-                        os.path.basename(inp_path),
+                info = ffmpeg.probe(inp_path, cmd="ffprobe")
+                if (
+                    info["streams"][0]["channels"] == 2
+                    and info["streams"][0]["sample_rate"] == "44100"
+                ):
+                    need_reformat = 0
+                    pre_fun._path_audio_(
+                        inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
                     )
-                    y_resampled = librosa.resample(y, sr, 44100)
-                    sf.write(tmp_path, y_resampled, 44100, "PCM_16")
-                    inp_path = tmp_path
+                    done = 1
+            except:
+                need_reformat = 1
+                traceback.print_exc()
+            if need_reformat == 1:
+                tmp_path = "%s/%s.reformatted.wav" % (
+                    os.path.join(os.environ["TEMP"]),
+                    os.path.basename(inp_path),
+                )
+                os.system(
+                    "ffmpeg -i %s -vn -acodec pcm_s16le -ac 2 -ar 44100 %s -y"
+                    % (inp_path, tmp_path)
+                )
+                inp_path = tmp_path
+            try:
+                if done == 0:
+                    pre_fun._path_audio_(
+                        inp_path, save_root_ins, save_root_vocal, format0
+                    )
+                infos.append("%s->Success" % (os.path.basename(inp_path)))
+                yield "\n".join(infos)
+            except:
                 try:
                     if done == 0:
                         pre_fun._path_audio_(
-                            inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
+                            inp_path, save_root_ins, save_root_vocal, format0
                         )
                     infos.append("%s->Success" % (os.path.basename(inp_path)))
                     yield "\n".join(infos)
                 except:
-                    try:
-                        if done == 0:
-                            pre_fun._path_audio_(
-                                inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
-                            )
-                        infos.append("%s->Success" % (os.path.basename(inp_path)))
-                        yield "\n".join(infos)
-                    except:
-                        infos.append(
-                            "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
-                        )
-                        yield "\n".join(infos)
-            except:
-                infos.append("Oh my god. %s->%s"%(os.path.basename(inp_path), traceback.format_exc()))
-                yield "\n".join(infos)
+                    infos.append(
+                        "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
+                    )
+                    yield "\n".join(infos)
     except:
         infos.append(traceback.format_exc())
         yield "\n".join(infos)
@@ -148,7 +143,7 @@ with gr.Blocks(title="RVC WebUI") as app:
                             minimum=0,
                             maximum=20,
                             step=1,
-                            label=i18n("人声提取激进程度"),
+                            label="人声提取激进程度",
                             value=10,
                             interactive=True,
                             visible=False,  # 先不开放调整
@@ -184,7 +179,6 @@ with gr.Blocks(title="RVC WebUI") as app:
 app.queue(concurrency_count=511, max_size=1022).launch(
     server_name="0.0.0.0",
     inbrowser=True,
-    share=is_share,
-    server_port=webui_port_uvr5,
+    server_port=9873,
     quiet=True,
 )
