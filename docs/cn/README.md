@@ -110,7 +110,7 @@ brew install ffmpeg
 ### 在 Docker 中使用
 
 #### docker-compose.yaml 设置
-
+0. image的标签：由于代码库更新很快，镜像的打包和测试又很慢，所以请自行在 [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) 查看当前打包好的最新的镜像并根据自己的情况选用，或者在本地根据您自己的需求通过Dockerfile进行构建。
 1. 环境变量：
   - is_half: 半精度/双精度控制。在进行 "SSL extracting" 步骤时如果无法正确生成 4-cnhubert/5-wav32k 目录下的内容时，一般都是它引起的，可以根据实际情况来调整为True或者False。
 
@@ -129,7 +129,7 @@ docker compose -f "docker-compose.yaml" up -d
 
 同上，根据您自己的实际情况修改对应的参数，然后运行如下命令：
 ```
-docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9870:9870 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:dev-20240123.03
+docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9870:9870 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
 ```
 
 
