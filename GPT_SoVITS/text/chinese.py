@@ -5,12 +5,10 @@ import re
 import cn2an
 from pypinyin import lazy_pinyin, Style
 
-import sys
-
-sys.path.append("/data/docker/liujing04/gpt-vits/gpt-vits-master")
-
 from text.symbols import punctuation
 from text.tone_sandhi import ToneSandhi
+
+normalizer = lambda x: cn2an.transform(x, "an2cn")
 
 current_file_path = os.path.dirname(__file__)
 pinyin_to_symbol_map = {
@@ -151,10 +149,8 @@ def _g2p(segments):
 
 
 def text_normalize(text):
-    numbers = re.findall(r"\d+(?:\.?\d+)?", text)
-    for number in numbers:
-        text = text.replace(number, cn2an.an2cn(number), 1)
-    text = replace_punctuation(text)
+    dest_text=normalizer(text)
+    text = replace_punctuation(dest_text)
 
     return text
 
