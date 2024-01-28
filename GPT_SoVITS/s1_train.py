@@ -44,9 +44,8 @@ class my_model_ckpt(ModelCheckpoint):
         self.config = config
 
     def on_train_epoch_end(self, trainer, pl_module):
-        if not self._should_skip_saving_checkpoint(
-            trainer
-        ) and self._should_save_on_train_epoch_end(trainer):
+        # if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
+        if self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
             if (
                 self._every_n_epochs >= 1

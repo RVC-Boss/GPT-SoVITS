@@ -16,7 +16,11 @@ if(os.path.exists(tmp)):
         if(name=="jieba.cache"):continue
         path="%s/%s"%(tmp,name)
         delete=os.remove if os.path.isfile(path) else shutil.rmtree
-        delete(path)
+        try:
+            delete(path)
+        except Exception as e:
+            print(str(e))
+            pass
 import site
 site_packages_roots = []
 for path in site.getsitepackages():
@@ -26,7 +30,6 @@ if(site_packages_roots==[]):site_packages_roots=["%s/runtime/Lib/site-packages" 
 #os.environ["OPENBLAS_NUM_THREADS"] = "4"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 os.environ["all_proxy"] = ""
-
 for site_packages_root in site_packages_roots:
     if os.path.exists(site_packages_root):
         try:
@@ -38,7 +41,6 @@ for site_packages_root in site_packages_roots:
             break
         except PermissionError:
             pass
-
 from tools import my_utils
 import traceback
 import shutil
@@ -662,7 +664,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 if_label = gr.Checkbox(label=i18n("是否开启打标WebUI"),show_label=True)
                 path_list = gr.Textbox(
-                    label=i18n("打标数据标注文件路径"),
+                    label=i18n(".list标注文件的路径"),
                     value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx.list",
                     interactive=True,
                 )
@@ -688,7 +690,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         label=i18n("*训练集音频文件目录"),
                         # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
                         interactive=True,
-                        placeholder=i18n("训练集音频文件目录-拼接-list文件里波形对应的文件名（不是全路径）。")
+                        placeholder=i18n("填切割后音频所在目录！读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名（不是全路径）。")
                     )
                 gr.Markdown(value=i18n("1Aa-文本内容"))
                 with gr.Row():
