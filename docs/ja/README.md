@@ -9,7 +9,7 @@
 <img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
 
 [![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-Spaces-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
+[![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | [**日本語**](./README.md)
 
@@ -39,12 +39,19 @@ Windows ユーザーであれば（win>=10 にてテスト済み）、prezip 経
 ### Python と PyTorch のバージョン
 - Python 3.9, PyTorch 2.0.1, CUDA 11
 - Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple Silicon, MPS)
+- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple silicon, GPU)
 
 _注記: numba==0.56.4 は py<3.11 が必要です_
 
 ### Macユーザーへ
-Macユーザーの方は、以下のコマンドを使用してインストールしてください。
+如果あなたがMacユーザーである場合、GPUを使用してトレーニングおよび推論を行うために以下の条件を満たしていることを確認してください：
+- AppleシリコンまたはAMD GPUを搭載したMacコンピューター
+- macOS 12.3以降
+- `xcode-select --install`を実行してインストールされたXcodeコマンドラインツール
+
+_その他のMacはCPUのみで推論を行うことができます。_
+
+次に、以下のコマンドを使用してインストールします：
 #### 環境作成
 ```bash
 conda create -n GPTSoVits python=3.9
@@ -56,7 +63,7 @@ pip install -r requirements.txt
 pip uninstall torch torchaudio
 pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 ```
-_注記: UVR5を使用した前処理には、[元のプロジェクトGUIをダウンロード](https://github.com/Anjok07/ultimatevocalremovergui)して、操作にGPUを選択することを推奨します。さらに、Macを使用して推論する際にメモリリークの問題が発生する可能性がありますが、推論のwebUIを再起動することでメモリを解放できます。_
+_注記: UVR5を使用して前処理を行う場合は、[オリジナルプロジェクトのGUIをダウンロード](https://github.com/Anjok07/ultimatevocalremovergui)して、「GPU Conversion」を選択することをお勧めします。さらに、特に推論時にメモリリークの問題が発生する可能性があります。推論webUIを再起動することでメモリを解放することができます。_
 ### Conda によるクイックインストール
 
 ```bash
