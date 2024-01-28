@@ -29,10 +29,10 @@ else:
 # )
 # sovits_path = os.environ.get("sovits_path", "pretrained_models/s2G488k.pth")
 cnhubert_base_path = os.environ.get(
-    "cnhubert_base_path", "pretrained_models/chinese-hubert-base"
+    "cnhubert_base_path", "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 )
 bert_path = os.environ.get(
-    "bert_path", "pretrained_models/chinese-roberta-wwm-ext-large"
+    "bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
 )
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
@@ -262,11 +262,18 @@ def nonen_get_bert_inf(text, language):
 
     return bert
 
+splits = {"，","。","？","！",",",".","?","!","~",":","：","—","…",}
+def get_first(text):
+    pattern = "[" + "".join(re.escape(sep) for sep in splits) + "]"
+    text = re.split(pattern, text)[0].strip()
+    return text
+
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,how_to_cut=i18n("不切")):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
     if(prompt_text[-1]not in splits):prompt_text+="。"if prompt_text!="en"else "."
     text = text.strip("\n")
+    if(len(get_first(text))<4):text+="。"if text!="en"else "."
     zero_wav = np.zeros(
         int(hps.data.sampling_rate * 0.3),
         dtype=np.float16 if is_half == True else np.float32,
@@ -370,24 +377,6 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     yield hps.data.sampling_rate, (np.concatenate(audio_opt, 0) * 32768).astype(
         np.int16
     )
-
-
-splits = {
-    "，",
-    "。",
-    "？",
-    "！",
-    ",",
-    ".",
-    "?",
-    "!",
-    "~",
-    ":",
-    "：",
-    "—",
-    "…",
-}  # 不考虑省略号
-
 
 def split(todo_text):
     todo_text = todo_text.replace("……", "。").replace("——", "，")
