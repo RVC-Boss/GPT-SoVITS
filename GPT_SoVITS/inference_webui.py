@@ -29,10 +29,10 @@ else:
 # )
 # sovits_path = os.environ.get("sovits_path", "pretrained_models/s2G488k.pth")
 cnhubert_base_path = os.environ.get(
-    "cnhubert_base_path", "GPT_SoVITS/pretrained_models/chinese-hubert-base"
+    "cnhubert_base_path", "pretrained_models/chinese-hubert-base"
 )
 bert_path = os.environ.get(
-    "bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
+    "bert_path", "pretrained_models/chinese-roberta-wwm-ext-large"
 )
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
@@ -262,17 +262,19 @@ def nonen_get_bert_inf(text, language):
 
     return bert
 
-#i18n("不切"),i18n("凑五句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切")
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,how_to_cut=i18n("不切")):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
-    prompt_language, text = prompt_language, text.strip("\n")
+    if(prompt_text[-1]not in splits):prompt_text+="。"if prompt_text!="en"else "."
+    text = text.strip("\n")
     zero_wav = np.zeros(
         int(hps.data.sampling_rate * 0.3),
         dtype=np.float16 if is_half == True else np.float32,
     )
     with torch.no_grad():
         wav16k, sr = librosa.load(ref_wav_path, sr=16000)
+        if(wav16k.shape[0]>160000 or wav16k.shape[0]<48000):
+            raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
         wav16k = torch.from_numpy(wav16k)
         zero_wav_torch = torch.from_numpy(zero_wav)
         if is_half == True:
@@ -297,7 +299,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         phones1, word2ph1, norm_text1 = clean_text_inf(prompt_text, prompt_language)
     else:
         phones1, word2ph1, norm_text1 = nonen_clean_text_inf(prompt_text, prompt_language)
-    if(how_to_cut==i18n("凑五句一切")):text=cut1(text)
+    if(how_to_cut==i18n("凑四句一切")):text=cut1(text)
     elif(how_to_cut==i18n("凑50字一切")):text=cut2(text)
     elif(how_to_cut==i18n("按中文句号。切")):text=cut3(text)
     elif(how_to_cut==i18n("按英文句号.切")):text=cut4(text)
@@ -409,7 +411,7 @@ def split(todo_text):
 def cut1(inp):
     inp = inp.strip("\n")
     inps = split(inp)
-    split_idx = list(range(0, len(inps), 5))
+    split_idx = list(range(0, len(inps), 4))
     split_idx[-1] = None
     if len(split_idx) > 1:
         opts = []
@@ -423,7 +425,6 @@ def cut1(inp):
 def cut2(inp):
     inp = inp.strip("\n")
     inps = split(inp)
-    # print(inps)
     if len(inps) < 2:
         return inp
     opts = []
@@ -494,7 +495,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             GPT_dropdown.change(change_gpt_weights,[GPT_dropdown],[])
         gr.Markdown(value=i18n("*请上传并填写参考信息"))
         with gr.Row():
-            inp_ref = gr.Audio(label=i18n("请上传参考音频"), type="filepath")
+            inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath")
             prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="")
             prompt_language = gr.Dropdown(
                 label=i18n("参考音频的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文")
@@ -507,7 +508,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             )
             how_to_cut = gr.Radio(
                 label=i18n("怎么切"),
-                choices=[i18n("不切"),i18n("凑五句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切"),],
+                choices=[i18n("不切"),i18n("凑四句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切"),],
                 value=i18n("凑50字一切"),
                 interactive=True,
             )
@@ -523,7 +524,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         with gr.Row():
             text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"),value="")
-            button1 = gr.Button(i18n("凑五句一切"), variant="primary")
+            button1 = gr.Button(i18n("凑四句一切"), variant="primary")
             button2 = gr.Button(i18n("凑50字一切"), variant="primary")
             button3 = gr.Button(i18n("按中文句号。切"), variant="primary")
             button4 = gr.Button(i18n("按英文句号.切"), variant="primary")
