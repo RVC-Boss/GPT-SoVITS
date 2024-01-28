@@ -16,7 +16,11 @@ if(os.path.exists(tmp)):
         if(name=="jieba.cache"):continue
         path="%s/%s"%(tmp,name)
         delete=os.remove if os.path.isfile(path) else shutil.rmtree
-        delete(path)
+        try:
+            delete(path)
+        except Exception as e:
+            print(str(e))
+            pass
 import site
 site_packages_roots = []
 for path in site.getsitepackages():
