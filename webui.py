@@ -5,6 +5,8 @@ import json,yaml,warnings,torch
 import platform
 import psutil
 import signal
+from modelscope.pipelines import pipeline
+from modelscope.utils.constant import Tasks
 
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
@@ -209,6 +211,17 @@ def close_asr():
         kill_process(p_asr.pid)
         p_asr=None
     return "已终止ASR进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+
+# 音频降噪
+
+def reset_tts_wav(audio):
+
+    ans = pipeline(
+    Tasks.acoustic_noise_suppression,
+    model='damo/speech_frcrn_ans_cirm_16k')
+    ans(audio,output_path='./output_ins.wav')
+
+    return "./output_ins.wav"
 
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
@@ -634,7 +647,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             gr.Markdown(value=i18n("0b-语音切分工具"))
             with gr.Row():
                 with gr.Row():
-                    slice_inp_path=gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"),value="")
+                    #slice_inp_path=gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"),value="")
+                    slice_inp_path = gr.Audio(label=i18n("请上传克隆对象音频"), type="filepath")
                     slice_opt_root=gr.Textbox(label=i18n("切分后的子音频的输出根目录"),value="output/slicer_opt")
                     threshold=gr.Textbox(label=i18n("threshold:音量小于这个值视作静音的备选切割点"),value="-34")
                     min_length=gr.Textbox(label=i18n("min_length:每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值"),value="4000")
@@ -648,6 +662,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)
                     n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
                     slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
+            reset_inp_button.click(reset_tts_wav,[slice_inp_path],[slice_inp_path])
             gr.Markdown(value=i18n("0c-中文批量离线ASR工具"))
             with gr.Row():
                 open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
