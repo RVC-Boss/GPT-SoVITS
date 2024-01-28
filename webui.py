@@ -189,6 +189,23 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         p_tts_inference=None
         yield i18n("TTS推理进程已关闭")
 
+def open_asr_whisper(asr_inp_dir,model_name):
+    global p_asr
+    if(p_asr==None):
+        
+        #cmd = '"%s" tools/damo_asr/cmd-asr.py "%s"'%(python_exec,asr_inp_dir)
+
+        cmd = '"%s" tools/damo_asr/faster-whisper-asr.py "%s" "%s"'%(python_exec,asr_inp_dir,model_name)
+
+
+        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        print(cmd)
+        p_asr = Popen(cmd, shell=True)
+        p_asr.wait()
+        p_asr=None
+        yield "ASR任务完成",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    else:
+        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
 
 def open_asr(asr_inp_dir):
     global p_asr
@@ -650,6 +667,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
             gr.Markdown(value=i18n("0c-中文批量离线ASR工具"))
             with gr.Row():
+                open_asr_button_whisper = gr.Button(i18n("开启Faster-Whisper离线ASR"), variant="primary",visible=True)
                 open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
                 close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)
                 asr_inp_dir = gr.Textbox(
@@ -670,6 +688,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             if_label.change(change_label, [if_label,path_list], [label_info])
             if_uvr5.change(change_uvr5, [if_uvr5], [uvr5_info])
             open_asr_button.click(open_asr, [asr_inp_dir], [asr_info,open_asr_button,close_asr_button])
+            open_asr_button_whisper.click(open_asr_whisper, [asr_inp_dir,model_version], [asr_info,open_asr_button,close_asr_button])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
             open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button])
             close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
