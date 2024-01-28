@@ -1,4 +1,5 @@
 import os,re,logging
+from faster_whisper import WhisperModel
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("httpcore").setLevel(logging.ERROR)
@@ -185,6 +186,26 @@ dict_language={
     i18n("日文"):"ja"
 }
 
+
+# 音频转写
+
+def get_whisper(audio_path):
+
+    model_name="small"
+
+    if device == "cuda":
+        model = WhisperModel(model_name, device="cuda", compute_type="float16",download_root="./model_from_whisper",local_files_only=False)
+    else:
+        model = WhisperModel(model_name, device="cpu", compute_type="int8",download_root="./model_from_whisper",local_files_only=False)
+    
+    segments, info = model.transcribe(audio_path, beam_size=5)
+    print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
+
+    text_str = ""
+    for segment in segments:
+        text_str += f"{segment.text.lstrip()},"
+    
+    return text_str.rstrip(",")
 
 def splite_en_inf(sentence, language):
     pattern = re.compile(r'[a-zA-Z. ]+')
@@ -495,10 +516,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         gr.Markdown(value=i18n("*请上传并填写参考信息"))
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传参考音频"), type="filepath")
+            whisper_button = gr.Button(i18n("faster_whisper转写音频内容到文本"))
             prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="")
             prompt_language = gr.Dropdown(
                 label=i18n("参考音频的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文")
             )
+        whisper_button.click(get_whisper,[inp_ref],[prompt_text])
         gr.Markdown(value=i18n("*请填写需要合成的目标文本。中英混合选中文，日英混合选日文，中日混合暂不支持，非目标语言文本自动遗弃。"))
         with gr.Row():
             text = gr.Textbox(label=i18n("需要合成的文本"), value="")
