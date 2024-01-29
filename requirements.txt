@@ -22,3 +22,5 @@ PyYAML
 psutil
 jieba_fast
 jieba
+PyQt5
+soundfile
