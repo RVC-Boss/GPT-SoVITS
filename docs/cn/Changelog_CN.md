@@ -58,10 +58,19 @@
 
 5-完善Dockerfile的下载模型流程
 
-todolist：中文多音字推理优化
-
 ### 20240129更新
 
 1-16系等半精度训练有问题的显卡把训练配置改为单精度训练
+
+2-测试更新可用的colab版本
+
+3-修复git clone modelscope funasr仓库+老版本funasr导致接口不对齐报错的问题
+
+todolist：
+
+1-中文多音字推理优化
+
+2-英文全大写识别和英文下划线 https://github.com/RVC-Boss/GPT-SoVITS/issues/271
+
 
 
