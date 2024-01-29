@@ -8,7 +8,7 @@ gradio==3.38.0
 ffmpeg-python
 onnxruntime
 tqdm
-funasr==0.8.7
+funasr>=1.0.0
 cn2an
 pypinyin
 pyopenjtalk
