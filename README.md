@@ -23,6 +23,8 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 > Check out our [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw) here!
 
+Unseen speakers few-shot fine-tuning demo:
+
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
 For users in China region, you can use AutoDL Cloud Docker to experience the full functionality online: https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official
@@ -48,27 +50,6 @@ If you are a Windows user (tested with win>=10) you can install directly via the
 
 _Note: numba==0.56.4 require py<3.11_
 
-### For Mac Users
-If you are a Mac user, make sure you meet the following conditions for training and inferencing with GPU: 
-- Mac computers with Apple silicon or AMD GPUs
-- macOS 12.3 or later
-- Xcode command-line tools installed by running `xcode-select --install`
-
-_Other Macs can do inference with CPU only._
-
-Then install by using the following commands:
-#### Create  Environment
-```bash
-conda create -n GPTSoVits python=3.9
-conda activate GPTSoVits
-```
-#### Install Requirements
-```bash
-pip install -r requirements.txt
-pip uninstall torch torchaudio
-pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
-```
-_Note: For preprocessing with UVR5, it is recommended to [download the original project GUI](https://github.com/Anjok07/ultimatevocalremovergui) and select "GPU Conversion". Additionally, there might be memory leak issues, especially during inference. Restarting the inference webUI can help._
 ### Quick Install with Conda
 
 ```bash
@@ -119,6 +100,26 @@ For Chinese ASR (additionally), download models from [Damo ASR Model](https://mo
 
 For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal, additionally), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
 
+### For Mac Users
+If you are a Mac user, make sure you meet the following conditions for training and inferencing with GPU: 
+- Mac computers with Apple silicon or AMD GPUs
+- macOS 12.3 or later
+- Xcode command-line tools installed by running `xcode-select --install`
+
+_Other Macs can do inference with CPU only._
+
+Then install by using the following commands:
+#### Create  Environment
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+```
+#### Install Requirements
+```bash
+pip install -r requirements.txt
+pip uninstall torch torchaudio
+pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+```
 
 ### Using Docker
 
@@ -168,9 +169,9 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ## Todo List
 
 - [ ] **High Priority:**
-   - [ ] Localization in Japanese and English.
+   - [x] Localization in Japanese and English.
    - [ ] User guide.
-   - [ ] Japanese and English dataset fine tune training.
+   - [x] Japanese and English dataset fine tune training.
 
 - [ ] **Features:**
    - [ ] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
@@ -179,7 +180,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
    - [ ] Experiment with changing SoVITS token inputs to probability distribution of vocabs.
    - [ ] Improve English and Japanese text frontend.
    - [ ] Develop tiny and larger-sized TTS models.
-   - [ ] Colab scripts.
+   - [x] Colab scripts.
    - [ ] Try expand training dataset (2k hours -> 10k hours).
    - [ ] better sovits base model (enhanced audio quality)
    - [ ] model mix
