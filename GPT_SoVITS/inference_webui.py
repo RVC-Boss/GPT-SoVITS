@@ -246,7 +246,6 @@ def nonen_clean_text_inf(text, language):
 
     return phones, word2ph, norm_text
 
-
 def nonen_get_bert_inf(text, language):
     textlist, langlist = splite_en_inf(text, language)
     print(textlist)
@@ -446,6 +445,8 @@ def cut4(inp):
     return "\n".join(["%s." % item for item in inp.strip(".").split(".")])
 
 def cut5(inp):
+   if not re.search(r'[^\w\s]', inp[-1]):
+       inp += '。'
    inp = inp.strip("\n")
    punds = r'[、，。？！;：]'
    items = re.split(f'({punds})', inp)
@@ -454,6 +455,8 @@ def cut5(inp):
    return opt
 
 def cut6(inp):
+   if not re.search(r'[^\w\s]', inp[-1]):
+       inp += '.'
    inp = inp.strip("\n")
    punds = r'[,.;?!]'
    items = re.split(f'({punds})', inp)

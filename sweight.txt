@@ -1,0 +1,1 @@
+SoVITS_weights/na_xi_da_e20_s2020.pth
