@@ -310,6 +310,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     elif(how_to_cut==i18n("凑50字一切")):text=cut2(text)
     elif(how_to_cut==i18n("按中文句号。切")):text=cut3(text)
     elif(how_to_cut==i18n("按英文句号.切")):text=cut4(text)
+    elif(how_to_cut==i18n("按中文标点分句切")):text=cut5(text)
+    elif(how_to_cut==i18n("按英文标点分句切")):text=cut6(text)
     text = text.replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
     if(text[-1]not in splits):text+="。"if text_language!="en"else "."
     texts=text.split("\n")
@@ -438,9 +440,26 @@ def cut2(inp):
 def cut3(inp):
     inp = inp.strip("\n")
     return "\n".join(["%s。" % item for item in inp.strip("。").split("。")])
+
 def cut4(inp):
     inp = inp.strip("\n")
     return "\n".join(["%s." % item for item in inp.strip(".").split(".")])
+
+def cut5(inp):
+   inp = inp.strip("\n")
+   punds = r'[、，。？！;：]'
+   items = re.split(f'({punds})', inp)
+   items = ["".join(group) for group in zip(items[::2], items[1::2])]
+   opt = "\n".join(items)
+   return opt
+
+def cut6(inp):
+   inp = inp.strip("\n")
+   punds = r'[,.;?!]'
+   items = re.split(f'({punds})', inp)
+   items = ["".join(group) for group in zip(items[::2], items[1::2])]
+   opt = "\n".join(items)
+   return opt
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
@@ -497,7 +516,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             )
             how_to_cut = gr.Radio(
                 label=i18n("怎么切"),
-                choices=[i18n("不切"),i18n("凑四句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切"),],
+                choices=[i18n("不切"),i18n("凑四句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切"),i18n("按中文标点分句切"),i18n("按英文标点分句切"),],
                 value=i18n("凑50字一切"),
                 interactive=True,
             )
@@ -513,15 +532,22 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         with gr.Row():
             text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"),value="")
-            button1 = gr.Button(i18n("凑四句一切"), variant="primary")
-            button2 = gr.Button(i18n("凑50字一切"), variant="primary")
-            button3 = gr.Button(i18n("按中文句号。切"), variant="primary")
-            button4 = gr.Button(i18n("按英文句号.切"), variant="primary")
+            with gr.Row():
+                    button1 = gr.Button(i18n("凑四句一切"), variant="primary")
+                    button2 = gr.Button(i18n("凑50字一切"), variant="primary")
+            with gr.Row():
+                    button3 = gr.Button(i18n("按中文句号。切"), variant="primary")
+                    button4 = gr.Button(i18n("按英文句号.切"), variant="primary")
+            with gr.Row():
+                    button5 = gr.Button(i18n("按中文标点分句切"), variant="primary")
+                    button6 = gr.Button(i18n("按英文标点分句切"), variant="primary")
             text_opt = gr.Textbox(label=i18n("切分后文本"), value="")
             button1.click(cut1, [text_inp], [text_opt])
             button2.click(cut2, [text_inp], [text_opt])
             button3.click(cut3, [text_inp], [text_opt])
             button4.click(cut4, [text_inp], [text_opt])
+            button5.click(cut5, [text_inp], [text_opt])
+            button6.click(cut6, [text_inp], [text_opt])
         gr.Markdown(value=i18n("后续将支持混合语种编码文本输入。"))
 
 app.queue(concurrency_count=511, max_size=1022).launch(
