@@ -65,7 +65,6 @@ bash install.sh
 pip install -r requirements.txt
 ```
 
-
 #### FFmpeg
 
 ##### Conda Users
