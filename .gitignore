@@ -4,3 +4,5 @@ __pycache__
 env
 runtime
 .idea
+GPT_weights
+SoVITS_weights
