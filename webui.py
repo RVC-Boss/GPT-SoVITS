@@ -221,6 +221,9 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
             data=json.loads(data)
         s2_dir="%s/%s"%(exp_root,exp_name)
         os.makedirs("%s/logs_s2"%(s2_dir),exist_ok=True)
+        if(is_half==False):
+            data["train"]["fp16_run"]=False
+            batch_size=max(1,batch_size//2)
         data["train"]["batch_size"]=batch_size
         data["train"]["epochs"]=total_epoch
         data["train"]["text_low_lr_rate"]=text_low_lr_rate
@@ -233,7 +236,7 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         data["data"]["exp_dir"]=data["s2_ckpt_dir"]=s2_dir
         data["save_weight_dir"]=SoVITS_weight_root
         data["name"]=exp_name
-        tmp_config_path="TEMP/tmp_s2.json"
+        tmp_config_path="%s/tmp_s2.json"%tmp
         with open(tmp_config_path,"w")as f:f.write(json.dumps(data))
 
         cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
@@ -262,6 +265,9 @@ def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights
             data=yaml.load(data, Loader=yaml.FullLoader)
         s1_dir="%s/%s"%(exp_root,exp_name)
         os.makedirs("%s/logs_s1"%(s1_dir),exist_ok=True)
+        if(is_half==False):
+            data["train"]["precision"]="32"
+            batch_size = max(1, batch_size // 2)
         data["train"]["batch_size"]=batch_size
         data["train"]["epochs"]=total_epoch
         data["pretrained_s1"]=pretrained_s1
@@ -276,7 +282,7 @@ def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights
 
         os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_numbers.replace("-",",")
         os.environ["hz"]="25hz"
-        tmp_config_path="TEMP/tmp_s1.yaml"
+        tmp_config_path="%s/tmp_s1.yaml"%tmp
         with open(tmp_config_path, "w") as f:f.write(yaml.dump(data, default_flow_style=False))
         # cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" --train_semantic_path "%s/6-name2semantic.tsv" --train_phoneme_path "%s/2-name2text.txt" --output_dir "%s/logs_s1"'%(python_exec,tmp_config_path,s1_dir,s1_dir,s1_dir)
         cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" '%(python_exec,tmp_config_path)
