@@ -1,0 +1,34 @@
+# GPT-SoVITS models
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/s1bert25hz-2kh-longer-epoch%3D68e-step%3D50232.ckpt
+  out=GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/s2D488k.pth
+  out=GPT_SoVITS/pretrained_models/s2D488k.pth
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/s2G488k.pth
+  out=GPT_SoVITS/pretrained_models/s2G488k.pth
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/chinese-hubert-base/config.json
+  out=GPT_SoVITS/pretrained_models/chinese-hubert-base/config.json
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/chinese-hubert-base/preprocessor_config.json
+  out=GPT_SoVITS/pretrained_models/chinese-hubert-base/preprocessor_config.json
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/chinese-hubert-base/pytorch_model.bin
+  out=GPT_SoVITS/pretrained_models/chinese-hubert-base/pytorch_model.bin
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/chinese-roberta-wwm-ext-large/config.json
+  out=GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/config.json
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/chinese-roberta-wwm-ext-large/pytorch_model.bin
+  out=GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/pytorch_model.bin
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/chinese-roberta-wwm-ext-large/tokenizer.json
+  out=GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/tokenizer.json
+# UVR5
+https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/HP2_all_vocals.pth
+  out=tools/uvr5/uvr5_weights/HP2_all_vocals.pth
+https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/HP3_all_vocals.pth
+  out=tools/uvr5/uvr5_weights/HP3_all_vocals.pth
+https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/HP5_only_main_vocal.pth
+  out=tools/uvr5/uvr5_weights/HP5_only_main_vocal.pth
+https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/VR-DeEchoAggressive.pth
+  out=tools/uvr5/uvr5_weights/VR-DeEchoAggressive.pth
+https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/VR-DeEchoDeReverb.pth
+  out=tools/uvr5/uvr5_weights/VR-DeEchoDeReverb.pth
+https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/VR-DeEchoNormal.pth
+  out=tools/uvr5/uvr5_weights/VR-DeEchoNormal.pth
+https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/onnx_dereverb_By_FoxJoy/vocals.onnx
+  out=tools/uvr5/uvr5_weights/onnx_dereverb_By_FoxJoy/vocals.onnx

@@ -1,14 +1,13 @@
+import os,shutil,sys,pdb,re
+now_dir = os.getcwd()
+sys.path.append(now_dir)
 import json,yaml,warnings,torch
 import platform
 import psutil
-import os,shutil
 import signal
-from tools import my_utils
 
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
-import os,pdb,sys
-now_dir = os.getcwd()
 tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
@@ -17,7 +16,11 @@ if(os.path.exists(tmp)):
         if(name=="jieba.cache"):continue
         path="%s/%s"%(tmp,name)
         delete=os.remove if os.path.isfile(path) else shutil.rmtree
-        delete(path)
+        try:
+            delete(path)
+        except Exception as e:
+            print(str(e))
+            pass
 import site
 site_packages_roots = []
 for path in site.getsitepackages():
@@ -26,15 +29,20 @@ for path in site.getsitepackages():
 if(site_packages_roots==[]):site_packages_roots=["%s/runtime/Lib/site-packages" % now_dir]
 #os.environ["OPENBLAS_NUM_THREADS"] = "4"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
+os.environ["all_proxy"] = ""
 for site_packages_root in site_packages_roots:
     if os.path.exists(site_packages_root):
-        with open("%s/users.pth" % (site_packages_root), "w") as f:
-            f.write(
-                "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
-                % (now_dir, now_dir, now_dir, now_dir, now_dir)
-            )
+        try:
+            with open("%s/users.pth" % (site_packages_root), "w") as f:
+                f.write(
+                    "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+                    % (now_dir, now_dir, now_dir, now_dir, now_dir)
+                )
+            break
+        except PermissionError:
+            pass
+from tools import my_utils
 import traceback
-sys.path.append(now_dir)
 import shutil
 import pdb
 import gradio as gr
@@ -46,22 +54,31 @@ i18n = I18nAuto()
 from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
+
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
+
 n_cpu=cpu_count()
            
-# 判断是否有能用来训练和加速推理的N卡
 ngpu = torch.cuda.device_count()
 gpu_infos = []
 mem = []
 if_gpu_ok = False
 
+# 判断是否有能用来训练和加速推理的N卡
 if torch.cuda.is_available() or ngpu != 0:
     for i in range(ngpu):
         gpu_name = torch.cuda.get_device_name(i)
-        if any(value in gpu_name.upper()for value in ["10","16","20","30","40","A2","A3","A4","P4","A50","500","A60","70","80","90","M4","T4","TITAN","L"]):
+        if any(value in gpu_name.upper()for value in ["10","16","20","30","40","A2","A3","A4","P4","A50","500","A60","70","80","90","M4","T4","TITAN","L","4060"]):
             # A10#A100#V100#A40#P40#M40#K80#A4500
             if_gpu_ok = True  # 至少有一张能用的N卡
             gpu_infos.append("%s\t%s" % (i, gpu_name))
             mem.append(int(torch.cuda.get_device_properties(i).total_memory/ 1024/ 1024/ 1024+ 0.4))
+# 判断是否支持mps加速
+if torch.backends.mps.is_available():
+    if_gpu_ok = True
+    gpu_infos.append("%s\t%s" % ("0", "Apple GPU"))
+    mem.append(psutil.virtual_memory().total/ 1024 / 1024 / 1024) # 实测使用系统内存作为显存不会爆显存
+
 if if_gpu_ok and len(gpu_infos) > 0:
     gpu_info = "\n".join(gpu_infos)
     default_batch_size = min(mem) // 2
@@ -86,9 +103,16 @@ os.makedirs(SoVITS_weight_root,exist_ok=True)
 os.makedirs(GPT_weight_root,exist_ok=True)
 SoVITS_names,GPT_names = get_weights_names()
 
+def custom_sort_key(s):
+    # 使用正则表达式提取字符串中的数字部分和非数字部分
+    parts = re.split('(\d+)', s)
+    # 将数字部分转换为整数，非数字部分保持不变
+    parts = [int(part) if part.isdigit() else part for part in parts]
+    return parts
+
 def change_choices():
     SoVITS_names, GPT_names = get_weights_names()
-    return {"choices": sorted(SoVITS_names), "__type__": "update"}, {"choices": sorted(GPT_names), "__type__": "update"}
+    return {"choices": sorted(SoVITS_names,key=custom_sort_key), "__type__": "update"}, {"choices": sorted(GPT_names,key=custom_sort_key), "__type__": "update"}
 
 p_label=None
 p_uvr5=None
@@ -197,6 +221,9 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
             data=json.loads(data)
         s2_dir="%s/%s"%(exp_root,exp_name)
         os.makedirs("%s/logs_s2"%(s2_dir),exist_ok=True)
+        if(is_half==False):
+            data["train"]["fp16_run"]=False
+            batch_size=max(1,batch_size//2)
         data["train"]["batch_size"]=batch_size
         data["train"]["epochs"]=total_epoch
         data["train"]["text_low_lr_rate"]=text_low_lr_rate
@@ -209,7 +236,7 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         data["data"]["exp_dir"]=data["s2_ckpt_dir"]=s2_dir
         data["save_weight_dir"]=SoVITS_weight_root
         data["name"]=exp_name
-        tmp_config_path="TEMP/tmp_s2.json"
+        tmp_config_path="%s/tmp_s2.json"%tmp
         with open(tmp_config_path,"w")as f:f.write(json.dumps(data))
 
         cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
@@ -238,6 +265,9 @@ def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights
             data=yaml.load(data, Loader=yaml.FullLoader)
         s1_dir="%s/%s"%(exp_root,exp_name)
         os.makedirs("%s/logs_s1"%(s1_dir),exist_ok=True)
+        if(is_half==False):
+            data["train"]["precision"]="32"
+            batch_size = max(1, batch_size // 2)
         data["train"]["batch_size"]=batch_size
         data["train"]["epochs"]=total_epoch
         data["pretrained_s1"]=pretrained_s1
@@ -252,7 +282,7 @@ def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights
 
         os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_numbers.replace("-",",")
         os.environ["hz"]="25hz"
-        tmp_config_path="TEMP/tmp_s1.yaml"
+        tmp_config_path="%s/tmp_s1.yaml"%tmp
         with open(tmp_config_path, "w") as f:f.write(yaml.dump(data, default_flow_style=False))
         # cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" --train_semantic_path "%s/6-name2semantic.tsv" --train_phoneme_path "%s/2-name2text.txt" --output_dir "%s/logs_s1"'%(python_exec,tmp_config_path,s1_dir,s1_dir,s1_dir)
         cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" '%(python_exec,tmp_config_path)
@@ -443,7 +473,7 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
         yield "语义token提取进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
         for p in ps1c:
             p.wait()
-        opt = ["item_name	semantic_audio"]
+        opt = ["item_name\tsemantic_audio"]
         path_semantic = "%s/6-name2semantic.tsv" % opt_dir
         for i_part in range(all_parts):
             semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
@@ -476,7 +506,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
         try:
             #############################1a
             path_text="%s/2-name2text.txt" % opt_dir
-            if(os.path.exists(path_text)==False or (os.path.exists(path_text)==True and os.path.getsize(path_text)<10)):
+            if(os.path.exists(path_text)==False or (os.path.exists(path_text)==True and len(open(path_text,"r",encoding="utf8").read().strip("\n").split("\n"))<2)):
                 config={
                     "inp_text":inp_text,
                     "inp_wav_dir":inp_wav_dir,
@@ -569,7 +599,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                 yield "进度：1a1b-done, 1cing", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
                 for p in ps1abc:p.wait()
 
-                opt = ["item_name	semantic_audio"]
+                opt = ["item_name\tsemantic_audio"]
                 for i_part in range(all_parts):
                     semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
                     with open(semantic_path, "r",encoding="utf8") as f:
@@ -640,7 +670,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 if_label = gr.Checkbox(label=i18n("是否开启打标WebUI"),show_label=True)
                 path_list = gr.Textbox(
-                    label=i18n("打标数据标注文件路径"),
+                    label=i18n(".list标注文件的路径"),
                     value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx.list",
                     interactive=True,
                 )
@@ -666,7 +696,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         label=i18n("*训练集音频文件目录"),
                         # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
                         interactive=True,
-                        placeholder=i18n("训练集音频文件目录-拼接-list文件里波形对应的文件名（不是全路径）。")
+                        placeholder=i18n("填切割后音频所在目录！读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名（不是全路径）。")
                     )
                 gr.Markdown(value=i18n("1Aa-文本内容"))
                 with gr.Row():
@@ -705,9 +735,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 gr.Markdown(value=i18n("1Ba-SoVITS训练。用于分享的模型文件输出在SoVITS_weights下。"))
                 with gr.Row():
                     batch_size = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
-                    total_epoch = gr.Slider(minimum=1,maximum=20,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=8,interactive=True)
+                    total_epoch = gr.Slider(minimum=1,maximum=25,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=8,interactive=True)
                     text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,interactive=True)
-                    save_every_epoch = gr.Slider(minimum=1,maximum=50,step=1,label=i18n("保存频率save_every_epoch"),value=4,interactive=True)
+                    save_every_epoch = gr.Slider(minimum=1,maximum=25,step=1,label=i18n("保存频率save_every_epoch"),value=4,interactive=True)
                     if_save_latest = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                     if_save_every_weights = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
                     gpu_numbers1Ba = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"), value="%s" % (gpus), interactive=True)
@@ -718,7 +748,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 gr.Markdown(value=i18n("1Bb-GPT训练。用于分享的模型文件输出在GPT_weights下。"))
                 with gr.Row():
                     batch_size1Bb = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
-                    total_epoch1Bb = gr.Slider(minimum=2,maximum=100,step=1,label=i18n("总训练轮数total_epoch"),value=15,interactive=True)
+                    total_epoch1Bb = gr.Slider(minimum=2,maximum=50,step=1,label=i18n("总训练轮数total_epoch"),value=15,interactive=True)
                     if_save_latest1Bb = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                     if_save_every_weights1Bb = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
                     save_every_epoch1Bb = gr.Slider(minimum=1,maximum=50,step=1,label=i18n("保存频率save_every_epoch"),value=5,interactive=True)
@@ -734,8 +764,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.TabItem(i18n("1C-推理")):
                 gr.Markdown(value=i18n("选择训练完存放在SoVITS_weights和GPT_weights下的模型。默认的一个是底模，体验5秒Zero Shot TTS用。"))
                 with gr.Row():
-                    GPT_dropdown = gr.Dropdown(label=i18n("*GPT模型列表"), choices=sorted(GPT_names),value=pretrained_gpt_name)
-                    SoVITS_dropdown = gr.Dropdown(label=i18n("*SoVITS模型列表"), choices=sorted(SoVITS_names),value=pretrained_sovits_name)
+                    GPT_dropdown = gr.Dropdown(label=i18n("*GPT模型列表"), choices=sorted(GPT_names,key=custom_sort_key),value=pretrained_gpt_name,interactive=True)
+                    SoVITS_dropdown = gr.Dropdown(label=i18n("*SoVITS模型列表"), choices=sorted(SoVITS_names,key=custom_sort_key),value=pretrained_sovits_name,interactive=True)
                     gpu_number_1C=gr.Textbox(label=i18n("GPU卡号,只能填1个整数"), value=gpus, interactive=True)
                     refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
                     refresh_button.click(fn=change_choices,inputs=[],outputs=[SoVITS_dropdown,GPT_dropdown])

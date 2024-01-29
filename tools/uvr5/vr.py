@@ -110,6 +110,9 @@ class AudioPre:
         y_spec_m = pred * X_phase
         v_spec_m = X_spec_m - y_spec_m
 
+        if is_hp3 == True:
+            ins_root,vocal_root = vocal_root,ins_root
+
         if ins_root is not None:
             if self.data["high_end_process"].startswith("mirroring"):
                 input_high_end_ = spec_utils.mirroring(
