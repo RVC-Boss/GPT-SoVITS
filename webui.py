@@ -68,7 +68,7 @@ if_gpu_ok = False
 if torch.cuda.is_available() or ngpu != 0:
     for i in range(ngpu):
         gpu_name = torch.cuda.get_device_name(i)
-        if any(value in gpu_name.upper()for value in ["10","16","20","30","40","A2","A3","A4","P4","A50","500","A60","70","80","90","M4","T4","TITAN","L","4060"]):
+        if any(value in gpu_name.upper()for value in ["10","16","20","30","40","A2","A3","A4","P4","A50","500","A60","70","80","90","M4","T4","TITAN","L4","4060"]):
             # A10#A100#V100#A40#P40#M40#K80#A4500
             if_gpu_ok = True  # 至少有一张能用的N卡
             gpu_infos.append("%s\t%s" % (i, gpu_name))
@@ -150,6 +150,7 @@ def kill_process(pid):
 def change_label(if_label,path_list):
     global p_label
     if(if_label==True and p_label==None):
+        path_list=my_utils.clean_path(path_list)
         cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s'%(python_exec,path_list,webui_port_subfix,is_share)
         yield i18n("打标工具WebUI已开启")
         print(cmd)
@@ -195,6 +196,7 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
 def open_asr(asr_inp_dir):
     global p_asr
     if(p_asr==None):
+        asr_inp_dir=my_utils.clean_path(asr_inp_dir)
         cmd = '"%s" tools/damo_asr/cmd-asr.py "%s"'%(python_exec,asr_inp_dir)
         yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
@@ -343,6 +345,8 @@ def close_slice():
 ps1a=[]
 def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
+    inp_text = my_utils.clean_path(inp_text)
+    inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if (ps1a == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         config={
@@ -363,7 +367,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
                     "is_half": str(is_half)
                 }
             )
-            os.environ.update(config)#
+            os.environ.update(config)
             cmd = '"%s" GPT_SoVITS/prepare_datasets/1-get-text.py'%python_exec
             print(cmd)
             p = Popen(cmd, shell=True)
@@ -399,6 +403,8 @@ def close1a():
 ps1b=[]
 def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
     global ps1b
+    inp_text = my_utils.clean_path(inp_text)
+    inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if (ps1b == []):
         config={
             "inp_text":inp_text,
@@ -445,6 +451,7 @@ def close1b():
 ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
+    inp_text = my_utils.clean_path(inp_text)
     if (ps1c == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         config={
@@ -501,6 +508,8 @@ def close1c():
 ps1abc=[]
 def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numbers1c,bert_pretrained_dir,ssl_pretrained_dir,pretrained_s2G_path):
     global ps1abc
+    inp_text = my_utils.clean_path(inp_text)
+    inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if (ps1abc == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         try:
