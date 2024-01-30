@@ -200,7 +200,7 @@ dict_language = {
 
 
 def splite_en_inf(sentence, language):
-    pattern = re.compile(r'[a-zA-Z. ]+')
+    pattern = re.compile(r'[a-zA-Z ]+')
     textlist = []
     langlist = []
     pos = 0
@@ -215,6 +215,21 @@ def splite_en_inf(sentence, language):
     if pos < len(sentence):
         textlist.append(sentence[pos:])
         langlist.append(language)
+    # Merge punctuation into previous word
+    for i in range(len(textlist)-1, 0, -1):
+        if re.match(r'^[\W_]+$', textlist[i]):
+            textlist[i-1] += textlist[i]
+            del textlist[i]
+            del langlist[i]
+    # Merge consecutive words with the same language tag
+    i = 0
+    while i < len(langlist) - 1:
+        if langlist[i] == langlist[i+1]:
+            textlist[i] += textlist[i+1]
+            del textlist[i+1]
+            del langlist[i+1]
+        else:
+            i += 1
 
     return textlist, langlist
 
