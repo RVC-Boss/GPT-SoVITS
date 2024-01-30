@@ -37,13 +37,13 @@ def clean_special(text, language, special_s, target_symbol):
     norm_text = language_module.text_normalize(text)
     phones = language_module.g2p(norm_text)
     new_ph = []
-    for ph in phones:
+    for ph in phones[0]:
         assert ph in symbols
         if ph == ",":
             new_ph.append(target_symbol)
         else:
             new_ph.append(ph)
-    return new_ph
+    return new_ph, phones[1], norm_text
 
 
 def text_to_sequence(text, language):
