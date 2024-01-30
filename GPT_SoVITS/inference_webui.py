@@ -200,7 +200,7 @@ dict_language = {
 
 
 def splite_en_inf(sentence, language):
-    pattern = re.compile(r'[a-zA-Z. ]+')
+    pattern = re.compile(r'[a-zA-Z ]+')
     textlist = []
     langlist = []
     pos = 0
