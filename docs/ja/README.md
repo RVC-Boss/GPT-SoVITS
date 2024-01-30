@@ -8,6 +8,7 @@
 
 <img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
 
+[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
 [![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
@@ -161,9 +162,9 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ## Todo リスト
 
 - [ ] **優先度 高:**
-   - [ ] 日本語と英語でのローカライズ。
+   - [x] 日本語と英語でのローカライズ。
    - [ ] ユーザーガイド。
-   - [ ] 日本語データセットと英語データセットのファインチューニングトレーニング。
+   - [x] 日本語データセットと英語データセットのファインチューニングトレーニング。
 
 - [ ] **機能:**
    - [ ] ゼロショット音声変換（5秒）／数ショット音声変換（1分）。
@@ -172,7 +173,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
    - [ ] SoVITS トークン入力を語彙の確率分布に変更する実験。
    - [ ] 英語と日本語のテキストフロントエンドを改善。
    - [ ] 小型と大型の TTS モデルを開発する。
-   - [ ] Colab のスクリプト。
+   - [x] Colab のスクリプト。
    - [ ] トレーニングデータセットを拡張する（2k→10k）。
    - [ ] より良い sovits ベースモデル（音質向上）
    - [ ] モデルミックス

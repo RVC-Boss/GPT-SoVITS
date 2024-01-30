@@ -8,10 +8,11 @@
 
 <img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
 
+[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
 [![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
-[**English**](./README.md) | [**中文简体**](./README_ZH.md)
+[**English**](../../README.md) | [**中文简体**](./README.md) | [**日本語**](../ja/README.md)
 
 </div>
 
@@ -67,7 +68,7 @@ pip install -r requirements.txt
 pip uninstall torch torchaudio
 pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 ```
-_注意：如需使用UVR5进行预处理，建议[下载原项目GUI](https://github.com/Anjok07/ultimatevocalremovergui)，勾选“GPU Conversion”。另外，可能会出现内存泄漏问题，主要体现在推理时。重启推理webUI可以释放内存。_
+
 ### 使用Conda快速安装
 
 ```bash
@@ -165,9 +166,9 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ## 待办事项清单
 
 - [ ] **高优先级：**
-   - [ ] 日语和英语的本地化。
+   - [x] 日语和英语的本地化。
    - [ ] 用户指南。
-   - [ ] 日语和英语数据集微调训练。
+   - [x] 日语和英语数据集微调训练。
 
 - [ ] **Features:**
    - [ ] 零样本声音转换（5秒）/ 少样本声音转换（1分钟）。
@@ -176,7 +177,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
    - [ ] 尝试将SoVITS令牌输入更改为词汇的概率分布。
    - [ ] 改进英语和日语文本前端。
    - [ ] 开发体积小和更大的TTS模型。
-   - [ ] Colab脚本。
+   - [x] Colab脚本。
    - [ ] 扩展训练数据集（从2k小时到10k小时）。
    - [ ] 更好的sovits基础模型（增强的音频质量）。
    - [ ] 模型混合。
