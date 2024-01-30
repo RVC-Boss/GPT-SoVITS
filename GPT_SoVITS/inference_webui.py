@@ -271,9 +271,11 @@ def get_first(text):
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,how_to_cut=i18n("不切")):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
-    if(prompt_text[-1]not in splits):prompt_text+="。"if prompt_text!="en"else "."
+    if(prompt_text[-1]not in splits):prompt_text+="。"if prompt_language!="en"else "."
     text = text.strip("\n")
-    if(len(get_first(text))<4):text+="。"if text!="en"else "."
+    if(text[0]not in splits and len(get_first(text))<4):text="。"+text if text_language!="en"else "."+text
+    print(i18n("实际输入的参考文本:"),prompt_text)
+    print(i18n("实际输入的目标文本:"),text)
     zero_wav = np.zeros(
         int(hps.data.sampling_rate * 0.3),
         dtype=np.float16 if is_half == True else np.float32,
@@ -301,7 +303,6 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     t1 = ttime()
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
-
     if prompt_language == "en":
         phones1, word2ph1, norm_text1 = clean_text_inf(prompt_text, prompt_language)
     else:
@@ -311,18 +312,19 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     elif(how_to_cut==i18n("按中文句号。切")):text=cut3(text)
     elif(how_to_cut==i18n("按英文句号.切")):text=cut4(text)
     text = text.replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
-    if(text[-1]not in splits):text+="。"if text_language!="en"else "."
+    print(i18n("实际输入的目标文本(切句后):"),text)
     texts=text.split("\n")
     audio_opt = []
     if prompt_language == "en":
         bert1 = get_bert_inf(phones1, word2ph1, norm_text1, prompt_language)
     else:
         bert1 = nonen_get_bert_inf(prompt_text, prompt_language)
-    
     for text in texts:
         # 解决输入目标文本的空行导致报错的问题
         if (len(text.strip()) == 0):
             continue
+        if (text[-1] not in splits): text += "。" if text_language != "en" else "."
+        print(i18n("实际输入的目标文本(每句):"), text)
         if text_language == "en":
             phones2, word2ph2, norm_text2 = clean_text_inf(text, text_language)
         else:
@@ -437,10 +439,10 @@ def cut2(inp):
 
 def cut3(inp):
     inp = inp.strip("\n")
-    return "\n".join(["%s。" % item for item in inp.strip("。").split("。")])
+    return "\n".join(["%s" % item for item in inp.strip("。").split("。")])
 def cut4(inp):
     inp = inp.strip("\n")
-    return "\n".join(["%s." % item for item in inp.strip(".").split(".")])
+    return "\n".join(["%s" % item for item in inp.strip(".").split(".")])
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
