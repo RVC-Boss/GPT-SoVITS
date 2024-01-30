@@ -68,7 +68,7 @@ pip install -r requirements.txt
 pip uninstall torch torchaudio
 pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 ```
-_注意：如需使用UVR5进行预处理，建议[下载原项目GUI](https://github.com/Anjok07/ultimatevocalremovergui)，勾选“GPU Conversion”。另外，可能会出现内存泄漏问题，主要体现在推理时。重启推理webUI可以释放内存。_
+
 ### 使用Conda快速安装
 
 ```bash
