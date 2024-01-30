@@ -11,7 +11,7 @@
 [![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
-[**English**](./README.md) | [**中文简体**](./README_ZH.md)
+[**English**](../../README.md) | [**中文简体**](../cn/README.md) | [**日本語**](./README.md)
 
 </div>
 
