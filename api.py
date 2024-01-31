@@ -439,7 +439,8 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language):
     wav.seek(0)
 
     torch.cuda.empty_cache()
-    torch.mps.empty_cache()
+    if device == "mps":
+        torch.mps.empty_cache()
     return StreamingResponse(wav, media_type="audio/wav")
 
 
