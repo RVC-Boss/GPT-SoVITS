@@ -104,8 +104,13 @@ RESP: 无
 
 import argparse
 import os
-import signal
 import sys
+
+now_dir = os.getcwd()
+sys.path.append(now_dir)
+sys.path.append("%s/GPT_SoVITS" % (now_dir))
+
+import signal
 from time import time as ttime
 import torch
 import librosa
@@ -439,7 +444,9 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language):
     wav.seek(0)
 
     torch.cuda.empty_cache()
-    torch.mps.empty_cache()
+    if device == "mps":
+        print('executed torch.mps.empty_cache()')
+        torch.mps.empty_cache()
     return StreamingResponse(wav, media_type="audio/wav")
 
 
