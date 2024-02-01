@@ -410,6 +410,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 .cpu()
                 .numpy()[0, 0]
         )  ###试试重建不带上prompt部分
+        max_audio=np.abs(audio).max()#简单防止16bit爆音
+        if max_audio>1:audio/=max_audio
         audio_opt.append(audio)
         audio_opt.append(zero_wav)
         t4 = ttime()
