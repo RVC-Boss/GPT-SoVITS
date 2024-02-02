@@ -1,7 +1,7 @@
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
-A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
+强大的少样本语音转换与语音合成Web用户界面。<br><br>
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
 
@@ -11,118 +11,60 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 [![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
-[**English**](./README.md) | [**中文简体**](./docs/cn/README.md) | [**日本語**](./docs/ja/README.md) | [**한국어**](./docs/ko/README.md)
+[**English**](../../README.md) | [**中文简体**](./README.md) | [**日本語**](../ja/README.md) | [**한국어**](../ko/README.md)
 
 </div>
 
 ---
 
-> Check out our [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw) here!
-
-Unseen speakers few-shot fine-tuning demo:
+> 查看我们的介绍视频 [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw)
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
-For users in China region, you can use AutoDL Cloud Docker to experience the full functionality online: https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official
+中国地区用户可使用 AutoDL 云端镜像进行体验：https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official
 
-## Features:
+## 功能：
 
-1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
+1. **零样本文本到语音（TTS）：** 输入 5 秒的声音样本，即刻体验文本到语音转换。
 
-2. **Few-shot TTS:** Fine-tune the model with just 1 minute of training data for improved voice similarity and realism.
+2. **少样本 TTS：** 仅需 1 分钟的训练数据即可微调模型，提升声音相似度和真实感。
 
-3. **Cross-lingual Support:** Inference in languages different from the training dataset, currently supporting English, Japanese, and Chinese.
+3. **跨语言支持：** 支持与训练数据集不同语言的推理，目前支持英语、日语和中文。
 
-4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, Chinese ASR, and text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
+4. **WebUI 工具：** 集成工具包括声音伴奏分离、自动训练集分割、中文自动语音识别(ASR)和文本标注，协助初学者创建训练数据集和 GPT/SoVITS 模型。
 
-## Environment Preparation
+## 环境准备
 
-If you are a Windows user (tested with win>=10) you can install directly via the prezip. Just download the [prezip](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true), unzip it and double-click go-webui.bat to start GPT-SoVITS-WebUI.
+如果你是 Windows 用户（已在 win>=10 上测试），可以直接通过预打包文件安装。只需下载[预打包文件](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
 
-### Tested Environments
+### 测试通过的 Python 和 PyTorch 版本
 
-- Python 3.9, PyTorch 2.0.1, CUDA 11
-- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple silicon, GPU)
+- Python 3.9、PyTorch 2.0.1 和 CUDA 11
+- Python 3.10.13, PyTorch 2.1.2 和 CUDA 12.3
+- Python 3.9、Pytorch 2.3.0.dev20240122 和 macOS 14.3（Apple 芯片，GPU）
 
-_Note: numba==0.56.4 require py<3.11_
+_注意: numba==0.56.4 需要 python<3.11_
 
-### Quick Install with Conda
+### Mac 用户
 
-```bash
-conda create -n GPTSoVits python=3.9
-conda activate GPTSoVits
-bash install.sh
-```
+如果你是 Mac 用户，请先确保满足以下条件以使用 GPU 进行训练和推理：
 
-### Install Manually
+- 搭载 Apple 芯片或 AMD GPU 的 Mac
+- macOS 12.3 或更高版本
+- 已通过运行`xcode-select --install`安装 Xcode command-line tools
 
-#### Pip Packages
+_其他 Mac 仅支持使用 CPU 进行推理_
 
-```bash
-pip install -r requirements.txt
-```
+然后使用以下命令安装：
 
-#### FFmpeg
-
-##### Conda Users
-
-```bash
-conda install ffmpeg
-```
-
-##### Ubuntu/Debian Users
-
-```bash
-sudo apt install ffmpeg
-sudo apt install libsox-dev
-conda install -c conda-forge 'ffmpeg<7'
-```
-
-##### MacOS Users
-
-```bash
-brew install ffmpeg
-```
-
-##### Windows Users
-
-Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
-
-### Pretrained Models
-
-Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS/pretrained_models`.
-
-For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal, additionally), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
-
-Users in China region can download these two models by entering the links below and clicking "Download a copy"
-
-- [GPT-SoVITS Models](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
-
-- [UVR5 Weights](https://www.icloud.com.cn/iclouddrive/0bekRKDiJXboFhbfm3lM2fVbA#UVR5_Weights)
-
-For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/damo_asr/models`.
-
-### For Mac Users
-
-If you are a Mac user, make sure you meet the following conditions for training and inferencing with GPU:
-
-- Mac computers with Apple silicon or AMD GPUs
-- macOS 12.3 or later
-- Xcode command-line tools installed by running `xcode-select --install`
-
-_Other Macs can do inference with CPU only._
-
-Then install by using the following commands:
-
-#### Create Environment
+#### 创建环境
 
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
 ```
 
-#### Install Requirements
+#### 安装依赖
 
 ```bash
 pip install -r requirements.txt
@@ -130,76 +72,132 @@ pip uninstall torch torchaudio
 pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 
-### Using Docker
+### 使用 Conda 快速安装
 
-#### docker-compose.yaml configuration
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+bash install.sh
+```
 
-0. Regarding image tags: Due to rapid updates in the codebase and the slow process of packaging and testing images, please check [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) for the currently packaged latest images and select as per your situation, or alternatively, build locally using a Dockerfile according to your own needs.
-1. Environment Variables：
+### 手动安装包
 
-- is_half: Controls half-precision/double-precision. This is typically the cause if the content under the directories 4-cnhubert/5-wav32k is not generated correctly during the "SSL extracting" step. Adjust to True or False based on your actual situation.
+#### Pip 包
 
-2. Volumes Configuration，The application's root directory inside the container is set to /workspace. The default docker-compose.yaml lists some practical examples for uploading/downloading content.
-3. shm_size： The default available memory for Docker Desktop on Windows is too small, which can cause abnormal operations. Adjust according to your own situation.
-4. Under the deploy section, GPU-related settings should be adjusted cautiously according to your system and actual circumstances.
+```bash
+pip install -r requirements.txt
+```
 
-#### Running with docker compose
+#### FFmpeg
+
+##### Conda 使用者
+
+```bash
+conda install ffmpeg
+```
+
+##### Ubuntu/Debian 使用者
+
+```bash
+sudo apt install ffmpeg
+sudo apt install libsox-dev
+conda install -c conda-forge 'ffmpeg<7'
+```
+
+##### MacOS 使用者
+
+```bash
+brew install ffmpeg
+```
+
+##### Windows 使用者
+
+下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下。
+
+### 在 Docker 中使用
+
+#### docker-compose.yaml 设置
+
+0. image 的标签：由于代码库更新很快，镜像的打包和测试又很慢，所以请自行在 [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) 查看当前打包好的最新的镜像并根据自己的情况选用，或者在本地根据您自己的需求通过 Dockerfile 进行构建。
+1. 环境变量：
+
+- is_half: 半精度/双精度控制。在进行 "SSL extracting" 步骤时如果无法正确生成 4-cnhubert/5-wav32k 目录下的内容时，一般都是它引起的，可以根据实际情况来调整为 True 或者 False。
+
+2. Volume 设置，容器内的应用根目录设置为 /workspace。 默认的 docker-compose.yaml 中列出了一些实际的例子，便于上传/下载内容。
+3. shm_size：Windows 下的 Docker Desktop 默认可用内存过小，会导致运行异常，根据自己情况酌情设置。
+4. deploy 小节下的 gpu 相关内容，请根据您的系统和实际情况酌情设置。
+
+#### 通过 docker compose 运行
 
 ```
 docker compose -f "docker-compose.yaml" up -d
 ```
 
-#### Running with docker command
+#### 通过 docker 命令运行
 
-As above, modify the corresponding parameters based on your actual situation, then run the following command:
+同上，根据您自己的实际情况修改对应的参数，然后运行如下命令：
 
 ```
 docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9870:9870 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
 ```
 
-## Dataset Format
+### 预训练模型
 
-The TTS annotation .list file format:
+从 [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 下载预训练模型，并将它们放置在 `GPT_SoVITS\pretrained_models` 中。
+
+对于 UVR5（人声/伴奏分离和混响移除，另外），从 [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 下载模型，并将它们放置在 `tools/uvr5/uvr5_weights` 中。
+
+中国地区用户可以进入以下链接并点击“下载副本”下载以上两个模型：
+
+- [GPT-SoVITS Models](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
+
+- [UVR5 Weights](https://www.icloud.com.cn/iclouddrive/0bekRKDiJXboFhbfm3lM2fVbA#UVR5_Weights)
+
+对于中文自动语音识别（另外），从 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), 和 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 下载模型，并将它们放置在 `tools/damo_asr/models` 中。
+
+## 数据集格式
+
+文本到语音（TTS）注释 .list 文件格式：
 
 ```
 vocal_path|speaker_name|language|text
 ```
 
-Language dictionary:
+语言字典：
 
 - 'zh': Chinese
 - 'ja': Japanese
 - 'en': English
 
-Example:
+示例：
 
 ```
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
-## Todo List
+## 待办事项清单
 
-- [ ] **High Priority:**
+- [ ] **高优先级：**
 
-  - [x] Localization in Japanese and English.
-  - [ ] User guide.
-  - [x] Japanese and English dataset fine tune training.
+  - [x] 日语和英语的本地化。
+  - [ ] 用户指南。
+  - [x] 日语和英语数据集微调训练。
 
 - [ ] **Features:**
-  - [ ] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
-  - [ ] TTS speaking speed control.
-  - [ ] Enhanced TTS emotion control.
-  - [ ] Experiment with changing SoVITS token inputs to probability distribution of vocabs.
-  - [ ] Improve English and Japanese text frontend.
-  - [ ] Develop tiny and larger-sized TTS models.
-  - [x] Colab scripts.
-  - [ ] Try expand training dataset (2k hours -> 10k hours).
-  - [ ] better sovits base model (enhanced audio quality)
-  - [ ] model mix
+  - [ ] 零样本声音转换（5 秒）/ 少样本声音转换（1 分钟）。
+  - [ ] TTS 语速控制。
+  - [ ] 增强的 TTS 情感控制。
+  - [ ] 尝试将 SoVITS 令牌输入更改为词汇的概率分布。
+  - [ ] 改进英语和日语文本前端。
+  - [ ] 开发体积小和更大的 TTS 模型。
+  - [x] Colab 脚本。
+  - [ ] 扩展训练数据集（从 2k 小时到 10k 小时）。
+  - [ ] 更好的 sovits 基础模型（增强的音频质量）。
+  - [ ] 模型混合。
 
-## Credits
+## 致谢
 
-Special thanks to the following projects and contributors:
+特别感谢以下项目和贡献者：
 
 - [ar-vits](https://github.com/innnky/ar-vits)
 - [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
@@ -216,7 +214,7 @@ Special thanks to the following projects and contributors:
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - [gradio](https://github.com/gradio-app/gradio)
 
-## Thanks to all contributors for their efforts
+## 感谢所有贡献者的努力
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
   <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
