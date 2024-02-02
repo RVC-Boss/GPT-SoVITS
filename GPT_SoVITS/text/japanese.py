@@ -97,7 +97,7 @@ def text_normalize(text):
     return text
 
 # Copied from espnet https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py
-def pyopenjtalk_g2p_prosody(text: str, drop_unvoiced_vowels: bool = True) -> list[str]:
+def pyopenjtalk_g2p_prosody(text, drop_unvoiced_vowels=True):
     """Extract phoneme + prosoody symbol sequence from input full-context labels.
 
     The algorithm is based on `Prosodic features control by symbols as input of
