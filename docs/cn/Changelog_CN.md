@@ -81,12 +81,15 @@
 
 2-支持中日英混合多种文本自动切分识别语种
 
+### 20240202更新
+
+1-修复asr路径尾缀带/保存文件名报错
+
+2-引入paddlespeech的Normalizer https://github.com/RVC-Boss/GPT-SoVITS/pull/377 修复一些问题，例如：xx.xx%(带百分号类)，元/吨 会读成 元吨 而不是元每吨
 
 todolist：
 
 1-中文多音字推理优化
 
 2-英文全大写识别和英文下划线 https://github.com/RVC-Boss/GPT-SoVITS/issues/271
-
-3-%百分号在文本里会导致error不能推理 还有  元/吨 会读成 元吨 而不是元每吨，像这类问题，是什么库来弄文本解析到语音的，应该怎么改善这个问题呀
 
