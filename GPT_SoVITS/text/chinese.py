@@ -7,6 +7,7 @@ from pypinyin import lazy_pinyin, Style
 
 from text.symbols import punctuation
 from text.tone_sandhi import ToneSandhi
+from text.zh_normalization.text_normlization import TextNormalizer
 
 normalizer = lambda x: cn2an.transform(x, "an2cn")
 
@@ -149,10 +150,13 @@ def _g2p(segments):
 
 
 def text_normalize(text):
-    dest_text=normalizer(text)
-    text = replace_punctuation(dest_text)
-
-    return text
+    # https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization
+    tx = TextNormalizer()
+    sentences = tx.normalize(text)
+    dest_text = ""
+    for sentence in sentences:
+        dest_text += replace_punctuation(sentence)
+    return dest_text
 
 
 if __name__ == "__main__":
