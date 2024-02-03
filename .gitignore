@@ -4,3 +4,7 @@ __pycache__
 env
 runtime
 .idea
+output
+logs
+reference
+SoVITS_weights
