@@ -5,6 +5,7 @@ import sys,os,traceback
 from funasr import AutoModel
 
 dir=sys.argv[1]
+if(dir[-1]=="/"):dir=dir[:-1]
 # opt_name=dir.split("\\")[-1].split("/")[-1]
 opt_name=os.path.basename(dir)
 
