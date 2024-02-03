@@ -25,7 +25,9 @@ model = AutoModel(model=path_asr, model_revision="v2.0.4",
 
 
 opt=[]
-for name in os.listdir(dir):
+file_names = os.listdir(dir)
+file_names.sort()
+for name in file_names:
     try:
         text = model.generate(input="%s/%s"%(dir,name))[0]["text"]
         opt.append("%s/%s|%s|ZH|%s"%(dir,name,opt_name,text))
