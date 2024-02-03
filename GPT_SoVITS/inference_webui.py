@@ -252,13 +252,13 @@ def clean_text_inf(text, language):
 dtype=torch.float16 if is_half == True else torch.float32
 def get_bert_inf(phones, word2ph, norm_text, language):
     language=language.replace("all_","")
-    if language == "zh":
-        bert = get_bert_feature(norm_text, word2ph).to(device)#.to(dtype)
-    else:
-        bert = torch.zeros(
-            (1024, len(phones)),
-            dtype=torch.float16 if is_half == True else torch.float32,
-        ).to(device)
+    # if language == "zh":
+    #     bert = get_bert_feature(norm_text, word2ph).to(device)#.to(dtype)
+    # else:
+    bert = torch.zeros(
+        (1024, len(phones)),
+        dtype=torch.float16 if is_half == True else torch.float32,
+    ).to(device)
 
     return bert
 
@@ -269,9 +269,21 @@ def nonen_clean_text_inf(text, language):
     else:
         textlist=[]
         langlist=[]
+        mix = ""
         for tmp in LangSegment.getTexts(text):
-            langlist.append(tmp["lang"])
-            textlist.append(tmp["text"])
+            if tmp["lang"] in {"zh","en"}:
+                mix += tmp["text"]
+            else:
+                if mix:
+                    langlist.append("zh")
+                    textlist.append(mix)
+                    mix = ""
+                langlist.append(tmp["lang"])
+                textlist.append(tmp["text"])
+        if mix:
+            langlist.append("zh")
+            textlist.append(mix)
+            mix = ""
     print(textlist)
     print(langlist)
     phones_list = []
@@ -325,19 +337,19 @@ def get_first(text):
 
 
 def get_cleaned_text_fianl(text,language):
-    if language in {"en","all_zh","all_ja"}:
+    if language in {"en","all_zh","all_ja","zh"}:
         phones, word2ph, norm_text = clean_text_inf(text, language)
-    elif language in {"zh", "ja","auto"}:
+    elif language in {"ja","auto"}:
         phones, word2ph, norm_text = nonen_clean_text_inf(text, language)
     return phones, word2ph, norm_text
 
 def get_bert_final(phones, word2ph, norm_text,language,device):
-    if text_language == "en":
+    if text_language in {"en","all_zh","zh"}:
         bert = get_bert_inf(phones, word2ph, norm_text, text_language)
-    elif text_language in {"zh", "ja","auto"}:
+    elif text_language in {"ja","auto"}:
         bert = nonen_get_bert_inf(text, text_language)
-    elif text_language == "all_zh":
-        bert = get_bert_feature(norm_text, word2ph).to(device)
+    # elif text_language == "all_zh":
+    #     bert = get_bert_feature(norm_text, word2ph).to(device)
     else:
         bert = torch.zeros((1024, len(phones))).to(device)
     return bert
