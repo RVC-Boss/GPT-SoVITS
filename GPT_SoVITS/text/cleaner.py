@@ -2,7 +2,7 @@ from text import chinese, japanese, cleaned_text_to_sequence, symbols, english
 
 language_module_map = {"zh": chinese, "ja": japanese, "en": english}
 special = [
-    ("%", "zh", "SP"),
+    # ("%", "zh", "SP"),
     ("￥", "zh", "SP2"),
     ("^", "zh", "SP3"),
     # ('@', 'zh', "SP4")#不搞鬼畜了，和第二版保持一致吧
