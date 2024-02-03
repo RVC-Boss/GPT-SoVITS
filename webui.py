@@ -6,6 +6,14 @@ import platform
 import psutil
 import signal
 
+from modelscope.pipelines import pipeline
+from modelscope.utils.constant import Tasks
+from videoclipper import VideoClipper
+import librosa
+import soundfile as sf
+import numpy as np
+import random
+
 warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
 tmp = os.path.join(now_dir, "TEMP")
@@ -63,6 +71,60 @@ ngpu = torch.cuda.device_count()
 gpu_infos = []
 mem = []
 if_gpu_ok = False
+
+# 字幕语音切分
+inference_pipeline = pipeline(
+    task=Tasks.auto_speech_recognition,
+    model='damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
+    vad_model='damo/speech_fsmn_vad_zh-cn-16k-common-pytorch',
+    punc_model='damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch',
+    ncpu=16,
+)
+sd_pipeline = pipeline(
+    task='speaker-diarization',
+    model='damo/speech_campplus_speaker-diarization_common',
+    model_revision='v1.0.0'
+)
+audio_clipper = VideoClipper(inference_pipeline, sd_pipeline)
+
+def audio_change(audio):
+
+    print(audio)
+
+    sf.write('./output_44100.wav', audio[1], audio[0], 'PCM_24')
+
+    y, sr = librosa.load('./output_44100.wav', sr=16000)
+
+    # sf.write('./output_16000.wav', y, sr, 'PCM_24')
+
+    # arr = np.array(y, dtype=np.int32)
+
+    # y, sr = librosa.load('./output_16000.wav', sr=16000)
+
+    audio_data = np.array(y)
+
+    print(y, sr)
+
+    return (16000,audio_data)
+
+def write_list(text,audio):
+    
+    random_number = random.randint(10000, 99999)
+
+    wav_name = f'./output/slicer_opt/sample_{random_number}.wav'
+
+    sf.write(wav_name, audio[1], audio[0], 'PCM_24')
+
+    text = text.replace("#",",")
+
+    with open("./output/asr_opt/slicer_opt.list","a",encoding="utf-8")as f:f.write(f"\n{wav_name}|slicer_opt|zh|{text}")
+
+def audio_recog(audio_input, sd_switch):
+    print(audio_input)
+    return audio_clipper.recog(audio_input, sd_switch)
+
+def audio_clip(dest_text, audio_spk_input, start_ost, end_ost, state):
+    return audio_clipper.clip(dest_text, start_ost, end_ost, state, dest_spk=audio_spk_input)
 
 # 判断是否有能用来训练和加速推理的N卡
 if torch.cuda.is_available() or ngpu != 0:
@@ -648,6 +710,41 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 if_uvr5 = gr.Checkbox(label=i18n("是否开启UVR5-WebUI"),show_label=True)
                 uvr5_info = gr.Textbox(label=i18n("UVR5进程输出信息"))
+            gr.Markdown(value=i18n("0.5b-手动语义字幕语音切分工具"))
+            audio_state = gr.State()
+            with gr.Row():
+                with gr.Column():
+                    # oaudio_input = gr.Audio(label="🔊音频输入 44100hz Audio Input",type="filepath")
+                    # rec_audio = gr.Button("👂重新采样")
+                    audio_input = gr.Audio(label="🔊音频输入 16000hz Audio Input")
+                    audio_sd_switch = gr.Radio(["no", "yes"], label="👥是否区分说话人 Recognize Speakers", value='no')
+                    recog_button1 = gr.Button("👂识别 Recognize")
+                    audio_text_output = gr.Textbox(label="✏️识别结果 Recognition Result")
+                    audio_srt_output = gr.Textbox(label="📖SRT字幕内容 RST Subtitles")
+                with gr.Column():
+                    audio_text_input = gr.Textbox(label="✏️待裁剪文本 Text to Clip (多段文本使用'#'连接)")
+                    audio_spk_input = gr.Textbox(label="✏️待裁剪说话人 Speaker to Clip (多个说话人使用'#'连接)")
+                    with gr.Row():
+                        audio_start_ost = gr.Slider(minimum=-500, maximum=1000, value=0, step=50, label="⏪开始位置偏移 Start Offset (ms)")
+                        audio_end_ost = gr.Slider(minimum=-500, maximum=1000, value=0, step=50, label="⏩结束位置偏移 End Offset (ms)")
+                    with gr.Row():
+                        clip_button1 = gr.Button("✂️裁剪 Clip")
+                        write_button1 = gr.Button("写入转写文件")
+                    audio_output = gr.Audio(label="🔊裁剪结果 Audio Clipped")
+                    audio_mess_output = gr.Textbox(label="ℹ️裁剪信息 Clipping Log")
+                    audio_srt_clip_output = gr.Textbox(label="📖裁剪部分SRT字幕内容 Clipped RST Subtitles")
+
+            audio_input.change(inputs=audio_input, outputs=audio_input, fn=audio_change)
+
+            write_button1.click(write_list,[audio_text_input,audio_output],[])
+            
+            # rec_audio.click(re_write,[oaudio_input],[rec_audio])
+            recog_button1.click(audio_recog, 
+                            inputs=[audio_input, audio_sd_switch],
+                            outputs=[audio_text_output, audio_srt_output, audio_state])
+            clip_button1.click(audio_clip, 
+                            inputs=[audio_text_input, audio_spk_input, audio_start_ost, audio_end_ost, audio_state], 
+                            outputs=[audio_output, audio_mess_output, audio_srt_clip_output])
             gr.Markdown(value=i18n("0b-语音切分工具"))
             with gr.Row():
                 with gr.Row():
