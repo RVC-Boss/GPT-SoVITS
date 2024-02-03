@@ -199,34 +199,6 @@ def get_spepc(hps, filename):
     return spec
 
 
-# record part code from https://github.com/gradio-app/gradio/issues/5425
-def record_click_js():
-    return """function audioRecord() {
-    var xPathRes = document.evaluate ('//*[@id="audio"]//button', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null); 
-    xPathRes.singleNodeValue.click();}"""
-
-
-def record_action(btn):
-    """Changes button text on click"""
-    if btn == '录音': return '停止'
-    else: return '录音'
-
-
-def record_check_btn(btn):
-    """Checks for correct button text before invoking transcribe()"""
-    if btn != '录音': raise Exception('录音中...')
-
-
-def record_transcribe():
-    return '录音成功'
-
-
-def record_copy_audio(audio):
-    inp_ref = audio
-
-    return inp_ref
-
-
 dict_language = {
     i18n("中文"): "all_zh",#全部按中文识别
     i18n("英文"): "en",#全部按英文识别#######不变
@@ -237,7 +209,7 @@ dict_language = {
 }
 
 
-def split_en_inf(sentence, language):
+def splite_en_inf(sentence, language):
     pattern = re.compile(r'[a-zA-Z ]+')
     textlist = []
     langlist = []
@@ -293,7 +265,7 @@ def get_bert_inf(phones, word2ph, norm_text, language):
 
 def nonen_clean_text_inf(text, language):
     if(language!="auto"):
-        textlist, langlist = split_en_inf(text, language)
+        textlist, langlist = splite_en_inf(text, language)
     else:
         textlist=[]
         langlist=[]
@@ -322,7 +294,7 @@ def nonen_clean_text_inf(text, language):
 
 def nonen_get_bert_inf(text, language):
     if(language!="auto"):
-        textlist, langlist = split_en_inf(text, language)
+        textlist, langlist = splite_en_inf(text, language)
     else:
         textlist=[]
         langlist=[]
@@ -606,20 +578,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
             SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown], [])
             GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
-        gr.Markdown(value="直接录制参考音频（ZeroShot）")
-        with gr.Row():
-            record_msg = gr.Textbox(label="音频录制状态")
-            record_audio_box = gr.Audio(label="录制的音频", source="microphone", type="filepath", elem_id='audio')
-            record_audio_btn = gr.Button('录音', variant="primary")
-            record_audio_btn.click(fn=record_action, inputs=record_audio_btn, outputs=record_audio_btn).\
-                      then(fn=lambda: None, _js=record_click_js()).\
-                      then(fn=record_check_btn, inputs=record_audio_btn).\
-                      success(fn=record_transcribe, outputs=record_msg)
-            import_button = gr.Button("加载录制音频", variant="primary")
         gr.Markdown(value=i18n("*请上传并填写参考信息"))
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath")
-            import_button.click(record_copy_audio, [record_audio_box], [inp_ref])
             prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="")
             prompt_language = gr.Dropdown(
                 label=i18n("参考音频的语种"), choices=[i18n("中文"), i18n("英文"), i18n("日文")], value=i18n("中文")
