@@ -33,9 +33,8 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         save_root_ins = (
             save_root_ins.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
         )
+        is_hp3 = "HP3" in model_name
         if model_name == "onnx_dereverb_By_FoxJoy":
-            from MDXNet import MDXNetDereverb
-
             pre_fun = MDXNetDereverb(15)
         else:
             func = AudioPre if "DeEcho" not in model_name else AudioPreDeEcho
@@ -62,7 +61,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 ):
                     need_reformat = 0
                     pre_fun._path_audio_(
-                        inp_path, save_root_ins, save_root_vocal, format0
+                        inp_path, save_root_ins, save_root_vocal, format0,is_hp3
                     )
                     done = 1
             except:
@@ -81,7 +80,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             try:
                 if done == 0:
                     pre_fun._path_audio_(
-                        inp_path, save_root_ins, save_root_vocal, format0
+                        inp_path, save_root_ins, save_root_vocal, format0,is_hp3
                     )
                 infos.append("%s->Success" % (os.path.basename(inp_path)))
                 yield "\n".join(infos)
