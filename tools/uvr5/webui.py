@@ -5,7 +5,7 @@ from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
-import librosa
+import librosa,ffmpeg
 import soundfile as sf
 import torch
 import sys
@@ -34,18 +34,17 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             save_root_ins.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
         )
         if model_name == "onnx_dereverb_By_FoxJoy":
-            pre_fun = MDXNetDereverb(15, device)
+            from MDXNet import MDXNetDereverb
+
+            pre_fun = MDXNetDereverb(15)
         else:
             func = AudioPre if "DeEcho" not in model_name else AudioPreDeEcho
             pre_fun = func(
                 agg=int(agg),
-                model_path=os.path.join(
-                    weight_uvr5_root, model_name + ".pth"
-                ),
+                model_path=os.path.join(weight_uvr5_root, model_name + ".pth"),
                 device=device,
                 is_half=is_half,
             )
-        is_hp3 = "HP3" in model_name
         if inp_root != "":
             paths = [os.path.join(inp_root, name) for name in os.listdir(inp_root)]
         else:
@@ -53,53 +52,43 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         for path in paths:
             inp_path = os.path.join(inp_root, path)
             if(os.path.isfile(inp_path)==False):continue
+            need_reformat = 1
+            done = 0
             try:
-                done = 0
-                try:
-                    y, sr = librosa.load(inp_path, sr=None)
-                    info = sf.info(inp_path)
-                    channels = info.channels
-                    if channels == 2 and sr == 44100:
-                        need_reformat = 0
-                        pre_fun._path_audio_(
-                            inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
-                        )
-                        done = 1
-                    else:
-                        need_reformat = 1
-                except:
-                    need_reformat = 1
-                    traceback.print_exc()
-                if need_reformat == 1:
-                    tmp_path = "%s/%s.reformatted.wav" % (
-                        os.path.join(os.environ["TEMP"]),
-                        os.path.basename(inp_path),
+                info = ffmpeg.probe(inp_path, cmd="ffprobe")
+                if (
+                    info["streams"][0]["channels"] == 2
+                    and info["streams"][0]["sample_rate"] == "44100"
+                ):
+                    need_reformat = 0
+                    pre_fun._path_audio_(
+                        inp_path, save_root_ins, save_root_vocal, format0
                     )
-                    y_resampled = librosa.resample(y, sr, 44100)
-                    sf.write(tmp_path, y_resampled, 44100, "PCM_16")
-                    inp_path = tmp_path
-                try:
-                    if done == 0:
-                        pre_fun._path_audio_(
-                            inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
-                        )
-                    infos.append("%s->Success" % (os.path.basename(inp_path)))
-                    yield "\n".join(infos)
-                except:
-                    try:
-                        if done == 0:
-                            pre_fun._path_audio_(
-                                inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
-                            )
-                        infos.append("%s->Success" % (os.path.basename(inp_path)))
-                        yield "\n".join(infos)
-                    except:
-                        infos.append(
-                            "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
-                        )
-                        yield "\n".join(infos)
+                    done = 1
             except:
-                infos.append("Oh my god. %s->%s"%(os.path.basename(inp_path), traceback.format_exc()))
+                need_reformat = 1
+                traceback.print_exc()
+            if need_reformat == 1:
+                tmp_path = "%s/%s.reformatted.wav" % (
+                    os.path.join(os.environ["TEMP"]),
+                    os.path.basename(inp_path),
+                )
+                os.system(
+                    "ffmpeg -i %s -vn -acodec pcm_s16le -ac 2 -ar 44100 %s -y"
+                    % (inp_path, tmp_path)
+                )
+                inp_path = tmp_path
+            try:
+                if done == 0:
+                    pre_fun._path_audio_(
+                        inp_path, save_root_ins, save_root_vocal, format0
+                    )
+                infos.append("%s->Success" % (os.path.basename(inp_path)))
+                yield "\n".join(infos)
+            except:
+                infos.append(
+                    "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
+                )
                 yield "\n".join(infos)
     except:
         infos.append(traceback.format_exc())
@@ -114,11 +103,10 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 del pre_fun
         except:
             traceback.print_exc()
+        print("clean_empty_cache")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            logger.info("Executed torch.cuda.empty_cache()")
     yield "\n".join(infos)
-
 
 with gr.Blocks(title="UVR5 WebUI") as app:
     gr.Markdown(
