@@ -324,20 +324,20 @@ def get_first(text):
     return text
 
 
-def get_cleaned_text_fianl(text,language):
+def get_cleaned_text_final(text,language):
     if language in {"en","all_zh","all_ja"}:
         phones, word2ph, norm_text = clean_text_inf(text, language)
     elif language in {"zh", "ja","auto"}:
         phones, word2ph, norm_text = nonen_clean_text_inf(text, language)
     return phones, word2ph, norm_text
 
-def get_bert_final(phones, word2ph, norm_text,language,device):
+def get_bert_final(phones, word2ph, text,language,device):
     if text_language == "en":
-        bert = get_bert_inf(phones, word2ph, norm_text, text_language)
+        bert = get_bert_inf(phones, word2ph, text, language)
     elif text_language in {"zh", "ja","auto"}:
-        bert = nonen_get_bert_inf(text, text_language)
+        bert = nonen_get_bert_inf(text, language)
     elif text_language == "all_zh":
-        bert = get_bert_feature(norm_text, word2ph).to(device)
+        bert = get_bert_feature(text, word2ph).to(device)
     else:
         bert = torch.zeros((1024, len(phones))).to(device)
     return bert
@@ -378,7 +378,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
 
-    phones1, word2ph1, norm_text1=get_cleaned_text_fianl(prompt_text, prompt_language)
+    phones1, word2ph1, norm_text1=get_cleaned_text_final(prompt_text, prompt_language)
 
     if (how_to_cut == i18n("凑四句一切")):
         text = cut1(text)
@@ -402,7 +402,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
             continue
         if (text[-1] not in splits): text += "。" if text_language != "en" else "."
         print(i18n("实际输入的目标文本(每句):"), text)
-        phones2, word2ph2, norm_text2 = get_cleaned_text_fianl(text, text_language)
+        phones2, word2ph2, norm_text2 = get_cleaned_text_final(text, text_language)
         bert2 = get_bert_final(phones2, word2ph2, norm_text2, text_language, device).to(dtype)
 
         bert = torch.cat([bert1, bert2], 1)
