@@ -197,7 +197,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] better sovits base model (enhanced audio quality)
   - [ ] model mix
 
-## (Optional) If you need, here will provide the command line operation mode, custom port and custom number of lines displayed per page
+## (Optional) If you need, here will provide the command line operation mode
 Use the command line to open the WebUI for UVR5
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
