@@ -344,6 +344,8 @@ def get_bert_final(phones, word2ph, text,language,device):
 
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切")):
     t0 = ttime()
+    prompt_language = dict_language[prompt_language]
+    text_language = dict_language[text_language]
     prompt_text = prompt_text.strip("\n")
     if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
     text = text.strip("\n")
@@ -374,12 +376,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         )  # .float()
         codes = vq_model.extract_latent(ssl_content)
         prompt_semantic = codes[0, 0]
+
     t1 = ttime()
-    prompt_language = dict_language[prompt_language]
-    text_language = dict_language[text_language]
-
     phones1, word2ph1, norm_text1=get_cleaned_text_final(prompt_text, prompt_language)
-
     if (how_to_cut == i18n("凑四句一切")):
         text = cut1(text)
     elif (how_to_cut == i18n("凑50字一切")):
