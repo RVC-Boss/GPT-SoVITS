@@ -19,7 +19,7 @@ for name in os.listdir(weight_uvr5_root):
         uvr5_names.append(name.replace(".pth", ""))
 
 device=sys.argv[1]
-is_half=sys.argv[2]
+is_half=eval(sys.argv[2])
 webui_port_uvr5=int(sys.argv[3])
 is_share=eval(sys.argv[4])
 
