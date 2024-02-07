@@ -95,10 +95,16 @@
 
 3-修复uvr5 inf everywhere报错的问题(is_half传参未转换bool导致恒定半精度推理，16系显卡会inf) https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8
 
+4-优化英文文本前端
+
+5-修复gradio依赖
+
+6-支持三连根目录留空自动读取.list全路径
+
+7-集成faster whisper ASR日文英文
 
 todolist：
 
 1-中文多音字推理优化
 
-2-测试集成faster whisper ASR日文英文
 
