@@ -642,6 +642,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         value=
             i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
     )
+    gr.Markdown(
+        value=
+            i18n("中文教程文档：https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e")
+    )
+
     with gr.Tabs():
         with gr.TabItem(i18n("0-前置数据集获取工具")):#提前随机切片防止uvr5爆内存->uvr5->slicer->asr->打标
             gr.Markdown(value=i18n("0a-UVR5人声伴奏分离&去混响去延迟工具"))
@@ -705,7 +710,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         label=i18n("*训练集音频文件目录"),
                         # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
                         interactive=True,
-                        placeholder=i18n("填切割后音频所在目录！读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名（不是全路径）。")
+                        placeholder=i18n("填切割后音频所在目录！读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名（不是全路径）。如果留空则使用.list文件里的绝对全路径。")
                     )
                 gr.Markdown(value=i18n("1Aa-文本内容"))
                 with gr.Row():
