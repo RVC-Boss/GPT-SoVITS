@@ -87,8 +87,18 @@
 
 2-引入paddlespeech的Normalizer https://github.com/RVC-Boss/GPT-SoVITS/pull/377 修复一些问题，例如：xx.xx%(带百分号类)，元/吨 会读成 元吨 而不是元每吨,下划线不再会报错
 
+### 20240207更新
+
+1-修正语种传参混乱导致中文推理效果下降 https://github.com/RVC-Boss/GPT-SoVITS/issues/391
+
+2-uvr5适配高版本librosa https://github.com/RVC-Boss/GPT-SoVITS/pull/403
+
+3-修复uvr5 inf everywhere报错的问题(is_half传参未转换bool导致恒定半精度推理，16系显卡会inf) https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8
+
+
 todolist：
 
 1-中文多音字推理优化
 
+2-测试集成faster whisper ASR日文英文
 

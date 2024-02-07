@@ -61,19 +61,19 @@ class AudioPre:
                     _,
                 ) = librosa.core.load(  # 理论上librosa读取可能对某些音频有bug，应该上ffmpeg读取，但是太麻烦了弃坑
                     music_file,
-                    bp["sr"],
-                    False,
-                    dtype=np.float32,
-                    res_type=bp["res_type"],
+                    sr       = bp["sr"],
+                    mono     = False,
+                    dtype    = np.float32,
+                    res_type = bp["res_type"],
                 )
                 if X_wave[d].ndim == 1:
                     X_wave[d] = np.asfortranarray([X_wave[d], X_wave[d]])
             else:  # lower bands
                 X_wave[d] = librosa.core.resample(
                     X_wave[d + 1],
-                    self.mp.param["band"][d + 1]["sr"],
-                    bp["sr"],
-                    res_type=bp["res_type"],
+                    orig_sr   = self.mp.param["band"][d + 1]["sr"],
+                    target_sr = bp["sr"],
+                    res_type  = bp["res_type"],
                 )
             # Stft of wave source
             X_spec_s[d] = spec_utils.wave_to_spectrogram_mt(
@@ -245,19 +245,19 @@ class AudioPreDeEcho:
                     _,
                 ) = librosa.core.load(  # 理论上librosa读取可能对某些音频有bug，应该上ffmpeg读取，但是太麻烦了弃坑
                     music_file,
-                    bp["sr"],
-                    False,
-                    dtype=np.float32,
-                    res_type=bp["res_type"],
+                    sr       = bp["sr"],
+                    mono     = False,
+                    dtype    = np.float32,
+                    res_type = bp["res_type"],
                 )
                 if X_wave[d].ndim == 1:
                     X_wave[d] = np.asfortranarray([X_wave[d], X_wave[d]])
             else:  # lower bands
                 X_wave[d] = librosa.core.resample(
                     X_wave[d + 1],
-                    self.mp.param["band"][d + 1]["sr"],
-                    bp["sr"],
-                    res_type=bp["res_type"],
+                    orig_sr   = self.mp.param["band"][d + 1]["sr"],
+                    target_sr = bp["sr"],
+                    res_type  = bp["res_type"],
                 )
             # Stft of wave source
             X_spec_s[d] = spec_utils.wave_to_spectrogram_mt(
