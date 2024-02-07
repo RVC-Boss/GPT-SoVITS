@@ -61,10 +61,9 @@ else:
     model = model.to(device)
 
 nan_fails=[]
-def name2go(wav_name):
+def name2go(wav_name,wav_path):
     hubert_path="%s/%s.pt"%(hubert_dir,wav_name)
     if(os.path.exists(hubert_path)):return
-    wav_path="%s/%s"%(inp_wav_dir,wav_name)
     tmp_audio = load_audio(wav_path, 32000)
     tmp_max = np.abs(tmp_audio).max()
     if tmp_max > 2.2:
@@ -99,8 +98,13 @@ for line in lines[int(i_part)::int(all_parts)]:
     try:
         # wav_name,text=line.split("\t")
         wav_name, spk_name, language, text = line.split("|")
-        wav_name=os.path.basename(wav_name)
-        name2go(wav_name)
+        if (inp_wav_dir != ""):
+            wav_name = os.path.basename(wav_name)
+            wav_path = os.path.join(inp_wav_dir, wav_name)
+        else:
+            wav_path=wav_name
+            wav_name = os.path.basename(wav_name)
+        name2go(wav_name,wav_path)
     except:
         print(line,traceback.format_exc())
 
