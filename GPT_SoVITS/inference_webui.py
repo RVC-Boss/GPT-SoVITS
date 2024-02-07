@@ -390,7 +390,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         text = cut4(text)
     elif (how_to_cut == i18n("按标点符号切")):
         text = cut5(text)
-    text = text.replace("\n\n", "\n").replace("\n\n", "\n").replace("\n\n", "\n")
+    while "\n\n" in text:
+        text = text.replace("\n\n", "\n")
     print(i18n("实际输入的目标文本(切句后):"), text)
     texts = text.split("\n")
     audio_opt = []
