@@ -25,3 +25,5 @@ jieba_fast
 jieba
 LangSegment
 Faster_Whisper
+soundfile
+PyQt5
