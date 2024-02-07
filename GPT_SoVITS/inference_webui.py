@@ -342,6 +342,20 @@ def get_bert_final(phones, word2ph, text,language,device):
         bert = torch.zeros((1024, len(phones))).to(device)
     return bert
 
+def merge_short_text_in_array(texts, threshold):
+    if (len(texts)) < 2:
+        return texts
+    result = []
+    text = ""
+    for ele in texts:
+        text += ele
+        if len(text) >= threshold:
+            result.append(text)
+            text = ""
+    if (len(text) > 0):
+        result[len(result)] += text
+    return result
+
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切")):
     t0 = ttime()
     prompt_language = dict_language[prompt_language]
@@ -393,6 +407,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     text = text.replace("\n\n", "\n").replace("\n\n", "\n").replace("\n\n", "\n")
     print(i18n("实际输入的目标文本(切句后):"), text)
     texts = text.split("\n")
+    texts = merge_short_text_in_array(texts, 5)
     audio_opt = []
     bert1=get_bert_final(phones1, word2ph1, norm_text1,prompt_language,device).to(dtype)
 
