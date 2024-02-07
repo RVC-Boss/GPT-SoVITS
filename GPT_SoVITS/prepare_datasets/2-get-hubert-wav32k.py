@@ -98,9 +98,10 @@ for line in lines[int(i_part)::int(all_parts)]:
     try:
         # wav_name,text=line.split("\t")
         wav_name, spk_name, language, text = line.split("|")
-        if (inp_wav_dir != ""):
+        if (inp_wav_dir !=None):
             wav_name = os.path.basename(wav_name)
-            wav_path = os.path.join(inp_wav_dir, wav_name)
+            wav_path = "%s/%s"%(inp_wav_dir, wav_name)
+
         else:
             wav_path=wav_name
             wav_name = os.path.basename(wav_name)
