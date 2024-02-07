@@ -353,7 +353,10 @@ def merge_short_text_in_array(texts, threshold):
             result.append(text)
             text = ""
     if (len(text) > 0):
-        result[len(result)] += text
+        if len(result) == 0:
+            result.append(text)
+        else:
+            result[len(result) - 1] += text
     return result
 
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切")):
