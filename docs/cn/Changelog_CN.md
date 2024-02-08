@@ -103,6 +103,10 @@
 
 7-集成faster whisper ASR日文英文
 
+### 20240208更新
+
+1-GPT训练卡死（win10 1909）和https://github.com/RVC-Boss/GPT-SoVITS/issues/232 （系统语言繁体）GPT训练报错，[尝试修复](https://github.com/RVC-Boss/GPT-SoVITS/commit/59f35adad85815df27e9c6b33d420f5ebfd8376b)。
+
 todolist：
 
 1-中文多音字推理优化
