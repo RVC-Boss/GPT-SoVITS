@@ -192,20 +192,26 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         p_tts_inference=None
         yield i18n("TTS推理进程已关闭")
 
-
-def open_asr(asr_inp_dir):
+from tools.asr.config import asr_dict
+def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
     global p_asr
     if(p_asr==None):
         asr_inp_dir=my_utils.clean_path(asr_inp_dir)
-        cmd = '"%s" tools/damo_asr/cmd-asr.py "%s"'%(python_exec,asr_inp_dir)
+        cmd = f"{python_exec} tools/asr/{asr_dict[asr_model]['path']}"
+        cmd += f" -i {asr_inp_dir}"
+        cmd += f" -o {asr_opt_dir}"
+        cmd += f" -s {asr_model_size}"
+        cmd += f" -l {asr_lang}"                
+
         yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
         p_asr = Popen(cmd, shell=True)
         p_asr.wait()
         p_asr=None
-        yield "ASR任务完成",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
         yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        return None
 
 def close_asr():
     global p_asr
@@ -674,12 +680,44 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
                 close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)
-                asr_inp_dir = gr.Textbox(
-                    label=i18n("批量ASR(中文only)输入文件夹路径"),
-                    value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx",
-                    interactive=True,
-                )
-                asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
+                with gr.Column():
+                    with gr.Row():
+                        asr_inp_dir = gr.Textbox(
+                            label=i18n("输入文件夹路径"),
+                            value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx",
+                            interactive=True,
+                        )
+                        asr_opt_dir = gr.Textbox(
+                            label       = i18n("输出文件夹路径"),
+                            value       = "output/asr_opt",
+                            interactive = False,
+                        )
+                    with gr.Row():
+                        asr_model = gr.Dropdown(
+                            label       = i18n("ASR 模型"),
+                            choices     = list(asr_dict.keys()),
+                            interactive = True,
+                        )
+                        asr_size = gr.Dropdown(
+                            label       = i18n("ASR 模型尺寸"),
+                            choices     = [],
+                            interactive = True,
+                        )
+                        asr_lang = gr.Dropdown(
+                            label       = i18n("ASR 语言设置"),
+                            choices     = [],
+                            interactive = True,
+                        )
+                    with gr.Row():
+                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
+
+                def change_lang_choices(key): #根据选择的模型修改可选的语言
+                    return gr.Dropdown(choices=asr_dict[key]['lang'])
+                def change_size_choices(key): # 根据选择的模型修改可选的模型尺寸
+                    return gr.Dropdown(choices=asr_dict[key]['size'])
+                asr_model.change(change_lang_choices, asr_model, asr_lang)
+                asr_model.change(change_size_choices, asr_model, asr_size)
+                
             gr.Markdown(value=i18n("0d-语音文本校对标注工具"))
             with gr.Row():
                 if_label = gr.Checkbox(label=i18n("是否开启打标WebUI"),show_label=True)
@@ -691,7 +729,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 label_info = gr.Textbox(label=i18n("打标工具进程输出信息"))
             if_label.change(change_label, [if_label,path_list], [label_info])
             if_uvr5.change(change_uvr5, [if_uvr5], [uvr5_info])
-            open_asr_button.click(open_asr, [asr_inp_dir], [asr_info,open_asr_button,close_asr_button])
+            open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang], [asr_info,open_asr_button,close_asr_button])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
             open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button])
             close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
@@ -788,7 +826,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     tts_info = gr.Textbox(label=i18n("TTS推理WebUI进程输出信息"))
                     if_tts.change(change_tts_inference, [if_tts,bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown], [tts_info])
         with gr.TabItem(i18n("2-GPT-SoVITS-变声")):gr.Markdown(value=i18n("施工中，请静候佳音"))
-    app.queue(concurrency_count=511, max_size=1022).launch(
+    app.queue(max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
         share=is_share,
