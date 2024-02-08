@@ -195,6 +195,36 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] 更好的 sovits 基础模型（增强的音频质量）。
   - [ ] 模型混合。
 
+## （可选）命令行的操作方式
+使用命令行打开UVR5的WebUI
+````
+python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
+````
+如果打不开浏览器，请按照下面的格式进行UVR处理，这是使用mdxnet进行音频处理的方式
+````
+python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
+````
+这是使用命令行完成数据集的音频切分的方式
+````
+python audio_slicer.py \
+    --input_path "<path_to_original_audio_file_or_directory>" \
+    --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
+    --threshold <volume_threshold> \
+    --min_length <minimum_duration_of_each_subclip> \
+    --min_interval <shortest_time_gap_between_adjacent_subclips> 
+    --hop_size <step_size_for_computing_volume_curve>
+````
+这是使用命令行完成数据集ASR处理的方式（仅限中文）
+````
+python tools/damo_asr/cmd-asr.py "<Path to the directory containing input audio files>"
+````
+通过Faster_Whisper进行ASR处理（除中文之外的ASR标记）
+
+（没有进度条，GPU性能可能会导致时间延迟）
+````
+python ./tools/damo_asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
+````
+启用自定义列表保存路径
 ## 致谢
 
 特别感谢以下项目和贡献者：
