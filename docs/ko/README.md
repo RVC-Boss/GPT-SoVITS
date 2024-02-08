@@ -193,6 +193,36 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] 더 나은 sovits 기본 모델 (향상된 오디오 품질).
   - [ ] 모델 블렌딩.
 
+## (선택 사항) 필요한 경우 여기에서 명령줄 작업 모드를 제공합니다.
+명령줄을 사용하여 UVR5용 WebUI 열기
+```
+python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
+```
+브라우저를 열 수 없는 경우 UVR 처리를 위해 아래 형식을 따르십시오. 이는 오디오 처리를 위해 mdxnet을 사용하는 것입니다.
+```
+python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
+```
+명령줄을 사용하여 데이터세트의 오디오 분할을 수행하는 방법은 다음과 같습니다.
+```
+python audio_slicer.py \
+    --input_path "<path_to_original_audio_file_or_directory>" \
+    --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
+    --threshold <volume_threshold> \
+    --min_length <minimum_duration_of_each_subclip> \
+    --min_interval <shortest_time_gap_between_adjacent_subclips> 
+    --hop_size <step_size_for_computing_volume_curve>
+```
+명령줄을 사용하여 데이터 세트 ASR 처리를 수행하는 방법입니다(중국어만 해당).
+```
+python tools/damo_asr/cmd-asr.py "<Path to the directory containing input audio files>"
+```
+ASR 처리는 Faster_Whisper(중국어를 제외한 ASR 마킹)를 통해 수행됩니다.
+
+(진행률 표시줄 없음, GPU 성능으로 인해 시간 지연이 발생할 수 있음)
+```
+python ./tools/damo_asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
+```
+사용자 정의 목록 저장 경로가 활성화되었습니다.
 ## 감사의 말
 
 특별히 다음 프로젝트와 기여자에게 감사드립니다:
