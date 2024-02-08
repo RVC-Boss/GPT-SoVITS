@@ -195,12 +195,12 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] 更好的 sovits 基础模型（增强的音频质量）。
   - [ ] 模型混合。
 
-## （可选）命令行操作方式
+## （可选）命令行的操作方式
 使用命令行打开UVR5的WebUI
 ````
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ````
-如果打不开浏览器，请按照下面的格式进行UVR处理，这是使用mdxnet进行音频处理
+如果打不开浏览器，请按照下面的格式进行UVR处理，这是使用mdxnet进行音频处理的方式
 ````
 python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
 ````
