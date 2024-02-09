@@ -56,6 +56,8 @@ if __name__ == '__main__':
                         help="Model Size of FunASR is Large")
     parser.add_argument("-l", "--language", type=str, default='zh', choices=['zh'],
                         help="Language of the audio files.")
+    parser.add_argument("-p", "--precision", type=str, default='float16', choices=['float16','float32'],
+                        help="fp16 or fp32")#还没接入
 
     cmd = parser.parse_args()
     execute_asr(
