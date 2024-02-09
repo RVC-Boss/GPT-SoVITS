@@ -133,6 +133,9 @@ class GPTSoVITSGUI(QMainWindow):
         self.synthesize_button = QPushButton("合成")
         self.synthesize_button.clicked.connect(self.synthesize)
 
+        self.clear_output_button = QPushButton("清空输出")
+        self.clear_output_button.clicked.connect(self.clear_output)
+
         self.status_bar = QStatusBar()
 
         main_layout = QVBoxLayout()
@@ -179,6 +182,8 @@ class GPTSoVITSGUI(QMainWindow):
         main_layout.addLayout(output_layout)
 
         main_layout.addWidget(self.synthesize_button)
+
+        main_layout.addWidget(self.clear_output_button)
 
         main_layout.addWidget(self.status_bar)
 
@@ -287,6 +292,9 @@ class GPTSoVITSGUI(QMainWindow):
 
     def update_input_paths(self, input_box, file_path):
         input_box.setText(file_path)
+
+    def clear_output(self):
+        self.output_text.clear()
 
     def synthesize(self):
         GPT_model_path = self.GPT_model_input.text()
