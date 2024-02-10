@@ -67,7 +67,7 @@ def name2go(wav_name,wav_path):
     tmp_audio = load_audio(wav_path, 32000)
     tmp_max = np.abs(tmp_audio).max()
     if tmp_max > 2.2:
-        print("%s-filtered" % (wav_name, tmp_max))
+        print("%s-filtered,%s" % (wav_name, tmp_max))
         return
     tmp_audio32 = (tmp_audio / tmp_max * (maxx * alpha*32768)) + ((1 - alpha)*32768) * tmp_audio
     tmp_audio32b = (tmp_audio / tmp_max * (maxx * alpha*1145.14)) + ((1 - alpha)*1145.14) * tmp_audio
