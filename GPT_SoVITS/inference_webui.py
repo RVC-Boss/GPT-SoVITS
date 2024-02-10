@@ -245,7 +245,14 @@ def splite_en_inf(sentence, language):
 
 
 def clean_text_inf(text, language):
-    phones, word2ph, norm_text = clean_text(text, language.replace("all_",""))
+    formattext = ""
+    language = language.replace("all_","")
+    for tmp in LangSegment.getTexts(text):
+        if tmp["lang"] == language:
+            formattext += tmp["text"] + " "
+    while "  " in formattext:
+        formattext = formattext.replace("  ", " ")
+    phones, word2ph, norm_text = clean_text(formattext, language)
     phones = cleaned_text_to_sequence(phones)
     return phones, word2ph, norm_text
 
@@ -305,9 +312,8 @@ def nonen_get_bert_inf(text, language):
     print(langlist)
     bert_list = []
     for i in range(len(textlist)):
-        text = textlist[i]
         lang = langlist[i]
-        phones, word2ph, norm_text = clean_text_inf(text, lang)
+        phones, word2ph, norm_text = clean_text_inf(textlist[i], lang)
         bert = get_bert_inf(phones, word2ph, norm_text, lang)
         bert_list.append(bert)
     bert = torch.cat(bert_list, dim=1)
