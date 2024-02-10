@@ -24,10 +24,10 @@ g_data_json = []
 
 
 def reload_data(index, batch):
-    global g_index
-    g_index = index
-    global g_batch
-    g_batch = batch
+    # global g_index
+    # g_index = index
+    # global g_batch
+    # g_batch = batch
     datas = g_data_json[index:index+batch]
     output = []
     for d in datas:
@@ -41,8 +41,8 @@ def reload_data(index, batch):
 
 
 def b_change_index(index, batch):
-    global g_index, g_batch
-    g_index, g_batch = index, batch
+    # global g_index, g_batch
+    # g_index, g_batch = index, batch
     datas = reload_data(index, batch)
     output = []
     for i , _ in enumerate(datas):
@@ -354,11 +354,9 @@ if __name__ == "__main__":
                         g_audio_list.append(audio_output)
                         g_checkbox_list.append(audio_check)
 
-
-
         with gr.Row():
             batchsize_slider = gr.Slider(
-                    minimum=1, maximum=g_batch, value=g_batch, step=1, label="Batch Size", scale=3, interactive=False
+                    minimum=1, maximum=g_batch, value=g_batch, step=1, label="Batch Size", scale=3, interactive=True
             )
             interval_slider = gr.Slider(
                     minimum=0, maximum=2, value=0, step=0.01, label="Interval", scale=3
@@ -379,7 +377,6 @@ if __name__ == "__main__":
             ],
         )
 
-        
         btn_submit_change.click(
             b_submit_change,
             inputs=[
