@@ -365,7 +365,7 @@ def merge_short_text_in_array(texts, threshold):
             result[len(result) - 1] += text
     return result
 
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切")):
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6):
     t0 = ttime()
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
@@ -444,7 +444,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 prompt,
                 bert,
                 # prompt_phone_len=ph_offset,
-                top_k=config["inference"]["top_k"],
+                top_k=top_k,
+                top_p=top_p,
+                temperature=temperature,
                 early_stop_num=hz * max_sec,
             )
         t3 = ttime()
@@ -621,6 +623,10 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 value=i18n("凑四句一切"),
                 interactive=True,
             )
+            with gr.Row():
+                top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=20,interactive=True)
+                top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=0.6,interactive=True)
+                temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=0.6,interactive=True)
             inference_button = gr.Button(i18n("合成语音"), variant="primary")
             output = gr.Audio(label=i18n("输出的语音"))
 
