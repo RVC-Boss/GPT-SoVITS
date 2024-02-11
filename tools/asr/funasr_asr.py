@@ -23,6 +23,14 @@ model = AutoModel(
     punc_model_revision = "v2.0.4",
 )
 
+def only_asr(input_file):
+    try:
+        text = model.generate(input=input_file)[0]["text"]
+    except:
+        text = ''
+        print(traceback.format_exc())
+    return text
+
 def execute_asr(input_folder, output_folder, model_size, language):
     input_file_names = os.listdir(input_folder)
     input_file_names.sort()
