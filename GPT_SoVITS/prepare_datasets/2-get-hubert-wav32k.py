@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import sys,os
+
+from tqdm import tqdm
+
 inp_text=                           os.environ.get("inp_text")
 inp_wav_dir=                        os.environ.get("inp_wav_dir")
 exp_name=                           os.environ.get("exp_name")
@@ -94,26 +97,26 @@ def name2go(wav_name,wav_path):
 with open(inp_text,"r",encoding="utf8")as f:
     lines=f.read().strip("\n").split("\n")
 
-for line in lines[int(i_part)::int(all_parts)]:
+for line in tqdm(lines[int(i_part)::int(all_parts)], desc="Processing"):
     try:
         # wav_name,text=line.split("\t")
         wav_name, spk_name, language, text = line.split("|")
-        if (inp_wav_dir !=None):
+        if inp_wav_dir is not None:
             wav_name = os.path.basename(wav_name)
-            wav_path = "%s/%s"%(inp_wav_dir, wav_name)
+            wav_path = "%s/%s" % (inp_wav_dir, wav_name)
 
         else:
-            wav_path=wav_name
+            wav_path = wav_name
             wav_name = os.path.basename(wav_name)
-        name2go(wav_name,wav_path)
+        name2go(wav_name, wav_path)
     except:
-        print(line,traceback.format_exc())
+        print(line, traceback.format_exc())
 
 if(len(nan_fails)>0 and is_half==True):
-    is_half=False
-    model=model.float()
+    is_half = False
+    model = model.float()
     for wav_name in nan_fails:
         try:
             name2go(wav_name)
         except:
-            print(wav_name,traceback.format_exc())
+            print(wav_name, traceback.format_exc())

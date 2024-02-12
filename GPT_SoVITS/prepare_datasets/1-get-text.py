@@ -79,7 +79,7 @@ if os.path.exists(txt_path) == False:
         return phone_level_feature.T
 
     def process(data, res):
-        for name, text, lan in data:
+        for name, text, lan in tqdm(data, desc="Processing"):
             try:
                 name = os.path.basename(name)
                 phones, word2ph, norm_text = clean_text(

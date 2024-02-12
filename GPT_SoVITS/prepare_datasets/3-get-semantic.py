@@ -81,7 +81,7 @@ if os.path.exists(semantic_path) == False:
         lines = f.read().strip("\n").split("\n")
 
     lines1 = []
-    for line in lines[int(i_part) :: int(all_parts)]:
+    for line in tqdm(lines[int(i_part) :: int(all_parts)], desc="Processing"):
         # print(line)
         try:
             # wav_name,text=line.split("\t")
