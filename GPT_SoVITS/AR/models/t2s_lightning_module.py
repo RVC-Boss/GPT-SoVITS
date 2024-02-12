@@ -23,7 +23,8 @@ class Text2SemanticLightningModule(LightningModule):
             # print(self.load_state_dict(torch.load(pretrained_s1,map_location="cpu")["state_dict"]))
             print(
                 self.load_state_dict(
-                    torch.load(pretrained_s1, map_location="cpu")["weight"]
+                    torch.load(pretrained_s1, map_location="cpu")["weight"],
+                    strict=False,
                 )
             )
         if is_train:
@@ -31,6 +32,12 @@ class Text2SemanticLightningModule(LightningModule):
             self.save_hyperparameters()
             self.eval_dir = output_dir / "eval"
             self.eval_dir.mkdir(parents=True, exist_ok=True)
+        for param in self.model.parameters():
+            param.requires_grad = False
+        self.model.speaker_proj.weight.requires_grad = True
+        self.model.speaker_proj.bias.requires_grad = True
+        self.model.speaker_proj.train()
+        self.model.speaker_feat.requires_grad = True
 
     def training_step(self, batch: Dict, batch_idx: int):
         opt = self.optimizers()
@@ -47,6 +54,7 @@ class Text2SemanticLightningModule(LightningModule):
             opt.step()
             opt.zero_grad()
             scheduler.step()
+            torch.save(self.model.speaker_feat.data, "C:/Users/86150/Desktop/GPT-SoVITS/zyj.pt")
 
         self.log(
             "total_loss",
