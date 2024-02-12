@@ -4,6 +4,7 @@ __pycache__
 env
 runtime
 .idea
+.vscode
 output
 logs
 reference
