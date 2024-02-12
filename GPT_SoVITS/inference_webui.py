@@ -135,6 +135,70 @@ if is_half == True:
 else:
     ssl_model = ssl_model.to(device)
 
+# 初始化引导音频列表
+
+def replace_chinese(text):
+    pattern = r'([\u4e00-\u9fa5]{5}).*'
+    result = re.sub(pattern, r'\1...', text)
+    return result
+
+def init_wav_list(sovits_path):
+
+    wav_path = "./output/slicer_opt"
+    match = re.search(r'([a-zA-Z]+)_e\d+_s\d+\.pth',sovits_path)
+    if match:
+        result = match.group(1)
+        wav_path = f"./logs/{result}/5-wav32k/"
+    else:
+        return [],{}
+
+    res_wavs = {}
+
+    res_text = ["请选择参考音频"]
+
+    # 读取文本
+    text = ""
+    with open(rf'./logs/{result}/2-name2text.txt', 'r',encoding='utf-8') as f:
+        text = f.read()
+
+    # 遍历目录
+    for file_path in os.listdir(wav_path):
+        # 检查当前file_path是否为文件
+        if os.path.isfile(os.path.join(wav_path, file_path)):
+            # 将文件名添加到列表中
+            match = re.search(rf'{file_path}\t(.+?)\t(.+?)\t(.+?)\n', text)
+            if match:
+                # 提取匹配到的内容
+                extracted_text = match.group(3)
+                # print(extracted_text)
+                
+                # 传入音频文件路径，获取音频数据和采样率
+                audio_data, sample_rate = librosa.load(f'./logs/{result}/5-wav32k/{file_path}')
+                # 使用librosa.get_duration函数计算音频文件的长度
+                duration = librosa.get_duration(y=audio_data, sr=sample_rate)
+                duration = int(duration)
+                key = f"{replace_chinese(extracted_text)}_{duration}秒"
+                res_text.append(key)
+                res_wavs[key] = (f'./logs/{result}/5-wav32k/{file_path}',extracted_text)
+
+
+            else:
+                print("No match found")
+
+
+    return res_text,res_wavs
+
+# 切换参考音频
+
+def change_wav(audio_name):
+
+    first_key = list(reference_dict.keys())[0]
+
+    try:
+        value = reference_dict[audio_name]
+        return value[0],value[1]
+    except Exception as e:
+        return reference_dict[first_key][0],reference_dict[first_key][1]
 
 def change_sovits_weights(sovits_path):
     global vq_model, hps
@@ -158,6 +222,10 @@ def change_sovits_weights(sovits_path):
     print(vq_model.load_state_dict(dict_s2["weight"], strict=False))
     with open("./sweight.txt", "w", encoding="utf-8") as f:
         f.write(sovits_path)
+    global reference_wavs,reference_dict
+    reference_wavs,reference_dict = init_wav_list(sovits_path)
+
+    return gr.Dropdown.update(choices=reference_wavs)
 
 
 change_sovits_weights(sovits_path)
@@ -600,9 +668,10 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.Row():
             GPT_dropdown = gr.Dropdown(label=i18n("GPT模型列表"), choices=sorted(GPT_names, key=custom_sort_key), value=gpt_path, interactive=True)
             SoVITS_dropdown = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=sorted(SoVITS_names, key=custom_sort_key), value=sovits_path, interactive=True)
+            wavs_dropdown = gr.Dropdown(label=i18n("参考音频列表"), choices=reference_wavs,value="请选择参考音频",interactive=True)
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
-            SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown], [])
+            SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown], [wavs_dropdown])
             GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
         gr.Markdown(value=i18n("*请上传并填写参考信息"))
         with gr.Row():
@@ -611,6 +680,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             prompt_language = gr.Dropdown(
                 label=i18n("参考音频的语种"), choices=[i18n("中文"), i18n("英文"), i18n("日文"), i18n("中英混合"), i18n("日英混合"), i18n("多语种混合")], value=i18n("中文")
             )
+        wavs_dropdown.change(change_wav,[wavs_dropdown],[inp_ref,prompt_text])
         gr.Markdown(value=i18n("*请填写需要合成的目标文本。中英混合选中文，日英混合选日文，中日混合暂不支持，非目标语言文本自动遗弃。"))
         with gr.Row():
             text = gr.Textbox(label=i18n("需要合成的文本"), value="")
