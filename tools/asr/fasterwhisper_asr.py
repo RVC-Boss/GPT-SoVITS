@@ -8,6 +8,7 @@ from faster_whisper import WhisperModel
 from tqdm import tqdm
 
 from tools.asr.config import check_fw_local_models
+from tools.asr.funasr_asr import only_asr
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -35,8 +36,8 @@ language_code_list = [
     "auto"]
 
 def execute_asr(input_folder, output_folder, model_size, language,precision):
-    if 'local' in model_size:
-        model_size = model_size.split('(')[0]
+    if '-local' in model_size:
+        model_size = model_size[:-6]
         model_path = f'tools/asr/models/faster-whisper-{model_size}'
     else:
         model_path = model_size
@@ -63,8 +64,14 @@ def execute_asr(input_folder, output_folder, model_size, language,precision):
                 vad_parameters = dict(min_silence_duration_ms=700),
                 language       = language)
             text = ''
-            for segment in segments:
-                text += segment.text
+
+            if info.language == "zh":
+                print("检测为中文文本,转funasr处理")
+                text = only_asr(file)
+
+            if text == '':
+                for segment in segments:
+                    text += segment.text
             output.append(f"{file}|{output_file_name}|{info.language.upper()}|{text}")
         except:
             return print(traceback.format_exc())
