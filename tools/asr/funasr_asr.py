@@ -43,7 +43,7 @@ def execute_asr(input_folder, output_folder, model_size, language):
             text = model.generate(input="%s/%s"%(input_folder, name))[0]["text"]
             output.append(f"{input_folder}/{name}|{output_file_name}|{language.upper()}|{text}")
         except:
-            return print(traceback.format_exc())
+            print(traceback.format_exc())
 
     output_folder = output_folder or "output/asr_opt"
     os.makedirs(output_folder, exist_ok=True)
