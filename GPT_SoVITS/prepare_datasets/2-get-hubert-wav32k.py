@@ -97,7 +97,7 @@ def name2go(wav_name,wav_path):
 with open(inp_text,"r",encoding="utf8")as f:
     lines=f.read().strip("\n").split("\n")
 
-for line in tqdm(lines[int(i_part)::int(all_parts)], desc="Processing"):
+for line in tqdm(lines[int(i_part)::int(all_parts)], desc=f"Process {i_part}"):
     try:
         # wav_name,text=line.split("\t")
         wav_name, spk_name, language, text = line.split("|")
