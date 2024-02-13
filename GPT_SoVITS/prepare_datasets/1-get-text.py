@@ -79,7 +79,6 @@ if os.path.exists(txt_path) == False:
         return phone_level_feature.T
 
     def process(data, res):
-        print(i_part)
         for name, text, lan in tqdm(data, desc=f"Process {i_part}"):
             try:
                 name = os.path.basename(name)
