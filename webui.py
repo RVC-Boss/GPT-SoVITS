@@ -197,16 +197,18 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
     global p_asr
     if(p_asr==None):
         asr_inp_dir=my_utils.clean_path(asr_inp_dir)
-        cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
-        cmd += f' -i "{asr_inp_dir}"'
-        cmd += f' -o "{asr_opt_dir}"'
-        cmd += f' -s {asr_model_size}'
-        cmd += f' -l {asr_lang}'
-        cmd += " -p %s"%("float16"if is_half==True else "float32")
+        cmd_list = [python_exec, f'tools/asr/{asr_dict[asr_model]["path"]}']
+        cmd_list.extend(['-i', asr_inp_dir])
+        cmd_list.extend(['-o', asr_opt_dir])
+        cmd_list.extend(['-s', asr_model_size])
+        cmd_list.extend(['-l', asr_lang])
+        cmd_list.extend(['-p', 'float16' if is_half else 'float32'])
 
-        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
-        print(cmd)
-        p_asr = Popen(cmd, shell=True)
+        cmd_str = " ".join(cmd_list)
+
+        yield "ASR任务开启：%s"%cmd_str,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        print(cmd_str)
+        p_asr = Popen(cmd_list)
         p_asr.wait()
         p_asr=None
         yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
