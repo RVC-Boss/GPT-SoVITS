@@ -660,6 +660,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 if_uvr5 = gr.Checkbox(label=i18n("是否开启UVR5-WebUI"),show_label=True)
                 uvr5_info = gr.Textbox(label=i18n("UVR5进程输出信息"))
+            
             gr.Markdown(value=i18n("0b-语音切分工具"))
             with gr.Row():
                 with gr.Row():
@@ -677,16 +678,17 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)
                     n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
                     slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
-            gr.Markdown(value=i18n("0c-中文批量离线ASR工具"))
+            
+            gr.Markdown(value=i18n("0c-离线批量语音识别工具"))
             with gr.Row():
                 open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
                 close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)
-                with gr.Column():
+                with gr.Column(scale=3):
                     with gr.Row():
                         asr_inp_dir = gr.Textbox(
-                            label=i18n("输入文件夹路径"),
-                            value="D:\\GPT-SoVITS\\raw\\xxx",
-                            interactive=True,
+                            label       = i18n("输入音频文件/文件夹路径"),
+                            value       = "D:\\GPT-SoVITS\\raw\\xxx",
+                            interactive = True,
                         )
                         asr_opt_dir = gr.Textbox(
                             label       = i18n("输出文件夹路径"),
@@ -695,35 +697,42 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         )
                     with gr.Row():
                         asr_model = gr.Dropdown(
-                            label       = i18n("ASR 模型"),
+                            label       = i18n("ASR 模型选择"),
                             choices     = list(asr_dict.keys()),
                             interactive = True,
-                            value="达摩 ASR (中文)"
+                            value       = "达摩 ASR (中文)",
+                            info        = '右侧两项跟随此项更新'
                         )
                         asr_size = gr.Dropdown(
                             label       = i18n("ASR 模型尺寸"),
                             choices     = ["large"],
                             interactive = True,
-                            value="large"
+                            value       = "large",
+                            info        = 'local (当前项目)/cache (本地缓存)/自动下载'
                         )
                         asr_lang = gr.Dropdown(
                             label       = i18n("ASR 语言设置"),
                             choices     = ["zh"],
                             interactive = True,
-                            value="zh"
+                            value       = "zh",
+                            info        = '识别语言: 自动 (auto)/ 指定'
                         )
-                    with gr.Row():
-                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
-
+                    asr_info = gr.Textbox(label=i18n("ASR 进程输出信息"))
+            
                 def change_lang_choices(key): #根据选择的模型修改可选的语言
                     # return gr.Dropdown(choices=asr_dict[key]['lang'])
-                    return {"__type__": "update", "choices": asr_dict[key]['lang'],"value":asr_dict[key]['lang'][0]}
+                    return {"__type__": "update", "choices": asr_dict[key]['lang'], "value":asr_dict[key]['lang'][0]}
                 def change_size_choices(key): # 根据选择的模型修改可选的模型尺寸
                     # return gr.Dropdown(choices=asr_dict[key]['size'])
-                    return {"__type__": "update", "choices": asr_dict[key]['size']}
+                    if asr_dict[key]['name'] == 'fasterwhisper':
+                        from tools.asr.fasterwhisper_asr import FasterWhisperASR
+                        choice = FasterWhisperASR.check_local_models()
+                    else:
+                        choice = asr_dict[key]['size']
+                    return {"__type__": "update", "choices": choice, "value":choice[0]}
                 asr_model.change(change_lang_choices, [asr_model], [asr_lang])
                 asr_model.change(change_size_choices, [asr_model], [asr_size])
-                
+            
             gr.Markdown(value=i18n("0d-语音文本校对标注工具"))
             with gr.Row():
                 if_label = gr.Checkbox(label=i18n("是否开启打标WebUI"),show_label=True)

@@ -1,16 +1,15 @@
 import argparse
 import os
-os.environ["HF_ENDPOINT"]="https://hf-mirror.com"
 import traceback
-import requests
-from glob import glob
 
+import torch
 from faster_whisper import WhisperModel
-from tqdm import tqdm
 
-from tools.asr.config import check_fw_local_models
-from tools.asr.funasr_asr import only_asr
+from tools.asr.config import fw_model_size_list, BaseASR
+from tools.asr.funasr_asr import FunASR
+from tools.my_utils import ASR_Logger
 
+os.environ["HF_ENDPOINT"]="https://hf-mirror.com"
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 language_code_list = [
@@ -36,72 +35,106 @@ language_code_list = [
     "vi", "yi", "yo", "zh", "yue",
     "auto"]
 
-def execute_asr(input_folder, output_folder, model_size, language,precision):
-    if '-local' in model_size:
-        model_size = model_size[:-6]
-        model_path = f'tools/asr/models/faster-whisper-{model_size}'
-    else:
-        model_path = model_size
-    if language == 'auto':
-        language = None #不设置语种由模型自动输出概率最高的语种
-    print("loading faster whisper model:",model_size,model_path)
-    try:
-        model = WhisperModel(model_path, device="cuda", compute_type=precision)
-    except:
-        return print(traceback.format_exc())
-    output = []
-    output_file_name = os.path.basename(input_folder)
-    output_file_path = os.path.abspath(f'{output_folder}/{output_file_name}.list')
+class FasterWhisperASR(BaseASR):
 
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    def __init__(self, model_size, device="cuda", precision="float16"):
+        device, precision = [device, precision] if torch.cuda.is_available() else ["cpu", "float32"]
+        self.check_local_models()
+        self.model = self.load_model(model_size, device, precision)
+        assert self.model is not None, ASR_Logger.error('模型不存在')
+        self.zh_model = None
 
-    for file in tqdm(glob(os.path.join(input_folder, '**/*.wav'), recursive=True)):
+    @classmethod
+    def check_local_models(self):
+        '''
+        启动时检查本地是否有 Faster Whisper 模型.
+        '''
+        self.model_size_list = fw_model_size_list.copy()
+        self.model_path_dict = {}
+        for i, size in enumerate(self.model_size_list):
+            model_name = f"faster-whisper-{size}"
+            model_path, flag = super().check_local_model(
+                self, 
+                model_name = model_name, 
+                model_file = 'model.bin', 
+                cache_path = os.path.normpath(os.path.expanduser(f"~/.cache/huggingface/hub/")))
+            if flag:
+                self.model_size_list[i] = f"{size}-{flag}"
+                self.model_path_dict[self.model_size_list[i]] = model_path
+        return self.model_size_list
+
+    def load_model(self, model_size, device="cuda", precision="float16"):
+        if '-local' in model_size or '-cache' in model_size:
+            model_path = self.model_path_dict[model_size]
+            model_size = model_size[:-6]
+            ASR_Logger.info(f"加载模型: 从 {model_path} 加载 faster-whisper-{model_size} 模型.")
+            if 'huggingface' in model_path:
+                ASR_Logger.warning(f"可将 {model_path} 移动到 tools/asr/models/ 文件夹下并重命名为 faster-whisper-{model_size}.")
+        else:
+            model_path = model_size
+            ASR_Logger.warning(f"下载模型: 从 https://hf-mirror.com/Systran/faster-whisper-{model_size} 下载 faster-whisper-{model_size} 模型.")
+
         try:
-            segments, info = model.transcribe(
-                audio          = file,
+            model = WhisperModel(model_path, device=device, compute_type=precision)
+            if model.model.device != 'cpu':
+                device_name = torch.cuda.get_device_name(model.model.device)
+            else:
+                device_name = 'CPU'
+            ASR_Logger.info(f"运行设备: {device_name}, 设定精度: {precision}.")
+            ASR_Logger.info(f"创建模型: Faster Whisper 完成.\n")
+            return model
+        except:
+            ASR_Logger.info(traceback.format_exc())
+            ASR_Logger.error(f"模型加载失败 or 下载失败, 可访问 https://hf-mirror.com/Systran/faster-whisper-{model_size} 自行下载, 并放置于 tools/asr/models/ 文件夹下")
+            return 
+
+    def inference(self, file_path, language='auto'):
+        try:
+            if language == 'auto': 
+                language = None
+
+            segments, info = self.model.transcribe(
+                audio          = file_path,
                 beam_size      = 5,
                 vad_filter     = True,
                 vad_parameters = dict(min_silence_duration_ms=700),
                 language       = language)
-            text = ''
 
             if info.language == "zh":
-                print("检测为中文文本,转funasr处理")
-                text = only_asr(file)
-
-            if text == '':
-                for segment in segments:
-                    text += segment.text
-            output.append(f"{file}|{output_file_name}|{info.language.upper()}|{text}")
+                ASR_Logger.info("检测为中文文本, 转 FunASR 处理.")
+                if self.zh_model is None:
+                    self.zh_model = FunASR()
+                text, language = self.zh_model.inference(file_path)
+            else:
+                text = ''.join([segment.text for segment in segments])
+            return text, info.language
         except:
-            return print(traceback.format_exc())
-        
-    with open(output_file_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(output))
-        print(f"ASR 任务完成->标注文件路径: {output_file_path}\n")
-    return output_file_path
+            ASR_Logger.error(f"当前文件 {file_path} 转写失败, 可能不是有效的音频文件.")
+            ASR_Logger.error(traceback.format_exc())
+            return '', ''
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input_folder", type=str, required=True,
-                        help="Path to the folder containing WAV files.")
+    parser.add_argument("-i", "--input_file_or_folder", type=str, required=True,
+                        help="Input audio file path or folder contain audio files.")
     parser.add_argument("-o", "--output_folder", type=str, required=True, 
                         help="Output folder to store transcriptions.")
     parser.add_argument("-s", "--model_size", type=str, default='large-v3', 
-                        choices=check_fw_local_models(),
+                        choices=FasterWhisperASR.check_local_models(),
                         help="Model Size of Faster Whisper")
-    parser.add_argument("-l", "--language", type=str, default='ja',
+    parser.add_argument("-l", "--language", type=str, default='auto',
                         choices=language_code_list,
                         help="Language of the audio files.")
-    parser.add_argument("-p", "--precision", type=str, default='float16', choices=['float16','float32'],
-                        help="fp16 or fp32")
-
+    parser.add_argument("-p", "--precision", type=str, default='float16', 
+                        choices=['float16','float32'], help="fp16 or fp32")
     cmd = parser.parse_args()
-    output_file_path = execute_asr(
-        input_folder  = cmd.input_folder,
-        output_folder = cmd.output_folder,
-        model_size    = cmd.model_size,
-        language      = cmd.language,
-        precision     = cmd.precision,
+    ASR = FasterWhisperASR(
+        model_size = cmd.model_size,
+        precision  = cmd.precision,
     )
+    ASR.inference_file_or_folder(
+        input_file_or_folder = cmd.input_file_or_folder,
+        output_folder        = cmd.output_folder,
+        language             = cmd.language,
+    )
+

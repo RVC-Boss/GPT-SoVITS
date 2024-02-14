@@ -204,6 +204,9 @@ python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ````
 python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
 ````
+
+---
+
 这是使用命令行完成数据集的音频切分的方式
 ````
 python audio_slicer.py \
@@ -214,17 +217,38 @@ python audio_slicer.py \
     --min_interval <shortest_time_gap_between_adjacent_subclips> 
     --hop_size <step_size_for_computing_volume_curve>
 ````
-这是使用命令行完成数据集ASR处理的方式（仅限中文）
-````
-python tools/damo_asr/cmd-asr.py "<Path to the directory containing input audio files>"
-````
-通过Faster_Whisper进行ASR处理（除中文之外的ASR标记）
 
-（没有进度条，GPU性能可能会导致时间延迟）
+---
+
+这是使用命令行完成数据集ASR处理的方式
+
+通过 FunASR 进行 ASR 处理 (仅中文)
 ````
-python ./tools/damo_asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
+python tools/asr/funasr_asr.py \
+  -i "<Path of single audio file or Path to the directory containing input audio files>" \
+  -o "Output folder"
 ````
-启用自定义列表保存路径
+
+参数: 
+- `-i/--input_file_or_folder`: 输入音频文件/含有音频的文件夹路径.
+- `-o/--output_folder`: 输出文件夹路径, 输出文件将以输入文件所在目录名称命名, 后缀为 `.list`.
+- ~~`-s/--model_size`~~: 模型尺寸, 基于 Paraformer-Large, 其他输入目前无效.
+- ~~`-l/--language`~~: 识别语言, 仅支持中文, 其他输入目前无效.
+- ~~`-p/--precision`~~: 计算精度, 其他输入目前无效.
+
+通过 Faster_Whisper 进行 ASR 处理 (其他语言, 中文会自动转到 FunASR 进行处理)
+
+````
+python tools/asr/fasterwhisper_asr.py -i <input_file_or_folder> -o <output_folder> -s <model_size> -l <language> -p <precision>
+````
+参数:
+- `-i/--input_file_or_folder`: 输入音频文件/含有音频的文件夹路径.
+- `-o/--output_folder`: 输出文件夹路径, 输出文件将以输入文件所在目录名称命名, 后缀为 `.list`.
+- `-s/--model_size`: 模型尺寸, 可选值与本地是否存在模型相关, 默认为 `large-v3`.
+- `-l/--language`: 识别语言, 默认为 `auto` 自动识别语言.
+- `-p/--precision`: 计算精度, 可选 `fp16`, `fp32`, 使用 CPU 时会自动调整.
+
+
 ## 致谢
 
 特别感谢以下项目和贡献者：
