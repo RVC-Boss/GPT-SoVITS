@@ -19,6 +19,15 @@ pinyin_to_symbol_map = {
 
 import jieba_fast.posseg as psg
 
+is_g2pw_str = os.environ.get("is_g2pw", "True")
+is_g2pw = True if is_g2pw_str.lower() == 'true' else False
+if is_g2pw:
+    print("当前使用g2pw进行拼音推理")
+    from text.g2pw import G2PWPinyin
+    parent_directory = os.path.dirname(current_file_path)
+    g2pw_model_dir = os.path.join(parent_directory,"pretrained_models","G2PWModel")
+    g2pw_model_source = os.path.join(parent_directory,"pretrained_models","chinese-roberta-wwm-ext-large")
+    g2pw = G2PWPinyin(model_dir=g2pw_model_dir,model_source=g2pw_model_source,v_to_u=False, neutral_tone_with_five=True)
 
 rep_map = {
     "：": ",",
@@ -62,10 +71,18 @@ def g2p(text):
 def _get_initials_finals(word):
     initials = []
     finals = []
-    orig_initials = lazy_pinyin(word, neutral_tone_with_five=True, style=Style.INITIALS)
-    orig_finals = lazy_pinyin(
-        word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
-    )
+
+    if not is_g2pw:
+        orig_initials = lazy_pinyin(word, neutral_tone_with_five=True, style=Style.INITIALS)
+        orig_finals = lazy_pinyin(
+            word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
+        )
+    else:
+        orig_initials = g2pw.lazy_pinyin(word, neutral_tone_with_five=True, style=Style.INITIALS)
+        orig_finals = g2pw.lazy_pinyin(
+            word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
+        )
+
     for c, v in zip(orig_initials, orig_finals):
         initials.append(c)
         finals.append(v)
@@ -90,7 +107,6 @@ def _g2p(segments):
             sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
             initials.append(sub_initials)
             finals.append(sub_finals)
-
             # assert len(sub_initials) == len(sub_finals) == len(word)
         initials = sum(initials, [])
         finals = sum(finals, [])
