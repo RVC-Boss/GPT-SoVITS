@@ -1,7 +1,7 @@
 # modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/data_module.py
 from pytorch_lightning import LightningDataModule
 from AR.data.bucket_sampler import DistributedBucketSampler
-from AR.data.dataset import Text2SemanticDataset
+from AR.data.dataset import Text2SemanticDataset, Text2SemanticSpeakerDataset
 from torch.utils.data import DataLoader
 
 
@@ -26,12 +26,20 @@ class Text2SemanticDataModule(LightningDataModule):
         pass
 
     def setup(self, stage=None, output_logs=False):
-        self._train_dataset = Text2SemanticDataset(
-            phoneme_path=self.train_phoneme_path,
-            semantic_path=self.train_semantic_path,
-            max_sec=self.config["data"]["max_sec"],
-            pad_val=self.config["data"]["pad_val"],
-        )
+        if 'train_dir' not in self.config:
+            self._train_dataset = Text2SemanticDataset(
+                phoneme_path=self.train_phoneme_path,
+                semantic_path=self.train_semantic_path,
+                max_sec=self.config["data"]["max_sec"],
+                pad_val=self.config["data"]["pad_val"],
+            )
+        else:
+            self._train_dataset = Text2SemanticSpeakerDataset(
+                self.config['speaker_dict_path'],
+                self.config['train_dir'],
+                max_sec=self.config["data"]["max_sec"],
+                pad_val=self.config["data"]["pad_val"],
+            )
         self._dev_dataset = self._train_dataset
         # self._dev_dataset = Text2SemanticDataset(
         #     phoneme_path=self.dev_phoneme_path,

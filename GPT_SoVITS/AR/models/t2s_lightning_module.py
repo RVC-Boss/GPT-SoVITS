@@ -34,10 +34,11 @@ class Text2SemanticLightningModule(LightningModule):
             self.eval_dir.mkdir(parents=True, exist_ok=True)
         for param in self.model.parameters():
             param.requires_grad = False
-        self.model.speaker_proj.weight.requires_grad = True
-        self.model.speaker_proj.bias.requires_grad = True
-        self.model.speaker_proj.train()
-        self.model.speaker_feat.requires_grad = True
+        self.model.speaker_proj.requires_grad_(True)
+        self.model.speaker_proj.weight.requires_grad_(True)
+        self.model.speaker_proj.bias.requires_grad_(True)
+        self.model.speaker_emb.requires_grad_(True)
+        self.model.speaker_emb.weight.requires_grad_(True)
 
     def training_step(self, batch: Dict, batch_idx: int):
         opt = self.optimizers()
@@ -48,13 +49,13 @@ class Text2SemanticLightningModule(LightningModule):
             batch["semantic_ids"],
             batch["semantic_ids_len"],
             batch["bert_feature"],
+            speaker_ids=batch["speaker_ids"] if "speaker_ids" in batch else None,
         )
         self.manual_backward(loss)
         if batch_idx > 0 and batch_idx % 4 == 0:
             opt.step()
             opt.zero_grad()
             scheduler.step()
-            torch.save(self.model.speaker_feat.data, "C:/Users/86150/Desktop/GPT-SoVITS/zyj.pt")
 
         self.log(
             "total_loss",

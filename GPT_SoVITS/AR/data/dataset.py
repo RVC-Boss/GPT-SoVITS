@@ -293,6 +293,128 @@ class Text2SemanticDataset(Dataset):
             "bert_feature": bert_padded,
         }
 
+class Text2SemanticSpeakerDataset(Dataset):
+    def __init__(
+        self,
+        speaker_dict_path: str,
+        train_dir: str,
+        max_sample: int = None,
+        max_sec: int = 100,
+        pad_val: int = 1024,
+        # min value of phoneme/sec
+        min_ps_ratio: int = 3,
+        # max value of phoneme/sec
+        max_ps_ratio: int = 25,
+    ):
+        super().__init__()
+        self.speaker_dict = dict()
+        if os.path.exists(speaker_dict_path):
+            with open(speaker_dict_path, "r", encoding="utf-8") as f:
+                try:
+                    self.speaker_dict = json.load(f)
+                except:
+                    pass
+        
+        self.speaker2dataset = {}
+        self.PAD = pad_val
+        for name in os.listdir(train_dir):
+            if name in ["logs_s1", os.path.basename(speaker_dict_path)]:
+                continue
+            opt_dir = os.path.join(train_dir, name)
+            speaker_id = self.speaker_dict.get(name, None)
+            if speaker_id is None:
+                speaker_id = len(self.speaker_dict)
+                self.speaker_dict[name] = speaker_id
+            self.speaker2dataset[speaker_id] = Text2SemanticDataset(
+                phoneme_path=os.path.join(opt_dir, "2-name2text.txt"),
+                semantic_path=os.path.join(opt_dir, "6-name2semantic.tsv"),
+                max_sample=max_sample,
+                max_sec=max_sec,
+                pad_val=pad_val,
+                min_ps_ratio=min_ps_ratio,
+                max_ps_ratio=max_ps_ratio,
+            )
+        with open(speaker_dict_path, "w", encoding="utf-8") as f:
+            json.dump(self.speaker_dict, f, ensure_ascii=False, indent=4)
+    
+    def __len__(self):
+        result = 0
+        for _, dataset in self.speaker2dataset.items():
+            result += len(dataset)
+        return result
+    
+    def __getitem__(self, idx):
+        for speaker_id, dataset in self.speaker2dataset.items():
+            if idx < len(dataset):
+                result = dataset[idx]
+                result["speaker_id"] = speaker_id
+                return result
+            else:
+                idx -= len(dataset)
+        raise IndexError("index out of range")
+
+    def get_sample_length(self, idx: int):
+        for speaker_id, dataset in self.speaker2dataset.items():
+            if idx < len(dataset):
+                semantic_ids = dataset.semantic_phoneme[idx][0]
+                sec = 1.0 * len(semantic_ids) / dataset.hz
+                return sec
+            else:
+                idx -= len(dataset)
+        raise IndexError("index out of range")
+
+    def collate(self, examples: List[Dict]) -> Dict:
+        sample_index: List[int] = []
+        phoneme_ids: List[torch.Tensor] = []
+        phoneme_ids_lens: List[int] = []
+        semantic_ids: List[torch.Tensor] = []
+        semantic_ids_lens: List[int] = []
+        speaker_ids: List[int] = []
+        # return
+
+        for item in examples:
+            sample_index.append(item["idx"])
+            phoneme_ids.append(np.array(item["phoneme_ids"], dtype=np.int64))
+            semantic_ids.append(np.array(item["semantic_ids"], dtype=np.int64))
+            phoneme_ids_lens.append(item["phoneme_ids_len"])
+            semantic_ids_lens.append(item["semantic_ids_len"])
+            speaker_ids.append(item["speaker_id"])
+
+        # pad 0
+        phoneme_ids = batch_sequences(phoneme_ids)
+        semantic_ids = batch_sequences(semantic_ids, pad_value=self.PAD)
+
+        # # convert each batch to torch.tensor
+        phoneme_ids = torch.tensor(phoneme_ids)
+        semantic_ids = torch.tensor(semantic_ids)
+        phoneme_ids_lens = torch.tensor(phoneme_ids_lens)
+        semantic_ids_lens = torch.tensor(semantic_ids_lens)
+        bert_padded = torch.FloatTensor(len(examples), 1024, max(phoneme_ids_lens))
+        bert_padded.zero_()
+        speaker_ids = torch.tensor(speaker_ids, dtype=torch.long)
+
+        for idx, item in enumerate(examples):
+            bert = item["bert_feature"]
+            if bert != None:
+                bert_padded[idx, :, : bert.shape[-1]] = bert
+
+        return {
+            # List[int]
+            "ids": sample_index,
+            # torch.Tensor (B, max_phoneme_length)
+            "phoneme_ids": phoneme_ids,
+            # torch.Tensor (B)
+            "phoneme_ids_len": phoneme_ids_lens,
+            # torch.Tensor (B, max_semantic_ids_length)
+            "semantic_ids": semantic_ids,
+            # torch.Tensor (B)
+            "semantic_ids_len": semantic_ids_lens,
+            # torch.Tensor (B, 1024, max_phoneme_length)
+            "bert_feature": bert_padded,
+            "speaker_ids": speaker_ids,
+        }
+        
+        
 
 if __name__ == "__main__":
     root_dir = "/data/docker/liujing04/gpt-vits/prepare/dump_mix/"

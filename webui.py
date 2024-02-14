@@ -195,20 +195,42 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
 from tools.asr.config import asr_dict
 def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
     global p_asr
-    if(p_asr==None):
-        asr_inp_dir=my_utils.clean_path(asr_inp_dir)
+    def run(asr_inp_dir, asr_opt_dir):
         cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
         cmd += f' -i "{asr_inp_dir}"'
         cmd += f' -o "{asr_opt_dir}"'
         cmd += f' -s {asr_model_size}'
         cmd += f' -l {asr_lang}'
         cmd += " -p %s"%("float16"if is_half==True else "float32")
-
-        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
         p_asr = Popen(cmd, shell=True)
         p_asr.wait()
         p_asr=None
+    if(p_asr==None):
+        # yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        flag = False
+        for name in os.listdir(asr_inp_dir):
+            if os.path.isdir(os.path.join(asr_inp_dir, name)):
+                os.makedirs(os.path.join(asr_opt_dir, name), exist_ok=True)
+                run(os.path.join(asr_inp_dir, name), os.path.join(asr_opt_dir, name))
+            else:
+                break
+        else:
+            flag = True
+        if flag:
+            run(asr_inp_dir, asr_opt_dir)
+        # asr_inp_dir=my_utils.clean_path(asr_inp_dir)
+        # cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
+        # cmd += f' -i "{asr_inp_dir}"'
+        # cmd += f' -o "{asr_opt_dir}"'
+        # cmd += f' -s {asr_model_size}'
+        # cmd += f' -l {asr_lang}'
+        # cmd += " -p %s"%("float16"if is_half==True else "float32")
+
+        # print(cmd)
+        # p_asr = Popen(cmd, shell=True)
+        # p_asr.wait()
+        # p_asr=None
         yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
         yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
@@ -273,7 +295,7 @@ def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights
             data=f.read()
             data=yaml.load(data, Loader=yaml.FullLoader)
         s1_dir="%s/%s"%(exp_root,exp_name)
-        os.makedirs("%s/logs_s1"%(s1_dir),exist_ok=True)
+        # os.makedirs("%s/logs_s1"%(s1_dir),exist_ok=True)
         if(is_half==False):
             data["train"]["precision"]="32"
             batch_size = max(1, batch_size // 2)
@@ -287,6 +309,8 @@ def open1Bb(batch_size,total_epoch,exp_name,if_save_latest,if_save_every_weights
         data["train"]["exp_name"]=exp_name
         data["train_semantic_path"]="%s/6-name2semantic.tsv"%s1_dir
         data["train_phoneme_path"]="%s/2-name2text.txt"%s1_dir
+        data["train_dir"] = s1_dir
+        data["speaker_dict_path"] = "%s/speaker_dict.json"%s1_dir
         data["output_dir"]="%s/logs_s1"%s1_dir
 
         os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_numbers.replace("-",",")
@@ -352,6 +376,13 @@ def close_slice():
 ps1a=[]
 def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
+    if not inp_text.endswith(".list"):
+        for name in os.listdir(inp_text):
+            p = os.path.join(inp_text, name)
+            l = os.path.join(p, name + ".list")
+            assert os.path.exists(l)
+            yield from open1a(l,inp_wav_dir,os.path.join(exp_name, name),gpu_numbers,bert_pretrained_dir)
+        return
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if (ps1a == []):
@@ -410,6 +441,13 @@ def close1a():
 ps1b=[]
 def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
     global ps1b
+    if not inp_text.endswith(".list"):
+        for name in os.listdir(inp_text):
+            p = os.path.join(inp_text, name)
+            l = os.path.join(p, name + ".list")
+            assert os.path.exists(l)
+            yield from open1b(l,inp_wav_dir,os.path.join(exp_name, name),gpu_numbers,ssl_pretrained_dir)
+        return
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if (ps1b == []):
@@ -458,6 +496,13 @@ def close1b():
 ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
+    if not inp_text.endswith(".list"):
+        for name in os.listdir(inp_text):
+            p = os.path.join(inp_text, name)
+            l = os.path.join(p, name + ".list")
+            assert os.path.exists(l)
+            yield from open1c(l,os.path.join(exp_name, name),gpu_numbers,pretrained_s2G_path)
+        return
     inp_text = my_utils.clean_path(inp_text)
     if (ps1c == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
@@ -515,6 +560,13 @@ def close1c():
 ps1abc=[]
 def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numbers1c,bert_pretrained_dir,ssl_pretrained_dir,pretrained_s2G_path):
     global ps1abc
+    if not inp_text.endswith(".list"):
+        for name in os.listdir(inp_text):
+            p = os.path.join(inp_text, name)
+            l = os.path.join(p, name + ".list")
+            assert os.path.exists(l)
+            yield from open1abc(l,inp_wav_dir,os.path.join(exp_name, name),gpu_numbers1a,gpu_numbers1Ba,gpu_numbers1c,bert_pretrained_dir,ssl_pretrained_dir,pretrained_s2G_path)
+        return
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if (ps1abc == []):

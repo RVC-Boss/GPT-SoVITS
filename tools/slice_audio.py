@@ -24,24 +24,36 @@ def slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_
     )
     _max=float(_max)
     alpha=float(alpha)
-    for inp_path in input[int(i_part)::int(all_part)]:
-        # print(inp_path)
+    
+    def slice_audio(root_dir, inp_wav_path):
         try:
-            name = os.path.basename(inp_path)
-            audio = load_audio(inp_path, 32000)
+            name = os.path.basename(inp_wav_path)
+            audio = load_audio(inp_wav_path, 32000)
             # print(audio.shape)
             for chunk, start, end in slicer.slice(audio):  # start和end是帧数
                 tmp_max = np.abs(chunk).max()
                 if(tmp_max>1):chunk/=tmp_max
                 chunk = (chunk / tmp_max * (_max * alpha)) + (1 - alpha) * chunk
                 wavfile.write(
-                    "%s/%s_%010d_%010d.wav" % (opt_root, name, start, end),
+                    "%s/%s_%010d_%010d.wav" % (root_dir, name, start, end),
                     32000,
                     # chunk.astype(np.float32),
                     (chunk * 32767).astype(np.int16),
                 )
         except:
-            print(inp_path,"->fail->",traceback.format_exc())
+            print(inp_wav_path,"->fail->",traceback.format_exc())
+    
+    for inp_path in input[int(i_part)::int(all_part)]:
+        # print(inp_path)
+        if os.path.isdir(inp_path):
+            inp_dir_name = os.path.basename(inp_path)
+            os.makedirs(os.path.join(opt_root, inp_dir_name), exist_ok=True)
+            for inp_name in os.listdir(inp_path):
+                inp_wav_path = os.path.join(inp_path, inp_name)
+                slice_audio(os.path.join(opt_root, inp_dir_name), inp_wav_path)
+        else:
+            inp_wav_path = inp_path
+            slice_audio(opt_root, inp_wav_path)
     return "执行完毕，请检查输出文件"
 
 print(slice(*sys.argv[1:]))

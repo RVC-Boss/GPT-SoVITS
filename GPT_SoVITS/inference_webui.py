@@ -365,7 +365,10 @@ def merge_short_text_in_array(texts, threshold):
             result[len(result) - 1] += text
     return result
 
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6):
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6,speaker_id="-1"):
+    speaker_id = int(speaker_id)
+    if speaker_id == -1:
+        speaker_id = None
     t0 = ttime()
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
@@ -381,7 +384,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     )
     with torch.no_grad():
         wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-        if (wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000):
+        if (wav16k.shape[0] > 160000 or wav16k.shape[0] < 0):
             raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
         wav16k = torch.from_numpy(wav16k)
         zero_wav_torch = torch.from_numpy(zero_wav)
@@ -448,6 +451,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 top_p=top_p,
                 temperature=temperature,
                 early_stop_num=hz * max_sec,
+                speaker_ids=torch.LongTensor([speaker_id]).to(device) if speaker_id is not None else None,
             )
         t3 = ttime()
         # print(pred_semantic.shape,idx)
@@ -601,6 +605,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             GPT_dropdown = gr.Dropdown(label=i18n("GPT模型列表"), choices=sorted(GPT_names, key=custom_sort_key), value=gpt_path, interactive=True)
             SoVITS_dropdown = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=sorted(SoVITS_names, key=custom_sort_key), value=sovits_path, interactive=True)
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
+            speaker_id = gr.Dropdown(label="说话人idx", choices=[str(i) for i in range(-1, 100)], value="-1")
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
             SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown], [])
             GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
@@ -632,7 +637,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
 
         inference_button.click(
             get_tts_wav,
-            [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut,top_k,top_p,temperature],
+            [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut,top_k,top_p,temperature,speaker_id],
             [output],
         )
 

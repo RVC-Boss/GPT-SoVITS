@@ -52,12 +52,8 @@ class Text2SemanticDecoder(nn.Module):
         # should be same as num of kmeans bin
         # assert self.EOS == 1024
         self.bert_proj = nn.Linear(1024, self.embedding_dim)
-        self.speaker_proj = nn.Linear(1024, self.embedding_dim)
-        self.path_speaker = "C:/Users/86150/Desktop/GPT-SoVITS/zyj.pt"
-        if not os.path.exists(self.path_speaker):
-            self.speaker_feat = nn.Parameter(torch.randn(1024) * 0.1)
-        else:
-            self.speaker_feat = nn.Parameter(torch.load(self.path_speaker, map_location="cpu"))
+        self.speaker_proj = nn.Linear(4096, self.embedding_dim)
+        self.speaker_emb = nn.Embedding(100, 4096)
         self.ar_text_embedding = TokenEmbedding(
             self.embedding_dim, self.phoneme_vocab_size, self.p_dropout
         )
@@ -95,7 +91,7 @@ class Text2SemanticDecoder(nn.Module):
             ignore_index=self.EOS,
         )
 
-    def make_input_data(self, x, x_lens, y, y_lens, bert_feature):
+    def make_input_data(self, x, x_lens, y, y_lens, bert_feature, speaker_ids=None):
         x = self.ar_text_embedding(x)
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
         x = self.ar_text_position(x)
@@ -111,7 +107,8 @@ class Text2SemanticDecoder(nn.Module):
         x_len = x_lens.max()
         y_len = y_lens.max()
         y_emb = self.ar_audio_embedding(y)
-        y_emb = y_emb + self.speaker_proj(self.speaker_feat).view(1,1,-1)
+        if speaker_ids is not None:
+            y_emb = y_emb + self.speaker_proj(self.speaker_emb(speaker_ids)).unsqueeze(1)
         y_pos = self.ar_audio_position(y_emb)
 
         xy_padding_mask = torch.concat([x_mask, y_mask], dim=1)
@@ -149,7 +146,7 @@ class Text2SemanticDecoder(nn.Module):
 
         return xy_pos, xy_attn_mask, targets
 
-    def forward(self, x, x_lens, y, y_lens, bert_feature):
+    def forward(self, x, x_lens, y, y_lens, bert_feature, speaker_ids=None):
         """
         x: phoneme_ids
         y: semantic_ids
@@ -157,7 +154,7 @@ class Text2SemanticDecoder(nn.Module):
 
         reject_y, reject_y_lens = make_reject_y(y, y_lens)
 
-        xy_pos, xy_attn_mask, targets = self.make_input_data(x, x_lens, y, y_lens, bert_feature)
+        xy_pos, xy_attn_mask, targets = self.make_input_data(x, x_lens, y, y_lens, bert_feature, speaker_ids=speaker_ids)
 
         xy_dec, _ = self.h(
             (xy_pos, None),
@@ -167,7 +164,7 @@ class Text2SemanticDecoder(nn.Module):
         logits = self.ar_predict_layer(xy_dec[:, x_len:])
 
         ###### DPO #############
-        reject_xy_pos, reject_xy_attn_mask, reject_targets = self.make_input_data(x, x_lens, reject_y, reject_y_lens, bert_feature)
+        reject_xy_pos, reject_xy_attn_mask, reject_targets = self.make_input_data(x, x_lens, reject_y, reject_y_lens, bert_feature, speaker_ids=speaker_ids)
 
         reject_xy_dec, _ = self.h(
             (reject_xy_pos, None),
@@ -338,7 +335,7 @@ class Text2SemanticDecoder(nn.Module):
         top_p: int = 100,
         early_stop_num: int = -1,
         temperature: float = 1.0,
-        use_speaker_feat=True,
+        speaker_ids=None,
     ):
         x = self.ar_text_embedding(x)
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
@@ -362,8 +359,8 @@ class Text2SemanticDecoder(nn.Module):
             "first_infer": 1,
             "stage": 0,
         }
-        if use_speaker_feat:
-            speaker_feat = self.speaker_proj(self.speaker_feat).view(1,1,-1)
+        if speaker_ids is not None:
+            speaker_feat = self.speaker_proj(self.speaker_emb(speaker_ids)).unsqueeze(1)
         else:
             speaker_feat = 0
         for idx in tqdm(range(1500)):
