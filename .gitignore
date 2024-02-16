@@ -7,4 +7,6 @@ runtime
 output
 logs
 reference
+GPT_weights
 SoVITS_weights
+TEMP
