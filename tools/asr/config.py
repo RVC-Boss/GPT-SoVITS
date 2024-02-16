@@ -13,7 +13,7 @@ def check_fw_local_models():
         "large-v2", "large-v3"]
     for i, size in enumerate(model_size_list):
         if os.path.exists(f'tools/asr/models/faster-whisper-{size}'):
-            model_size_list[i] = size + '(local)'
+            model_size_list[i] = size + '-local'
     return model_size_list
 
 asr_dict = {

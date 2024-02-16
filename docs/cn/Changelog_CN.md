@@ -107,8 +107,21 @@
 
 1-GPT训练卡死（win10 1909）和https://github.com/RVC-Boss/GPT-SoVITS/issues/232 （系统语言繁体）GPT训练报错，[尝试修复](https://github.com/RVC-Boss/GPT-SoVITS/commit/59f35adad85815df27e9c6b33d420f5ebfd8376b)。
 
+### 20240212更新
+
+1-faster whisper和funasr逻辑优化。faster whisper转镜像站下载，规避huggingface连不上的问题。
+
+2-DPO Loss实验性训练选项开启，通过构造负样本训练缓解GPT重复漏字问题。推理界面公开几个推理参数。 https://github.com/RVC-Boss/GPT-SoVITS/pull/457
+
+### 20240214更新
+
+1-训练支持中文实验名（原来会报错）
+
+2-DPO训练改为可勾选选项而非必须。如勾选batch size自动减半。修复推理界面新参数不传参的问题。
+
 todolist：
 
 1-中文多音字推理优化
+
 
 

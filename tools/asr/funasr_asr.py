@@ -23,6 +23,14 @@ model = AutoModel(
     punc_model_revision = "v2.0.4",
 )
 
+def only_asr(input_file):
+    try:
+        text = model.generate(input=input_file)[0]["text"]
+    except:
+        text = ''
+        print(traceback.format_exc())
+    return text
+
 def execute_asr(input_folder, output_folder, model_size, language):
     input_file_names = os.listdir(input_folder)
     input_file_names.sort()
@@ -35,7 +43,7 @@ def execute_asr(input_folder, output_folder, model_size, language):
             text = model.generate(input="%s/%s"%(input_folder, name))[0]["text"]
             output.append(f"{input_folder}/{name}|{output_file_name}|{language.upper()}|{text}")
         except:
-            return print(traceback.format_exc())
+            print(traceback.format_exc())
 
     output_folder = output_folder or "output/asr_opt"
     os.makedirs(output_folder, exist_ok=True)

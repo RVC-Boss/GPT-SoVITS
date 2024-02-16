@@ -33,13 +33,13 @@ from time import time as ttime
 import shutil
 
 
-def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
-    dir = os.path.dirname(path)
-    name = os.path.basename(path)
-    tmp_path = "%s/%s%s.pth" % (dir, ttime(), i_part)
-    torch.save(fea, tmp_path)
-    shutil.move(tmp_path, "%s/%s" % (dir, name))
-
+def my_save(fea,path):#####fix issue: torch.save doesn't support chinese path
+    dir=os.path.dirname(path)
+    name=os.path.basename(path)
+    # tmp_path="%s/%s%s.pth"%(dir,ttime(),i_part)
+    tmp_path="%s%s.pth"%(ttime(),i_part)
+    torch.save(fea,tmp_path)
+    shutil.move(tmp_path,"%s/%s"%(dir,name))
 
 
 txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
