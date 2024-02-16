@@ -40,15 +40,6 @@ COPY . /workspace
 # Copy the rest of the application
 COPY . /workspace
 
-
-EXPOSE 9870
-EXPOSE 9871
-EXPOSE 9872
-EXPOSE 9873
-EXPOSE 9874
-
-VOLUME /workspace/output
-VOLUME /workspace/logs
-VOLUME /workspace/SoVITS_weights
+EXPOSE 9871 9872 9873 9874 9880
 
 CMD ["python", "webui.py"]
