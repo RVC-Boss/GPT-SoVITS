@@ -119,6 +119,12 @@
 
 2-DPO训练改为可勾选选项而非必须。如勾选batch size自动减半。修复推理界面新参数不传参的问题。
 
+### 20240216更新
+
+1-支持无参考文本输入
+
+2-修复中文文本前端bug https://github.com/RVC-Boss/GPT-SoVITS/issues/475
+
 todolist：
 
 1-中文多音字推理优化
