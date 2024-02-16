@@ -617,8 +617,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath")
             with gr.Column():
-                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式 无参考文本时该选项无效"), value=False, interactive=True, show_label=True)
-                gr.Markdown("使用无参考文本模式时建议使用微调GPT")
+                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True)
+                gr.Markdown(i18n("使用无参考文本模式时建议使用微调的GPT"))
                 prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="")
             prompt_language = gr.Dropdown(
                 label=i18n("参考音频的语种"), choices=[i18n("中文"), i18n("英文"), i18n("日文"), i18n("中英混合"), i18n("日英混合"), i18n("多语种混合")], value=i18n("中文")
@@ -663,7 +663,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             button3.click(cut3, [text_inp], [text_opt])
             button4.click(cut4, [text_inp], [text_opt])
             button5.click(cut5, [text_inp], [text_opt])
-        gr.Markdown(value=i18n("后续将支持混合语种编码文本输入。"))
+        gr.Markdown(value=i18n("后续将支持转音素、手工修改音素、语音合成分步执行。"))
 
 app.queue(concurrency_count=511, max_size=1022).launch(
     server_name="0.0.0.0",
