@@ -248,6 +248,10 @@ def clean_text_inf(text, language):
     formattext = ""
     language = language.replace("all_","")
     for tmp in LangSegment.getTexts(text):
+        if language == "ja":
+            if tmp["lang"] == language or tmp["lang"] == "zh":
+                formattext += tmp["text"] + " "
+            continue
         if tmp["lang"] == language:
             formattext += tmp["text"] + " "
     while "  " in formattext:
@@ -279,8 +283,6 @@ def nonen_clean_text_inf(text, language):
         for tmp in LangSegment.getTexts(text):
             langlist.append(tmp["lang"])
             textlist.append(tmp["text"])
-    print(textlist)
-    print(langlist)
     phones_list = []
     word2ph_list = []
     norm_text_list = []
