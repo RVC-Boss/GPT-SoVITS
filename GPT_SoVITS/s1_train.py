@@ -24,6 +24,14 @@ torch.set_float32_matmul_precision("high")
 from AR.utils import get_newest_ckpt
 
 from collections import OrderedDict
+from time import time as ttime
+import shutil
+def my_save(fea,path):#####fix issue: torch.save doesn't support chinese path
+    dir=os.path.dirname(path)
+    name=os.path.basename(path)
+    tmp_path="%s.pth"%(ttime())
+    torch.save(fea,tmp_path)
+    shutil.move(tmp_path,"%s/%s"%(dir,name))
 
 
 class my_model_ckpt(ModelCheckpoint):
@@ -70,7 +78,8 @@ class my_model_ckpt(ModelCheckpoint):
                         to_save_od["weight"][key] = dictt[key].half()
                     to_save_od["config"] = self.config
                     to_save_od["info"] = "GPT-e%s" % (trainer.current_epoch + 1)
-                    torch.save(
+                    # torch.save(
+                    my_save(
                         to_save_od,
                         "%s/%s-e%s.ckpt"
                         % (
