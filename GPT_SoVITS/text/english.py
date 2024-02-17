@@ -169,9 +169,9 @@ def read_dict_new():
                 line = line.strip()
                 word_split = line.split(" ")
                 word = word_split[0]
-                if word not in g2p_dict:
-                    g2p_dict[word] = []
-                    g2p_dict[word].append(word_split[1:])
+                #if word not in g2p_dict:
+                g2p_dict[word] = []
+                g2p_dict[word].append(word_split[1:])
 
             line_index = line_index + 1
             line = f.readline()
