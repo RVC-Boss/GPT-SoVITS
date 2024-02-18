@@ -116,7 +116,6 @@ def change_choices():
 p_label=None
 p_uvr5=None
 p_asr=None
-p_tts_inference=None
 
 def kill_proc_tree(pid, including_parent=True):  
     try:

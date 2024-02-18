@@ -8,6 +8,7 @@ from tools.asr.config import asr_dict
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
 from subprocess import Popen
 
+p_tts_inference=None
 def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path,sovits_path):
     global p_tts_inference
     if(if_tts==True and p_tts_inference==None):
