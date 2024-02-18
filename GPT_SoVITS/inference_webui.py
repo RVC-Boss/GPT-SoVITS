@@ -1,6 +1,6 @@
 import os
 from tools.i18n.i18n import I18nAuto
-from interence_base import sovits_path, gpt_path, change_choices, GPT_names, custom_sort_key, SoVITS_names, change_sovits_weights, change_gpt_weights, get_tts_wav, cut1, cut2, cut3, cut4, cut5
+from inference_base import sovits_path, gpt_path, change_choices, GPT_names, custom_sort_key, SoVITS_names, change_sovits_weights, change_gpt_weights, get_tts_wav, cut1, cut2, cut3, cut4, cut5
 import gradio as gr
 
 i18n = I18nAuto()
