@@ -5,7 +5,8 @@ from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
-import ffmpeg
+import librosa,ffmpeg
+import soundfile as sf
 import torch
 import sys
 from mdxnet import MDXNetDereverb
@@ -18,8 +19,9 @@ for name in os.listdir(weight_uvr5_root):
         uvr5_names.append(name.replace(".pth", ""))
 
 device=sys.argv[1]
-is_half=sys.argv[2]
-
+is_half=eval(sys.argv[2])
+webui_port_uvr5=int(sys.argv[3])
+is_share=eval(sys.argv[4])
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []
@@ -31,25 +33,24 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         save_root_ins = (
             save_root_ins.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
         )
+        is_hp3 = "HP3" in model_name
         if model_name == "onnx_dereverb_By_FoxJoy":
-            pre_fun = MDXNetDereverb(15, device)
+            pre_fun = MDXNetDereverb(15)
         else:
             func = AudioPre if "DeEcho" not in model_name else AudioPreDeEcho
             pre_fun = func(
                 agg=int(agg),
-                model_path=os.path.join(
-                    weight_uvr5_root, model_name + ".pth"
-                ),
+                model_path=os.path.join(weight_uvr5_root, model_name + ".pth"),
                 device=device,
                 is_half=is_half,
             )
-        is_hp3 = "HP3" in model_name
         if inp_root != "":
             paths = [os.path.join(inp_root, name) for name in os.listdir(inp_root)]
         else:
             paths = [path.name for path in paths]
         for path in paths:
             inp_path = os.path.join(inp_root, path)
+            if(os.path.isfile(inp_path)==False):continue
             need_reformat = 1
             done = 0
             try:
@@ -60,7 +61,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 ):
                     need_reformat = 0
                     pre_fun._path_audio_(
-                        inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
+                        inp_path, save_root_ins, save_root_vocal, format0,is_hp3
                     )
                     done = 1
             except:
@@ -79,23 +80,15 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             try:
                 if done == 0:
                     pre_fun._path_audio_(
-                        inp_path, save_root_ins, save_root_vocal, format0
+                        inp_path, save_root_ins, save_root_vocal, format0,is_hp3
                     )
                 infos.append("%s->Success" % (os.path.basename(inp_path)))
                 yield "\n".join(infos)
             except:
-                try:
-                    if done == 0:
-                        pre_fun._path_audio_(
-                            inp_path, save_root_ins, save_root_vocal, format0
-                        )
-                    infos.append("%s->Success" % (os.path.basename(inp_path)))
-                    yield "\n".join(infos)
-                except:
-                    infos.append(
-                        "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
-                    )
-                    yield "\n".join(infos)
+                infos.append(
+                    "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
+                )
+                yield "\n".join(infos)
     except:
         infos.append(traceback.format_exc())
         yield "\n".join(infos)
@@ -109,16 +102,15 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 del pre_fun
         except:
             traceback.print_exc()
+        print("clean_empty_cache")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            logger.info("Executed torch.cuda.empty_cache()")
     yield "\n".join(infos)
 
-
-with gr.Blocks(title="RVC WebUI") as app:
+with gr.Blocks(title="UVR5 WebUI") as app:
     gr.Markdown(
         value=
-            "本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>."
+            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
     )
     with gr.Tabs():
         with gr.TabItem(i18n("伴奏人声分离&去混响&去回声")):
@@ -143,7 +135,7 @@ with gr.Blocks(title="RVC WebUI") as app:
                             minimum=0,
                             maximum=20,
                             step=1,
-                            label="人声提取激进程度",
+                            label=i18n("人声提取激进程度"),
                             value=10,
                             interactive=True,
                             visible=False,  # 先不开放调整
@@ -179,6 +171,7 @@ with gr.Blocks(title="RVC WebUI") as app:
 app.queue(concurrency_count=511, max_size=1022).launch(
     server_name="0.0.0.0",
     inbrowser=True,
-    server_port=9873,
+    share=is_share,
+    server_port=webui_port_uvr5,
     quiet=True,
 )

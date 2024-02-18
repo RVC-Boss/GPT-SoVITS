@@ -1,2 +1,14 @@
+.DS_Store
+__pycache__
+*.pyc
 env
 runtime
+.idea
+output
+logs
+reference
+GPT_weights
+SoVITS_weights
+TEMP
+
+

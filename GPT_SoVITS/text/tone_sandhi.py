@@ -14,7 +14,7 @@
 from typing import List
 from typing import Tuple
 
-import jieba
+import jieba_fast as jieba
 from pypinyin import lazy_pinyin
 from pypinyin import Style
 
@@ -455,6 +455,35 @@ class ToneSandhi:
             "电子",
             "人人",
             "虎虎",
+            "幺幺",
+            "干嘛",
+            "学子",
+            "哈哈",
+            "数数",
+            "袅袅",
+            "局地",
+            "以下",
+            "娃哈哈",
+            "花花草草",
+            "留得",
+            "耕地",
+            "想想",
+            "熙熙",
+            "攘攘",
+            "卵子",
+            "死死",
+            "冉冉",
+            "恳恳",
+            "佼佼",
+            "吵吵",
+            "打打",
+            "考考",
+            "整整",
+            "莘莘",
+            "落地",
+            "算子",
+            "家家户户",
+            "青青",
         }
         self.punc = "：，；。？！“”‘’':,;.?!"
 
@@ -643,6 +672,7 @@ class ToneSandhi:
                 and i + 1 < len(seg)
                 and seg[i - 1][0] == seg[i + 1][0]
                 and seg[i - 1][1] == "v"
+                and seg[i + 1][1] == "v"
             ):
                 new_seg[i - 1][0] = new_seg[i - 1][0] + "一" + new_seg[i - 1][0]
             else:

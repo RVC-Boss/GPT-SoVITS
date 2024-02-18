@@ -79,6 +79,7 @@ def b_change_index(index, batch):
 
 
 def b_next_index(index, batch):
+    b_save_file()
     if (index + batch) <= g_max_json_index:
         return index + batch , *b_change_index(index + batch, batch)
     else:
@@ -86,6 +87,7 @@ def b_next_index(index, batch):
 
 
 def b_previous_index(index, batch):
+    b_save_file()
     if (index - batch) >= 0:
         return index - batch , *b_change_index(index - batch, batch)
     else:
@@ -108,6 +110,7 @@ def b_submit_change(*text_list):
 
 def b_delete_audio(*checkbox_list):
     global g_data_json, g_index, g_max_json_index
+    b_save_file()
     change = False
     for i, checkbox in reversed(list(enumerate(checkbox_list))):
         if g_index + i < len(g_data_json):
@@ -119,8 +122,8 @@ def b_delete_audio(*checkbox_list):
     if g_index > g_max_json_index:
         g_index = g_max_json_index
         g_index = g_index if g_index >= 0 else 0
-    # if change:
-    #     b_save_file()
+    if change:
+        b_save_file()
     # return gr.Slider(value=g_index, maximum=(g_max_json_index if g_max_json_index>=0 else 0)), *b_change_index(g_index, g_batch)
     return {"value":g_index,"__type__":"update","maximum":(g_max_json_index if g_max_json_index>=0 else 0)},*b_change_index(g_index, g_batch)
 
@@ -170,6 +173,7 @@ def b_audio_split(audio_breakpoint, *checkbox_list):
 
 def b_merge_audio(interval_r, *checkbox_list):
     global g_data_json , g_max_json_index
+    b_save_file()
     checked_index = []
     audios_path = []
     audios_text = []
@@ -294,6 +298,7 @@ def set_global(load_json, load_list, json_key_text, json_key_path, batch):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--load_json', default="None", help='source file, like demo.json')
+    parser.add_argument('--is_share', default="False", help='whether webui is_share=True')
     parser.add_argument('--load_list', default="None", help='source file, like demo.list')
     parser.add_argument('--webui_port_subfix', default=9871, help='source file, like demo.list')
     parser.add_argument('--json_key_text', default="text", help='the text key name in json, Default: text')
@@ -488,5 +493,6 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         inbrowser=True,
         quiet=True,
+        share=eval(args.is_share),
         server_port=int(args.webui_port_subfix)
     )

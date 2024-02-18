@@ -24,6 +24,14 @@ torch.set_float32_matmul_precision("high")
 from AR.utils import get_newest_ckpt
 
 from collections import OrderedDict
+from time import time as ttime
+import shutil
+def my_save(fea,path):#####fix issue: torch.save doesn't support chinese path
+    dir=os.path.dirname(path)
+    name=os.path.basename(path)
+    tmp_path="%s.pth"%(ttime())
+    torch.save(fea,tmp_path)
+    shutil.move(tmp_path,"%s/%s"%(dir,name))
 
 
 class my_model_ckpt(ModelCheckpoint):
@@ -44,9 +52,8 @@ class my_model_ckpt(ModelCheckpoint):
         self.config = config
 
     def on_train_epoch_end(self, trainer, pl_module):
-        if not self._should_skip_saving_checkpoint(
-            trainer
-        ) and self._should_save_on_train_epoch_end(trainer):
+        # if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
+        if self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
             if (
                 self._every_n_epochs >= 1
@@ -71,7 +78,8 @@ class my_model_ckpt(ModelCheckpoint):
                         to_save_od["weight"][key] = dictt[key].half()
                     to_save_od["config"] = self.config
                     to_save_od["info"] = "GPT-e%s" % (trainer.current_epoch + 1)
-                    torch.save(
+                    # torch.save(
+                    my_save(
                         to_save_od,
                         "%s/%s-e%s.ckpt"
                         % (
@@ -107,6 +115,7 @@ def main(args):
         dirpath=ckpt_dir,
     )
     logger = TensorBoardLogger(name=output_dir.stem, save_dir=output_dir)
+    os.environ["MASTER_ADDR"]="localhost"
     trainer: Trainer = Trainer(
         max_epochs=config["train"]["epochs"],
         accelerator="gpu",
@@ -116,9 +125,9 @@ def main(args):
         devices=-1,
         benchmark=False,
         fast_dev_run=False,
-        strategy=DDPStrategy(
+        strategy = "auto" if torch.backends.mps.is_available() else DDPStrategy(
             process_group_backend="nccl" if platform.system() != "Windows" else "gloo"
-        ),
+        ),  # mps 不支持多节点训练
         precision=config["train"]["precision"],
         logger=logger,
         num_sanity_val_steps=0,
