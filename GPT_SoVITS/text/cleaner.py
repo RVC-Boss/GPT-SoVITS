@@ -2,7 +2,7 @@ from text import chinese, japanese, cleaned_text_to_sequence, symbols, english
 
 language_module_map = {"zh": chinese, "ja": japanese, "en": english}
 special = [
-    ("%", "zh", "SP"),
+    # ("%", "zh", "SP"),
     ("￥", "zh", "SP2"),
     ("^", "zh", "SP3"),
     # ('@', 'zh', "SP4")#不搞鬼畜了，和第二版保持一致吧
@@ -10,6 +10,9 @@ special = [
 
 
 def clean_text(text, language):
+    if(language not in language_module_map):
+        language="en"
+        text=" "
     for special_s, special_l, target_symbol in special:
         if special_s in text and language == special_l:
             return clean_special(text, language, special_s, target_symbol)
@@ -37,13 +40,13 @@ def clean_special(text, language, special_s, target_symbol):
     norm_text = language_module.text_normalize(text)
     phones = language_module.g2p(norm_text)
     new_ph = []
-    for ph in phones:
+    for ph in phones[0]:
         assert ph in symbols
         if ph == ",":
             new_ph.append(target_symbol)
         else:
             new_ph.append(ph)
-    return new_ph
+    return new_ph, phones[1], norm_text
 
 
 def text_to_sequence(text, language):

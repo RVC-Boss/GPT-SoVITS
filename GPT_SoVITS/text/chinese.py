@@ -5,12 +5,11 @@ import re
 import cn2an
 from pypinyin import lazy_pinyin, Style
 
-import sys
-
-sys.path.append("/data/docker/liujing04/gpt-vits/gpt-vits-master")
-
 from text.symbols import punctuation
 from text.tone_sandhi import ToneSandhi
+from text.zh_normalization.text_normlization import TextNormalizer
+
+normalizer = lambda x: cn2an.transform(x, "an2cn")
 
 current_file_path = os.path.dirname(__file__)
 pinyin_to_symbol_map = {
@@ -18,7 +17,7 @@ pinyin_to_symbol_map = {
     for line in open(os.path.join(current_file_path, "opencpop-strict.txt")).readlines()
 }
 
-import jieba.posseg as psg
+import jieba_fast.posseg as psg
 
 
 rep_map = {
@@ -151,12 +150,13 @@ def _g2p(segments):
 
 
 def text_normalize(text):
-    numbers = re.findall(r"\d+(?:\.?\d+)?", text)
-    for number in numbers:
-        text = text.replace(number, cn2an.an2cn(number), 1)
-    text = replace_punctuation(text)
-
-    return text
+    # https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization
+    tx = TextNormalizer()
+    sentences = tx.normalize(text)
+    dest_text = ""
+    for sentence in sentences:
+        dest_text += replace_punctuation(sentence)
+    return dest_text
 
 
 if __name__ == "__main__":

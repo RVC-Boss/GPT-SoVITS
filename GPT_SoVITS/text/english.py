@@ -9,7 +9,9 @@ from text import symbols
 
 current_file_path = os.path.dirname(__file__)
 CMU_DICT_PATH = os.path.join(current_file_path, "cmudict.rep")
-CACHE_PATH = os.path.join(current_file_path, "cmudict_cache.pickle")
+CMU_DICT_FAST_PATH = os.path.join(current_file_path, "cmudict-fast.rep")
+CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
+CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
 _g2p = G2p()
 
 arpa = {
@@ -124,6 +126,59 @@ def read_dict():
     return g2p_dict
 
 
+def read_dict_new():
+    g2p_dict = {}
+    with open(CMU_DICT_PATH) as f:
+        line = f.readline()
+        line_index = 1
+        while line:
+            if line_index >= 49:
+                line = line.strip()
+                word_split = line.split("  ")
+                word = word_split[0]
+
+                syllable_split = word_split[1].split(" - ")
+                g2p_dict[word] = []
+                for syllable in syllable_split:
+                    phone_split = syllable.split(" ")
+                    g2p_dict[word].append(phone_split)
+
+            line_index = line_index + 1
+            line = f.readline()
+
+    with open(CMU_DICT_FAST_PATH) as f:
+        line = f.readline()
+        line_index = 1
+        while line:
+            if line_index >= 0:
+                line = line.strip()
+                word_split = line.split(" ")
+                word = word_split[0]
+                if word not in g2p_dict:
+                    g2p_dict[word] = []
+                    g2p_dict[word].append(word_split[1:])
+
+            line_index = line_index + 1
+            line = f.readline()
+
+    with open(CMU_DICT_HOT_PATH) as f:
+        line = f.readline()
+        line_index = 1
+        while line:
+            if line_index >= 0:
+                line = line.strip()
+                word_split = line.split(" ")
+                word = word_split[0]
+                #if word not in g2p_dict:
+                g2p_dict[word] = []
+                g2p_dict[word].append(word_split[1:])
+
+            line_index = line_index + 1
+            line = f.readline()
+    
+    return g2p_dict
+
+
 def cache_dict(g2p_dict, file_path):
     with open(file_path, "wb") as pickle_file:
         pickle.dump(g2p_dict, pickle_file)
@@ -134,7 +189,7 @@ def get_dict():
         with open(CACHE_PATH, "rb") as pickle_file:
             g2p_dict = pickle.load(pickle_file)
     else:
-        g2p_dict = read_dict()
+        g2p_dict = read_dict_new()
         cache_dict(g2p_dict, CACHE_PATH)
 
     return g2p_dict
