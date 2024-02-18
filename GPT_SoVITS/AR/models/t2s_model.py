@@ -337,7 +337,7 @@ class Text2SemanticDecoder(nn.Module):
 
         # AR Decoder
         y = prompts
-        prefix_len = y.shape[1]
+        
         x_len = x.shape[1]
         x_attn_mask = torch.zeros((x_len, x_len), dtype=torch.bool)
         stop = False
@@ -353,47 +353,41 @@ class Text2SemanticDecoder(nn.Module):
             "first_infer": 1,
             "stage": 0,
         }
-        for idx in tqdm(range(1500)):
-            if cache["first_infer"] == 1:
-                y_emb = self.ar_audio_embedding(y)
-            else:
-                y_emb = torch.cat(
-                    [cache["y_emb"], self.ar_audio_embedding(y[:, -1:])], 1
-                )
-            cache["y_emb"] = y_emb
+        ###################  first step ##########################
+        if y is not None:
+            y_emb = self.ar_audio_embedding(y)
+            y_len = y_emb.shape[1]
+            prefix_len = y.shape[1]
             y_pos = self.ar_audio_position(y_emb)
-            # x 和逐渐增长的 y 一起输入给模型
-            if cache["first_infer"] == 1:
-                xy_pos = torch.concat([x, y_pos], dim=1)
-            else:
-                xy_pos = y_pos[:, -1:]
-            y_len = y_pos.shape[1]
-            ###以下3个不做缓存
-            if cache["first_infer"] == 1:
-                x_attn_mask_pad = F.pad(
+            xy_pos = torch.concat([x, y_pos], dim=1)
+            cache["y_emb"] = y_emb
+            ref_free = False
+        else:
+            y_emb = None
+            y_len = 0
+            prefix_len = 0
+            y_pos = None
+            xy_pos = x
+            y = torch.zeros(x.shape[0], 0, dtype=torch.int, device=x.device)
+            ref_free = True
+
+        x_attn_mask_pad = F.pad(
                     x_attn_mask,
                     (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
                     value=True,
                 )
-                y_attn_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
-                    torch.triu(torch.ones(y_len, y_len, dtype=torch.bool), diagonal=1),
-                    (x_len, 0),
-                    value=False,
-                )
-                xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).to(
-                    y.device
-                )
-            else:
-                ###最右边一列（是错的）
-                # xy_attn_mask=torch.ones((1, x_len+y_len), dtype=torch.bool,device=xy_pos.device)
-                # xy_attn_mask[:,-1]=False
-                ###最下面一行（是对的）
-                xy_attn_mask = torch.zeros(
-                    (1, x_len + y_len), dtype=torch.bool, device=xy_pos.device
-                )
-            # pdb.set_trace()
-            ###缓存重头戏
-            # print(1111,xy_pos.shape,xy_attn_mask.shape,x_len,y_len)
+        y_attn_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
+            torch.triu(torch.ones(y_len, y_len, dtype=torch.bool), diagonal=1),
+            (x_len, 0),
+            value=False,
+        )
+        xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).to(
+            x.device
+        )
+        
+
+        for idx in tqdm(range(1500)):
+            
             xy_dec, _ = self.h((xy_pos, None), mask=xy_attn_mask, cache=cache)
             logits = self.ar_predict_layer(
                 xy_dec[:, -1]
@@ -404,6 +398,10 @@ class Text2SemanticDecoder(nn.Module):
             samples = sample(
                 logits[0], y, top_k=top_k, top_p=top_p, repetition_penalty=1.35, temperature=temperature
             )[0].unsqueeze(0)
+            # 本次生成的 semantic_ids 和之前的 y 构成新的 y
+            # print(samples.shape)#[1,1]#第一个1是bs
+            y = torch.concat([y, samples], dim=1) 
+
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
                 print("use early stop num:", early_stop_num)
                 stop = True
@@ -412,13 +410,38 @@ class Text2SemanticDecoder(nn.Module):
                 # print(torch.argmax(logits, dim=-1)[0] == self.EOS, samples[0, 0] == self.EOS)
                 stop = True
             if stop:
-                if prompts.shape[1] == y.shape[1]:
+                # if prompts.shape[1] == y.shape[1]:
+                #     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
+                #     print("bad zero prediction")
+                if y.shape[1]==0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
                     print("bad zero prediction")
                 print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 break
-            # 本次生成的 semantic_ids 和之前的 y 构成新的 y
-            # print(samples.shape)#[1,1]#第一个1是bs
-            y = torch.concat([y, samples], dim=1)
+            
+            ####################### update next step ###################################
             cache["first_infer"] = 0
-        return y, idx
+            if cache["y_emb"] is not None:
+                y_emb = torch.cat(
+                    [cache["y_emb"], self.ar_audio_embedding(y[:, -1:])], dim = 1
+                )
+                cache["y_emb"] = y_emb
+                y_pos = self.ar_audio_position(y_emb)
+                xy_pos = y_pos[:, -1:]
+            else:
+                y_emb = self.ar_audio_embedding(y[:, -1:])
+                cache["y_emb"] = y_emb
+                y_pos = self.ar_audio_position(y_emb)
+                xy_pos = y_pos
+            y_len = y_pos.shape[1]
+
+            ###最右边一列（是错的）
+            # xy_attn_mask=torch.ones((1, x_len+y_len), dtype=torch.bool,device=xy_pos.device)
+            # xy_attn_mask[:,-1]=False
+            ###最下面一行（是对的）
+            xy_attn_mask = torch.zeros(
+                (1, x_len + y_len), dtype=torch.bool, device=xy_pos.device
+            )
+        if ref_free:
+            return y[:, :-1], 0
+        return y[:, :-1], idx-1

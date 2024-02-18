@@ -672,6 +672,7 @@ class ToneSandhi:
                 and i + 1 < len(seg)
                 and seg[i - 1][0] == seg[i + 1][0]
                 and seg[i - 1][1] == "v"
+                and seg[i + 1][1] == "v"
             ):
                 new_seg[i - 1][0] = new_seg[i - 1][0] + "一" + new_seg[i - 1][0]
             else:
