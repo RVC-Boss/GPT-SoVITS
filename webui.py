@@ -3,7 +3,7 @@ import os
 import gradio as gr
 from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
-from train_base import gpu_info, n_cpu, SoVITS_names, pretrained_sovits_name, pretrained_gpt_name, custom_sort_key, GPT_names, default_batch_size, kill_process, SoVITS_weight_root, GPT_weight_root, change_choices, change_label, change_uvr5, open_asr, change_tts_inference, open1Ba, open1Bb, close1Bb, open_slice, close_asr, open1a, close1a, open1b, close1Ba, close_slice, close1b, open1c, close1c, open1abc, close1abc, gpus
+from train_base import gpu_info, n_cpu, SoVITS_names, pretrained_sovits_name, pretrained_gpt_name, custom_sort_key, GPT_names, default_batch_size, kill_process, SoVITS_weight_root, GPT_weight_root, change_choices, change_label, change_uvr5, open_asr, open1Ba, open1Bb, close1Bb, open_slice, close_asr, open1a, close1a, open1b, close1Ba, close_slice, close1b, open1c, close1c, open1abc, close1abc, gpus
 from tools.asr.config import asr_dict
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
 from subprocess import Popen
