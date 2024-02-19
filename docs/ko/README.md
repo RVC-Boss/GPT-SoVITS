@@ -49,7 +49,7 @@ _참고: numba==0.56.4 는 python<3.11 을 필요로 합니다._
 
 MacOS 사용자는 GPU를 사용하여 훈련 및 추론을 하려면 다음 조건을 충족해야 합니다:
 
-- Apple 칩 또는 AMD GPU가 장착된 Mac
+- Apple 칩이 장착된 Mac
 - macOS 12.3 이상
 - `xcode-select --install`을 실행하여 Xcode command-line tools를 설치했습니다.
 

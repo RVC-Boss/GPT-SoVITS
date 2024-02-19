@@ -49,7 +49,7 @@ _注意: numba==0.56.4 需要 python<3.11_
 
 如果你是 Mac 用户，请先确保满足以下条件以使用 GPU 进行训练和推理：
 
-- 搭载 Apple 芯片或 AMD GPU 的 Mac
+- 搭载 Apple 芯片的 Mac
 - macOS 12.3 或更高版本
 - 已通过运行`xcode-select --install`安装 Xcode command-line tools
 
