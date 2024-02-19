@@ -562,10 +562,13 @@ def cut5(inp):
     # if not re.search(r'[^\w\s]', inp[-1]):
     # inp += '。'
     inp = inp.strip("\n")
-    punds = r'[,.;?!、，。？！;：]'
+    punds = r'[,.;?!、，。？！;：…]'
     items = re.split(f'({punds})', inp)
-    items = ["".join(group) for group in zip(items[::2], items[1::2])]
-    opt = "\n".join(items)
+    mergeitems = ["".join(group) for group in zip(items[::2], items[1::2])]
+    # 在句子不存在符号或句尾无符号的时候保证文本完整
+    if len(items)%2 == 1:
+        mergeitems.append(items[-1])
+    opt = "\n".join(mergeitems)
     return opt
 
 
