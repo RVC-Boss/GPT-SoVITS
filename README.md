@@ -107,7 +107,7 @@ For Chinese ASR (additionally), download models from [Damo ASR Model](https://mo
 
 If you are a Mac user, make sure you meet the following conditions for training and inferencing with GPU:
 
-- Mac computers with Apple silicon or AMD GPUs
+- Mac computers with Apple silicon
 - macOS 12.3 or later
 - Xcode command-line tools installed by running `xcode-select --install`
 
