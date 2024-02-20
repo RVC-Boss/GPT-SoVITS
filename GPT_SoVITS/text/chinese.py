@@ -34,6 +34,8 @@ rep_map = {
     "$": ".",
     "/": ",",
     "—": "-",
+    "~": "…",
+    "～":"…",
 }
 
 tone_modifier = ToneSandhi()
