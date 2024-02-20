@@ -245,7 +245,7 @@ def get_phones_and_bert(text,language):
             formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
         else:
             # 因无法区别中日文汉字,以用户输入为准
-            formattext = re.sub('[a-zA-Z]', '', text)
+            formattext = text
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
         phones, word2ph, norm_text = clean_text_inf(formattext, language)
@@ -286,7 +286,7 @@ def get_phones_and_bert(text,language):
             bert_list.append(bert)
         bert = torch.cat(bert_list, dim=1)
         phones = sum(phones_list, [])
-        norm_text = ' '.join(norm_text_list)
+        norm_text = ''.join(norm_text_list)
 
     return phones,bert.to(dtype),norm_text
 
@@ -375,6 +375,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         if (text[-1] not in splits): text += "。" if text_language != "en" else "."
         print(i18n("实际输入的目标文本(每句):"), text)
         phones2,bert2,norm_text2=get_phones_and_bert(text, text_language)
+        print(i18n("前端处理后的文本(每句):"), norm_text2)
         if not ref_free:
             bert = torch.cat([bert1, bert2], 1)
             all_phoneme_ids = torch.LongTensor(phones1+phones2).to(device).unsqueeze(0)
