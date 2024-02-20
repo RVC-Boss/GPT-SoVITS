@@ -245,7 +245,7 @@ def get_phones_and_bert(text,language):
             formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
         else:
             # 因无法区别中日文汉字,以用户输入为准
-            formattext = text
+            formattext = re.sub('[a-zA-Z]', '', text)
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
         phones, word2ph, norm_text = clean_text_inf(formattext, language)
