@@ -481,7 +481,7 @@ def handle_change_refer(path, text, language):
     return JSONResponse({"code": 0, "message": "Success"}, status_code=200)
 
 
-def handle_refer(refer_wav_path, prompt_text, prompt_language, text, text_language):
+def handle_infer(refer_wav_path, prompt_text, prompt_language, text, text_language):
     if (  # 缺任意一个
             not refer_wav_path
             or not prompt_text
@@ -631,7 +631,7 @@ async def change_refer(
 @app.post("/")
 async def tts_endpoint(request: Request):
     json_post_raw = await request.json()
-    return handle_refer(
+    return handle_infer(
         json_post_raw.get("refer_wav_path"),
         json_post_raw.get("prompt_text"),
         json_post_raw.get("prompt_language"),
@@ -648,7 +648,7 @@ async def tts_endpoint(
         text: str = None,
         text_language: str = None,
 ):
-    return handle_refer(refer_wav_path, prompt_text, prompt_language, text, text_language)
+    return handle_infer(refer_wav_path, prompt_text, prompt_language, text, text_language)
 
 
 if __name__ == "__main__":
