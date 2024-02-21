@@ -6,7 +6,7 @@ import torch
 sovits_path = ""
 gpt_path = ""
 is_half_str = os.environ.get("is_half", "True")
-is_half = True if is_half_str.lower() == 'true' else False
+is_half = True if is_half_str.lower() == 'true' and not torch.backends.mps.is_available() else False
 is_share_str = os.environ.get("is_share","False")
 is_share= True if is_share_str.lower() == 'true' else False
 
