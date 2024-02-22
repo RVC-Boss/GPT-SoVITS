@@ -125,6 +125,16 @@
 
 2-修复中文文本前端bug https://github.com/RVC-Boss/GPT-SoVITS/issues/475
 
+### 20240221更新
+
+1-数据处理添加语音降噪选项
+
+2-中文日文前端处理优化 https://github.com/RVC-Boss/GPT-SoVITS/pull/559 https://github.com/RVC-Boss/GPT-SoVITS/pull/556 https://github.com/RVC-Boss/GPT-SoVITS/pull/532 https://github.com/RVC-Boss/GPT-SoVITS/pull/507 https://github.com/RVC-Boss/GPT-SoVITS/pull/509
+
+3-mac CPU推理更快因此把推理设备从mps改到CPU
+
+4-colab修复不开启公网url
+
 todolist：
 
 1-中文多音字推理优化
