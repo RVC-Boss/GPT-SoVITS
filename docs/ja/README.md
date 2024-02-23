@@ -17,10 +17,6 @@
 
 ---
 
-> [デモ動画](https://www.bilibili.com/video/BV12g4y1m7Uw)をチェック！
-
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
-
 ## 機能:
 
 1. **ゼロショット TTS:** 5 秒間のボーカルサンプルを入力すると、即座にテキストから音声に変換されます。
@@ -31,48 +27,27 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 4. **WebUI ツール:** 統合されたツールには、音声伴奏の分離、トレーニングセットの自動セグメンテーション、中国語 ASR、テキストラベリングが含まれ、初心者がトレーニングデータセットと GPT/SoVITS モデルを作成するのを支援します。
 
-## 環境の準備
+**[デモ動画](https://www.bilibili.com/video/BV12g4y1m7Uw)をチェック！**
 
-Windows ユーザーであれば（win>=10 にてテスト済み）、prezip 経由で直接インストールできます。[prezip](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) をダウンロードして解凍し、go-webui.bat をダブルクリックするだけで GPT-SoVITS-WebUI が起動します。
+未見の話者数ショット微調整デモ：
 
-### Python と PyTorch のバージョン
+https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+
+## インストール
+
+### テスト済みの環境
 
 - Python 3.9, PyTorch 2.0.1, CUDA 11
 - Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple silicon, GPU)
+- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple silicon)
 
 _注記: numba==0.56.4 は py<3.11 が必要です_
 
-### Mac ユーザーへ
+### Windows
 
-如果あなたが Mac ユーザーである場合、GPU を使用してトレーニングおよび推論を行うために以下の条件を満たしていることを確認してください：
+Windows ユーザーの場合（win>=10 でテスト済み）、[事前にパッケージ化されたディストリビューション](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)を直接ダウンロードし、_go-webui.bat_ をダブルクリックして GPT-SoVITS-WebUI を起動することができます。
 
-- Apple シリコンを搭載した Mac コンピューター
-- macOS 12.3 以降
-- `xcode-select --install`を実行してインストールされた Xcode コマンドラインツール
-
-_その他の Mac は CPU のみで推論を行うことができます。_
-
-次に、以下のコマンドを使用してインストールします：
-
-#### 環境作成
-
-```bash
-conda create -n GPTSoVits python=3.9
-conda activate GPTSoVits
-```
-
-#### Pip パッケージ
-
-```bash
-pip install -r requirements.txt
-pip uninstall torch torchaudio
-pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
-```
-
-_注記: UVR5 を使用して前処理を行う場合は、[オリジナルプロジェクトの GUI をダウンロード](https://github.com/Anjok07/ultimatevocalremovergui)して、「GPU Conversion」を選択することをお勧めします。さらに、特に推論時にメモリリークの問題が発生する可能性があります。推論 webUI を再起動することでメモリを解放することができます。_
-
-### Conda によるクイックインストール
+### Linux
 
 ```bash
 conda create -n GPTSoVits python=3.9
@@ -80,15 +55,37 @@ conda activate GPTSoVits
 bash install.sh
 ```
 
+### macOS
+
+モデルをトレーニングできるMacは、以下の条件を満たす必要があります：
+
+- Appleシリコンを搭載したMacコンピュータ
+- macOS 12.3以降
+- `xcode-select --install`を実行してインストールされたXcodeコマンドラインツール
+
+**すべてのMacはCPUを使用して推論を行うことができ、GPU推論よりも優れていることが実証されています。**
+
+まず、`brew install ffmpeg`または`conda install ffmpeg`を実行してFFmpegをインストールしたことを確認してください。次に、以下のコマンドを使用してインストールします：
+
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+
+pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+pip install -r requirements.txt
+```
+
+_注：PyTorch Nightlyをインストールした場合にのみ、モデルのトレーニングが可能です。_
+
 ### 手動インストール
 
-#### Pip パッケージ
+#### 依存関係をインストールします
 
 ```bash
 pip install -r requirementx.txt
 ```
 
-#### FFmpeg
+#### FFmpegをインストールします。
 
 ##### Conda ユーザー
 
@@ -102,12 +99,6 @@ conda install ffmpeg
 sudo apt install ffmpeg
 sudo apt install libsox-dev
 conda install -c conda-forge 'ffmpeg<7'
-```
-
-##### MacOS ユーザー
-
-```bash
-brew install ffmpeg
 ```
 
 ##### Windows ユーザー
@@ -141,7 +132,7 @@ docker compose -f "docker-compose.yaml" up -d
 docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
 ```
 
-### 事前訓練済みモデル
+## 事前訓練済みモデル
 
 [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) から事前訓練済みモデルをダウンロードし、`GPT_SoVITSpretrained_models` に置きます。
 
