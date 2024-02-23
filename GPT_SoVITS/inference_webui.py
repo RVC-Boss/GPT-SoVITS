@@ -399,58 +399,39 @@ def cut2(language_splits):
 # 按中文句号。切
 def cut3(language_splits):
     sentences_list = []
-    sentences = []
 
     for lang_block in language_splits:
         text_parts = lang_block['text'].split('。')
 
-        if len(text_parts) == 1:
-            sentences.append({'lang': lang_block['lang'], 'text': lang_block['text']})
-        else :
-            for i, part in enumerate(text_parts):
-                if i == 0:
-                    sentences.append({'lang': lang_block['lang'], 'text': part + "。"})
-                    sentences_list.append(sentences)
-                    sentences = []
-                elif i < len(text_parts) - 1:
-                    sentences.append({'lang': lang_block['lang'], 'text': part + "。"})
-                    sentences_list.append(sentences)
-                    sentences = []
-                elif part and not part.isspace():
-                    sentences.append({'lang': lang_block['lang'], 'text': part})
-        
-    if sentences:
-        sentences_list.append(sentences)
+        if len(text_parts) <= 1:
+            sentences_list.append([{'lang': lang_block['lang'], 'text': lang_block['text']}])
+        else:
+            for i, part in enumerate(text_parts[:-1]): 
+                sentences_list.append([{'lang': lang_block['lang'], 'text': part.strip() + "。"}])
+
+            last_part = text_parts[-1].strip()
+            if last_part:
+                sentences_list.append([{'lang': lang_block['lang'], 'text': last_part}])
 
     return sentences_list
-
 
 # cut4
 # 按英文句号.切
 def cut4(language_splits):
     sentences_list = []
-    sentences = []
 
     for lang_block in language_splits:
         text_parts = lang_block['text'].split('.')
 
-        if len(text_parts) == 1:
-            sentences.append({'lang': lang_block['lang'], 'text': lang_block['text']})
-        else :
-            for i, part in enumerate(text_parts):
-                if i == 0:
-                    sentences.append({'lang': lang_block['lang'], 'text': part + "."})
-                    sentences_list.append(sentences)
-                    sentences = []
-                elif i < len(text_parts) - 1:
-                    sentences.append({'lang': lang_block['lang'], 'text': part + "."})
-                    sentences_list.append(sentences)
-                    sentences = []
-                elif part and not part.isspace():
-                    sentences.append({'lang': lang_block['lang'], 'text': part})
-        
-    if sentences:
-        sentences_list.append(sentences)
+        if len(text_parts) <= 1:
+            sentences_list.append([{'lang': lang_block['lang'], 'text': lang_block['text']}])
+        else:
+            for i, part in enumerate(text_parts[:-1]): 
+                sentences_list.append([{'lang': lang_block['lang'], 'text': part.strip() + "."}])
+
+            last_part = text_parts[-1].strip()
+            if last_part:
+                sentences_list.append([{'lang': lang_block['lang'], 'text': last_part}])
 
     return sentences_list
 
