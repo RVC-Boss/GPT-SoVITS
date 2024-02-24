@@ -435,7 +435,6 @@ def cut5(language_splits):
     sentences = []
 
     for lang_block in language_splits:
-        # text_parts = lang_block['text'].split('.')
         punds = r'[,.;?!、，。？！;：…]'
         text_parts = re.split(f'({punds})', lang_block['text'])
         if len(text_parts) == 1:
@@ -526,8 +525,6 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         prompt_text = prompt_text.strip("\n")
         if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
         print(i18n("实际输入的参考文本:"), prompt_text)
-
-    text = text.replace("\\n","")
     text = text.replace("\n","")
     if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
     
