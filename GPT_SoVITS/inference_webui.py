@@ -337,15 +337,7 @@ def cut1(language_splits):
             sentences.append({'lang': lang_block['lang'], 'text': lang_block['text']})
         else :
             for i, part in enumerate(text_parts):
-                if i == 0:
-                    sentences.append({'lang': lang_block['lang'], 'text': part + '.'})
-                    if part and not part.isspace():
-                        sentences_count += 1
-                    if sentences_count >=4:
-                        sentences_list.append(sentences)
-                        sentences = []
-                        sentences_count = 0
-                elif i < len(text_parts) - 1:
+                if i < len(text_parts) - 1:
                     sentences.append({'lang': lang_block['lang'], 'text': part + '.'})
                     if part and not part.isspace():
                         sentences_count += 1
