@@ -490,8 +490,9 @@ def merge_fragments(sentences_list):
 
     prev_list = None
     for sublist in sentences_list:
-        if len(sublist) == 1 and len(sublist[0]['text']) < 2 and prev_list is not None:
-            prev_list.extend(sublist)
+        if len(sublist) == 1 and len(sublist[0]['text']) < 2:
+            if prev_list is not None:
+                prev_list.extend(sublist)
         else:
             new_sentences_list.append(sublist)
             prev_list = sublist
@@ -569,6 +570,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         texts = cut4(texts)
     elif (how_to_cut == i18n("按标点符号切")):
         texts = cut5(texts)
+    else:
+        texts = [texts]
 
     texts = merge_fragments(texts)
 
