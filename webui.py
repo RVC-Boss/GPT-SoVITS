@@ -166,7 +166,7 @@ def open_uvr5():
     if p_uvr5 is None:
         cmd = '"%s" tools/uvr5/webui.py "%s" %s %s %s'%(python_exec,infer_device,is_half,webui_port_uvr5,is_share)
         print(cmd)
-        yield i18n("UVR5 进程开启中"), {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
+        yield i18n("UVR5 进程已开启，等待页面跳转。"), {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
         p_uvr5 = Popen(cmd, shell=True)
     else:
         yield "已有正在进行的进程，需先终止才能重新开启",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
@@ -826,19 +826,22 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             label       = i18n("ASR 模型"),
                             choices     = list(asr_dict.keys()),
                             interactive = True,
-                            value="达摩 ASR (中文)"
+                            value       = "达摩 ASR (中文)",
+                            info        = "右侧两项跟随此项刷新"
                         )
                         asr_size = gr.Dropdown(
                             label       = i18n("ASR 模型尺寸"),
                             choices     = ["large"],
                             interactive = True,
-                            value="large"
+                            value       = "large",
+                            info        = '本地 (-local)/下载'
                         )
                         asr_lang = gr.Dropdown(
                             label       = i18n("ASR 语言设置"),
                             choices     = ["zh"],
                             interactive = True,
-                            value="zh"
+                            value       = "zh",
+                            info        = "自动 (auto)/指定"
                         )
                     with gr.Row():
                         asr_info = gr.Textbox(label=i18n("语音识别进程输出信息"))
