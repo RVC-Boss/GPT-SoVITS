@@ -487,15 +487,24 @@ def split_language(text,language):
 # 合并太碎的
 def merge_fragments(sentences_list):
     new_sentences_list = []
+    temp_list = []
 
-    prev_list = None
-    for sublist in sentences_list:
-        if len(sublist) == 1 and len(sublist[0]['text']) < 2:
-            if prev_list is not None:
-                prev_list.extend(sublist)
+    for sentences in sentences_list:
+        if sentences[0]['text'].strip() not in {".","。"}:
+            if temp_list:
+                temp_list.extend(sentences)
+                new_sentences_list.append(temp_list)
+                temp_list = []
+            else:
+                new_sentences_list.append(sentences)
         else:
-            new_sentences_list.append(sublist)
-            prev_list = sublist
+            temp_list.extend(sentences)
+
+    if temp_list:
+        if len(new_sentences_list) >1:
+            new_sentences_list[-1].extend(temp_list)
+        else:
+            new_sentences_list.append(temp_list)
 
     sentences_list = new_sentences_list
     new_sentences_list = []
@@ -511,7 +520,7 @@ def merge_fragments(sentences_list):
                 merged_sentences.append(entry)
                 prev_entry = entry
 
-        new_sentences_list.append(merged_sentences)        
+        new_sentences_list.append(merged_sentences)
 
     return new_sentences_list
              
