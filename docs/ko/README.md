@@ -17,12 +17,6 @@
 
 ---
 
-> 데모 비디오를 확인하세요! [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw)
-
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
-
-중국 지역의 사용자는 AutoDL 클라우드 이미지를 사용하여 체험할 수 있습니다: https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official
-
 ## 기능:
 
 1. **제로샷 텍스트 음성 변환 (TTS):** 5초의 음성 샘플을 입력하면 즉시 텍스트를 음성으로 변환할 수 있습니다.
@@ -33,46 +27,27 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 4. **WebUI 도구:** 음성 반주 분리, 자동 훈련 데이터셋 분할, 중국어 자동 음성 인식(ASR) 및 텍스트 주석 등의 도구를 통합하여 초보자가 훈련 데이터셋과 GPT/SoVITS 모델을 생성하는 데 도움을 줍니다.
 
-## 환경 준비
+**데모 비디오를 확인하세요! [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw)**
 
-Windows 사용자는 (win>=10 에서 테스트되었습니다) 미리 빌드된 파일을 다운로드하여 설치할 수 있습니다. 다운로드 후 GPT-SoVITS-WebUI를 시작하려면 압축을 풀고 go-webui.bat을 두 번 클릭하면 됩니다.
+보지 못한 발화자의 퓨샷(few-shot) 파인튜닝 데모:
 
-### 테스트된 Python 및 PyTorch 버전
+https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+
+## 설치
+
+### 테스트 통과 환경
 
 - Python 3.9, PyTorch 2.0.1 및 CUDA 11
 - Python 3.10.13, PyTorch 2.1.2 및 CUDA 12.3
-- Python 3.9, Pytorch 2.3.0.dev20240122 및 macOS 14.3 (Apple 칩, GPU)
+- Python 3.9, Pytorch 2.3.0.dev20240122 및 macOS 14.3 (Apple Slilicon)
 
 _참고: numba==0.56.4 는 python<3.11 을 필요로 합니다._
 
-### MacOS 사용자
+### Windows
 
-MacOS 사용자는 GPU를 사용하여 훈련 및 추론을 하려면 다음 조건을 충족해야 합니다:
+Windows 사용자이며 (win>=10에서 테스트 완료) [미리 패키지된 배포판](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)을 직접 다운로드하여 _go-webui.bat_을 더블클릭하면 GPT-SoVITS-WebUI를 시작할 수 있습니다.
 
-- Apple 칩이 장착된 Mac
-- macOS 12.3 이상
-- `xcode-select --install`을 실행하여 Xcode command-line tools를 설치했습니다.
-
-_다른 Mac은 CPU를 사용하여 추론만 지원합니다._
-
-그런 다음 다음 명령을 사용하여 설치합니다:
-
-#### 환경 설정
-
-```bash
-conda create -n GPTSoVits python=3.9
-conda activate GPTSoVits
-```
-
-#### 의존성 모듈 설치
-
-```bash
-pip install -r requirements.txt
-pip uninstall torch torchaudio
-pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
-```
-
-### Conda를 사용한 간편 설치
+### Linux
 
 ```bash
 conda create -n GPTSoVits python=3.9
@@ -80,15 +55,37 @@ conda activate GPTSoVits
 bash install.sh
 ```
 
+### macOS
+
+다음 조건을 충족하는 Mac에서만 모델을 훈련할 수 있습니다:
+
+- Apple 실리콘을 탑재한 Mac
+- macOS 12.3 이상 버전
+- `xcode-select --install`을 실행하여 Xcode 명령줄 도구가 설치됨
+
+**모든 Mac은 CPU를 사용하여 추론할 수 있으며, GPU 추론보다 우수한 성능을 보여주었습니다.**
+
+먼저 `brew install ffmpeg` 또는 `conda install ffmpeg`를 실행하여 FFmpeg가 설치되었는지 확인한 다음, 다음 명령어를 사용하여 설치하세요:
+
+```bash
+conda create -n GPTSoVits python=3.9
+conda activate GPTSoVits
+
+pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+pip install -r requirements.txt
+```
+
+_참고: PyTorch Nightly가 설치되어야만 모델을 훈련할 수 있습니다._
+
 ### 수동 설치
 
-#### Pip 패키지
+#### 의존성 설치
 
 ```bash
 pip install -r requirements.txt
 ```
 
-#### FFmpeg
+#### FFmpeg 설치
 
 ##### Conda 사용자
 
@@ -102,12 +99,6 @@ conda install ffmpeg
 sudo apt install ffmpeg
 sudo apt install libsox-dev
 conda install -c conda-forge 'ffmpeg<7'
-```
-
-##### MacOS 사용자
-
-```bash
-brew install ffmpeg
 ```
 
 ##### Windows 사용자
@@ -144,7 +135,7 @@ docker compose -f "docker-compose.yaml" up -d
 docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
 ```
 
-### 사전 훈련된 모델
+## 사전 훈련된 모델
 
 [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS)에서 사전 훈련된 모델을 다운로드하고 `GPT_SoVITS\pretrained_models`에 넣습니다.
 
