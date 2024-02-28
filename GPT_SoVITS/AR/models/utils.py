@@ -1,4 +1,5 @@
-# modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/model/utils.py\
+# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/utils.py
+# reference: https://github.com/lifeiteng/vall-e
 import torch
 import torch.nn.functional as F
 from typing import Tuple

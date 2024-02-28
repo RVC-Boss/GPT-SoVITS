@@ -1,4 +1,5 @@
-# modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/model/t2s_model.py
+# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/t2s_model.py
+# reference: https://github.com/lifeiteng/vall-e
 import torch
 from tqdm import tqdm
 
