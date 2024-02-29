@@ -73,8 +73,8 @@ First make sure you have installed FFmpeg by running `brew install ffmpeg` or `c
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
 
-pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 pip install -r requirements.txt
+pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 
 _Note: Training models will only work if you've installed PyTorch Nightly._
