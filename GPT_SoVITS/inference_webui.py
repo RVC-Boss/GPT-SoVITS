@@ -4,12 +4,30 @@ logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("httpcore").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
+
+logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
+logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 import pdb
-os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
-gpt_path = os.environ.get(
-    "gpt_path", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
-)
-sovits_path = os.environ.get("sovits_path", "GPT_SoVITS/pretrained_models/s2G488k.pth")
+
+if os.path.exists("./gweight.txt"):
+    with open("./gweight.txt", 'r',encoding="utf-8") as file:
+        gweight_data = file.read()
+        gpt_path = os.environ.get(
+    "gpt_path", gweight_data)
+else:
+    gpt_path = os.environ.get(
+    "gpt_path", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt")
+
+if os.path.exists("./sweight.txt"):
+    with open("./sweight.txt", 'r',encoding="utf-8") as file:
+        sweight_data = file.read()
+        sovits_path = os.environ.get("sovits_path", sweight_data)
+else:
+    sovits_path = os.environ.get("sovits_path", "GPT_SoVITS/pretrained_models/s2G488k.pth")
+# gpt_path = os.environ.get(
+#     "gpt_path", "pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
+# )
+# sovits_path = os.environ.get("sovits_path", "pretrained_models/s2G488k.pth")
 cnhubert_base_path = os.environ.get(
     "cnhubert_base_path", "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 )
@@ -62,7 +80,7 @@ def get_bert_feature(text, word2ph):
     with torch.no_grad():
         inputs = tokenizer(text, return_tensors="pt")
         for i in inputs:
-            inputs[i] = inputs[i].to(device)  #####输入是long不用管精度问题，精度随bert_model
+            inputs[i] = inputs[i].to(device)
         res = bert_model(**inputs, output_hidden_states=True)
         res = torch.cat(res["hidden_states"][-3:-2], -1)[0].cpu()[1:-1]
     assert len(word2ph) == len(text)
@@ -119,13 +137,15 @@ def change_sovits_weights(sovits_path):
         n_speakers=hps.data.n_speakers,
         **hps.model
     )
-    del vq_model.enc_q
+    if("pretrained"not in sovits_path):
+        del vq_model.enc_q
     if is_half == True:
         vq_model = vq_model.half().to(device)
     else:
         vq_model = vq_model.to(device)
     vq_model.eval()
     print(vq_model.load_state_dict(dict_s2["weight"], strict=False))
+    with open("./sweight.txt","w",encoding="utf-8")as f:f.write(sovits_path)
 change_sovits_weights(sovits_path)
 
 def change_gpt_weights(gpt_path):
@@ -142,6 +162,7 @@ def change_gpt_weights(gpt_path):
     t2s_model.eval()
     total = sum([param.nelement() for param in t2s_model.parameters()])
     print("Number of parameter: %.2fM" % (total / 1e6))
+    with open("./gweight.txt","w",encoding="utf-8")as f:f.write(gpt_path)
 change_gpt_weights(gpt_path)
 
 def get_spepc(hps, filename):
@@ -167,7 +188,84 @@ dict_language={
 }
 
 
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language):
+def splite_en_inf(sentence, language):
+    pattern = re.compile(r'[a-zA-Z. ]+')
+    textlist = []
+    langlist = []
+    pos = 0
+    for match in pattern.finditer(sentence):
+        start, end = match.span()
+        if start > pos:
+            textlist.append(sentence[pos:start])
+            langlist.append(language)
+        textlist.append(sentence[start:end])
+        langlist.append("en")
+        pos = end
+    if pos < len(sentence):
+        textlist.append(sentence[pos:])
+        langlist.append(language)
+
+    return textlist, langlist
+
+
+def clean_text_inf(text, language):
+    phones, word2ph, norm_text = clean_text(text, language)
+    phones = cleaned_text_to_sequence(phones)
+
+    return phones, word2ph, norm_text
+
+
+def get_bert_inf(phones, word2ph, norm_text, language):
+    if language == "zh":
+        bert = get_bert_feature(norm_text, word2ph).to(device)
+    else:
+        bert = torch.zeros(
+            (1024, len(phones)),
+            dtype=torch.float16 if is_half == True else torch.float32,
+        ).to(device)
+
+    return bert
+
+
+def nonen_clean_text_inf(text, language):
+    textlist, langlist = splite_en_inf(text, language)
+    phones_list = []
+    word2ph_list = []
+    norm_text_list = []
+    for i in range(len(textlist)):
+        lang = langlist[i]
+        phones, word2ph, norm_text = clean_text_inf(textlist[i], lang)
+        phones_list.append(phones)
+        if lang == "en" or "ja":
+            pass
+        else:
+            word2ph_list.append(word2ph)
+        norm_text_list.append(norm_text)
+    print(word2ph_list)
+    phones = sum(phones_list, [])
+    word2ph = sum(word2ph_list, [])
+    norm_text = ' '.join(norm_text_list)
+
+    return phones, word2ph, norm_text
+
+
+def nonen_get_bert_inf(text, language):
+    textlist, langlist = splite_en_inf(text, language)
+    print(textlist)
+    print(langlist)
+    bert_list = []
+    for i in range(len(textlist)):
+        text = textlist[i]
+        lang = langlist[i]
+        phones, word2ph, norm_text = clean_text_inf(text, lang)
+        bert = get_bert_inf(phones, word2ph, norm_text, lang)
+        bert_list.append(bert)
+    bert = torch.cat(bert_list, dim=1)
+
+    return bert
+
+#i18n("不切"),i18n("凑五句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切")
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,how_to_cut=i18n("不切")):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
     prompt_language, text = prompt_language, text.strip("\n")
@@ -196,27 +294,38 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
     t1 = ttime()
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
-    phones1, word2ph1, norm_text1 = clean_text(prompt_text, prompt_language)
-    phones1 = cleaned_text_to_sequence(phones1)
-    texts = text.split("\n")
+
+    if prompt_language == "en":
+        phones1, word2ph1, norm_text1 = clean_text_inf(prompt_text, prompt_language)
+    else:
+        phones1, word2ph1, norm_text1 = nonen_clean_text_inf(prompt_text, prompt_language)
+    if(how_to_cut==i18n("凑五句一切")):text=cut1(text)
+    elif(how_to_cut==i18n("凑50字一切")):text=cut2(text)
+    elif(how_to_cut==i18n("按中文句号。切")):text=cut3(text)
+    elif(how_to_cut==i18n("按英文句号.切")):text=cut4(text)
+    text = text.replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
+    if(text[-1]not in splits):text+="。"if text_language!="en"else "."
+    texts=text.split("\n")
     audio_opt = []
+    if prompt_language == "en":
+        bert1 = get_bert_inf(phones1, word2ph1, norm_text1, prompt_language)
+    else:
+        bert1 = nonen_get_bert_inf(prompt_text, prompt_language)
+    
     for text in texts:
         # 解决输入目标文本的空行导致报错的问题
         if (len(text.strip()) == 0):
             continue
-        phones2, word2ph2, norm_text2 = clean_text(text, text_language)
-        phones2 = cleaned_text_to_sequence(phones2)
-        if prompt_language == "zh":
-            bert1 = get_bert_feature(norm_text1, word2ph1).to(device)
+        if text_language == "en":
+            phones2, word2ph2, norm_text2 = clean_text_inf(text, text_language)
         else:
-            bert1 = torch.zeros(
-                (1024, len(phones1)),
-                dtype=torch.float16 if is_half == True else torch.float32,
-            ).to(device)
-        if text_language == "zh":
-            bert2 = get_bert_feature(norm_text2, word2ph2).to(device)
+            phones2, word2ph2, norm_text2 = nonen_clean_text_inf(text, text_language)
+
+        if text_language == "en":
+            bert2 = get_bert_inf(phones2, word2ph2, norm_text2, text_language)
         else:
-            bert2 = torch.zeros((1024, len(phones2))).to(bert1)
+            bert2 = nonen_get_bert_inf(text, text_language)
+
         bert = torch.cat([bert1, bert2], 1)
 
         all_phoneme_ids = torch.LongTensor(phones1 + phones2).to(device).unsqueeze(0)
@@ -339,6 +448,9 @@ def cut2(inp):
 def cut3(inp):
     inp = inp.strip("\n")
     return "\n".join(["%s。" % item for item in inp.strip("。").split("。")])
+def cut4(inp):
+    inp = inp.strip("\n")
+    return "\n".join(["%s." % item for item in inp.strip(".").split(".")])
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
@@ -445,17 +557,24 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             prompt_language = gr.Dropdown(
                 label=i18n("参考音频的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文")
             )
-        gr.Markdown(value=i18n("*请填写需要合成的目标文本"))
+        gr.Markdown(value=i18n("*请填写需要合成的目标文本。中英混合选中文，日英混合选日文，中日混合暂不支持，非目标语言文本自动遗弃。"))
         with gr.Row():
             text = gr.Textbox(label=i18n("需要合成的文本"), value="")
             text_language = gr.Dropdown(
                 label=i18n("需要合成的语种"),choices=[i18n("中文"),i18n("英文"),i18n("日文")],value=i18n("中文")
             )
+            how_to_cut = gr.Radio(
+                label=i18n("怎么切"),
+                choices=[i18n("不切"),i18n("凑五句一切"),i18n("凑50字一切"),i18n("按中文句号。切"),i18n("按英文句号.切"),],
+                value=i18n("凑50字一切"),
+                interactive=True,
+            )
             inference_button = gr.Button(i18n("合成语音"), variant="primary")
             output = gr.Audio(label=i18n("输出的语音"))
+
         inference_button.click(
             get_tts_wav,
-            [inp_ref, prompt_text, prompt_language, text, text_language],
+            [inp_ref, prompt_text, prompt_language, text, text_language,how_to_cut],
             [output],
         )
         history_audio = []
@@ -485,10 +604,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             button1 = gr.Button(i18n("凑五句一切"), variant="primary")
             button2 = gr.Button(i18n("凑50字一切"), variant="primary")
             button3 = gr.Button(i18n("按中文句号。切"), variant="primary")
+            button4 = gr.Button(i18n("按英文句号.切"), variant="primary")
             text_opt = gr.Textbox(label=i18n("切分后文本"), value="")
             button1.click(cut1, [text_inp], [text_opt])
             button2.click(cut2, [text_inp], [text_opt])
             button3.click(cut3, [text_inp], [text_opt])
+            button4.click(cut4, [text_inp], [text_opt])
         gr.Markdown(value=i18n("后续将支持混合语种编码文本输入。"))
 
 app.queue(concurrency_count=511, max_size=1022).launch(
