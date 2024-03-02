@@ -307,6 +307,15 @@ def merge_short_text_in_array(texts, threshold):
             result[len(result) - 1] += text
     return result
 
+def ms_to_srt_time(ms):
+    N = int(ms)
+    hours, remainder = divmod(N, 3600000)
+    minutes, remainder = divmod(remainder, 60000)
+    seconds, milliseconds = divmod(remainder, 1000)
+    timesrt = f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
+    # print(timesrt)
+    return timesrt
+	
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False):
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
@@ -364,6 +373,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     texts = text.split("\n")
     texts = merge_short_text_in_array(texts, 5)
     audio_opt = []
+    audio_samples = 0
+    srtlines = []
+	
     if not ref_free:
         phones1,bert1,norm_text1=get_phones_and_bert(prompt_text, prompt_language)
 
@@ -419,14 +431,31 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 .numpy()[0, 0]
         )  ###试试重建不带上prompt部分
         max_audio=np.abs(audio).max()#简单防止16bit爆音
+
+        srtline_begin=ms_to_srt_time(audio_samples*1000.0 / hps.data.sampling_rate)
+        audio_samples += audio.size + zero_wav.size
+        srtline_end=ms_to_srt_time(audio_samples*1000.0 / hps.data.sampling_rate)
+        
         if max_audio>1:audio/=max_audio
         audio_opt.append(audio)
         audio_opt.append(zero_wav)
+
+        srtlines.append(f"{len(audio_opt):02d}\n")
+        srtlines.append(srtline_begin+' --> '+srtline_end+"\n")
+
+        if (text[-1] in ['.', '。']): text = text[:-1]
+        if (text[0] in ['.', '。']): text = text[1:]
+
+        srtlines.append(text+"\n\n")
+
         t4 = ttime()
     print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t3 - t2, t4 - t3))
     yield hps.data.sampling_rate, (np.concatenate(audio_opt, 0) * 32768).astype(
         np.int16
     )
+
+    with open('c:/tts-out.srt', 'w', encoding='utf-8') as f:
+        f.writelines(srtlines)
 
 
 def split(todo_text):
