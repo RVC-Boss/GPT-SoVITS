@@ -258,11 +258,15 @@ def get_phones_and_bert(text,language):
     elif language in {"zh", "ja","auto"}:
         textlist=[]
         langlist=[]
-        LangSegment.setfilters(["zh","ja","en"])
+        LangSegment.setfilters(["zh","ja","en","ko"])
         if language == "auto":
             for tmp in LangSegment.getTexts(text):
-                langlist.append(tmp["lang"])
-                textlist.append(tmp["text"])
+                if tmp["lang"] == "ko":
+                    langlist.append("zh")
+                    textlist.append(tmp["text"])
+                else:
+                    langlist.append(tmp["lang"])
+                    textlist.append(tmp["text"])
         else:
             for tmp in LangSegment.getTexts(text):
                 if tmp["lang"] == "en":
