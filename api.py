@@ -490,7 +490,7 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language):
             torch.mps.empty_cache()
         return StreamingResponse(wav, media_type="audio/wav")
     except Exception as e:
-        return JSONResponse({"code": 400, "message": f"error: {e}"}, status_code=400)
+        return JSONResponse({"code": 500, "message": f"error: {e}"}, status_code=500)
 
 
 app = FastAPI()
