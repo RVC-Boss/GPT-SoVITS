@@ -133,7 +133,6 @@ def mel_spectrogram_torch(
     )
     y = y.squeeze(1)
 
-
     spec = torch.stft(
         y,
         n_fft,
