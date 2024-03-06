@@ -4,6 +4,7 @@ os.environ["HF_ENDPOINT"]="https://hf-mirror.com"
 import traceback
 import requests
 from glob import glob
+import torch
 
 from faster_whisper import WhisperModel
 from tqdm import tqdm
@@ -45,8 +46,9 @@ def execute_asr(input_folder, output_folder, model_size, language,precision):
     if language == 'auto':
         language = None #不设置语种由模型自动输出概率最高的语种
     print("loading faster whisper model:",model_size,model_path)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     try:
-        model = WhisperModel(model_path, device="cuda", compute_type=precision)
+        model = WhisperModel(model_path, device=device, compute_type=precision)
     except:
         return print(traceback.format_exc())
     output = []
