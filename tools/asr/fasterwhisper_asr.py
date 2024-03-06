@@ -4,12 +4,12 @@ os.environ["HF_ENDPOINT"]="https://hf-mirror.com"
 import traceback
 import requests
 from glob import glob
+import torch
 
 from faster_whisper import WhisperModel
 from tqdm import tqdm
 
 from tools.asr.config import check_fw_local_models
-from tools.asr.funasr_asr import only_asr
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -45,8 +45,9 @@ def execute_asr(input_folder, output_folder, model_size, language,precision):
     if language == 'auto':
         language = None #不设置语种由模型自动输出概率最高的语种
     print("loading faster whisper model:",model_size,model_path)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     try:
-        model = WhisperModel(model_path, device="cuda", compute_type=precision)
+        model = WhisperModel(model_path, device=device, compute_type=precision)
     except:
         return print(traceback.format_exc())
     output = []
@@ -68,6 +69,8 @@ def execute_asr(input_folder, output_folder, model_size, language,precision):
 
             if info.language == "zh":
                 print("检测为中文文本,转funasr处理")
+                if("only_asr"not in globals()):
+                    from tools.asr.funasr_asr import only_asr##如果用英文就不需要导入下载模型
                 text = only_asr(file)
 
             if text == '':

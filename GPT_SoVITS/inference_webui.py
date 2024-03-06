@@ -258,11 +258,15 @@ def get_phones_and_bert(text,language):
     elif language in {"zh", "ja","auto"}:
         textlist=[]
         langlist=[]
-        LangSegment.setfilters(["zh","ja","en"])
+        LangSegment.setfilters(["zh","ja","en","ko"])
         if language == "auto":
             for tmp in LangSegment.getTexts(text):
-                langlist.append(tmp["lang"])
-                textlist.append(tmp["text"])
+                if tmp["lang"] == "ko":
+                    langlist.append("zh")
+                    textlist.append(tmp["text"])
+                else:
+                    langlist.append(tmp["lang"])
+                    textlist.append(tmp["text"])
         else:
             for tmp in LangSegment.getTexts(text):
                 if tmp["lang"] == "en":
@@ -580,7 +584,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 interactive=True,
             )
             with gr.Row():
-                gr.Markdown("gpt采样参数(无参考文本时不要太低)：")
+                gr.Markdown(value=i18n("gpt采样参数(无参考文本时不要太低)："))
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
                 temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True)
