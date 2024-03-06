@@ -10,7 +10,6 @@ from faster_whisper import WhisperModel
 from tqdm import tqdm
 
 from tools.asr.config import check_fw_local_models
-from tools.asr.funasr_asr import only_asr
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -70,6 +69,8 @@ def execute_asr(input_folder, output_folder, model_size, language,precision):
 
             if info.language == "zh":
                 print("检测为中文文本,转funasr处理")
+                if("only_asr"not in globals()):
+                    from tools.asr.funasr_asr import only_asr##如果用英文就不需要导入下载模型
                 text = only_asr(file)
 
             if text == '':
