@@ -137,7 +137,7 @@
 
 ### 20240306更新
 
-1-推理加速50%（RTX3090+pytorch2.2.1+cu11.8tested）https://github.com/RVC-Boss/GPT-SoVITS/pull/672
+1-推理加速50%（RTX3090+pytorch2.2.1+cu11.8+win10+py39 tested）https://github.com/RVC-Boss/GPT-SoVITS/pull/672
 
 2-如果用faster whisper非中文ASR不再需要先下中文funasr模型
 
