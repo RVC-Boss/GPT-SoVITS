@@ -14,10 +14,13 @@ set PATH=%GIT_PATH%;%PATH%
 :: 切换到仓库目录
 cd /d %REPO_PATH%
 
-:: 执行 git pull 更新本地仓库
+echo 强制覆盖所有子模块
+git submodule update --init --recursive
+git submodule foreach --recursive "git fetch origin && git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)"
+
+echo 执行 git pull 更新本地仓库
 git fetch https://github.com/X-T-E-R/GPT-SoVITS-Inference.git main
 git reset --hard FETCH_HEAD
-git submodule update --init --recursive
 
 echo.
 echo 更新完成！

@@ -14,7 +14,10 @@ set PATH=%GIT_PATH%;%PATH%
 :: 切换到仓库目录
 cd /d %REPO_PATH%
 
-:: 执行 git pull 更新本地仓库
+echo 更新所有子模块
+git submodule update --init --recursive
+
+echo 执行 git pull 更新本地仓库
 git stash
 git pull https://github.com/X-T-E-R/GPT-SoVITS-Inference.git main
 
