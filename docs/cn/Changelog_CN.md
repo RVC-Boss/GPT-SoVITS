@@ -135,6 +135,19 @@
 
 4-colab修复不开启公网url
 
+### 20240306更新
+
+1-推理加速50%（RTX3090+pytorch2.2.1+cu11.8+win10+py39 tested）https://github.com/RVC-Boss/GPT-SoVITS/pull/672
+
+2-如果用faster whisper非中文ASR不再需要先下中文funasr模型
+
+3-修复uvr5去混响模型 是否混响 反的 https://github.com/RVC-Boss/GPT-SoVITS/pull/610
+
+4-faster whisper如果无cuda可用自动cpu推理 https://github.com/RVC-Boss/GPT-SoVITS/pull/675
+
+5-修改is_half的判断使在Mac上能正常CPU推理 https://github.com/RVC-Boss/GPT-SoVITS/pull/573
+
+
 todolist：
 
 1-中文多音字推理优化
