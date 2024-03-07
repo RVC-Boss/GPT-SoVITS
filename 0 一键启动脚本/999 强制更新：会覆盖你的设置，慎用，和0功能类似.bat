@@ -17,6 +17,7 @@ cd /d %REPO_PATH%
 :: 执行 git pull 更新本地仓库
 git fetch https://github.com/X-T-E-R/GPT-SoVITS-Inference.git main
 git reset --hard FETCH_HEAD
+git submodule update --init --recursive
 
 echo.
 echo 更新完成！
