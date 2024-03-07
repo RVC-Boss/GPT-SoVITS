@@ -16,7 +16,7 @@ cd /d %REPO_PATH%
 
 echo 强制覆盖所有子模块
 git submodule update --init --recursive
-git submodule foreach --recursive "git fetch origin && git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)"
+git submodule foreach --recursive "git fetch origin plug_in && git reset --hard origin/plug_in"
 
 echo 执行 git pull 更新本地仓库
 git fetch https://github.com/X-T-E-R/GPT-SoVITS-Inference.git main
