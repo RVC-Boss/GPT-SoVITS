@@ -33,6 +33,8 @@ Unseen speakers few-shot fine-tuning demo:
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
+[教程中文版](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) [User guide (EN)](https://rentry.co/GPT-SoVITS-guide#/)
+
 ## Installation
 
 For users in China region, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
