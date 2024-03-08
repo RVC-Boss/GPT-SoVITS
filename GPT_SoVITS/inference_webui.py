@@ -68,7 +68,7 @@ tts_pipline = TTS(tts_config)
 gpt_path = tts_config.t2s_weights_path
 sovits_path = tts_config.vits_weights_path
 
-def inference(text, text_lang, ref_audio_path, prompt_text, prompt_lang, top_k, top_p, temperature, text_split_method, batch_size):
+def inference(text, text_lang, ref_audio_path, prompt_text, prompt_lang, top_k, top_p, temperature, text_split_method, batch_size, speed_factor):
     inputs={
         "text": text,
         "text_lang": dict_language[text_lang],
@@ -80,6 +80,7 @@ def inference(text, text_lang, ref_audio_path, prompt_text, prompt_lang, top_k, 
         "temperature": temperature,
         "text_split_method": cut_method[text_split_method],
         "batch_size":int(batch_size),
+        "speed_factor":float(speed_factor)
     }
     yield next(tts_pipline.run(inputs))
 
@@ -154,6 +155,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 gr.Markdown(value=i18n("gpt采样参数(无参考文本时不要太低)："))
                 batch_size = gr.Slider(minimum=1,maximum=20,step=1,label=i18n("batch_size"),value=1,interactive=True)
+                speed_factor = gr.Slider(minimum=0.25,maximum=4,step=0.05,label="speed_factor",value=1.0,interactive=True)
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
                 temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True)
@@ -165,7 +167,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
 
         inference_button.click(
             inference,
-            [text,text_language, inp_ref, prompt_text, prompt_language, top_k, top_p, temperature, how_to_cut, batch_size],
+            [text,text_language, inp_ref, prompt_text, prompt_language, top_k, top_p, temperature, how_to_cut, batch_size, speed_factor],
             [output],
         )
 

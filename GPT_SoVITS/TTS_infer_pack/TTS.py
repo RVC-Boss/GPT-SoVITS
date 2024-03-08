@@ -1,5 +1,6 @@
 import os, sys
 
+import ffmpeg
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import os
@@ -405,7 +406,8 @@ class TTS:
                     "temperature": 0.6,
                     "text_split_method": "",
                     "batch_size": 1,
-                    "batch_threshold": 0.75
+                    "batch_threshold": 0.75,
+                    "speed_factor":1.0,
                 }
         returns:
             tulpe[int, np.ndarray]: sampling rate and audio data.
@@ -421,6 +423,7 @@ class TTS:
         text_split_method:str = inputs.get("text_split_method", "")
         batch_size = inputs.get("batch_size", 1)
         batch_threshold = inputs.get("batch_threshold", 0.75)
+        speed_factor = inputs.get("speed_factor", 1.0)
         
         no_prompt_text = False
         if prompt_text in [None, ""]:
@@ -548,7 +551,34 @@ class TTS:
             
         audio = self.recovery_order(audio, batch_index_list)
         print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t_34, t_45))
-        yield self.configs.sampling_rate, (np.concatenate(audio, 0) * 32768).astype(
-            np.int16
-        )
+        
+        audio = np.concatenate(audio, 0)
+        audio = (audio * 32768).astype(np.int16) 
+        if speed_factor != 1.0:
+            audio = speed_change(audio, speed=speed_factor, sr=int(self.configs.sampling_rate))
+            
+        yield self.configs.sampling_rate, audio
        
+       
+       
+       
+def speed_change(input_audio:np.ndarray, speed:float, sr:int):
+    # 将 NumPy 数组转换为原始 PCM 流
+    raw_audio = input_audio.astype(np.int16).tobytes()
+
+    # 设置 ffmpeg 输入流
+    input_stream = ffmpeg.input('pipe:', format='s16le', acodec='pcm_s16le', ar=str(sr), ac=1)
+
+    # 变速处理
+    output_stream = input_stream.filter('atempo', speed)
+
+    # 输出流到管道
+    out, _ = (
+        output_stream.output('pipe:', format='s16le', acodec='pcm_s16le')
+        .run(input=raw_audio, capture_stdout=True, capture_stderr=True)
+    )
+
+    # 将管道输出解码为 NumPy 数组
+    processed_audio = np.frombuffer(out, np.int16)
+
+    return processed_audio
