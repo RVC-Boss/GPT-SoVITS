@@ -321,6 +321,11 @@ class Text2SemanticDecoder(nn.Module):
         # 错位
         return targets[:, :-1], targets[:, 1:]
 
+    def check_end(self, logits, samples):
+        if torch.all(torch.argmax(logits, dim=-1) == self.EOS) or torch.all(samples[:, 0] == self.EOS):
+
+            return True
+
     def infer_panel(
         self,
         x,  #####全部文本token
@@ -338,8 +343,8 @@ class Text2SemanticDecoder(nn.Module):
 
         # AR Decoder
         y = prompts
-        
-        x_len = x.shape[1]
+        ref_y_len = y.shape[1] if y is not None else 0
+        x_len = x_lens.max()
         x_attn_mask = torch.zeros((x_len, x_len), dtype=torch.bool)
         stop = False
         # print(1111111,self.num_layers)
@@ -385,10 +390,10 @@ class Text2SemanticDecoder(nn.Module):
         xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).to(
             x.device
         )
-        
+        batch_end_index = [0 for _ in range(x.shape[0])]
 
         for idx in tqdm(range(1500)):
-            
+
             xy_dec, _ = self.h((xy_pos, None), mask=xy_attn_mask, cache=cache)
             logits = self.ar_predict_layer(
                 xy_dec[:, -1]
@@ -397,17 +402,18 @@ class Text2SemanticDecoder(nn.Module):
             if(idx==0):###第一次跑不能EOS否则没有了
                 logits = logits[:, :-1]  ###刨除1024终止符号的概率
             samples = sample(
-                logits[0], y, top_k=top_k, top_p=top_p, repetition_penalty=1.35, temperature=temperature
-            )[0].unsqueeze(0)
+                logits, y, top_k=top_k, top_p=top_p, repetition_penalty=1.35, temperature=temperature
+            )[0]
             # 本次生成的 semantic_ids 和之前的 y 构成新的 y
             # print(samples.shape)#[1,1]#第一个1是bs
-            y = torch.concat([y, samples], dim=1) 
 
+            y = torch.concat([y, samples], dim=1) 
+            # print(y)
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
                 print("use early stop num:", early_stop_num)
                 stop = True
 
-            if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
+            if self.check_end(logits, samples):
                 # print(torch.argmax(logits, dim=-1)[0] == self.EOS, samples[0, 0] == self.EOS)
                 stop = True
             if stop:
@@ -443,6 +449,7 @@ class Text2SemanticDecoder(nn.Module):
             xy_attn_mask = torch.zeros(
                 (1, x_len + y_len), dtype=torch.bool, device=xy_pos.device
             )
+        batch_end_index = [min(torch.where(by == self.EOS)[0]) if self.EOS in by else idx for by in y ] 
         if ref_free:
-            return y[:, :-1], 0
-        return y[:, :-1], idx-1
+            return y[:, :-1], [0 for _ in range(y.shape[0])], batch_end_index
+        return y[:, :-1], [ref_y_len for _ in range(y.shape[0])], batch_end_index

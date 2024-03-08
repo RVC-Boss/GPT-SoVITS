@@ -6,6 +6,7 @@ import logging
 import json
 import subprocess
 import traceback
+from typing import List
 
 import librosa
 import numpy as np
@@ -270,7 +271,6 @@ def clean_checkpoints(path_to_models="logs/44k/", n_ckpts_to_keep=2, sort_by_tim
     del_routine = lambda x: [os.remove(x), del_info(x)]
     rs = [del_routine(fn) for fn in to_del]
 
-
 def get_hparams_from_dir(model_dir):
     config_save_path = os.path.join(model_dir, "config.json")
     with open(config_save_path, "r") as f:
@@ -330,6 +330,12 @@ def get_logger(model_dir, filename="train.log"):
     logger.addHandler(h)
     return logger
 
+
+def tensor_padding(tensor_list: List[torch.Tensor]):
+    max_len = max([t.shape[-1] for t in tensor_list])
+    tensor_list = [torch.cat([t, torch.zeros(*list(t.shape[:-1]), max_len - t.size(-1)).to(t)], dim=-1) for t in tensor_list]
+
+    return torch.cat(tensor_list, dim=0)
 
 class HParams:
     def __init__(self, **kwargs):

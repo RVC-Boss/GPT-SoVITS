@@ -297,7 +297,7 @@ class TransformerEncoderLayer(nn.Module):
                 raise AssertionError(
                     "only bool and floating types of key_padding_mask are supported"
                 )
-
+        
         if self.norm_first:
             x = x + self._sa_block(
                 self.norm1(x, stage_embedding),

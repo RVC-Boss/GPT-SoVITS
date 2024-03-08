@@ -448,10 +448,9 @@ def multi_head_attention_forward_patched(
         k = k.view(bsz, num_heads, src_len, head_dim)
         v = v.view(bsz, num_heads, src_len, head_dim)
 
-        # with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=True, enable_mem_efficient=True):
         attn_output = scaled_dot_product_attention(
             q, k, v, attn_mask, dropout_p, is_causal
-        )
+            )
 
         attn_output = (
             attn_output.permute(2, 0, 1, 3).contiguous().view(bsz * tgt_len, embed_dim)

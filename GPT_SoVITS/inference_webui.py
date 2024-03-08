@@ -66,6 +66,7 @@ from time import time as ttime
 from module.mel_processing import spectrogram_torch
 from my_utils import load_audio
 from tools.i18n.i18n import I18nAuto
+from utils import tensor_padding
 
 i18n = I18nAuto()
 
@@ -311,7 +312,7 @@ def merge_short_text_in_array(texts, threshold):
             result[len(result) - 1] += text
     return result
 
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False):
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False, infer_batch = 1):
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
     t0 = ttime()
@@ -371,28 +372,48 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     if not ref_free:
         phones1,bert1,norm_text1=get_phones_and_bert(prompt_text, prompt_language)
 
-    for text in texts:
-        # 解决输入目标文本的空行导致报错的问题
-        if (len(text.strip()) == 0):
-            continue
-        if (text[-1] not in splits): text += "。" if text_language != "en" else "."
-        print(i18n("实际输入的目标文本(每句):"), text)
-        phones2,bert2,norm_text2=get_phones_and_bert(text, text_language)
-        print(i18n("前端处理后的文本(每句):"), norm_text2)
-        if not ref_free:
-            bert = torch.cat([bert1, bert2], 1)
-            all_phoneme_ids = torch.LongTensor(phones1+phones2).to(device).unsqueeze(0)
+    batch_num = len(texts) // infer_batch
+    if len(texts) % infer_batch != 0:
+        batch_num += 1
+    for i in range(batch_num):
+        if i == batch_num - 1:
+            text = texts[i * infer_batch:]
         else:
-            bert = bert2
-            all_phoneme_ids = torch.LongTensor(phones2).to(device).unsqueeze(0)
+            text = texts[i * infer_batch: (i + 1) * infer_batch]
+    # for text in texts:
+        # 解决输入目标文本的空行导致报错的问题
+        # 过滤每一个需要合成的文本
+        all_phoneme_ids_batch = []
+        all_bert_batch = []
+        all_phoneme_len_batch = []
+        all_vits_phones2 = []
+        for T in text:
+            if (len(T.strip()) == 0):
+                continue
+            if (T[-1] not in splits): T += "。" if text_language != "en" else "."
+            print(i18n("实际输入的目标文本(每句):"), T)
+            phones2,bert2,norm_text2=get_phones_and_bert(T, text_language)
+            all_vits_phones2+=phones2
+            print(i18n("前端处理后的文本(每句):"), norm_text2)
+            if not ref_free:
+                bert = torch.cat([bert1, bert2], 1)
+                all_phoneme_ids = torch.LongTensor(phones1+phones2).to(device).unsqueeze(0)
+            else:
+                bert = bert2
+                all_phoneme_ids = torch.LongTensor(phones2).to(device).unsqueeze(0)
+            bert = bert.to(device).unsqueeze(0)
+            all_phoneme_ids_batch.append(all_phoneme_ids)
+            all_bert_batch.append(bert) 
+            all_phoneme_len_batch.append(all_phoneme_ids.shape[-1])
 
-        bert = bert.to(device).unsqueeze(0)
-        all_phoneme_len = torch.tensor([all_phoneme_ids.shape[-1]]).to(device)
-        prompt = prompt_semantic.unsqueeze(0).to(device)
+        all_phoneme_ids = tensor_padding(all_phoneme_ids_batch)
+        bert = tensor_padding(all_bert_batch)
+        all_phoneme_len = torch.tensor(all_phoneme_len_batch).to(device)
+        prompt = prompt_semantic.unsqueeze(0).to(device).expand(all_phoneme_ids.shape[0], -1, -1)
         t2 = ttime()
         with torch.no_grad():
             # pred_semantic = t2s_model.model.infer(
-            pred_semantic, idx = t2s_model.model.infer_panel(
+            pred_semantic, sidx, eidx = t2s_model.model.infer_panel(
                 all_phoneme_ids,
                 all_phoneme_len,
                 None if ref_free else prompt,
@@ -405,9 +426,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
             )
         t3 = ttime()
         # print(pred_semantic.shape,idx)
-        pred_semantic = pred_semantic[:, -idx:].unsqueeze(
-            0
-        )  # .unsqueeze(0)#mq要多unsqueeze一次
+        pred_semantic = torch.cat([pred[si:ei] for pred, si, ei in zip(pred_semantic, sidx, eidx)], dim=0).unsqueeze(0).unsqueeze(0)  # .unsqueeze(0)#mq要多unsqueeze一次
         refer = get_spepc(hps, ref_wav_path)  # .to(device)
         if is_half == True:
             refer = refer.half().to(device)
@@ -416,7 +435,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         # audio = vq_model.decode(pred_semantic, all_phoneme_ids, refer).detach().cpu().numpy()[0, 0]
         audio = (
             vq_model.decode(
-                pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refer
+                pred_semantic, torch.LongTensor(all_vits_phones2).to(device).unsqueeze(0), refer
             )
                 .detach()
                 .cpu()
@@ -588,12 +607,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
                 temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True)
-            inference_button = gr.Button(i18n("合成语音"), variant="primary")
+            with gr.Row():
+                batch_size = gr.Slider(minimum=1,maximum=32,step=1,label=i18n("batch_size"),value=1,interactive=True)
+                inference_button = gr.Button(i18n("合成语音"), variant="primary")
             output = gr.Audio(label=i18n("输出的语音"))
 
         inference_button.click(
             get_tts_wav,
-            [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free],
+            [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free, batch_size],
             [output],
         )
 
