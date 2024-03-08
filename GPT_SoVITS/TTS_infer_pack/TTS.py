@@ -554,9 +554,13 @@ class TTS:
         
         audio = np.concatenate(audio, 0)
         audio = (audio * 32768).astype(np.int16) 
-        if speed_factor != 1.0:
-            audio = speed_change(audio, speed=speed_factor, sr=int(self.configs.sampling_rate))
-            
+        
+        try:
+            if speed_factor != 1.0:
+                audio = speed_change(audio, speed=speed_factor, sr=int(self.configs.sampling_rate))
+        except Exception as e:
+            print(f"Failed to change speed of audio: \n{e}")
+        
         yield self.configs.sampling_rate, audio
        
        
