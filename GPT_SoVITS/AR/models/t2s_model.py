@@ -235,7 +235,7 @@ class Text2SemanticDecoder(nn.Module):
                 layer.linear2.weight,
                 layer.linear2.bias
             )
-            # (layer.self_attn.in_proj_weight, layer.self_attn.in_proj_bias)
+
             block = T2SBlock(
                 self.num_head,
                 self.model_dim,
@@ -578,7 +578,7 @@ class Text2SemanticDecoder(nn.Module):
 
             ####################### update next step ###################################
             y_emb = self.ar_audio_embedding(y[:, -1:])
-            xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[:, prompts.shape[1] + idx]
+            xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[:, y_len + idx]
 
         if ref_free:
             return y[:, :-1], 0
