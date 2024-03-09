@@ -113,12 +113,44 @@
 
 2-DPO Loss实验性训练选项开启，通过构造负样本训练缓解GPT重复漏字问题。推理界面公开几个推理参数。 https://github.com/RVC-Boss/GPT-SoVITS/pull/457
 
+### 20240214更新
+
+1-训练支持中文实验名（原来会报错）
+
+2-DPO训练改为可勾选选项而非必须。如勾选batch size自动减半。修复推理界面新参数不传参的问题。
+
+### 20240216更新
+
+1-支持无参考文本输入
+
+2-修复中文文本前端bug https://github.com/RVC-Boss/GPT-SoVITS/issues/475
+
+### 20240221更新
+
+1-数据处理添加语音降噪选项（降噪为只剩16k采样率，除非底噪很大先不急着用哦。）
+
+2-中文日文前端处理优化 https://github.com/RVC-Boss/GPT-SoVITS/pull/559 https://github.com/RVC-Boss/GPT-SoVITS/pull/556 https://github.com/RVC-Boss/GPT-SoVITS/pull/532 https://github.com/RVC-Boss/GPT-SoVITS/pull/507 https://github.com/RVC-Boss/GPT-SoVITS/pull/509
+
+3-mac CPU推理更快因此把推理设备从mps改到CPU
+
+4-colab修复不开启公网url
+
+### 20240306更新
+
+1-推理加速50%（RTX3090+pytorch2.2.1+cu11.8+win10+py39 tested）https://github.com/RVC-Boss/GPT-SoVITS/pull/672
+
+2-如果用faster whisper非中文ASR不再需要先下中文funasr模型
+
+3-修复uvr5去混响模型 是否混响 反的 https://github.com/RVC-Boss/GPT-SoVITS/pull/610
+
+4-faster whisper如果无cuda可用自动cpu推理 https://github.com/RVC-Boss/GPT-SoVITS/pull/675
+
+5-修改is_half的判断使在Mac上能正常CPU推理 https://github.com/RVC-Boss/GPT-SoVITS/pull/573
+
 
 todolist：
 
-1-中文多音字推理优化
-
-2-训练支持中文实验名（原来会报错）
+1-中文多音字推理优化(有没有人来测试的，欢迎把测试结果写在pr评论区里) https://github.com/RVC-Boss/GPT-SoVITS/pull/488
 
 
 

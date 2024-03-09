@@ -35,7 +35,8 @@ import shutil
 def my_save(fea,path):#####fix issue: torch.save doesn't support chinese path
     dir=os.path.dirname(path)
     name=os.path.basename(path)
-    tmp_path="%s/%s%s.pth"%(dir,ttime(),i_part)
+    # tmp_path="%s/%s%s.pth"%(dir,ttime(),i_part)
+    tmp_path="%s%s.pth"%(ttime(),i_part)
     torch.save(fea,tmp_path)
     shutil.move(tmp_path,"%s/%s"%(dir,name))
 
@@ -98,7 +99,7 @@ for line in lines[int(i_part)::int(all_parts)]:
     try:
         # wav_name,text=line.split("\t")
         wav_name, spk_name, language, text = line.split("|")
-        if (inp_wav_dir !=None):
+        if (inp_wav_dir != "" and inp_wav_dir != None):
             wav_name = os.path.basename(wav_name)
             wav_path = "%s/%s"%(inp_wav_dir, wav_name)
 

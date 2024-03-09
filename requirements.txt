@@ -23,6 +23,6 @@ PyYAML
 psutil
 jieba_fast
 jieba
-LangSegment
+LangSegment>=0.2.0
 Faster_Whisper
 OpenCC

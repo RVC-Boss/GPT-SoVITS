@@ -172,6 +172,21 @@ def replace_range(match) -> str:
     return result
 
 
+# ~至表达式
+RE_TO_RANGE = re.compile(
+    r'((-?)((\d+)(\.\d+)?)|(\.(\d+)))(%|°C|℃|度|摄氏度|cm2|cm²|cm3|cm³|cm|db|ds|kg|km|m2|m²|m³|m3|ml|m|mm|s)[~]((-?)((\d+)(\.\d+)?)|(\.(\d+)))(%|°C|℃|度|摄氏度|cm2|cm²|cm3|cm³|cm|db|ds|kg|km|m2|m²|m³|m3|ml|m|mm|s)')
+
+def replace_to_range(match) -> str:
+    """
+    Args:
+        match (re.Match)
+    Returns:
+        str
+    """
+    result = match.group(0).replace('~', '至')
+    return result
+
+
 def _get_value(value_string: str, use_zero: bool=True) -> List[str]:
     stripped = value_string.lstrip('0')
     if len(stripped) == 0:
