@@ -1,6 +1,8 @@
 import os,shutil,sys,pdb,re
 now_dir = os.getcwd()
-sys.path.append(now_dir)
+print(now_dir)
+sys.path.insert(0, now_dir)
+print(sys.path)
 import json,yaml,warnings,torch
 import platform
 import psutil
