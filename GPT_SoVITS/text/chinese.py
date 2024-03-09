@@ -4,6 +4,7 @@ import re
 
 import cn2an
 from pypinyin import lazy_pinyin, Style
+from pypinyin.contrib.tone_convert import to_normal, to_finals_tone3, to_initials, to_finals
 
 from text.symbols import punctuation
 from text.tone_sandhi import ToneSandhi
@@ -23,7 +24,7 @@ is_g2pw_str = os.environ.get("is_g2pw", "True")
 is_g2pw = True if is_g2pw_str.lower() == 'true' else False
 if is_g2pw:
     print("当前使用g2pw进行拼音推理")
-    from text.g2pw import G2PWPinyin
+    from text.g2pw import G2PWPinyin, correct_pronunciation
     parent_directory = os.path.dirname(current_file_path)
     g2pw_model_dir = os.path.join(parent_directory,"pretrained_models","G2PWModel")
     g2pw_model_source = os.path.join(parent_directory,"pretrained_models","chinese-roberta-wwm-ext-large")
@@ -72,16 +73,10 @@ def _get_initials_finals(word):
     initials = []
     finals = []
 
-    if not is_g2pw:
-        orig_initials = lazy_pinyin(word, neutral_tone_with_five=True, style=Style.INITIALS)
-        orig_finals = lazy_pinyin(
-            word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
-        )
-    else:
-        orig_initials = g2pw.lazy_pinyin(word, neutral_tone_with_five=True, style=Style.INITIALS)
-        orig_finals = g2pw.lazy_pinyin(
-            word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
-        )
+    orig_initials = lazy_pinyin(word, neutral_tone_with_five=True, style=Style.INITIALS)
+    orig_finals = lazy_pinyin(
+        word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
+    )
 
     for c, v in zip(orig_initials, orig_finals):
         initials.append(c)
@@ -97,20 +92,58 @@ def _g2p(segments):
         # Replace all English words in the sentence
         seg = re.sub("[a-zA-Z]+", "", seg)
         seg_cut = psg.lcut(seg)
+        seg_cut = tone_modifier.pre_merge_for_modify(seg_cut)
         initials = []
         finals = []
-        seg_cut = tone_modifier.pre_merge_for_modify(seg_cut)
-        for word, pos in seg_cut:
-            if pos == "eng":
-                continue
-            sub_initials, sub_finals = _get_initials_finals(word)
-            sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
-            initials.append(sub_initials)
-            finals.append(sub_finals)
-            # assert len(sub_initials) == len(sub_finals) == len(word)
-        initials = sum(initials, [])
-        finals = sum(finals, [])
-        #
+
+        if not is_g2pw:
+            for word, pos in seg_cut:
+                if pos == "eng":
+                    continue
+                sub_initials, sub_finals = _get_initials_finals(word)
+                sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
+                initials.append(sub_initials)
+                finals.append(sub_finals)
+                # assert len(sub_initials) == len(sub_finals) == len(word)
+            initials = sum(initials, [])
+            finals = sum(finals, [])
+            print("pypinyin结果",initials,finals)
+        else:
+            # g2pw采用整句推理
+            pinyins = g2pw.lazy_pinyin(seg, neutral_tone_with_five=True, style=Style.TONE3)
+
+            pre_word_length = 0
+            for word, pos in seg_cut:
+                sub_initials = []
+                sub_finals = []
+                now_word_length = pre_word_length + len(word)
+
+                if pos == 'eng':
+                    pre_word_length = now_word_length
+                    continue
+
+                word_pinyins = pinyins[pre_word_length:now_word_length]
+
+                # 多音字消歧
+                word_pinyins = correct_pronunciation(word,word_pinyins)
+
+                for pinyin in word_pinyins:
+                    if pinyin[0].isalpha():
+                        sub_initials.append(to_initials(pinyin))
+                        sub_finals.append(to_finals_tone3(pinyin,neutral_tone_with_five=True))
+                    else:
+                        sub_initials.append(pinyin)
+                        sub_finals.append(pinyin)
+
+                pre_word_length = now_word_length
+                sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
+                initials.append(sub_initials)
+                finals.append(sub_finals)
+
+            initials = sum(initials, [])
+            finals = sum(finals, [])
+            print("g2pw结果",initials,finals)
+
         for c, v in zip(initials, finals):
             raw_pinyin = c + v
             # NOTE: post process for pypinyin outputs

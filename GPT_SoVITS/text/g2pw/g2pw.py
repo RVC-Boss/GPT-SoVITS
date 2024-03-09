@@ -69,12 +69,6 @@ class Converter(UltimateConverter):
     def _to_pinyin(self, han, style, heteronym, errors, strict, **kwargs):
         pinyins = []
 
-        if han in pp_dict:
-            phns = pp_dict[han]
-            for ph in phns:
-                pinyins.append([ph])
-            return pinyins
-
         g2pw_pinyin = self._g2pw(han)
 
         if not g2pw_pinyin:  # g2pw 不支持的汉字改为使用 pypinyin 原有逻辑
@@ -140,6 +134,13 @@ def read_dict():
             polyphonic_dict[key.strip()] = value
             line = f.readline()
     return polyphonic_dict
+
+
+def correct_pronunciation(word,word_pinyins):
+    if word in pp_dict:
+        word_pinyins = pp_dict[word]
+
+    return word_pinyins
 
 
 pp_dict = get_dict()
