@@ -87,6 +87,7 @@ class TTS_Config:
         self.n_speakers:int = 300
         
         self.langauges:list = ["auto", "en", "zh", "ja",  "all_zh", "all_ja"]
+        print(self)
             
     def _load_configs(self, configs_path: str)->dict:
         with open(configs_path, 'r') as f:
@@ -118,6 +119,18 @@ class TTS_Config:
             configs_path = self.configs_path
         with open(configs_path, 'w') as f:
             yaml.dump(configs, f)
+            
+            
+    def __str__(self):
+        string = "----------------TTS Config--------------\n"
+        string += "device: {}\n".format(self.device)
+        string += "is_half: {}\n".format(self.is_half)
+        string += "bert_base_path: {}\n".format(self.bert_base_path)
+        string += "t2s_weights_path: {}\n".format(self.t2s_weights_path)
+        string += "vits_weights_path: {}\n".format(self.vits_weights_path)
+        string += "cnhuhbert_base_path: {}\n".format(self.cnhuhbert_base_path)
+        string += "----------------------------------------\n"
+        return string
 
 
 class TTS:
