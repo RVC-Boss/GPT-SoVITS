@@ -549,7 +549,6 @@ class Text2SemanticDecoder(nn.Module):
         y_list = [None]*y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
         idx_list = [None]*y.shape[0]
-        cache_y_emb = y_emb
         for idx in tqdm(range(1500)):
             if idx == 0:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask)
@@ -589,8 +588,6 @@ class Text2SemanticDecoder(nn.Module):
             if reserved_idx_of_batch_for_y is not None:
                 # index = torch.LongTensor(batch_idx_map).to(y.device)
                 y = torch.index_select(y, dim=0, index=reserved_idx_of_batch_for_y)
-                if cache_y_emb is not None:
-                    cache_y_emb = torch.index_select(cache_y_emb, dim=0, index=reserved_idx_of_batch_for_y)
                 if k_cache is not None :
                     for i in range(len(k_cache)):
                         k_cache[i] = torch.index_select(k_cache[i], dim=0, index=reserved_idx_of_batch_for_y)
@@ -617,8 +614,8 @@ class Text2SemanticDecoder(nn.Module):
 
             ####################### update next step ###################################
             y_emb = self.ar_audio_embedding(y[:, -1:])
-            xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[:, y_len + idx]
-
+            xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[:, y_len + idx].to( dtype= y_emb.dtype,device=y_emb.device)
+            
         if (None in idx_list):
             for i in range(x.shape[0]):
                 if idx_list[i] is None:
