@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple
 from text.cleaner import clean_text
 from text import cleaned_text_to_sequence
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from TTS_infer_pack.text_segmentation_method import splits, get_method as get_seg_method
+from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 
 # from tools.i18n.i18n import I18nAuto
 
@@ -37,6 +37,10 @@ def merge_short_text_in_array(texts:str, threshold:int) -> list:
         else:
             result[len(result) - 1] += text
     return result
+
+
+
+
 
 
 class TextPreprocessor:
@@ -74,12 +78,18 @@ class TextPreprocessor:
         _texts = text.split("\n")
         _texts = merge_short_text_in_array(_texts, 5)
         texts = []
+    
+
+        
         for text in _texts:
             # 解决输入目标文本的空行导致报错的问题
             if (len(text.strip()) == 0):
                 continue
             if (text[-1] not in splits): text += "。" if lang != "en" else "."
-            texts.append(text)
+            
+            # 解决句子过长导致Bert报错的问题
+            texts.extend(split_big_text(text))
+            
             
         return texts
     
@@ -177,3 +187,7 @@ class TextPreprocessor:
             ).to(self.device)
 
         return feature
+    
+
+
+
