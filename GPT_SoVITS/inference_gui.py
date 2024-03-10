@@ -7,7 +7,7 @@ import soundfile as sf
 from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
-from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav
+from GPT_SoVITS.inference_webui_old import change_gpt_weights, change_sovits_weights, get_tts_wav
 
 
 class GPTSoVITSGUI(QMainWindow):

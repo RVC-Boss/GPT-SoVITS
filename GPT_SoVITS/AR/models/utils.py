@@ -115,17 +115,17 @@ def logits_to_probs(
     top_p: Optional[int] = None,
     repetition_penalty: float = 1.0,
 ):
-    if previous_tokens is not None:
-        previous_tokens = previous_tokens.squeeze()
+    # if previous_tokens is not None:
+    #     previous_tokens = previous_tokens.squeeze()
     # print(logits.shape,previous_tokens.shape)
     # pdb.set_trace()
     if previous_tokens is not None and repetition_penalty != 1.0:
         previous_tokens = previous_tokens.long()
-        score = torch.gather(logits, dim=0, index=previous_tokens)
+        score = torch.gather(logits, dim=1, index=previous_tokens)
         score = torch.where(
             score < 0, score * repetition_penalty, score / repetition_penalty
         )
-        logits.scatter_(dim=0, index=previous_tokens, src=score)
+        logits.scatter_(dim=1, index=previous_tokens, src=score)
 
     if top_p is not None and top_p < 1.0:
         sorted_logits, sorted_indices = torch.sort(logits, descending=True)
@@ -133,9 +133,9 @@ def logits_to_probs(
             torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1
         )
         sorted_indices_to_remove = cum_probs > top_p
-        sorted_indices_to_remove[0] = False  # keep at least one option
+        sorted_indices_to_remove[:, 0] = False  # keep at least one option
         indices_to_remove = sorted_indices_to_remove.scatter(
-            dim=0, index=sorted_indices, src=sorted_indices_to_remove
+            dim=1, index=sorted_indices, src=sorted_indices_to_remove
         )
         logits = logits.masked_fill(indices_to_remove, -float("Inf"))
 
