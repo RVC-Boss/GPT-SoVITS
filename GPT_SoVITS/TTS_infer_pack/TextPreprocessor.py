@@ -1,4 +1,7 @@
 
+import os, sys
+now_dir = os.getcwd()
+sys.path.append(now_dir)
 
 import re
 import torch
@@ -7,7 +10,7 @@ from typing import Dict, List, Tuple
 from text.cleaner import clean_text
 from text import cleaned_text_to_sequence
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from .text_segmentation_method import splits, get_method as get_seg_method
+from TTS_infer_pack.text_segmentation_method import splits, get_method as get_seg_method
 
 # from tools.i18n.i18n import I18nAuto
 
