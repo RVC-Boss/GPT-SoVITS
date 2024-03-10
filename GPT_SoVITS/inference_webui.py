@@ -226,7 +226,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             cut_text.click(to_cut, [text_inp, _how_to_cut], [text_opt])
         gr.Markdown(value=i18n("后续将支持转音素、手工修改音素、语音合成分步执行。"))
 
-app.queue(concurrency_count=511, max_size=1022).launch(
+app.queue().launch(
     server_name="0.0.0.0",
     inbrowser=True,
     share=is_share,
