@@ -1,4 +1,5 @@
-# modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/data_module.py
+# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/data/data_module.py
+# reference: https://github.com/lifeiteng/vall-e
 from pytorch_lightning import LightningDataModule
 from AR.data.bucket_sampler import DistributedBucketSampler
 from AR.data.dataset import Text2SemanticDataset

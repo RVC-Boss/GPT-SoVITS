@@ -1,7 +1,4 @@
-# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/t2s_model.py
-# reference: https://github.com/lifeiteng/vall-e
-from typing import List
-
+# modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/model/t2s_model.py
 import torch
 from tqdm import tqdm
 
@@ -35,142 +32,6 @@ default_config = {
     "phoneme_vocab_size": 512,
     "EOS": 1024,
 }
-
-
-@torch.jit.script
-class T2SMLP:
-    def __init__(self, w1, b1, w2, b2):
-        self.w1 = w1
-        self.b1 = b1
-        self.w2 = w2
-        self.b2 = b2
-
-    def forward(self, x):
-        x = F.relu(F.linear(x, self.w1, self.b1))
-        x = F.linear(x, self.w2, self.b2)
-        return x
-
-
-@torch.jit.script
-class T2SBlock:
-    def __init__(
-        self,
-        num_heads,
-        hidden_dim: int,
-        mlp: T2SMLP,
-        qkv_w,
-        qkv_b,
-        out_w,
-        out_b,
-        norm_w1,
-        norm_b1,
-        norm_eps1,
-        norm_w2,
-        norm_b2,
-        norm_eps2,
-    ):
-        self.num_heads = num_heads
-        self.mlp = mlp
-        self.hidden_dim: int = hidden_dim
-        self.qkv_w = qkv_w
-        self.qkv_b = qkv_b
-        self.out_w = out_w
-        self.out_b = out_b
-        self.norm_w1 = norm_w1
-        self.norm_b1 = norm_b1
-        self.norm_eps1 = norm_eps1
-        self.norm_w2 = norm_w2
-        self.norm_b2 = norm_b2
-        self.norm_eps2 = norm_eps2
-
-    def process_prompt(self, x, attn_mask : torch.Tensor):
-        q, k, v = F.linear(x, self.qkv_w, self.qkv_b).chunk(3, dim=-1)
-
-        batch_size = q.shape[0]
-        q_len = q.shape[1]
-        kv_len = k.shape[1]
-
-        k_cache = k
-        v_cache = v
-
-        q = q.view(batch_size, q_len, self.num_heads, -1).transpose(1, 2)
-        k = k_cache.view(batch_size, kv_len, self.num_heads, -1).transpose(1, 2)
-        v = v_cache.view(batch_size, kv_len, self.num_heads, -1).transpose(1, 2)
-
-        attn = F.scaled_dot_product_attention(q, k, v, attn_mask)
-
-        attn = attn.permute(2, 0, 1, 3).reshape(batch_size*q_len, self.hidden_dim)
-        attn = attn.view(q_len, batch_size, self.hidden_dim).transpose(1, 0)
-        attn = F.linear(attn, self.out_w, self.out_b)
-
-        x = F.layer_norm(
-            x + attn, [self.hidden_dim], self.norm_w1, self.norm_b1, self.norm_eps1
-        )
-        x = F.layer_norm(
-            x + self.mlp.forward(x),
-            [self.hidden_dim],
-            self.norm_w2,
-            self.norm_b2,
-            self.norm_eps2,
-        )
-        return x, k_cache, v_cache
-
-    def decode_next_token(self, x, k_cache, v_cache):
-        q, k, v = F.linear(x, self.qkv_w, self.qkv_b).chunk(3, dim=-1)
-
-        k_cache = torch.cat([k_cache, k], dim=1)
-        v_cache = torch.cat([v_cache, v], dim=1)
-        
-        batch_size = q.shape[0]
-        q_len = q.shape[1]
-        kv_len = k_cache.shape[1]
-
-        q = q.view(batch_size, q_len, self.num_heads, -1).transpose(1, 2)
-        k = k_cache.view(batch_size, kv_len, self.num_heads, -1).transpose(1, 2)
-        v = v_cache.view(batch_size, kv_len, self.num_heads, -1).transpose(1, 2)
-
-
-        attn = F.scaled_dot_product_attention(q, k, v)
-
-        attn = attn.permute(2, 0, 1, 3).reshape(batch_size*q_len, self.hidden_dim)
-        attn = attn.view(q_len, batch_size, self.hidden_dim).transpose(1, 0)
-        attn = F.linear(attn, self.out_w, self.out_b)
-
-        x = F.layer_norm(
-            x + attn, [self.hidden_dim], self.norm_w1, self.norm_b1, self.norm_eps1
-        )
-        x = F.layer_norm(
-            x + self.mlp.forward(x),
-            [self.hidden_dim],
-            self.norm_w2,
-            self.norm_b2,
-            self.norm_eps2,
-        )
-        return x, k_cache, v_cache
-
-
-@torch.jit.script
-class T2STransformer:
-    def __init__(self, num_blocks : int, blocks: List[T2SBlock]):
-        self.num_blocks : int = num_blocks
-        self.blocks = blocks
-
-    def process_prompt(
-        self, x, attn_mask : torch.Tensor):
-        k_cache : List[torch.Tensor] = []
-        v_cache : List[torch.Tensor] = []
-        for i in range(self.num_blocks):
-            x, k_cache_, v_cache_ = self.blocks[i].process_prompt(x, attn_mask)
-            k_cache.append(k_cache_)
-            v_cache.append(v_cache_)
-        return x, k_cache, v_cache
-
-    def decode_next_token(
-        self, x, k_cache: List[torch.Tensor], v_cache: List[torch.Tensor]
-    ):
-        for i in range(self.num_blocks):
-            x, k_cache[i], v_cache[i] = self.blocks[i].decode_next_token(x, k_cache[i], v_cache[i])
-        return x, k_cache, v_cache
 
 
 class Text2SemanticDecoder(nn.Module):
@@ -226,37 +87,6 @@ class Text2SemanticDecoder(nn.Module):
             multidim_average="global",
             ignore_index=self.EOS,
         )
-
-        blocks = []
-
-        for i in range(self.num_layers):
-            layer = self.h.layers[i]
-            t2smlp = T2SMLP(
-                layer.linear1.weight,
-                layer.linear1.bias,
-                layer.linear2.weight,
-                layer.linear2.bias
-            )
-
-            block = T2SBlock(
-                self.num_head,
-                self.model_dim,
-                t2smlp,
-                layer.self_attn.in_proj_weight,
-                layer.self_attn.in_proj_bias,
-                layer.self_attn.out_proj.weight,
-                layer.self_attn.out_proj.bias,
-                layer.norm1.weight,
-                layer.norm1.bias,
-                layer.norm1.eps,
-                layer.norm2.weight,
-                layer.norm2.bias,
-                layer.norm2.eps
-            )
-
-            blocks.append(block)
-        
-        self.t2s_transformer = T2STransformer(self.num_layers, blocks)
 
     def make_input_data(self, x, x_lens, y, y_lens, bert_feature):
         x = self.ar_text_embedding(x)
@@ -512,9 +342,17 @@ class Text2SemanticDecoder(nn.Module):
         x_attn_mask = torch.zeros((x_len, x_len), dtype=torch.bool)
         stop = False
         # print(1111111,self.num_layers)
-
-        k_cache = None
-        v_cache = None
+        cache = {
+            "all_stage": self.num_layers,
+            "k": [None] * self.num_layers,  ###根据配置自己手写
+            "v": [None] * self.num_layers,
+            # "xy_pos":None,##y_pos位置编码每次都不一样的没法缓存，每次都要重新拼xy_pos.主要还是写法原因，其实是可以历史统一一样的，但也没啥计算量就不管了
+            "y_emb": None,  ##只需要对最新的samples求emb，再拼历史的就行
+            # "logits":None,###原版就已经只对结尾求再拼接了，不用管
+            # "xy_dec":None,###不需要，本来只需要最后一个做logits
+            "first_infer": 1,
+            "stage": 0,
+        }
         ###################  first step ##########################
         if y is not None:
             y_emb = self.ar_audio_embedding(y)
@@ -522,6 +360,7 @@ class Text2SemanticDecoder(nn.Module):
             prefix_len = y.shape[1]
             y_pos = self.ar_audio_position(y_emb)
             xy_pos = torch.concat([x, y_pos], dim=1)
+            cache["y_emb"] = y_emb
             ref_free = False
         else:
             y_emb = None
@@ -532,25 +371,11 @@ class Text2SemanticDecoder(nn.Module):
             y = torch.zeros(x.shape[0], 0, dtype=torch.int, device=x.device)
             ref_free = True
 
-
-        ##### create mask #####
-        bsz = x.shape[0]
-        src_len = x_len + y_len
-        y_lens = torch.LongTensor([y_len]*bsz).to(x.device)
-        y_mask = make_pad_mask(y_lens)
-        x_mask = make_pad_mask(x_lens)
-
-        
-        xy_padding_mask = torch.concat([x_mask, y_mask], dim=1)
-        _xy_padding_mask = (
-            xy_padding_mask.view(bsz, 1, 1, src_len).expand(-1, self.num_head, -1, -1)
-        )
-
         x_attn_mask_pad = F.pad(
-            x_attn_mask,
-            (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
-            value=True,
-        )
+                    x_attn_mask,
+                    (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
+                    value=True,
+                )
         y_attn_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
             torch.triu(torch.ones(y_len, y_len, dtype=torch.bool), diagonal=1),
             (x_len, 0),
@@ -559,39 +384,30 @@ class Text2SemanticDecoder(nn.Module):
         xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).to(
             x.device
         )
-        xy_attn_mask = xy_attn_mask.logical_or(_xy_padding_mask)
-        new_attn_mask = torch.zeros_like(xy_attn_mask, dtype=x.dtype)
-        new_attn_mask.masked_fill_(xy_attn_mask, float("-inf"))
-        xy_attn_mask = new_attn_mask
         
-        ###### decode #####
         y_list = [None]*y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
         idx_list = [None]*y.shape[0]
         for idx in tqdm(range(1500)):
-            if idx == 0:
-                xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask)
-            else:
-                xy_dec, k_cache, v_cache = self.t2s_transformer.decode_next_token(xy_pos, k_cache, v_cache)
-
+            
+            xy_dec, _ = self.h((xy_pos, None), mask=xy_attn_mask, cache=cache)
             logits = self.ar_predict_layer(
                 xy_dec[:, -1]
-            )
-
-            if idx == 0:
-                xy_attn_mask = None
-                logits = logits[:, :-1]
-                
+            )  ##不用改，如果用了cache的默认就是只有一帧，取最后一帧一样的
+            # samples = topk_sampling(logits, top_k=top_k, top_p=1.0, temperature=temperature)
+            if(idx==0):###第一次跑不能EOS否则没有了
+                logits = logits[:, :-1]  ###刨除1024终止符号的概率
             samples = sample(
                 logits, y, top_k=top_k, top_p=top_p, repetition_penalty=1.35, temperature=temperature
             )[0]
+            # 本次生成的 semantic_ids 和之前的 y 构成新的 y
+            # print(samples.shape)#[1,1]#第一个1是bs
+            y = torch.concat([y, samples], dim=1) 
 
-            y = torch.concat([y, samples], dim=1)
-            
-            ####### 移除batch中已经生成完毕的序列,进一步优化计算量
+            # 移除已经生成完毕的序列
             reserved_idx_of_batch_for_y = None
-            if (self.EOS in samples[:, 0]) or \
-                (self.EOS in torch.argmax(logits, dim=-1)):  ###如果生成到EOS，则停止
+            if (self.EOS in torch.argmax(logits, dim=-1)) or \
+                (self.EOS in samples[:, 0]):  ###如果生成到EOS，则停止
                     l = samples[:, 0]==self.EOS
                     removed_idx_of_batch_for_y = torch.where(l==True)[0].tolist()
                     reserved_idx_of_batch_for_y = torch.where(l==False)[0]
@@ -603,37 +419,59 @@ class Text2SemanticDecoder(nn.Module):
                 
                     batch_idx_map = [batch_idx_map[i] for i in reserved_idx_of_batch_for_y.tolist()]
                 
-            # 只保留batch中未生成完毕的序列 
+            # 只保留未生成完毕的序列 
             if reserved_idx_of_batch_for_y is not None:
                 # index = torch.LongTensor(batch_idx_map).to(y.device)
                 y = torch.index_select(y, dim=0, index=reserved_idx_of_batch_for_y)
-                if k_cache is not None :
-                    for i in range(len(k_cache)):
-                        k_cache[i] = torch.index_select(k_cache[i], dim=0, index=reserved_idx_of_batch_for_y)
-                        v_cache[i] = torch.index_select(v_cache[i], dim=0, index=reserved_idx_of_batch_for_y)
+                if cache["y_emb"] is not None:
+                    cache["y_emb"] = torch.index_select(cache["y_emb"], dim=0, index=reserved_idx_of_batch_for_y)
+                if cache["k"] is not None:
+                    for i in range(self.num_layers):
+                        # 因为kv转置了，所以batch dim是1
+                        cache["k"][i] = torch.index_select(cache["k"][i], dim=1, index=reserved_idx_of_batch_for_y)
+                        cache["v"][i] = torch.index_select(cache["v"][i], dim=1, index=reserved_idx_of_batch_for_y)
                 
                 
-            if (early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num) or idx==1499:
+            if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
                 print("use early stop num:", early_stop_num)
                 stop = True
-                for i, batch_index in enumerate(batch_idx_map):
-                    batch_index = batch_idx_map[i]
-                    idx_list[batch_index] = idx
-                    y_list[batch_index] = y[i, :-1]
                 
             if not (None in idx_list):
+                # print(torch.argmax(logits, dim=-1)[0] == self.EOS, samples[0, 0] == self.EOS)
                 stop = True
-                
             if stop:
+                # if prompts.shape[1] == y.shape[1]:
+                #     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
+                #     print("bad zero prediction")
                 if y.shape[1]==0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
                     print("bad zero prediction")
                 print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 break
-
+            
             ####################### update next step ###################################
-            y_emb = self.ar_audio_embedding(y[:, -1:])
-            xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[:, y_len + idx].to( dtype= y_emb.dtype,device=y_emb.device)
+            cache["first_infer"] = 0
+            if cache["y_emb"] is not None:
+                y_emb = torch.cat(
+                    [cache["y_emb"], self.ar_audio_embedding(y[:, -1:])], dim = 1
+                )
+                cache["y_emb"] = y_emb
+                y_pos = self.ar_audio_position(y_emb)
+                xy_pos = y_pos[:, -1:]
+            else:
+                y_emb = self.ar_audio_embedding(y[:, -1:])
+                cache["y_emb"] = y_emb
+                y_pos = self.ar_audio_position(y_emb)
+                xy_pos = y_pos
+            y_len = y_pos.shape[1]
+
+            ###最右边一列（是错的）
+            # xy_attn_mask=torch.ones((1, x_len+y_len), dtype=torch.bool,device=xy_pos.device)
+            # xy_attn_mask[:,-1]=False
+            ###最下面一行（是对的）
+            xy_attn_mask = torch.zeros(
+                (1, x_len + y_len), dtype=torch.bool, device=xy_pos.device
+            )
             
         if (None in idx_list):
             for i in range(x.shape[0]):

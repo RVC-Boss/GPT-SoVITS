@@ -1,4 +1,5 @@
-# modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/text_processing/phonemizer.py
+# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/text_processing/phonemizer.py
+# reference: https://github.com/lifeiteng/vall-e
 import itertools
 import re
 from typing import Dict

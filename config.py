@@ -19,8 +19,6 @@ exp_root = "logs"
 python_exec = sys.executable or "python"
 if torch.cuda.is_available():
     infer_device = "cuda"
-elif torch.backends.mps.is_available():
-    infer_device = "mps"
 else:
     infer_device = "cpu"
 
@@ -44,6 +42,7 @@ if infer_device == "cuda":
         is_half=False
 
 if(infer_device=="cpu"):is_half=False
+if(torch.backends.mps.is_available()):is_half=False
 
 class Config:
     def __init__(self):
