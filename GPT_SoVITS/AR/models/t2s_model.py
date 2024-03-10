@@ -97,7 +97,7 @@ class T2SBlock:
         k = k_cache.view(batch_size, kv_len, self.num_heads, -1).transpose(1, 2)
         v = v_cache.view(batch_size, kv_len, self.num_heads, -1).transpose(1, 2)
 
-        attn = F.scaled_dot_product_attention(q, k, v, ~attn_mask)
+        attn = F.scaled_dot_product_attention(q, k, v, attn_mask)
 
         attn = attn.permute(2, 0, 1, 3).reshape(batch_size*q_len, self.hidden_dim)
         attn = attn.view(q_len, batch_size, self.hidden_dim).transpose(1, 0)
@@ -532,6 +532,20 @@ class Text2SemanticDecoder(nn.Module):
             y = torch.zeros(x.shape[0], 0, dtype=torch.int, device=x.device)
             ref_free = True
 
+
+        ##### create mask #####
+        bsz = x.shape[0]
+        src_len = x_len + y_len
+        y_lens = torch.LongTensor([y_len]*bsz).to(x.device)
+        y_mask = make_pad_mask(y_lens)
+        x_mask = make_pad_mask(x_lens)
+
+        
+        xy_padding_mask = torch.concat([x_mask, y_mask], dim=1)
+        _xy_padding_mask = (
+            xy_padding_mask.view(bsz, 1, 1, src_len).expand(-1, self.num_head, -1, -1)
+        )
+
         x_attn_mask_pad = F.pad(
             x_attn_mask,
             (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
@@ -545,7 +559,12 @@ class Text2SemanticDecoder(nn.Module):
         xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).to(
             x.device
         )
+        xy_attn_mask = xy_attn_mask.logical_or(_xy_padding_mask)
+        new_attn_mask = torch.zeros_like(xy_attn_mask, dtype=x.dtype)
+        new_attn_mask.masked_fill_(xy_attn_mask, float("-inf"))
+        xy_attn_mask = new_attn_mask
         
+        ###### decode #####
         y_list = [None]*y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
         idx_list = [None]*y.shape[0]

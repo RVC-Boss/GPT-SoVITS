@@ -361,6 +361,7 @@ class TTS:
             phones_list = []
             # bert_features_list = []
             all_phones_list = []
+            all_phones_len_list = []
             all_bert_features_list = []
             norm_text_batch = []
             bert_max_len = 0
@@ -376,16 +377,18 @@ class TTS:
                     phones = torch.LongTensor(item["phones"])
                     all_phones = phones.clone()
                     # norm_text = item["norm_text"]
+
                 bert_max_len = max(bert_max_len, all_bert_features.shape[-1])
                 phones_max_len = max(phones_max_len, phones.shape[-1])
                 
                 phones_list.append(phones)
                 all_phones_list.append(all_phones)
+                all_phones_len_list.append(all_phones.shape[-1])
                 all_bert_features_list.append(all_bert_features)
                 norm_text_batch.append(item["norm_text"])
-            # phones_batch = phones_list
+            phones_batch = phones_list
             max_len = max(bert_max_len, phones_max_len)
-            phones_batch = self.batch_sequences(phones_list, axis=0, pad_value=0, max_length=max_len)
+            # phones_batch = self.batch_sequences(phones_list, axis=0, pad_value=0, max_length=max_len)
             all_phones_batch = self.batch_sequences(all_phones_list, axis=0, pad_value=0, max_length=max_len)
             all_bert_features_batch = torch.FloatTensor(len(item_list), 1024, max_len)
             all_bert_features_batch.zero_()
@@ -397,6 +400,7 @@ class TTS:
             batch = {
                 "phones": phones_batch,
                 "all_phones": all_phones_batch,
+                "all_phones_len": torch.LongTensor(all_phones_len_list),
                 "all_bert_features": all_bert_features_batch,
                 "norm_text": norm_text_batch
             }
@@ -541,10 +545,12 @@ class TTS:
             t3 = ttime()
             batch_phones = item["phones"]
             all_phoneme_ids = item["all_phones"]
+            all_phoneme_lens = item["all_phones_len"]
             all_bert_features = item["all_bert_features"]
             norm_text = item["norm_text"]
             
             all_phoneme_ids = all_phoneme_ids.to(self.configs.device)
+            all_phoneme_lens = all_phoneme_lens.to(self.configs.device)
             all_bert_features = all_bert_features.to(self.configs.device)
             if self.configs.is_half:
                 all_bert_features = all_bert_features.half()
@@ -558,7 +564,7 @@ class TTS:
             with torch.no_grad():
                 pred_semantic_list, idx_list = self.t2s_model.model.infer_panel(
                     all_phoneme_ids,
-                    None,
+                    all_phoneme_lens,
                     prompt,
                     all_bert_features,
                     # prompt_phone_len=ph_offset,
@@ -588,7 +594,7 @@ class TTS:
             ## 改成串行处理
             batch_audio_fragment = []
             for i, idx in enumerate(idx_list):
-                phones = batch_phones[i].clone().unsqueeze(0).to(self.configs.device)
+                phones = batch_phones[i].unsqueeze(0).to(self.configs.device)
                 _pred_semantic = (pred_semantic_list[i][-idx:].unsqueeze(0).unsqueeze(0))   # .unsqueeze(0)#mq要多unsqueeze一次
                 audio_fragment =(self.vits_model.decode(
                         _pred_semantic, phones, refer_audio_spepc
