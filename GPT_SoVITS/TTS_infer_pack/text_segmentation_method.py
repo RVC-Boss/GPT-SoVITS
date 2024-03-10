@@ -144,6 +144,7 @@ def cut5(inp):
     opt = "\n".join(mergeitems)
     return opt
 
+# contributed by https://github.com/X-T-E-R/GPT-SoVITS-Inference/blob/main/GPT_SoVITS/TTS_infer_pack/text_segmentation_method.py
 @register_method("auto_cut")
 def auto_cut(inp):
     # if not re.search(r'[^\w\s]', inp[-1]):
