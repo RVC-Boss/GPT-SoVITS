@@ -125,17 +125,11 @@ class TTS_Config:
         with open(configs_path, 'w') as f:
             yaml.dump(configs, f)
             
-            
     def __str__(self):
-        string = "----------------TTS Config--------------\n"
-        string += "device: {}\n".format(self.device)
-        string += "is_half: {}\n".format(self.is_half)
-        string += "bert_base_path: {}\n".format(self.bert_base_path)
-        string += "t2s_weights_path: {}\n".format(self.t2s_weights_path)
-        string += "vits_weights_path: {}\n".format(self.vits_weights_path)
-        string += "cnhuhbert_base_path: {}\n".format(self.cnhuhbert_base_path)
-        string += "flash_attn_enabled: {}\n".format(self.flash_attn_enabled)
-        string += "----------------------------------------\n"
+        string = "TTS Config".center(100, '-') + '\n'
+        for k, v in self.configs.items():
+            string += f"{str(k).ljust(20)}: {str(v)}\n"
+        string += "-" * 100 + '\n'
         return string
 
 
