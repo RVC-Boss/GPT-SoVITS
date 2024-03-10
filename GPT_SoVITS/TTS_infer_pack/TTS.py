@@ -650,12 +650,13 @@ class TTS:
         else:
             audio = [item for batch in audio for item in batch]
             
-        if type(audio) == list:
-            audio = np.array(audio)
-            audio = (audio * 32768).astype(np.int16) 
-        else:
+        
+        try:
             audio = np.concatenate(audio, 0)
             audio = (audio * 32768).astype(np.int16) 
+        except:
+            audio = np.array(audio)
+            audio = (audio * 32768).astype(np.int16)
         
         try:
             if speed_factor != 1.0:
