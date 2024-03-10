@@ -29,9 +29,13 @@ is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 is_half = eval(os.environ.get("is_half", "True")) and not torch.backends.mps.is_available()
+gpt_path = os.environ.get("gpt_path", None)
+sovits_path = os.environ.get("sovits_path", None)
+cnhubert_base_path = os.environ.get("cnhubert_base_path", None)
+bert_path = os.environ.get("bert_path", None)
+        
 import gradio as gr
 from TTS_infer_pack.TTS import TTS, TTS_Config
-from TTS_infer_pack.text_segmentation_method import cut1, cut2, cut3, cut4, cut5
 from TTS_infer_pack.text_segmentation_method import get_method
 from tools.i18n.i18n import I18nAuto
 
@@ -65,6 +69,15 @@ cut_method = {
 tts_config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
 tts_config.device = device
 tts_config.is_half = is_half
+if gpt_path is not None:
+    tts_config.t2s_weights_path = gpt_path
+if sovits_path is not None:
+    tts_config.vits_weights_path = sovits_path
+if cnhubert_base_path is not None:
+    tts_config.cnhuhbert_base_path = cnhubert_base_path
+if bert_path is not None:
+    tts_config.bert_base_path = bert_path
+    
 tts_pipline = TTS(tts_config)
 gpt_path = tts_config.t2s_weights_path
 sovits_path = tts_config.vits_weights_path
@@ -169,7 +182,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.Row():
 
             with gr.Column():
-                batch_size = gr.Slider(minimum=1,maximum=20,step=1,label=i18n("batch_size"),value=1,interactive=True)
+                batch_size = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("batch_size"),value=20,interactive=True)
                 speed_factor = gr.Slider(minimum=0.25,maximum=4,step=0.05,label="speed_factor",value=1.0,interactive=True)
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
@@ -181,7 +194,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     value=i18n("凑四句一切"),
                     interactive=True,
                 )
-                split_bucket = gr.Checkbox(label=i18n("数据分桶(可能会降低一点计算量,选就对了)"), value=True, interactive=True, show_label=True)
+                with gr.Row():
+                    split_bucket = gr.Checkbox(label=i18n("数据分桶(可能会降低一点计算量，选就对了)"), value=True, interactive=True, show_label=True)
             # with gr.Column():
                 output = gr.Audio(label=i18n("输出的语音"))
                 with gr.Row():
