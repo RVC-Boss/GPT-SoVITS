@@ -3,13 +3,13 @@ CHCP 65001
 setlocal
 
 
-:: 设置需要同步的本地仓库路径
+echo 设置需要同步的本地仓库路径
 set REPO_PATH=../
 
-:: 切换到仓库目录
+echo 切换到仓库目录
 cd /d %REPO_PATH%
 
-:: 设置 PortableGit 的路径
+echo 设置 PortableGit 的路径
 set GIT_PATH=PortableGit/bin
 
 echo 更新所有子模块
