@@ -59,6 +59,8 @@ class TextPreprocessor:
         print(i18n("############ 提取文本Bert特征 ############"))
         for text in tqdm(texts):
             phones, bert_features, norm_text = self.segment_and_extract_feature_for_text(text, lang)
+            if phones is None:
+                continue
             res={
                 "phones": phones,
                 "bert_features": bert_features,
@@ -79,12 +81,10 @@ class TextPreprocessor:
         
         while "\n\n" in text:
             text = text.replace("\n\n", "\n")
-        print(i18n("实际输入的目标文本(切句后):"))
-        print(text)
+
         _texts = text.split("\n")
         _texts = merge_short_text_in_array(_texts, 5)
         texts = []
-    
 
         
         for text in _texts:
@@ -94,15 +94,21 @@ class TextPreprocessor:
             if (text[-1] not in splits): text += "。" if lang != "en" else "."
             
             # 解决句子过长导致Bert报错的问题
-            texts.extend(split_big_text(text))
+            if (len(text) > 510):
+                texts.extend(split_big_text(text))
+            else:
+                texts.append(text)
             
-            
+        print(i18n("实际输入的目标文本(切句后):"))
+        print(texts)
         return texts
     
     def segment_and_extract_feature_for_text(self, texts:list, language:str)->Tuple[list, torch.Tensor, str]:
         textlist, langlist = self.seg_text(texts, language)
-        phones, bert_features, norm_text = self.extract_bert_feature(textlist, langlist)
+        if len(textlist) == 0:
+            return None, None, None
         
+        phones, bert_features, norm_text = self.extract_bert_feature(textlist, langlist)
         return phones, bert_features, norm_text
 
 
@@ -113,6 +119,8 @@ class TextPreprocessor:
         if language in ["auto", "zh", "ja"]:
             LangSegment.setfilters(["zh","ja","en","ko"])
             for tmp in LangSegment.getTexts(text):
+                if tmp["text"] == "":
+                    continue
                 if tmp["lang"] == "ko":
                     langlist.append("zh")
                 elif tmp["lang"] == "en":
@@ -126,14 +134,18 @@ class TextPreprocessor:
             formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
             while "  " in formattext:
                 formattext = formattext.replace("  ", " ")
-            textlist.append(formattext)
-            langlist.append("en")
+            if formattext != "":
+                textlist.append(formattext)
+                langlist.append("en")
             
         elif language in ["all_zh","all_ja"]:
+
             formattext = text
             while "  " in formattext:
                 formattext = formattext.replace("  ", " ")
             language = language.replace("all_","")
+            if text == "":
+                return [],[]
             textlist.append(formattext)
             langlist.append(language) 
         

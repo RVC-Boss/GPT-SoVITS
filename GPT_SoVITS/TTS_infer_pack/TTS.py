@@ -173,35 +173,36 @@ class TTS:
         
         
         self.stop_flag:bool = False
+        self.precison:torch.dtype = torch.float16 if self.configs.is_half else torch.float32
 
     def _init_models(self,):
         self.init_t2s_weights(self.configs.t2s_weights_path)
         self.init_vits_weights(self.configs.vits_weights_path)
         self.init_bert_weights(self.configs.bert_base_path)
         self.init_cnhuhbert_weights(self.configs.cnhuhbert_base_path)
+        self.enable_half_precision(self.configs.is_half)
         
         
         
     def init_cnhuhbert_weights(self, base_path: str):
+        print(f"Loading CNHuBERT weights from {base_path}")
         self.cnhuhbert_model = CNHubert(base_path)
         self.cnhuhbert_model=self.cnhuhbert_model.eval()
-        if self.configs.is_half == True:
-            self.cnhuhbert_model = self.cnhuhbert_model.half()
         self.cnhuhbert_model = self.cnhuhbert_model.to(self.configs.device)
         
         
         
     def init_bert_weights(self, base_path: str):
+        print(f"Loading BERT weights from {base_path}")
         self.bert_tokenizer = AutoTokenizer.from_pretrained(base_path)
         self.bert_model = AutoModelForMaskedLM.from_pretrained(base_path)
         self.bert_model=self.bert_model.eval()
-        if self.configs.is_half:
-            self.bert_model = self.bert_model.half()
         self.bert_model = self.bert_model.to(self.configs.device)
         
         
 
     def init_vits_weights(self, weights_path: str):
+        print(f"Loading VITS weights from {weights_path}")
         self.configs.vits_weights_path = weights_path
         self.configs.save_configs()
         dict_s2 = torch.load(weights_path, map_location=self.configs.device)
@@ -224,8 +225,6 @@ class TTS:
         if hasattr(vits_model, "enc_q"):
             del vits_model.enc_q
             
-        if self.configs.is_half:
-            vits_model = vits_model.half()
         vits_model = vits_model.to(self.configs.device)
         vits_model = vits_model.eval()
         vits_model.load_state_dict(dict_s2["weight"], strict=False)
@@ -233,6 +232,7 @@ class TTS:
 
         
     def init_t2s_weights(self, weights_path: str):
+        print(f"Loading Text2Semantic weights from {weights_path}")
         self.configs.t2s_weights_path = weights_path
         self.configs.save_configs()
         self.configs.hz = 50
@@ -242,11 +242,59 @@ class TTS:
         t2s_model = Text2SemanticLightningModule(config, "****", is_train=False, 
                                                  flash_attn_enabled=self.configs.flash_attn_enabled)
         t2s_model.load_state_dict(dict_s1["weight"])
-        if self.configs.is_half:
-            t2s_model = t2s_model.half()
         t2s_model = t2s_model.to(self.configs.device)
         t2s_model = t2s_model.eval()
         self.t2s_model = t2s_model
+        
+    def enable_half_precision(self, enable: bool = True):
+        '''
+            To enable half precision for the TTS model.
+            Args:
+                enable: bool, whether to enable half precision.
+                
+        '''
+        if self.configs.device == "cpu":
+            print("Half precision is not supported on CPU.")
+            return
+        
+        self.configs.is_half = enable
+        self.precison = torch.float16 if enable else torch.float32
+        self.configs.save_configs()
+        if enable:
+            if self.t2s_model is not None:
+                self.t2s_model =self.t2s_model.half()
+            if self.vits_model is not None:
+                self.vits_model = self.vits_model.half()
+            if self.bert_model is not None:
+                self.bert_model =self.bert_model.half()
+            if self.cnhuhbert_model is not None:
+                self.cnhuhbert_model = self.cnhuhbert_model.half()
+        else:
+            if self.t2s_model is not None:
+                self.t2s_model = self.t2s_model.float()
+            if self.vits_model is not None:
+                self.vits_model = self.vits_model.float()
+            if self.bert_model is not None:
+                self.bert_model = self.bert_model.float()
+            if self.cnhuhbert_model is not None:
+                self.cnhuhbert_model = self.cnhuhbert_model.float()
+                
+    def set_device(self, device: torch.device):
+        '''
+            To set the device for all models.
+            Args:
+                device: torch.device, the device to use for all models.
+        '''
+        self.configs.device = device
+        self.configs.save_configs()
+        if self.t2s_model is not None:
+            self.t2s_model = self.t2s_model.to(device)
+        if self.vits_model is not None:
+            self.vits_model = self.vits_model.to(device)
+        if self.bert_model is not None:
+            self.bert_model = self.bert_model.to(device)
+        if self.cnhuhbert_model is not None:
+            self.cnhuhbert_model = self.cnhuhbert_model.to(device)
         
     def set_ref_audio(self, ref_audio_path:str):
         '''
@@ -347,7 +395,7 @@ class TTS:
                 pos_end = min(pos+batch_size,index_and_len_list.shape[0])
                 while pos < pos_end:
                     batch=index_and_len_list[pos:pos_end, 1].astype(np.float32)
-                    score=batch[(pos_end-pos)//2]/batch.mean()
+                    score=batch[(pos_end-pos)//2]/(batch.mean()+1e-8)
                     if (score>=threshold) or (pos_end-pos==1):
                         batch_index=index_and_len_list[pos:pos_end, 0].tolist()
                         batch_index_list_len += len(batch_index)
@@ -379,13 +427,13 @@ class TTS:
             for item in item_list:
                 if prompt_data is not None:
                     all_bert_features = torch.cat([prompt_data["bert_features"], item["bert_features"]], 1)\
-                                                .to(dtype=torch.float32 if not self.configs.is_half else torch.float16)
+                                                .to(dtype=self.precison)
                     all_phones = torch.LongTensor(prompt_data["phones"]+item["phones"])
                     phones = torch.LongTensor(item["phones"])
                     # norm_text = prompt_data["norm_text"]+item["norm_text"]
                 else:
                     all_bert_features = item["bert_features"]\
-                                            .to(dtype=torch.float32 if not self.configs.is_half else torch.float16)
+                                            .to(dtype=self.precison)
                     phones = torch.LongTensor(item["phones"])
                     all_phones = phones
                     # norm_text = item["norm_text"]
@@ -405,7 +453,7 @@ class TTS:
             # phones_batch = self.batch_sequences(phones_list, axis=0, pad_value=0, max_length=max_len)
             all_phones_batch = self.batch_sequences(all_phones_list, axis=0, pad_value=0, max_length=max_len)
             # all_bert_features_batch = all_bert_features_list
-            all_bert_features_batch = torch.zeros(len(item_list), 1024, max_len, dtype=torch.float32)
+            all_bert_features_batch = torch.zeros(len(item_list), 1024, max_len, dtype=self.precison)
             for idx, item in enumerate(all_bert_features_list):
                 all_bert_features_batch[idx, :, : item.shape[-1]] = item
             
@@ -535,6 +583,11 @@ class TTS:
         
         ###### text preprocessing ########
         data = self.text_preprocessor.preprocess(text, text_lang, text_split_method)
+        if len(data) == 0:
+            yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate * 0.3),
+                                                        dtype=np.int16)
+            return
+        
         t1 = ttime()
         data, batch_index_list = self.to_batch(data, 
                              prompt_data=self.prompt_cache if not no_prompt_text else None, 
@@ -587,10 +640,8 @@ class TTS:
             t4 = ttime()
             t_34 += t4 - t3
             
-            refer_audio_spepc:torch.Tensor = self.prompt_cache["refer_spepc"].to(self.configs.device)
-            if self.configs.is_half:
-                refer_audio_spepc = refer_audio_spepc.half()
-                
+            refer_audio_spepc:torch.Tensor = self.prompt_cache["refer_spepc"]\
+                                                .to(dtype=self.precison, device=self.configs.device)
                 
             batch_audio_fragment = []
 
@@ -672,7 +723,7 @@ class TTS:
                           split_bucket:bool=True)->tuple[int, np.ndarray]:
         zero_wav = torch.zeros(
                         int(self.configs.sampling_rate * 0.3),
-                        dtype=torch.float16 if self.configs.is_half else torch.float32,
+                        dtype=self.precison,
                         device=self.configs.device
                     )
         
