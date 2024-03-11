@@ -51,15 +51,19 @@ custom:
 
 class TTS_Config:
     def __init__(self, configs: Union[dict, str]):
-        configs_base_path:str = "GPT_SoVITS/configs/"
-        os.makedirs(configs_base_path, exist_ok=True)
-        self.configs_path:str = os.path.join(configs_base_path, "tts_infer.yaml")
-        if isinstance(configs, str):
-            self.configs_path = configs
-            configs:dict = self._load_configs(configs)
+        if isinstance(configs, str) and configs=="":
+            self.default_configs:dict = None
+            self.configs_path = "GPT_SoVITS/configs/tts_infer.yaml"
+        else:
+            configs_base_path:str = "GPT_SoVITS/configs/"
+            os.makedirs(configs_base_path, exist_ok=True)
+            self.configs_path:str = os.path.join(configs_base_path, "tts_infer.yaml")
+            if isinstance(configs, str):
+                self.configs_path = configs
+                configs:dict = self._load_configs(configs)
             
-        # assert isinstance(configs, dict)
-        self.default_configs:dict = configs.get("default", None)
+                # assert isinstance(configs, dict)
+                self.default_configs:dict = configs.get("default", None)
         if self.default_configs is None:
             self.default_configs={
                 "device": "cpu",
@@ -70,7 +74,10 @@ class TTS_Config:
                 "bert_base_path": "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
                 "flash_attn_enabled": True
             }
-        self.configs:dict = configs.get("custom", self.default_configs)
+        if isinstance(configs, dict):
+            self.configs:dict = configs.get("custom", self.default_configs)
+        else:
+            self.configs:dict = self.default_configs
         
         self.device = self.configs.get("device") 
         self.is_half = self.configs.get("is_half")

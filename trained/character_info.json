@@ -1,4 +1,8 @@
 {
-    "deflaut_character": "胡桃(测试)"
-
+    "deflaut_character": "胡桃(测试)",
+    "characters_and_emotions": {
+        "胡桃(测试)": [
+            "default"
+        ]
+    }
 }
