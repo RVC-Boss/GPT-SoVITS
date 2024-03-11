@@ -99,7 +99,6 @@ class TTS_Config:
             configs = yaml.load(f, Loader=yaml.FullLoader)
     
         return configs
-    
 
     def save_configs(self, configs_path:str=None)->None:
         configs={
@@ -112,32 +111,31 @@ class TTS_Config:
                 "bert_base_path": "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
                 "flash_attn_enabled": True
             },
-            "custom": {
-                "device": str(self.device),
-                "is_half": self.is_half,
-                "t2s_weights_path": self.t2s_weights_path,
-                "vits_weights_path": self.vits_weights_path,
-                "bert_base_path": self.bert_base_path,
-                "cnhuhbert_base_path": self.cnhuhbert_base_path,
-                "flash_attn_enabled": self.flash_attn_enabled
-            }
+            "custom": self.update_configs()
         }
         if configs_path is None:
             configs_path = self.configs_path
         with open(configs_path, 'w') as f:
             yaml.dump(configs, f)
-            
+
+    def update_configs(self):
+        config = {
+            "device"             : str(self.device),
+            "is_half"            : self.is_half,
+            "t2s_weights_path"   : self.t2s_weights_path,
+            "vits_weights_path"  : self.vits_weights_path,
+            "bert_base_path"     : self.bert_base_path,
+            "cnhuhbert_base_path": self.cnhuhbert_base_path,
+            "flash_attn_enabled" : self.flash_attn_enabled
+        }
+        return config
             
     def __str__(self):
-        string = "----------------TTS Config--------------\n"
-        string += "device: {}\n".format(self.device)
-        string += "is_half: {}\n".format(self.is_half)
-        string += "flash_attn_enabled: {}\n".format(self.flash_attn_enabled)
-        string += "bert_base_path: {}\n".format(self.bert_base_path)
-        string += "t2s_weights_path: {}\n".format(self.t2s_weights_path)
-        string += "vits_weights_path: {}\n".format(self.vits_weights_path)
-        string += "cnhuhbert_base_path: {}\n".format(self.cnhuhbert_base_path)
-        string += "----------------------------------------\n"
+        self.configs = self.update_configs()
+        string = "TTS Config".center(100, '-') + '\n'
+        for k, v in self.configs.items():
+            string += f"{str(k).ljust(20)}: {str(v)}\n"
+        string += "-" * 100 + '\n'
         return string
 
 

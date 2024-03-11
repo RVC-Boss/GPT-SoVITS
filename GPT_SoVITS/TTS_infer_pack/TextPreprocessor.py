@@ -158,7 +158,6 @@ class TextPreprocessor:
         bert_feature = torch.cat(bert_feature_list, dim=1)
         # phones = sum(phones_list, [])
         norm_text = ''.join(norm_text_list)
-
         return phones_list, bert_feature, norm_text
 
 
