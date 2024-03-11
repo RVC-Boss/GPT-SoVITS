@@ -10,6 +10,11 @@ reference
 GPT_weights
 SoVITS_weights
 TEMP
+PortableGit
+
+
 ffmpeg.exe
 ffprobe.exe
+*.bat
+PortableGit/
 
