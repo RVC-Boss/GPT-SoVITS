@@ -45,9 +45,11 @@ os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时
 
 if torch.cuda.is_available():
     device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
 else:
     device = "cpu"
-
+    
 dict_language = {
     i18n("中文"): "all_zh",#全部按中文识别
     i18n("英文"): "en",#全部按英文识别#######不变
