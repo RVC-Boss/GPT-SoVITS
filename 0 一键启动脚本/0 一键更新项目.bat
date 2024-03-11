@@ -17,7 +17,6 @@ echo 更新所有子模块
 
 echo 执行 git pull 更新本地仓库
 "%GIT_PATH%\git.exe" stash
-"%GIT_PATH%\git.exe" config --global url."https://gitclone.com/".insteadOf https://
 "%GIT_PATH%\git.exe" pull https://github.com/X-T-E-R/GPT-SoVITS-Inference.git main
 
 echo.
