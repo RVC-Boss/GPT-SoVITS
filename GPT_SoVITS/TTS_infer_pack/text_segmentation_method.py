@@ -20,21 +20,32 @@ def register_method(name):
 
 splits = {"，", "。", "？", "！", ",", ".", "?", "!", "~", ":", "：", "—", "…", }
 
-# contributed by XTer
-# 简单的按长度切分，不希望出现超长的句子
-def split_big_text(text, max_length=510):
-    
-    opts = []
-    sentences = text.split('\n')
-    for sentence in sentences:
-        while len(sentence) > max_length:
-            part = sentence[:max_length]
-            opts.append(part)
-            sentence = sentence[max_length:]
-        if sentence:
-            opts.append(sentence)
-    return "\n".join(opts)
 
+
+def split_big_text(text, max_len=510):
+    # 定义全角和半角标点符号
+    punctuation = "".join(splits)
+
+    # 切割文本
+    segments = re.split('([' + punctuation + '])', text)
+    
+    # 初始化结果列表和当前片段
+    result = []
+    current_segment = ''
+    
+    for segment in segments:
+        # 如果当前片段加上新的片段长度超过max_len，就将当前片段加入结果列表，并重置当前片段
+        if len(current_segment + segment) > max_len:
+            result.append(current_segment)
+            current_segment = segment
+        else:
+            current_segment += segment
+    
+    # 将最后一个片段加入结果列表
+    if current_segment:
+        result.append(current_segment)
+    
+    return result
 
 def split(todo_text):
     todo_text = todo_text.replace("……", "。").replace("——", "，")
@@ -54,6 +65,20 @@ def split(todo_text):
             i_split_head += 1
     return todo_texts
 
+# contributed by XTer
+# 简单的按长度切分，不希望出现超长的句子
+def split_long_sentence(text, max_length=510):
+    
+    opts = []
+    sentences = text.split('\n')
+    for sentence in sentences:
+        while len(sentence) > max_length:
+            part = sentence[:max_length]
+            opts.append(part)
+            sentence = sentence[max_length:]
+        if sentence:
+            opts.append(sentence)
+    return "\n".join(opts)
 
 # 不切
 @register_method("cut0")
@@ -64,7 +89,7 @@ def cut0(inp):
 # 凑四句一切
 @register_method("cut1")
 def cut1(inp):
-    inp = split_big_text(inp).strip("\n")
+    inp = split_long_sentence(inp).strip("\n")
     inps = split(inp)
     split_idx = list(range(0, len(inps), 4))
     split_idx[-1] = None
@@ -80,7 +105,7 @@ def cut1(inp):
 # 凑50字一切
 @register_method("cut2")
 def cut2(inp, max_length=50):
-    inp = split_big_text(inp).strip("\n")
+    inp = split_long_sentence(inp).strip("\n")
     inps = split(inp)
     if len(inps) < 2:
         return inp
@@ -106,14 +131,14 @@ def cut2(inp, max_length=50):
 # 按中文句号。切
 @register_method("cut3")
 def cut3(inp):
-    inp = split_big_text(inp).strip("\n")
+    inp = split_long_sentence(inp).strip("\n")
     return "\n".join(["%s" % item for item in inp.strip("。").split("。")])
 
 
 # 按英文句号.切
 @register_method("cut4")
 def cut4(inp):
-    inp = split_big_text(inp).strip("\n")
+    inp = split_long_sentence(inp).strip("\n")
     return "\n".join(["%s" % item for item in inp.strip(".").split(".")])
 
 # 按标点符号切
@@ -122,7 +147,7 @@ def cut4(inp):
 def cut5(inp):
     # if not re.search(r'[^\w\s]', inp[-1]):
     # inp += '。'
-    inp = split_big_text(inp).strip("\n")
+    inp = split_long_sentence(inp).strip("\n")
     punds = r'[,.;?!、，。？！;：…]'
     items = re.split(f'({punds})', inp)
     mergeitems = ["".join(group) for group in zip(items[::2], items[1::2])]
@@ -163,7 +188,7 @@ def auto_cut(inp, max_length=60):
         for sentence in sentences:
             if len(sentence)>max_length:
                 
-                final_sentences+=split_big_text(sentence,max_length=max_length).split("\n")
+                final_sentences+=split_long_sentence(sentence,max_length=max_length).split("\n")
             else:
                 final_sentences.append(sentence)
         
