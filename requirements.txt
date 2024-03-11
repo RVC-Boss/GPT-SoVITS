@@ -28,7 +28,7 @@ PyYAML
 psutil
 jieba_fast
 jieba
-LangSegment>=0.2.5
+LangSegment>=0.2.6
 Faster_Whisper
 pyaudio
 flask_httpauth
