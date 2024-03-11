@@ -105,7 +105,7 @@ def inference(text, text_lang,
         "batch_size":int(batch_size),
         "speed_factor":float(speed_factor),
         "split_bucket":split_bucket,
-        "return_fragment":True
+        "return_fragment":False
     }
     
     for item in tts_pipline.run(inputs):
