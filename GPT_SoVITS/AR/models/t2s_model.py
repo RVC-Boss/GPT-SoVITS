@@ -234,10 +234,15 @@ class Text2SemanticDecoder(nn.Module):
             ignore_index=self.EOS,
         )
         
-        if not flash_attn_enabled:
+        self.enable_flash_attn(flash_attn_enabled)
+
+    def enable_flash_attn(self, enable:bool=True):
+        
+        if not enable:
             print("Not Using Flash Attention")
             self.infer_panel = self.infer_panel_batch_only
         else:
+            self.infer_panel = self.infer_panel_batch_infer_with_flash_attn
             print("Using Flash Attention")
             blocks = []
 
@@ -502,91 +507,7 @@ class Text2SemanticDecoder(nn.Module):
         # 错位
         return targets[:, :-1], targets[:, 1:]
 
-    def infer_one_step(self, x, xy_attn_mask, k_cache, v_cache, cache_seqlens):
-        hidden_dim = x.shape[-1]
-
-        for layer_id in range(self.num_layers):
-            layer = self.h.layers[layer_id]
-
-            q, k, v = F.linear(
-                x,
-                layer.self_attn.in_proj_weight,
-                layer.self_attn.in_proj_bias
-            ).chunk(3, dim=-1)
-
-            batch_size = q.shape[0]
-            q_len = q.shape[1]
-
-            if flash_attn_with_kvcache is None:
-                past_k = k_cache[layer_id]
-                past_v = v_cache[layer_id]
-
-                if past_k is not None:
-                    k = torch.cat([past_k, k], 1)
-                    v = torch.cat([past_v, v], 1)
-                k_cache[layer_id] = k
-                v_cache[layer_id] = v
-                kv_len = k.shape[1]
-
-                q = q.view(batch_size, q_len, layer.self_attn.num_heads, -1).transpose(1, 2)
-                k = k.view(batch_size, kv_len, layer.self_attn.num_heads, -1).transpose(1, 2)
-                v = v.view(batch_size, kv_len, layer.self_attn.num_heads, -1).transpose(1, 2)
-
-                if xy_attn_mask is None:
-                    attn = F.scaled_dot_product_attention(q, k, v)
-                else:
-                    attn = F.scaled_dot_product_attention(q, k, v, ~xy_attn_mask)
-
-                attn = attn.permute(2, 0, 1, 3).reshape(-1, hidden_dim)
-            else:
-                q = q.view(batch_size, q_len, layer.self_attn.num_heads, -1)
-                k = k.view(batch_size, q_len, layer.self_attn.num_heads, -1)
-                v = v.view(batch_size, q_len, layer.self_attn.num_heads, -1)
-
-                if xy_attn_mask is None:
-                    attn = flash_attn_with_kvcache(q, k_cache[layer_id], v_cache[layer_id], k, v, cache_seqlens=cache_seqlens, causal=True)
-                else:
-                    # NOTE: there's a slight difference with the result produced by SDPA.
-                    x_len = (~xy_attn_mask).sum(1)[0].item()
-
-                    attn_x = flash_attn_with_kvcache(
-                        q[:, :x_len],
-                        k_cache[layer_id],
-                        v_cache[layer_id],
-                        k[:, :x_len],
-                        v[:, :x_len],
-                        cache_seqlens=cache_seqlens,
-                        causal=False
-                    )
-
-                    attn_y = flash_attn_with_kvcache(
-                        q[:, x_len:],
-                        k_cache[layer_id],
-                        v_cache[layer_id],
-                        k[:, x_len:],
-                        v[:, x_len:],
-                        cache_seqlens=cache_seqlens + x_len,
-                        causal=True
-                    )
-
-                    attn = torch.cat([attn_x, attn_y], dim=1)
-                attn = attn.view(-1, hidden_dim)
-
-            attn_out = F.linear(attn, layer.self_attn.out_proj.weight, layer.self_attn.out_proj.bias)
-
-            x = layer.norm1(x + attn_out, None)
-
-            x = layer.norm2(x + layer.linear2(F.relu(layer.linear1(x))), None)
-
-        xy_dec = x
-
-        logits = self.ar_predict_layer(
-            xy_dec[:, -1]
-        )
-
-        return logits
-
-    def infer_panel(
+    def infer_panel_batch_infer_with_flash_attn(
         self,
         x,  #####全部文本token
         x_lens,
@@ -597,8 +518,10 @@ class Text2SemanticDecoder(nn.Module):
         early_stop_num: int = -1,
         temperature: float = 1.0,
     ):
+          
+        bert_feature = self.bert_proj(bert_feature.transpose(1, 2))
         x = self.ar_text_embedding(x)
-        x = x + self.bert_proj(bert_feature.transpose(1, 2))
+        x = x + bert_feature 
         x = self.ar_text_position(x)
 
         # AR Decoder
@@ -635,30 +558,28 @@ class Text2SemanticDecoder(nn.Module):
         y_lens = torch.LongTensor([y_len]*bsz).to(x.device)
         y_mask = make_pad_mask(y_lens)
         x_mask = make_pad_mask(x_lens)
-
         
+        # (bsz, x_len + y_len)
         xy_padding_mask = torch.concat([x_mask, y_mask], dim=1)
-        _xy_padding_mask = (
-            xy_padding_mask.view(bsz, 1, 1, src_len).expand(-1, self.num_head, -1, -1)
-        )
 
-        x_attn_mask_pad = F.pad(
+        x_mask = F.pad(
             x_attn_mask,
             (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
             value=True,
         )
-        y_attn_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
+        y_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
             torch.triu(torch.ones(y_len, y_len, dtype=torch.bool), diagonal=1),
             (x_len, 0),
             value=False,
         )
-        xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).to(
-            x.device
-        )
-        xy_attn_mask = xy_attn_mask.logical_or(_xy_padding_mask)
+        
+        xy_mask = torch.concat([x_mask, y_mask], dim=0).view(1 , src_len, src_len).expand(bsz, -1, -1).to(x.device)
+        # xy_mask = torch.triu(torch.ones(src_len, src_len, dtype=torch.bool, device=x.device), diagonal=1)
+        xy_padding_mask = xy_padding_mask.view(bsz, 1, src_len).expand(-1, src_len, src_len)
+        xy_attn_mask = xy_mask.logical_or(xy_padding_mask)
+        xy_attn_mask = xy_attn_mask.unsqueeze(1).expand(-1, self.num_head, -1, -1)
         new_attn_mask = torch.zeros_like(xy_attn_mask, dtype=x.dtype)
-        new_attn_mask.masked_fill_(xy_attn_mask, float("-inf"))
-        xy_attn_mask = new_attn_mask
+        xy_attn_mask = new_attn_mask.masked_fill(xy_attn_mask, float("-inf"))
         
         ###### decode #####
         y_list = [None]*y.shape[0]
@@ -730,7 +651,7 @@ class Text2SemanticDecoder(nn.Module):
             ####################### update next step ###################################
             y_emb = self.ar_audio_embedding(y[:, -1:])
             xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[:, y_len + idx].to( dtype= y_emb.dtype,device=y_emb.device)
-            
+
         if (None in idx_list):
             for i in range(x.shape[0]):
                 if idx_list[i] is None:
