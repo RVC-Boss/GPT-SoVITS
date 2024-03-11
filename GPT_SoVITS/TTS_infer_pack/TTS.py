@@ -90,7 +90,7 @@ class TTS_Config:
         self.n_speakers:int = 300
         
         self.langauges:list = ["auto", "en", "zh", "ja",  "all_zh", "all_ja"]
-        print(self)
+        # print(self)
             
     def _load_configs(self, configs_path: str)->dict:
         with open(configs_path, 'r') as f:
