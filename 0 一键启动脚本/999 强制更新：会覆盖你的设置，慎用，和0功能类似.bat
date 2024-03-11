@@ -20,7 +20,7 @@ echo 强制覆盖所有子模块
 "%GIT_PATH%\git.exe" submodule foreach --recursive "git fetch origin plug_in && git reset --hard origin/plug_in"
 
 echo 强制覆盖本地仓库
-"%GIT_PATH%\git.exe" fetch https://github.com/X-T-E-R/GPT-SoVITS-Inference.git main
+"%GIT_PATH%\git.exe" fetch https://gitee.com/xxoy/GPT-SoVITS-Inference.git main
 "%GIT_PATH%\git.exe" reset --hard FETCH_HEAD
 
 echo.
