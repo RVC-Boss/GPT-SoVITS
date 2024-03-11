@@ -105,7 +105,7 @@ def inference(text, text_lang,
         "batch_size":int(batch_size),
         "speed_factor":float(speed_factor),
         "split_bucket":split_bucket,
-        "return_fragment":False
+        "return_fragment":True
     }
     
     for item in tts_pipline.run(inputs):
@@ -186,7 +186,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.Row():
 
             with gr.Column():
-                batch_size = gr.Slider(minimum=1,maximum=200,step=1,label=i18n("batch_size"),value=1,interactive=True)
+                batch_size = gr.Slider(minimum=1,maximum=200,step=1,label=i18n("batch_size"),value=20,interactive=True)
                 speed_factor = gr.Slider(minimum=0.25,maximum=4,step=0.05,label="speed_factor",value=1.0,interactive=True)
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
