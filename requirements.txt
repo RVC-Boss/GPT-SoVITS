@@ -31,3 +31,4 @@ jieba
 LangSegment>=0.2.5
 Faster_Whisper
 pyaudio
+flask_httpauth
