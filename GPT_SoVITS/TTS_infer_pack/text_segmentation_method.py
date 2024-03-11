@@ -159,7 +159,7 @@ def cut5(inp):
 
 # contributed by https://github.com/X-T-E-R/GPT-SoVITS-Inference/blob/main/GPT_SoVITS/TTS_infer_pack/text_segmentation_method.py
 @register_method("auto_cut")
-def auto_cut(inp, max_length=60):
+def auto_cut(inp, max_length=30):
     # if not re.search(r'[^\w\s]', inp[-1]):
     # inp += '。'
     inp = inp.strip("\n")
