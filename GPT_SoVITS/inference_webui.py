@@ -80,6 +80,7 @@ if cnhubert_base_path is not None:
 if bert_path is not None:
     tts_config.bert_base_path = bert_path
     
+print(tts_config)
 tts_pipline = TTS(tts_config)
 gpt_path = tts_config.t2s_weights_path
 sovits_path = tts_config.vits_weights_path
