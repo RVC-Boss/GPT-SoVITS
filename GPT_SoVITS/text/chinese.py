@@ -86,6 +86,54 @@ def _get_initials_finals(word):
     return initials, finals
 
 
+must_erhua = {
+    "小院儿", "胡同儿", "范儿", "老汉儿", "撒欢儿", "寻老礼儿", "妥妥儿", "媳妇儿"
+}
+not_erhua = {
+    "虐儿", "为儿", "护儿", "瞒儿", "救儿", "替儿", "有儿", "一儿", "我儿", "俺儿", "妻儿",
+    "拐儿", "聋儿", "乞儿", "患儿", "幼儿", "孤儿", "婴儿", "婴幼儿", "连体儿", "脑瘫儿",
+    "流浪儿", "体弱儿", "混血儿", "蜜雪儿", "舫儿", "祖儿", "美儿", "应采儿", "可儿", "侄儿",
+    "孙儿", "侄孙儿", "女儿", "男儿", "红孩儿", "花儿", "虫儿", "马儿", "鸟儿", "猪儿", "猫儿",
+    "狗儿", "少儿"
+}
+def _merge_erhua(initials: list[str],
+                finals: list[str],
+                word: str,
+                pos: str) -> list[list[str]]:
+    """
+    Do erhub.
+    """
+    # fix er1
+    for i, phn in enumerate(finals):
+        if i == len(finals) - 1 and word[i] == "儿" and phn == 'er1':
+            finals[i] = 'er2'
+
+    # 发音
+    if word not in must_erhua and (word in not_erhua or
+                                        pos in {"a", "j", "nr"}):
+        return initials, finals
+
+    # "……" 等情况直接返回
+    if len(finals) != len(word):
+        return initials, finals
+
+    assert len(finals) == len(word)
+
+    # 与前一个字发同音
+    new_initials = []
+    new_finals = []
+    for i, phn in enumerate(finals):
+        if i == len(finals) - 1 and word[i] == "儿" and phn in {
+                "er2", "er5"
+        } and word[-2:] not in not_erhua and new_finals:
+            phn = "er" + new_finals[-1][-1]
+
+        new_initials.append(initials[i])
+        new_finals.append(phn)
+
+    return new_initials, new_finals
+
+
 def _g2p(segments):
     phones_list = []
     word2ph = []
@@ -104,6 +152,8 @@ def _g2p(segments):
                     continue
                 sub_initials, sub_finals = _get_initials_finals(word)
                 sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
+                # 儿化
+                sub_initials, sub_finals = _merge_erhua(sub_initials, sub_finals, word, pos)
                 initials.append(sub_initials)
                 finals.append(sub_finals)
                 # assert len(sub_initials) == len(sub_finals) == len(word)
@@ -139,6 +189,8 @@ def _g2p(segments):
 
                 pre_word_length = now_word_length
                 sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
+                # 儿化
+                sub_initials, sub_finals = _merge_erhua(sub_initials, sub_finals, word, pos)
                 initials.append(sub_initials)
                 finals.append(sub_finals)
 

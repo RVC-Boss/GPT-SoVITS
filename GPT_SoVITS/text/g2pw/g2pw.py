@@ -13,6 +13,7 @@ from .onnx_api import G2PWOnnxConverter
 current_file_path = os.path.dirname(__file__)
 CACHE_PATH = os.path.join(current_file_path, "polyphonic.pickle")
 PP_DICT_PATH = os.path.join(current_file_path, "polyphonic.rep")
+PP_FIX_DICT_PATH = os.path.join(current_file_path, "polyphonic-fix.rep")
 
 
 class G2PWPinyin(Pinyin):
@@ -127,6 +128,13 @@ def get_dict():
 def read_dict():
     polyphonic_dict = {}
     with open(PP_DICT_PATH) as f:
+        line = f.readline()
+        while line:
+            key, value_str = line.split(':')
+            value = eval(value_str.strip())
+            polyphonic_dict[key.strip()] = value
+            line = f.readline()
+    with open(PP_FIX_DICT_PATH) as f:
         line = f.readline()
         while line:
             key, value_str = line.split(':')
