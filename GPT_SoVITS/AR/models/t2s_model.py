@@ -707,19 +707,33 @@ class Text2SemanticDecoder(nn.Module):
             y = torch.zeros(x.shape[0], 0, dtype=torch.int, device=x.device)
             ref_free = True
 
-        x_attn_mask_pad = F.pad(
-                    x_attn_mask,
-                    (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
-                    value=True,
-                )
-        y_attn_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
+        ##### create mask #####
+        bsz = x.shape[0]
+        src_len = x_len + y_len
+        y_lens = torch.LongTensor([y_len]*bsz).to(x.device)
+        y_mask = make_pad_mask(y_lens)
+        x_mask = make_pad_mask(x_lens)
+        
+        # (bsz, x_len + y_len)
+        xy_padding_mask = torch.concat([x_mask, y_mask], dim=1)
+
+        x_mask = F.pad(
+            x_attn_mask,
+            (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
+            value=True,
+        )
+        y_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
             torch.triu(torch.ones(y_len, y_len, dtype=torch.bool), diagonal=1),
             (x_len, 0),
             value=False,
         )
-        xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).to(
-            x.device
-        )
+        
+        xy_mask = torch.concat([x_mask, y_mask], dim=0).view(1 , src_len, src_len).expand(bsz*self.num_head, -1, -1).to(x.device)
+        # xy_mask = torch.triu(torch.ones(src_len, src_len, dtype=torch.bool, device=x.device), diagonal=1)
+        xy_padding_mask = xy_padding_mask.view(bsz, 1, src_len).expand(bsz, src_len, src_len).repeat(self.num_head, 1, 1)
+        xy_attn_mask = xy_mask.logical_or(xy_padding_mask)
+        new_attn_mask = torch.zeros_like(xy_attn_mask, dtype=x.dtype)
+        xy_attn_mask = new_attn_mask.masked_fill(xy_attn_mask, float("-inf"))
         
         y_list = [None]*y.shape[0]
         batch_idx_map = list(range(y.shape[0]))

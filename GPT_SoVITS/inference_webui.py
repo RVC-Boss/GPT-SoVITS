@@ -91,7 +91,7 @@ def inference(text, text_lang,
               top_p, temperature, 
               text_split_method, batch_size, 
               speed_factor, ref_text_free,
-              split_bucket
+              split_bucket,fragment_interval,
               ):
     inputs={
         "text": text,
@@ -106,7 +106,8 @@ def inference(text, text_lang,
         "batch_size":int(batch_size),
         "speed_factor":float(speed_factor),
         "split_bucket":split_bucket,
-        "return_fragment":False
+        "return_fragment":False,
+        "fragment_interval":fragment_interval,
     }
     
     for item in tts_pipline.run(inputs):
@@ -188,6 +189,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
 
             with gr.Column():
                 batch_size = gr.Slider(minimum=1,maximum=200,step=1,label=i18n("batch_size"),value=20,interactive=True)
+                fragment_interval = gr.Slider(minimum=0.01,maximum=1,step=0.01,label=i18n("分段间隔(秒)"),value=0.3,interactive=True)
                 speed_factor = gr.Slider(minimum=0.25,maximum=4,step=0.05,label="speed_factor",value=1.0,interactive=True)
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
@@ -216,7 +218,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 top_k, top_p, temperature, 
                 how_to_cut, batch_size, 
                 speed_factor, ref_text_free,
-                split_bucket
+                split_bucket,fragment_interval,
              ],
             [output],
         )

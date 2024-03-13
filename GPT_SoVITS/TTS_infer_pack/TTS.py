@@ -3,6 +3,8 @@ import math
 import os, sys
 import random
 import traceback
+
+from tqdm import tqdm
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import ffmpeg
@@ -552,14 +554,15 @@ class TTS:
                     "prompt_text": "",        # str. prompt text for the reference audio
                     "prompt_lang": "",        # str. language of the prompt text for the reference audio
                     "top_k": 5,               # int. top k sampling
-                    "top_p": 1,             # float. top p sampling
-                    "temperature": 1,       # float. temperature for sampling
+                    "top_p": 1,               # float. top p sampling
+                    "temperature": 1,         # float. temperature for sampling
                     "text_split_method": "",  # str. text split method, see text_segmentaion_method.py for details.
                     "batch_size": 1,          # int. batch size for inference
                     "batch_threshold": 0.75,  # float. threshold for batch splitting.
                     "split_bucket: True,      # bool. whether to split the batch into multiple buckets.
                     "return_fragment": False, # bool. step by step return the audio fragment.
                     "speed_factor":1.0,       # float. control the speed of the synthesized audio.
+                    "fragment_interval":0.3,  # float. to control the interval of the audio fragment.
                 }
         returns:
             tulpe[int, np.ndarray]: sampling rate and audio data.
@@ -580,9 +583,10 @@ class TTS:
         speed_factor = inputs.get("speed_factor", 1.0)
         split_bucket = inputs.get("split_bucket", True)
         return_fragment = inputs.get("return_fragment", False)
+        fragment_interval = inputs.get("fragment_interval", 0.3)
         
         if return_fragment:
-            split_bucket = False
+            # split_bucket = False
             print(i18n("分段返回模式已开启"))
             if split_bucket:
                 split_bucket = False
@@ -590,7 +594,10 @@ class TTS:
             
         if split_bucket:
             print(i18n("分桶处理模式已开启"))
-            
+        
+        if fragment_interval<0.01:
+            fragment_interval = 0.01
+            print(i18n("分段间隔过小，已自动设置为0.01"))
     
         no_prompt_text = False
         if prompt_text in [None, ""]:
@@ -627,19 +634,52 @@ class TTS:
                 
         
         ###### text preprocessing ########
-        data = self.text_preprocessor.preprocess(text, text_lang, text_split_method)
-        if len(data) == 0:
-            yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate * 0.3),
-                                                        dtype=np.int16)
-            return
-        
         t1 = ttime()
-        data, batch_index_list = self.to_batch(data, 
-                             prompt_data=self.prompt_cache if not no_prompt_text else None, 
-                             batch_size=batch_size, 
-                             threshold=batch_threshold,
-                             split_bucket=split_bucket
-                             )
+        data:list = None
+        if not return_fragment:
+            data = self.text_preprocessor.preprocess(text, text_lang, text_split_method)
+            if len(data) == 0:
+                yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
+                                                            dtype=np.int16)
+                return
+            
+            batch_index_list:list = None
+            data, batch_index_list = self.to_batch(data, 
+                                prompt_data=self.prompt_cache if not no_prompt_text else None, 
+                                batch_size=batch_size, 
+                                threshold=batch_threshold,
+                                split_bucket=split_bucket
+                                )
+        else:
+            print(i18n("############ 切分文本 ############"))
+            texts = self.text_preprocessor.pre_seg_text(text, text_lang, text_split_method)
+            data = []
+            for i in range(len(texts)):
+                if i%batch_size == 0:
+                    data.append([])
+                data[-1].append(texts[i])
+                
+            def make_batch(batch_texts):
+                batch_data = []
+                print(i18n("############ 提取文本Bert特征 ############"))
+                for text in tqdm(batch_texts):
+                    phones, bert_features, norm_text = self.text_preprocessor.segment_and_extract_feature_for_text(text, text_lang)
+                    if phones is None:
+                        continue
+                    res={
+                        "phones": phones,
+                        "bert_features": bert_features,
+                        "norm_text": norm_text,
+                    }
+                    batch_data.append(res)
+                batch, _ = self.to_batch(batch_data, 
+                            prompt_data=self.prompt_cache if not no_prompt_text else None, 
+                            batch_size=batch_size, 
+                            threshold=batch_threshold,
+                            split_bucket=False
+                            )
+                return batch[0]
+            
         t2 = ttime()
         try:
             print("############ 推理 ############")
@@ -649,6 +689,9 @@ class TTS:
             audio = []
             for item in data:
                 t3 = ttime()
+                if return_fragment:
+                    item = make_batch(item)
+                    
                 batch_phones = item["phones"]
                 batch_phones_len = item["phones_len"]
                 all_phoneme_ids = item["all_phones"]
@@ -734,14 +777,16 @@ class TTS:
                     print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
                     yield self.audio_postprocess([batch_audio_fragment], 
                                                     self.configs.sampling_rate, 
-                                                    batch_index_list, 
+                                                    None, 
                                                     speed_factor, 
-                                                    split_bucket)
+                                                    False,
+                                                    fragment_interval
+                                                    )
                 else:
                     audio.append(batch_audio_fragment)
                     
                 if self.stop_flag:
-                    yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate * 0.3),
+                    yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
                                                             dtype=np.int16)
                     return
 
@@ -751,7 +796,9 @@ class TTS:
                                                 self.configs.sampling_rate, 
                                                 batch_index_list, 
                                                 speed_factor, 
-                                                split_bucket)         
+                                                split_bucket,
+                                                fragment_interval
+                                                )         
         except Exception as e:
             traceback.print_exc()
             # 必须返回一个空音频, 否则会导致显存不释放。
@@ -781,9 +828,11 @@ class TTS:
                           sr:int, 
                           batch_index_list:list=None, 
                           speed_factor:float=1.0, 
-                          split_bucket:bool=True)->tuple[int, np.ndarray]:
+                          split_bucket:bool=True,
+                          fragment_interval:float=0.3
+                          )->tuple[int, np.ndarray]:
         zero_wav = torch.zeros(
-                        int(self.configs.sampling_rate * 0.3),
+                        int(self.configs.sampling_rate * fragment_interval),
                         dtype=self.precison,
                         device=self.configs.device
                     )
