@@ -32,3 +32,4 @@ LangSegment>=0.2.6
 Faster_Whisper
 pyaudio
 flask_httpauth
+flask_cors
