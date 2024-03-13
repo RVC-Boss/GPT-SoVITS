@@ -893,7 +893,7 @@ class SynthesizerTrn(nn.Module):
         if freeze_quantizer:
             self.ssl_proj.requires_grad_(False)
             self.quantizer.requires_grad_(False)
-            self.quantizer.eval()
+            #self.quantizer.eval()
             # self.enc_p.text_embedding.requires_grad_(False)
             # self.enc_p.encoder_text.requires_grad_(False)
             # self.enc_p.mrte.requires_grad_(False)
