@@ -672,6 +672,8 @@ class TTS:
                         "norm_text": norm_text,
                     }
                     batch_data.append(res)
+                if len(batch_data) == 0:
+                    return None
                 batch, _ = self.to_batch(batch_data, 
                             prompt_data=self.prompt_cache if not no_prompt_text else None, 
                             batch_size=batch_size, 
@@ -691,6 +693,8 @@ class TTS:
                 t3 = ttime()
                 if return_fragment:
                     item = make_batch(item)
+                    if item is None:
+                        continue
                     
                 batch_phones = item["phones"]
                 batch_phones_len = item["phones_len"]
