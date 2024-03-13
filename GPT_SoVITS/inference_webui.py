@@ -45,9 +45,11 @@ os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时
 
 if torch.cuda.is_available():
     device = "cuda"
+# elif torch.backends.mps.is_available():
+#     device = "mps"
 else:
     device = "cpu"
-
+    
 dict_language = {
     i18n("中文"): "all_zh",#全部按中文识别
     i18n("英文"): "en",#全部按英文识别#######不变
@@ -78,6 +80,7 @@ if cnhubert_base_path is not None:
 if bert_path is not None:
     tts_config.bert_base_path = bert_path
     
+print(tts_config)
 tts_pipline = TTS(tts_config)
 gpt_path = tts_config.t2s_weights_path
 sovits_path = tts_config.vits_weights_path
@@ -103,10 +106,12 @@ def inference(text, text_lang,
         "batch_size":int(batch_size),
         "speed_factor":float(speed_factor),
         "split_bucket":split_bucket,
-        "return_fragment":False,
+        "return_fragment":False
     }
-    yield next(tts_pipline.run(inputs))
-
+    
+    for item in tts_pipline.run(inputs):
+        yield item
+        
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
     parts = re.split('(\d+)', s)
@@ -182,7 +187,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.Row():
 
             with gr.Column():
-                batch_size = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("batch_size"),value=20,interactive=True)
+                batch_size = gr.Slider(minimum=1,maximum=200,step=1,label=i18n("batch_size"),value=20,interactive=True)
                 speed_factor = gr.Slider(minimum=0.25,maximum=4,step=0.05,label="speed_factor",value=1.0,interactive=True)
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
