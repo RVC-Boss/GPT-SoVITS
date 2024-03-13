@@ -33,6 +33,8 @@
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
+**用户手册: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
+
 ## 安装
 
 中国地区用户可[点击此处](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official)使用 AutoDL 云端镜像进行体验。
@@ -59,13 +61,7 @@ bash install.sh
 
 ### macOS
 
-只有符合以下条件的 Mac 可以训练模型：
-
-- 搭载 Apple 芯片的 Mac
-- 运行macOS 12.3 或更高版本
-- 已通过运行`xcode-select --install`安装 Xcode command-line tools
-
-**所有 Mac 都可使用 CPU 进行推理，且已测试性能优于 GPU。**
+**注：在 Mac 上使用 GPU 训练的模型效果显著低于其他设备训练的模型，所以我们暂时使用CPU进行训练。**
 
 首先确保你已通过运行 `brew install ffmpeg` 或 `conda install ffmpeg` 安装 FFmpeg，然后运行以下命令安装：
 
@@ -73,11 +69,8 @@ bash install.sh
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
 
-pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 pip install -r requirements.txt
 ```
-
-_注：只有安装了Pytorch Nightly才可训练模型。_
 
 ### 手动安装
 
