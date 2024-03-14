@@ -113,7 +113,7 @@ class TextNormalizer():
         sentence = sentence.replace('ψ', '普赛').replace('Ψ', '普赛')
         sentence = sentence.replace('ω', '欧米伽').replace('Ω', '欧米伽')
         # re filter special characters, have one more character "-" than line 68
-        sentence = re.sub(r'[-——《》【】<=>{}()（）#&@“”^_|…\\]', '', sentence)
+        sentence = re.sub(r'[-——《》【】<=>{}()（）#&@“”^_|\\]', '', sentence)
         return sentence
 
     def normalize_sentence(self, sentence: str) -> str:
