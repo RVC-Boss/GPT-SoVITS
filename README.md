@@ -33,7 +33,7 @@ Unseen speakers few-shot fine-tuning demo:
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
-[教程中文版](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) [User guide (EN)](https://rentry.co/GPT-SoVITS-guide#/)
+**User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
 ## Installation
 
@@ -61,13 +61,7 @@ bash install.sh
 
 ### macOS
 
-Only Macs that meet the following conditions can train models:
-
-- Mac computers with Apple silicon
-- macOS 12.3 or later
-- Xcode command-line tools installed by running `xcode-select --install`
-
-**All Macs can do inference with CPU, which has been demonstrated to outperform GPU inference.**
+**Note: The models trained with GPUs on Macs result in significantly lower quality compared to those trained on other devices, so we are temporarily using CPUs instead.**
 
 First make sure you have installed FFmpeg by running `brew install ffmpeg` or `conda install ffmpeg`, then install by using the following commands:
 
@@ -75,11 +69,8 @@ First make sure you have installed FFmpeg by running `brew install ffmpeg` or `c
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
 
-pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 pip install -r requirements.txt
 ```
-
-_Note: Training models will only work if you've installed PyTorch Nightly._
 
 ### Install Manually
 
