@@ -14,6 +14,23 @@ locale_path = "./Inference/i18n/locale"
 scan_list = ["./Inference/"]  # The path to the directory you want to scan, you can change it to your own path
 scan_subfolders = True
 
+special_words_to_keep = {
+    "auto": "自动判断",
+    "zh": "中文",
+    "en": "英文",
+    "ja": "日文",
+    "all_zh": "只有中文",
+    "all_ja": "只有日文",
+    "auto_cut": "智能切分",
+    "cut0": "仅凭换行切分",
+    "cut1": "凑四句一切",
+    "cut2": "凑50字一切",
+    "cut3": "按中文句号。切",
+    "cut4": "按英文句号.切",
+    "cut5": "按标点符号切",
+    
+}
+
 
 def extract_i18n_strings(node):
     i18n_strings = []
@@ -87,10 +104,15 @@ missing_keys = code_keys - standard_keys
 print("Missing keys:", len(missing_keys))
 for missing_key in missing_keys:
     print("\t", missing_key)
+    
+
 
 code_keys_dict = OrderedDict()
 for s in strings:
-    code_keys_dict[s] = s
+    if s in special_words_to_keep:
+        code_keys_dict[s] = special_words_to_keep[s]
+    else:    
+        code_keys_dict[s] = s
 
 # write back
 with open(standard_file, "w", encoding="utf-8") as f:

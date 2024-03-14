@@ -31,7 +31,7 @@ for lang_file in languages:
 
     # Add any missing keys to the language file
     for key in diff:
-        lang_data[key] = key
+        lang_data[key] = standard_data[key]
 
     # Del any extra keys to the language file
     for key in miss:

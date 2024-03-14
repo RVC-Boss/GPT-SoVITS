@@ -65,6 +65,25 @@ def split(todo_text):
             i_split_head += 1
     return todo_texts
 
+def cut_sentence_multilang(text, max_length=30):
+    # 初始化计数器
+    word_count = 0
+    in_word = False
+    
+    
+    for index, char in enumerate(text):
+        if char.isspace():  # 如果当前字符是空格
+            in_word = False
+        elif char.isascii() and not in_word:  # 如果是ASCII字符（英文）并且不在单词内
+            word_count += 1  # 新的英文单词
+            in_word = True
+        elif not char.isascii():  # 如果字符非英文
+            word_count += 1  # 每个非英文字符单独计为一个字
+        if word_count > max_length:
+            return text[:index], text[index:]
+    
+    return text, ""
+
 # contributed by XTer
 # 简单的按长度切分，不希望出现超长的句子
 def split_long_sentence(text, max_length=510):
@@ -72,12 +91,11 @@ def split_long_sentence(text, max_length=510):
     opts = []
     sentences = text.split('\n')
     for sentence in sentences:
-        while len(sentence) > max_length:
-            part = sentence[:max_length]
-            opts.append(part)
-            sentence = sentence[max_length:]
-        if sentence:
-            opts.append(sentence)
+        prev_text , sentence = cut_sentence_multilang(sentence, max_length)
+        while sentence.strip() != "":
+            opts.append(prev_text)
+            prev_text , sentence = cut_sentence_multilang(sentence, max_length)
+        opts.append(prev_text)
     return "\n".join(opts)
 
 # 不切
@@ -89,7 +107,7 @@ def cut0(inp):
 # 凑四句一切
 @register_method("cut1")
 def cut1(inp):
-    inp = split_long_sentence(inp).strip("\n")
+    inp = inp.strip("\n")
     inps = split(inp)
     split_idx = list(range(0, len(inps), 4))
     split_idx[-1] = None
@@ -138,7 +156,7 @@ def cut3(inp):
 # 按英文句号.切
 @register_method("cut4")
 def cut4(inp):
-    inp = split_long_sentence(inp).strip("\n")
+    inp = inp.strip("\n")
     return "\n".join(["%s" % item for item in inp.strip(".").split(".")])
 
 # 按标点符号切
@@ -147,7 +165,7 @@ def cut4(inp):
 def cut5(inp):
     # if not re.search(r'[^\w\s]', inp[-1]):
     # inp += '。'
-    inp = split_long_sentence(inp).strip("\n")
+    inp = inp.strip("\n")
     punds = r'[,.;?!、，。？！;：…]'
     items = re.split(f'({punds})', inp)
     mergeitems = ["".join(group) for group in zip(items[::2], items[1::2])]
@@ -157,12 +175,30 @@ def cut5(inp):
     opt = "\n".join(mergeitems)
     return opt
 
+def count_words_multilang(text):
+    # 初始化计数器
+    word_count = 0
+    in_word = False
+    
+    for char in text:
+        if char.isspace():  # 如果当前字符是空格
+            in_word = False
+        elif char.isascii() and not in_word:  # 如果是ASCII字符（英文）并且不在单词内
+            word_count += 1  # 新的英文单词
+            in_word = True
+        elif not char.isascii():  # 如果字符非英文
+            word_count += 1  # 每个非英文字符单独计为一个字
+    
+    return word_count
+    
+
 # contributed by https://github.com/X-T-E-R/GPT-SoVITS-Inference/blob/main/GPT_SoVITS/TTS_infer_pack/text_segmentation_method.py
 @register_method("auto_cut")
 def auto_cut(inp, max_length=30):
     # if not re.search(r'[^\w\s]', inp[-1]):
     # inp += '。'
     inp = inp.strip("\n")
+    inp = inp.replace(". ", "。")
     erase_punds = r'[“”"‘’\'（）()【】[\]{}<>《》〈〉〔〕〖〗〘〙〚〛〛〞〟]'
     inp = re.sub(erase_punds, '', inp)
     split_punds = r'[?!。？！~：]'
@@ -186,7 +222,7 @@ def auto_cut(inp, max_length=30):
         final_sentences = []
         
         for sentence in sentences:
-            if len(sentence)>max_length:
+            if count_words_multilang(sentence)>max_length:
                 
                 final_sentences+=split_long_sentence(sentence,max_length=max_length).split("\n")
             else:
@@ -194,7 +230,7 @@ def auto_cut(inp, max_length=30):
         
         for sentence in final_sentences:
             # Add the length of the sentence plus one for the space or newline that will follow
-            if len(current_line) + len(sentence) <= max_length:
+            if count_words_multilang(current_line + sentence) <= max_length:
                 # If adding the next sentence does not exceed max length, add it to the current line
                 current_line += sentence
             else:
@@ -217,7 +253,6 @@ def auto_cut(inp, max_length=30):
 
 
 if __name__ == '__main__':
-    method = get_method("cut1")
-    str1="""一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十
-    """
-    print("|\n|".join(method(str1).split("\n")))
+    str1 = """我 有i一个j k 1"""
+    print(count_words_multilang(str1))
+    print(cut_sentence_multilang(str1, 20))
