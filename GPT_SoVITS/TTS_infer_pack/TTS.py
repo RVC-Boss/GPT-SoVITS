@@ -592,7 +592,7 @@ class TTS:
         return_fragment = inputs.get("return_fragment", False)
         fragment_interval = inputs.get("fragment_interval", 0.3)
         seed = inputs.get("seed", -1)
-        
+        seed = -1 if seed in ["", None] else seed
         set_seed(seed)
         
         if return_fragment:
