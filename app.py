@@ -24,6 +24,7 @@ if os.path.exists(config_path):
         locale_language = str(_config.get("locale", "auto"))
         locale_language = None if locale_language.lower() == "auto" else locale_language
         tts_port = _config.get("tts_port", 5000)
+        max_text_length = _config.get("max_text_length", 70)
         default_batch_size = _config.get("batch_size", 10)
         default_word_count = _config.get("max_word_count", 80)
         is_share = _config.get("is_share", "false").lower() == "true"
@@ -218,6 +219,25 @@ def change_word_count(word_count):
     return
 
 
+def cut_sentence_multilang(text, max_length=30):
+    # 初始化计数器
+    word_count = 0
+    in_word = False
+    
+    
+    for index, char in enumerate(text):
+        if char.isspace():  # 如果当前字符是空格
+            in_word = False
+        elif char.isascii() and not in_word:  # 如果是ASCII字符（英文）并且不在单词内
+            word_count += 1  # 新的英文单词
+            in_word = True
+        elif not char.isascii():  # 如果字符非英文
+            word_count += 1  # 每个非英文字符单独计为一个字
+        if word_count > max_length:
+            return text[:index], text[index:]
+    
+    return text, ""
+
 default_request_url = f"http://127.0.0.1:{tts_port}"
 default_character_info_url = f"{default_request_url}/character_list"
 default_endpoint = f"{default_request_url}/tts"
@@ -240,6 +260,12 @@ default_endpoint_data = """{
 }"""
 default_text = i18n("我是一个粉刷匠，粉刷本领强。我要把那新房子，刷得更漂亮。刷了房顶又刷墙，刷子像飞一样。哎呀我的小鼻子，变呀变了样。")
 
+if "。" not in default_text:
+    _sentence_list = default_text.split(".")
+    default_text = ".".join(_sentence_list[:1]) + "."
+else:
+    _sentence_list = default_text.split("。")
+    default_text = "。".join(_sentence_list[:2]) + "。"
 
 information = ""
 
@@ -254,8 +280,9 @@ with gr.Blocks() as app:
     gr.Markdown(information)
     with gr.Row():
         text = gr.Textbox(
-            value=default_text, label=i18n("输入文本"), interactive=True, lines=8
+            value=default_text, label=i18n("输入文本")+"( "+ i18n("最大允许长度")  + f": {max_text_length} )", interactive=True, lines=8
         )
+        text.blur(lambda x: gr.update(value=cut_sentence_multilang(x,max_length=max_text_length)[0]), [text], [text])
     with gr.Row():
         with gr.Column(scale=2):
             with gr.Tabs():
