@@ -28,7 +28,7 @@ is_share = os.environ.get("is_share", "False")
 is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
-is_half = eval(os.environ.get("is_half", "True")) and not torch.backends.mps.is_available()
+is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 gpt_path = os.environ.get("gpt_path", None)
 sovits_path = os.environ.get("sovits_path", None)
 cnhubert_base_path = os.environ.get("cnhubert_base_path", None)
@@ -41,7 +41,7 @@ from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
 
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
+# os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -91,7 +91,8 @@ def inference(text, text_lang,
               top_p, temperature, 
               text_split_method, batch_size, 
               speed_factor, ref_text_free,
-              split_bucket
+              split_bucket,fragment_interval,
+              seed,
               ):
     inputs={
         "text": text,
@@ -106,7 +107,9 @@ def inference(text, text_lang,
         "batch_size":int(batch_size),
         "speed_factor":float(speed_factor),
         "split_bucket":split_bucket,
-        "return_fragment":False
+        "return_fragment":False,
+        "fragment_interval":fragment_interval,
+        "seed":seed,
     }
     
     for item in tts_pipline.run(inputs):
@@ -188,6 +191,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
 
             with gr.Column():
                 batch_size = gr.Slider(minimum=1,maximum=200,step=1,label=i18n("batch_size"),value=20,interactive=True)
+                fragment_interval = gr.Slider(minimum=0.01,maximum=1,step=0.01,label=i18n("分段间隔(秒)"),value=0.3,interactive=True)
                 speed_factor = gr.Slider(minimum=0.25,maximum=4,step=0.05,label="speed_factor",value=1.0,interactive=True)
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
@@ -201,6 +205,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 )
                 with gr.Row():
                     split_bucket = gr.Checkbox(label=i18n("数据分桶(可能会降低一点计算量，选就对了)"), value=True, interactive=True, show_label=True)
+                    seed = gr.Number(label=i18n("随机种子"),value=-1)
             # with gr.Column():
                 output = gr.Audio(label=i18n("输出的语音"))
                 with gr.Row():
@@ -216,7 +221,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 top_k, top_p, temperature, 
                 how_to_cut, batch_size, 
                 speed_factor, ref_text_free,
-                split_bucket
+                split_bucket,fragment_interval,
+                seed
              ],
             [output],
         )
