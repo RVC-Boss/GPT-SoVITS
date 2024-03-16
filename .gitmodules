@@ -1,0 +1,4 @@
+[submodule "Inference"]
+	path = Inference
+	url = https://gitee.com/xxoy/TTS-for-GPT-soVITS.git
+	branch = plug_in

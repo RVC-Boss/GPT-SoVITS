@@ -1,7 +1,3 @@
-
-
-
-
 import re
 from typing import Callable
 from tools.i18n.i18n import I18nAuto
@@ -23,6 +19,8 @@ def register_method(name):
     return decorator
 
 splits = {"，", "。", "？", "！", ",", ".", "?", "!", "~", ":", "：", "—", "…", }
+
+
 
 def split_big_text(text, max_len=510):
     # 定义全角和半角标点符号
@@ -49,8 +47,6 @@ def split_big_text(text, max_len=510):
     
     return result
 
-
-
 def split(todo_text):
     todo_text = todo_text.replace("……", "。").replace("——", "，")
     if todo_text[-1] not in splits:
@@ -69,6 +65,38 @@ def split(todo_text):
             i_split_head += 1
     return todo_texts
 
+def cut_sentence_multilang(text, max_length=30):
+    # 初始化计数器
+    word_count = 0
+    in_word = False
+    
+    
+    for index, char in enumerate(text):
+        if char.isspace():  # 如果当前字符是空格
+            in_word = False
+        elif char.isascii() and not in_word:  # 如果是ASCII字符（英文）并且不在单词内
+            word_count += 1  # 新的英文单词
+            in_word = True
+        elif not char.isascii():  # 如果字符非英文
+            word_count += 1  # 每个非英文字符单独计为一个字
+        if word_count > max_length:
+            return text[:index], text[index:]
+    
+    return text, ""
+
+# contributed by XTer
+# 简单的按长度切分，不希望出现超长的句子
+def split_long_sentence(text, max_length=510):
+    
+    opts = []
+    sentences = text.split('\n')
+    for sentence in sentences:
+        prev_text , sentence = cut_sentence_multilang(sentence, max_length)
+        while sentence.strip() != "":
+            opts.append(prev_text)
+            prev_text , sentence = cut_sentence_multilang(sentence, max_length)
+        opts.append(prev_text)
+    return "\n".join(opts)
 
 # 不切
 @register_method("cut0")
@@ -91,10 +119,11 @@ def cut1(inp):
         opts = [inp]
     return "\n".join(opts)
 
+
 # 凑50字一切
 @register_method("cut2")
-def cut2(inp):
-    inp = inp.strip("\n")
+def cut2(inp, max_length=50):
+    inp = split_long_sentence(inp).strip("\n")
     inps = split(inp)
     if len(inps) < 2:
         return inp
@@ -104,7 +133,7 @@ def cut2(inp):
     for i in range(len(inps)):
         summ += len(inps[i])
         tmp_str += inps[i]
-        if summ > 50:
+        if summ > max_length:
             summ = 0
             opts.append(tmp_str)
             tmp_str = ""
@@ -116,13 +145,15 @@ def cut2(inp):
         opts = opts[:-1]
     return "\n".join(opts)
 
+
 # 按中文句号。切
 @register_method("cut3")
 def cut3(inp):
-    inp = inp.strip("\n")
+    inp = split_long_sentence(inp).strip("\n")
     return "\n".join(["%s" % item for item in inp.strip("。").split("。")])
 
-#按英文句号.切
+
+# 按英文句号.切
 @register_method("cut4")
 def cut4(inp):
     inp = inp.strip("\n")
@@ -144,9 +175,84 @@ def cut5(inp):
     opt = "\n".join(mergeitems)
     return opt
 
+def count_words_multilang(text):
+    # 初始化计数器
+    word_count = 0
+    in_word = False
+    
+    for char in text:
+        if char.isspace():  # 如果当前字符是空格
+            in_word = False
+        elif char.isascii() and not in_word:  # 如果是ASCII字符（英文）并且不在单词内
+            word_count += 1  # 新的英文单词
+            in_word = True
+        elif not char.isascii():  # 如果字符非英文
+            word_count += 1  # 每个非英文字符单独计为一个字
+    
+    return word_count
+    
+
+# contributed by https://github.com/X-T-E-R/GPT-SoVITS-Inference/blob/main/GPT_SoVITS/TTS_infer_pack/text_segmentation_method.py
+@register_method("auto_cut")
+def auto_cut(inp, max_length=30):
+    # if not re.search(r'[^\w\s]', inp[-1]):
+    # inp += '。'
+    inp = inp.strip("\n")
+    inp = inp.replace(". ", "。")
+    erase_punds = r'[“”"‘’\'（）()【】[\]{}<>《》〈〉〔〕〖〗〘〙〚〛〛〞〟]'
+    inp = re.sub(erase_punds, '', inp)
+    split_punds = r'[?!。？！~：]'
+    if inp[-1] not in split_punds:
+        inp+="。"
+    items = re.split(f'({split_punds})', inp)
+    items = ["".join(group) for group in zip(items[::2], items[1::2])]
+
+    def process_commas(text, max_length):
+    
+        # Define separators and the regular expression for splitting
+        separators = ['，', ',', '、', '——', '…']
+        # 使用正则表达式的捕获组来保留分隔符，分隔符两边的括号就是所谓的捕获组
+        regex_pattern = '(' + '|'.join(map(re.escape, separators)) + ')'
+        # 使用re.split函数分割文本，由于使用了捕获组，分隔符也会作为分割结果的一部分返回
+        sentences = re.split(regex_pattern, text)
+  
+        processed_text = "" 
+        current_line = "" 
+        
+        final_sentences = []
+        
+        for sentence in sentences:
+            if count_words_multilang(sentence)>max_length:
+                
+                final_sentences+=split_long_sentence(sentence,max_length=max_length).split("\n")
+            else:
+                final_sentences.append(sentence)
+        
+        for sentence in final_sentences:
+            # Add the length of the sentence plus one for the space or newline that will follow
+            if count_words_multilang(current_line + sentence) <= max_length:
+                # If adding the next sentence does not exceed max length, add it to the current line
+                current_line += sentence
+            else:
+                # If the current line is too long, start a new line
+                processed_text += current_line.strip() + '\n'
+                current_line = sentence + " "  # Start the new line with the current sentence
+        
+        # Add any remaining text in current_line to processed_text
+        processed_text += current_line.strip()
+
+        return processed_text
+
+    final_items = []
+    for item in items:
+        final_items+=process_commas(item,max_length=max_length).split("\n")
+    
+    final_items = [item for item in final_items if item.strip() and not (len(item.strip()) == 1 and item.strip() in "?!，,。？！~：")]
+
+    return "\n".join(final_items)
 
 
 if __name__ == '__main__':
-    method = get_method("cut5")
-    print(method("你好，我是小明。你好，我是小红。你好，我是小刚。你好，我是小张。"))
-    
+    str1 = """我 有i一个j k 1"""
+    print(count_words_multilang(str1))
+    print(cut_sentence_multilang(str1, 20))

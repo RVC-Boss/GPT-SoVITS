@@ -70,14 +70,27 @@ class TextPreprocessor:
         return result
 
     def pre_seg_text(self, text:str, lang:str, text_split_method:str):
+        
+        
         text = text.strip("\n")
         if (text[0] not in splits and len(get_first(text)) < 4): 
             text = "。" + text if lang != "en" else "." + text
         print(i18n("实际输入的目标文本:"))
         print(text)
         
-        seg_method = get_seg_method(text_split_method)
-        text = seg_method(text)
+        if text_split_method.startswith("auto_cut"):
+            try:
+                max_word_count = int(text_split_method.split("_")[-1])
+            except:
+                max_word_count = 20
+            if max_word_count < 5 or max_word_count > 1000:
+                max_word_count = 20
+            text_split_method = "auto_cut"
+            seg_method = get_seg_method(text_split_method)
+            text = seg_method(text, max_word_count)
+        else:
+            seg_method = get_seg_method(text_split_method)
+            text = seg_method(text)
         
         while "\n\n" in text:
             text = text.replace("\n\n", "\n")
