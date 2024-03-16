@@ -23,5 +23,5 @@ PyYAML
 psutil
 jieba_fast
 jieba
-LangSegment>=0.2.0
+LangSegment>=0.2.5
 Faster_Whisper
