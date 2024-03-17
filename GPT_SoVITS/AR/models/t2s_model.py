@@ -504,18 +504,29 @@ class Text2SemanticDecoder(nn.Module):
 
     def infer_panel_batch_infer_with_flash_attn(
         self,
-        x,  #####全部文本token
-        x_lens,
-        prompts,  ####参考音频token
-        bert_feature,
+        x:List[torch.LongTensor],  #####全部文本token
+        x_lens:torch.LongTensor,
+        prompts:torch.LongTensor,  ####参考音频token
+        bert_feature:List[torch.LongTensor],
         top_k: int = -100,
         top_p: int = 100,
         early_stop_num: int = -1,
         temperature: float = 1.0,
     ):
-          
-        bert_feature = self.bert_proj(bert_feature.transpose(1, 2))
-        x = self.ar_text_embedding(x)
+        # 先对phones进行embedding、对bert_features进行project，再pad到相同长度，以缓解复读问题。（可能还有其他因素导致复读）
+        max_len = 0
+        for x_item, bert_item in zip(x, bert_feature):
+            max_len = max(max_len, x_item.shape[0], bert_item.shape[1])
+        x_list = [self.ar_text_embedding(item) for item in x]
+        x_list = [F.pad(item,(0,0,0,max_len-item.shape[0]),value=0) if item.shape[0]<max_len else item for item in x_list]
+        x = torch.stack(x_list, dim=0)
+
+        bert_features_list = [self.bert_proj(item.transpose(0, 1)) for item in bert_feature]
+        bert_features_list = [F.pad(item,(0,0,0,max_len-item.shape[0]), value=0) if item.shape[0]<max_len else item for item in bert_features_list]
+        bert_feature = torch.stack(bert_features_list, dim=0)
+        
+        # bert_feature = self.bert_proj(bert_feature.transpose(1, 2))
+        # x = self.ar_text_embedding(x)
         x = x + bert_feature 
         x = self.ar_text_position(x)
 
@@ -658,17 +669,30 @@ class Text2SemanticDecoder(nn.Module):
     
     def infer_panel_batch_only(
         self,
-        x,  #####全部文本token
-        x_lens,
-        prompts,  ####参考音频token
-        bert_feature,
+        x:List[torch.LongTensor],  #####全部文本token
+        x_lens:torch.LongTensor,
+        prompts:torch.LongTensor,  ####参考音频token
+        bert_feature:List[torch.LongTensor],
         top_k: int = -100,
         top_p: int = 100,
         early_stop_num: int = -1,
         temperature: float = 1.0,
     ):
-        x = self.ar_text_embedding(x)
-        x = x + self.bert_proj(bert_feature.transpose(1, 2))
+        # 先对phones进行embedding、对bert_features进行project，再pad到相同长度，以缓解复读问题。（可能还有其他因素导致复读）
+        max_len = 0
+        for x_item, bert_item in zip(x, bert_feature):
+            max_len = max(max_len, x_item.shape[0], bert_item.shape[1])
+        x_list = [self.ar_text_embedding(item) for item in x]
+        x_list = [F.pad(item,(0,0,0,max_len-item.shape[0]),value=0) if item.shape[0]<max_len else item for item in x_list]
+        x = torch.stack(x_list, dim=0)
+
+        bert_features_list = [self.bert_proj(item.transpose(0, 1)) for item in bert_feature]
+        bert_features_list = [F.pad(item,(0,0,0,max_len-item.shape[0]), value=0) if item.shape[0]<max_len else item for item in bert_features_list]
+        bert_feature = torch.stack(bert_features_list, dim=0)
+        
+        # bert_feature = self.bert_proj(bert_feature.transpose(1, 2))
+        # x = self.ar_text_embedding(x)
+        x = x + bert_feature 
         x = self.ar_text_position(x)
 
         # AR Decoder
@@ -707,19 +731,33 @@ class Text2SemanticDecoder(nn.Module):
             y = torch.zeros(x.shape[0], 0, dtype=torch.int, device=x.device)
             ref_free = True
 
-        x_attn_mask_pad = F.pad(
-                    x_attn_mask,
-                    (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
-                    value=True,
-                )
-        y_attn_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
+        ##### create mask #####
+        bsz = x.shape[0]
+        src_len = x_len + y_len
+        y_lens = torch.LongTensor([y_len]*bsz).to(x.device)
+        y_mask = make_pad_mask(y_lens)
+        x_mask = make_pad_mask(x_lens)
+        
+        # (bsz, x_len + y_len)
+        xy_padding_mask = torch.concat([x_mask, y_mask], dim=1)
+
+        x_mask = F.pad(
+            x_attn_mask,
+            (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
+            value=True,
+        )
+        y_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
             torch.triu(torch.ones(y_len, y_len, dtype=torch.bool), diagonal=1),
             (x_len, 0),
             value=False,
         )
-        xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).to(
-            x.device
-        )
+        
+        xy_mask = torch.concat([x_mask, y_mask], dim=0).view(1 , src_len, src_len).expand(bsz*self.num_head, -1, -1).to(x.device)
+        # xy_mask = torch.triu(torch.ones(src_len, src_len, dtype=torch.bool, device=x.device), diagonal=1)
+        xy_padding_mask = xy_padding_mask.view(bsz, 1, src_len).expand(bsz, src_len, src_len).repeat(self.num_head, 1, 1)
+        xy_attn_mask = xy_mask.logical_or(xy_padding_mask)
+        new_attn_mask = torch.zeros_like(xy_attn_mask, dtype=x.dtype)
+        xy_attn_mask = new_attn_mask.masked_fill(xy_attn_mask, float("-inf"))
         
         y_list = [None]*y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
