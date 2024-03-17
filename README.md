@@ -51,6 +51,8 @@ _Note: numba==0.56.4 requires py<3.11_
 
 If you are a Windows user (tested with win>=10), you can directly download the [pre-packaged distribution](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
 
+Users in China region can download the file by clicking [here](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217) and then selecting "Download a copy."
+
 ### Linux
 
 ```bash
