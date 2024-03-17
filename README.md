@@ -1,43 +1,87 @@
-<div align="center">
+# GSVI : GPT-SoVITS Inference Plugin
 
-<h1>GPT-SoVITS-WebUI</h1>
-A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
+Welcome to GSVI, an inference-specialized plugin built on top of GPT-SoVITS to enhance your text-to-speech (TTS) experience with a user-friendly API interface. This plugin enriches the [original GPT-SoVITS project](https://github.com/RVC-Boss/GPT-SoVITS), making voice synthesis more accessible and versatile.
 
-[![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
+Please note that we do not recommend using GSVI for training. Its existence is to make the process of using GPT-soVITS simpler and more comfortable for others, and to make model sharing easier.
 
-<img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
+## Features
 
-[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
-[![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
+- High-level abstract interface for easy character and emotion selection
+- Comprehensive TTS engine support (speaker selection, speed adjustment, volume control)
+- User-friendly design for everyone
+- Simply place the shared character model folder, and you can quickly use it.
+- High compatibility and extensibility for various platforms and applications (for example: SillyTavern)
 
-[**English**](./README.md) | [**中文简体**](./docs/cn/README.md) | [**日本語**](./docs/ja/README.md) | [**한국어**](./docs/ko/README.md)
+## Getting Started
 
-</div>
+1. Install manually or use prezip for Windows
+2. Put your character model folders
+3. Run bat file or run python file manually
+4. If you encounter issues, join our community or consult the FAQ. QQ Group: 863760614 , Discord (AI Hub): 
 
----
+We look forward to seeing how you use GSVI to bring your creative projects to life!
 
-## Features:
+## Usage
 
-1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
+### Use With Bat Files
 
-2. **Few-shot TTS:** Fine-tune the model with just 1 minute of training data for improved voice similarity and realism.
+You could see a bunch of bat files in `0 Bat Files/`
 
-3. **Cross-lingual Support:** Inference in languages different from the training dataset, currently supporting English, Japanese, and Chinese.
+If you want to update, then run bat 0 and 1 (or 999 0 1)
+If you want to start with a single gradio file, then run bat 3
+If you want to start with backend and frontend , run 5 and 6
 
-4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, Chinese ASR, and text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
+If you want to manage your models, run 10.bat
 
-**Check out our [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw) here!**
+### Python Files
 
-Unseen speakers few-shot fine-tuning demo:
+#### Start with a single gradio file
 
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+- Gradio Application: `app.py`  (In the root of GSVI)
 
-**User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
+#### Start with backend and frontend mod
+
+- Flask Backend Program: `Inference/src/tts_backend.py`
+- Gradio Frontend Application: `Inference/src/TTS_Webui.py`
+- Other Frontend Applications or Services Using Our API 
+
+### Model Management
+
+- Gradio Model Management Interface: `Inference/src/Character_Manager.py`
+
+##  API Documentation
+
+For API documentation, visit our [Yuque documentation page](https://www.yuque.com/xter/zibxlp/knu8p82lb5ipufqy). or [API Doc.md](./api_doc.md)
+
+## Model Folder Format
+
+In a character model folder, like `trained/Character1/`
+
+Put the pth / ckpt / wav files in it, the wav should be named as the prompt text
+
+Like :
+
+```
+trained
+--hutao
+----hutao-e75.ckpt
+----hutao_e60_s3360.pth
+----hutao said something.wav
+```
+
+### Add a emotion for your model
+
+To make that, open the Model Manage Tool (10.bat / Inference/src/Character_Manager.py)
+
+It can assign a reference audio to each emotion, aiming to achieve the implementation of emotion options.
 
 ## Installation
 
-For users in China region, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
+You could install this with the guide bellow, then download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS/pretrained_models`, and put your character model folder in `trained`
+
+Or just download the pre-packaged distribution for Windows. ( then put your character model folder in `trained` )
+
+About the character model folder, see below
 
 ### Tested Environments
 
@@ -49,7 +93,9 @@ _Note: numba==0.56.4 requires py<3.11_
 
 ### Windows
 
-If you are a Windows user (tested with win>=10), you can directly download the [pre-packaged distribution](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
+If you are a Windows user (tested with win>=10), you can directly download the [pre-packaged distribution]() and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
+
+Or  ```pip install -r requirements.txt``` , and then double click the `install.bat`
 
 ### Linux
 
@@ -70,25 +116,19 @@ conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
 
 pip install -r requirements.txt
+git submodule init
+git submodule update --init --recursive
 ```
 
-### Install Manually
+### Install FFmpeg ( No need if use prezip )
 
-#### Install Dependences
-
-```bash
-pip install -r requirements.txt
-```
-
-#### Install FFmpeg
-
-##### Conda Users
+#### Conda Users
 
 ```bash
 conda install ffmpeg
 ```
 
-##### Ubuntu/Debian Users
+#### Ubuntu/Debian Users
 
 ```bash
 sudo apt install ffmpeg
@@ -96,151 +136,22 @@ sudo apt install libsox-dev
 conda install -c conda-forge 'ffmpeg<7'
 ```
 
-##### Windows Users
+#### Windows Users
 
 Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
 
-### Using Docker
-
-#### docker-compose.yaml configuration
-
-0. Regarding image tags: Due to rapid updates in the codebase and the slow process of packaging and testing images, please check [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) for the currently packaged latest images and select as per your situation, or alternatively, build locally using a Dockerfile according to your own needs.
-1. Environment Variables：
-
-- is_half: Controls half-precision/double-precision. This is typically the cause if the content under the directories 4-cnhubert/5-wav32k is not generated correctly during the "SSL extracting" step. Adjust to True or False based on your actual situation.
-
-2. Volumes Configuration，The application's root directory inside the container is set to /workspace. The default docker-compose.yaml lists some practical examples for uploading/downloading content.
-3. shm_size： The default available memory for Docker Desktop on Windows is too small, which can cause abnormal operations. Adjust according to your own situation.
-4. Under the deploy section, GPU-related settings should be adjusted cautiously according to your system and actual circumstances.
-
-#### Running with docker compose
-
-```
-docker compose -f "docker-compose.yaml" up -d
-```
-
-#### Running with docker command
-
-As above, modify the corresponding parameters based on your actual situation, then run the following command:
-
-```
-docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
-```
-
-## Pretrained Models
+### Pretrained Models ( No need if use prezip )
 
 Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS/pretrained_models`.
 
-For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal, additionally), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
 
-Users in China region can download these two models by entering the links below and clicking "Download a copy"
+## Docker
 
-- [GPT-SoVITS Models](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
+Writing Now, Please Wait
 
-- [UVR5 Weights](https://www.icloud.com.cn/iclouddrive/0bekRKDiJXboFhbfm3lM2fVbA#UVR5_Weights)
+Remove the pyaudio in the requirements.txt !!!!
 
-For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/damo_asr/models`.
 
-## Dataset Format
 
-The TTS annotation .list file format:
 
-```
-vocal_path|speaker_name|language|text
-```
 
-Language dictionary:
-
-- 'zh': Chinese
-- 'ja': Japanese
-- 'en': English
-
-Example:
-
-```
-D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
-```
-
-## Todo List
-
-- [ ] **High Priority:**
-
-  - [x] Localization in Japanese and English.
-  - [x] User guide.
-  - [x] Japanese and English dataset fine tune training.
-
-- [ ] **Features:**
-  - [ ] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
-  - [ ] TTS speaking speed control.
-  - [ ] Enhanced TTS emotion control.
-  - [ ] Experiment with changing SoVITS token inputs to probability distribution of vocabs.
-  - [ ] Improve English and Japanese text frontend.
-  - [ ] Develop tiny and larger-sized TTS models.
-  - [x] Colab scripts.
-  - [ ] Try expand training dataset (2k hours -> 10k hours).
-  - [ ] better sovits base model (enhanced audio quality)
-  - [ ] model mix
-
-## (Optional) If you need, here will provide the command line operation mode
-Use the command line to open the WebUI for UVR5
-```
-python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
-```
-If you can't open a browser, follow the format below for UVR processing,This is using mdxnet for audio processing
-```
-python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
-```
-This is how the audio segmentation of the dataset is done using the command line
-```
-python audio_slicer.py \
-    --input_path "<path_to_original_audio_file_or_directory>" \
-    --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
-    --threshold <volume_threshold> \
-    --min_length <minimum_duration_of_each_subclip> \
-    --min_interval <shortest_time_gap_between_adjacent_subclips> 
-    --hop_size <step_size_for_computing_volume_curve>
-```
-This is how dataset ASR processing is done using the command line(Only Chinese)
-```
-python tools/damo_asr/cmd-asr.py "<Path to the directory containing input audio files>"
-```
-ASR processing is performed through Faster_Whisper(ASR marking except Chinese)
-
-(No progress bars, GPU performance may cause time delays)
-```
-python ./tools/damo_asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
-```
-A custom list save path is enabled
-
-## Credits
-
-Special thanks to the following projects and contributors:
-
-### Theoretical
-- [ar-vits](https://github.com/innnky/ar-vits)
-- [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
-- [vits](https://github.com/jaywalnut310/vits)
-- [TransferTTS](https://github.com/hcy71o/TransferTTS/blob/master/models.py#L556)
-- [contentvec](https://github.com/auspicious3000/contentvec/)
-- [hifi-gan](https://github.com/jik876/hifi-gan)
-- [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
-### Pretrained Models
-- [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
-- [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
-### Text Frontend for Inference
-- [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
-- [LangSegment](https://github.com/juntaosun/LangSegment)
-### WebUI Tools
-- [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
-- [audio-slicer](https://github.com/openvpi/audio-slicer)
-- [SubFix](https://github.com/cronrpc/SubFix)
-- [FFmpeg](https://github.com/FFmpeg/FFmpeg)
-- [gradio](https://github.com/gradio-app/gradio)
-- [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
-- [FunASR](https://github.com/alibaba-damo-academy/FunASR)
-  
-## Thanks to all contributors for their efforts
-
-<a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
-</a>
