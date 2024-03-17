@@ -51,6 +51,8 @@ _注意: numba==0.56.4 需要 python<3.11_
 
 如果你是 Windows 用户（已在 win>=10 上测试），可以直接下载[预打包文件](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
 
+中国地区用户可以进入[此处](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217)并点击“下载副本”进行下载。
+
 ### Linux
 
 ```bash
