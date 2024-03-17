@@ -82,7 +82,8 @@ def cut1(inp):
     inp = inp.strip("\n")
     inps = split(inp)
     split_idx = list(range(0, len(inps), 4))
-    split_idx[-1] = None
+    # split_idx[-1] = None
+    split_idx.append(None)
     if len(split_idx) > 1:
         opts = []
         for idx in range(len(split_idx) - 1):
@@ -135,7 +136,8 @@ def cut5(inp):
     # if not re.search(r'[^\w\s]', inp[-1]):
     # inp += '。'
     inp = inp.strip("\n")
-    punds = r'[,.;?!、，。？！;：…]'
+    # punds = r'[,.;?!、，。？！;：…]'
+    punds = r'[,.;?!、，。？！；：:…]'
     items = re.split(f'({punds})', inp)
     mergeitems = ["".join(group) for group in zip(items[::2], items[1::2])]
     # 在句子不存在符号或句尾无符号的时候保证文本完整
