@@ -24,7 +24,7 @@ if os.path.exists(config_path):
         locale_language = str(_config.get("locale", "auto"))
         locale_language = None if locale_language.lower() == "auto" else locale_language
         tts_port = _config.get("tts_port", 5000)
-        max_text_length = _config.get("max_text_length", 70)
+        max_text_length = _config.get("max_text_length", -1)
         default_batch_size = _config.get("batch_size", 10)
         default_word_count = _config.get("max_word_count", 80)
         is_share = _config.get("is_share", "false").lower() == "true"
@@ -108,7 +108,7 @@ def send_request(
     
     
     params = {
-        "text": text,
+        "text": text.replace("…","。").replace("。\n","\n").replace("\n", "。\n"),
         "text_language": text_language,
         
         "top_k": top_k,
@@ -279,8 +279,9 @@ except:
 with gr.Blocks() as app:
     gr.Markdown(information)
     with gr.Row():
+        max_text_length_tip = "" if max_text_length == -1 else f"( "+i18n("最大允许长度")+ f" : {max_text_length} ) "
         text = gr.Textbox(
-            value=default_text, label=i18n("输入文本")+"( "+ i18n("最大允许长度")  + f": {max_text_length} )", interactive=True, lines=8
+            value=default_text, label=i18n("输入文本")+max_text_length_tip, interactive=True, lines=8
         )
         text.blur(lambda x: gr.update(value=cut_sentence_multilang(x,max_length=max_text_length)[0]), [text], [text])
     with gr.Row():
