@@ -671,7 +671,7 @@ def close1abc():
     return "已终止所有一键三连进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
 def select_list():
-    list_files = [f for f in os.listdir("output/asr_opt/") if f.endswith('.list')]
+    list_files = [r"output/asr_opt/" + f for f in os.listdir("output/asr_opt/") if f.endswith('.list')]
     if len(list_files) == 0:
         return ["无可用列表文件，请先生成列表文件"]
     return list_files
