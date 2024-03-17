@@ -220,6 +220,8 @@ def change_word_count(word_count):
 
 
 def cut_sentence_multilang(text, max_length=30):
+    if max_length == -1:
+        return text, ""
     # 初始化计数器
     word_count = 0
     in_word = False
