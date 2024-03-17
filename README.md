@@ -27,11 +27,10 @@ We look forward to seeing how you use GSVI to bring your creative projects to li
 
 You could see a bunch of bat files in `0 Bat Files/`
 
-If you want to update, then run bat 0 and 1 (or 999 0 1)
-If you want to start with a single gradio file, then run bat 3
-If you want to start with backend and frontend , run 5 and 6
-
-If you want to manage your models, run 10.bat
+- If you want to update, then run bat 0 and 1 (or 999 0 1)
+- If you want to start with a single gradio file, then run bat 3
+- If you want to start with backend and frontend , run bat 5 and 6
+- If you want to manage your models, run 10.bat
 
 ### Python Files
 
@@ -149,7 +148,7 @@ Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj199
 
 Writing Now, Please Wait
 
-Remove the pyaudio in the requirements.txt !!!!
+Remove the `pyaudio` in the `requirements.txt` !!!!
 
 
 
