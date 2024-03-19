@@ -615,7 +615,7 @@ class TTS:
         fragment_interval = inputs.get("fragment_interval", 0.3)
         seed = inputs.get("seed", -1)
         seed = -1 if seed in ["", None] else seed
-        set_seed(seed)
+        actual_seed = set_seed(seed)
         
         if return_fragment:
             # split_bucket = False
@@ -824,13 +824,17 @@ class TTS:
 
             if not return_fragment:
                 print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t_34, t_45))
-                yield self.audio_postprocess(audio, 
+                yield [
+                    self.audio_postprocess(audio, 
                                                 self.configs.sampling_rate, 
                                                 batch_index_list, 
                                                 speed_factor, 
                                                 split_bucket,
                                                 fragment_interval
-                                                )         
+                                                ), 
+                    f"<strong>text:</strong> {text} <strong>text_lang:</strong> {text_lang} <strong>prompt_text:</strong> {prompt_text} <strong>prompt_lang:</strong> {prompt_lang} <strong>top_k:</strong> {top_k} <strong>top_p:</strong> {top_p} <strong>temperature:</strong> {temperature} <strong>batch_size:</strong> {batch_size} <strong>batch_threshold:</strong> {batch_threshold} <strong>split_bucket:</strong> {split_bucket} <strong>return_fragment:</strong> {return_fragment} <strong>speed_factor:</strong> {speed_factor} <strong>fragment_interval:</strong> {fragment_interval} <strong>seed:</strong> {actual_seed}"
+                ]
+
         except Exception as e:
             traceback.print_exc()
             # 必须返回一个空音频, 否则会导致显存不释放。

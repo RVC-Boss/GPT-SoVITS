@@ -211,6 +211,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     inference_button = gr.Button(i18n("合成语音"), variant="primary")
                     stop_infer = gr.Button(i18n("终止合成"), variant="primary")
+                with gr.Row():
+                    inference_details = gr.Markdown()
                 
         
         inference_button.click(
@@ -224,7 +226,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 split_bucket,fragment_interval,
                 seed
              ],
-            [output],
+            [output, inference_details],
         )
         stop_infer.click(tts_pipline.stop, [], [])
 
