@@ -149,31 +149,181 @@ def kill_process(pid):
         kill_proc_tree(pid)
     
 
-def change_label(if_label,path_list):
-    global p_label
-    if(if_label==True and p_label==None):
-        path_list=my_utils.clean_path(path_list)
-        cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s'%(python_exec,path_list,webui_port_subfix,is_share)
-        yield i18n("打标工具WebUI已开启")
-        print(cmd)
-        p_label = Popen(cmd, shell=True)
-    elif(if_label==False and p_label!=None):
-        kill_process(p_label.pid)
-        p_label=None
-        yield i18n("打标工具WebUI已关闭")
+# 0a-UVR5 人声伴奏分离
+# def change_uvr5(if_uvr5):
+#     global p_uvr5
+#     if(if_uvr5==True and p_uvr5==None):
+#         cmd = '"%s" tools/uvr5/webui.py "%s" %s %s %s'%(python_exec,infer_device,is_half,webui_port_uvr5,is_share)
+#         yield i18n("UVR5已开启")
+#         print(cmd)
+#         p_uvr5 = Popen(cmd, shell=True)
+#     elif(if_uvr5==False and p_uvr5!=None):
+#         kill_process(p_uvr5.pid)
+#         p_uvr5=None
+#         yield i18n("UVR5已关闭")
 
-def change_uvr5(if_uvr5):
+def open_uvr5():
     global p_uvr5
-    if(if_uvr5==True and p_uvr5==None):
+    if p_uvr5 is None:
         cmd = '"%s" tools/uvr5/webui.py "%s" %s %s %s'%(python_exec,infer_device,is_half,webui_port_uvr5,is_share)
-        yield i18n("UVR5已开启")
         print(cmd)
+        yield i18n("UVR5 进程已开启，等待页面跳转。"), {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
         p_uvr5 = Popen(cmd, shell=True)
-    elif(if_uvr5==False and p_uvr5!=None):
-        kill_process(p_uvr5.pid)
-        p_uvr5=None
-        yield i18n("UVR5已关闭")
+    else:
+        yield "已有正在进行的进程，需先终止才能重新开启",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
 
+def close_uvr5():
+    global p_uvr5
+    if p_uvr5 is not None:
+        kill_process(p_uvr5.pid)
+        p_uvr5 = None
+    yield i18n("UVR5 进程已终止"), {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
+
+# 0b-语音切分工具
+ps_slice=[]
+def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_parts):
+    global ps_slice
+    inp = my_utils.clean_path(inp)
+    opt_root = my_utils.clean_path(opt_root)
+    if(os.path.exists(inp)==False):
+        yield "输入路径不存在",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        return
+    if os.path.isfile(inp):n_parts=1
+    elif os.path.isdir(inp):pass
+    else:
+        yield "输入路径存在但既不是文件也不是文件夹",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        return
+    if (ps_slice == []):
+        for i_part in range(n_parts):
+            cmd = '"%s" tools/slice_audio.py "%s" "%s" %s %s %s %s %s %s %s %s %s''' % (python_exec,inp, opt_root, threshold, min_length, min_interval, hop_size, max_sil_kept, _max, alpha, i_part, n_parts)
+            print(cmd)
+            p = Popen(cmd, shell=True)
+            ps_slice.append(p)
+        yield "语音切分进程执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        for p in ps_slice:
+            p.wait()
+        ps_slice=[]
+        yield "语音切分进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    else:
+        yield "已有正在进行的进程，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+
+def close_slice():
+    global ps_slice
+    if (ps_slice != []):
+        for p_slice in ps_slice:
+            try:
+                kill_process(p_slice.pid)
+            except:
+                traceback.print_exc()
+        ps_slice=[]
+    return "所有切割进程已终止", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+
+# 0c-语音降噪工具
+def open_denoise(denoise_inp_dir, denoise_opt_dir):
+    global p_denoise
+    if(p_denoise==None):
+        denoise_inp_dir=my_utils.clean_path(denoise_inp_dir)
+        denoise_opt_dir=my_utils.clean_path(denoise_opt_dir)
+        if os.path.exists(denoise_inp_dir):
+            if os.path.isdir(denoise_inp_dir):
+                cmd = '"%s" tools/cmd-denoise.py -i "%s" -o "%s" -p %s'%(python_exec,denoise_inp_dir,denoise_opt_dir,"float16"if is_half==True else "float32")
+
+                yield "语音降噪进程开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+                print(cmd)
+                p_denoise = Popen(cmd, shell=True)
+                p_denoise.wait()
+                p_denoise=None
+                yield f"语音降噪进程结束, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+            else:
+                yield i18n("目前仅支持输入文件夹，不支持输入单个文件"), {"__type__":"update","visible":True}, {"__type__":"update","visible":False} 
+        else:
+            yield i18n("文件夹路径不存在"), {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
+    else:
+        yield "已有正在进行的进程，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        # return None
+
+def close_denoise():
+    global p_denoise
+    if(p_denoise!=None):
+        kill_process(p_denoise.pid)
+        p_denoise=None
+    return "语音降噪进程已终止", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
+
+# 0d-语音识别工具
+from tools.asr.config import asr_dict
+def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
+    global p_asr
+    if(p_asr==None):
+        asr_inp_dir=my_utils.clean_path(asr_inp_dir)
+        if os.path.exists(asr_inp_dir):
+            if os.path.isdir(asr_inp_dir):
+                cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
+                cmd += f' -i "{asr_inp_dir}"'
+                cmd += f' -o "{asr_opt_dir}"'
+                cmd += f' -s {asr_model_size}'
+                cmd += f' -l {asr_lang}'
+                cmd += " -p %s"%("float16"if is_half==True else "float32")
+
+                yield "语音识别进程开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+                print(cmd)
+                p_asr = Popen(cmd, shell=True)
+                p_asr.wait()
+                p_asr=None
+                yield f"语音识别进程结束, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+            else:
+                yield i18n("目前仅支持输入文件夹，不支持输入单个文件"), {"__type__":"update","visible":True}, {"__type__":"update","visible":False} 
+        else:
+            yield i18n("文件夹路径不存在"), {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
+    else:
+        yield "已有正在进行的进程，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        # return None
+
+def close_asr():
+    global p_asr
+    if(p_asr!=None):
+        kill_process(p_asr.pid)
+        p_asr=None
+    return "语音识别进程已终止", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
+
+# 0e-语音文本校对标注工具
+# def change_label(if_label,path_list):
+#     global p_label
+#     if(if_label==True and p_label==None):
+#         path_list=my_utils.clean_path(path_list)
+#         cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s'%(python_exec,path_list,webui_port_subfix,is_share)
+#         yield i18n("打标工具WebUI已开启")
+#         print(cmd)
+#         p_label = Popen(cmd, shell=True)
+#     elif(if_label==False and p_label!=None):
+#         kill_process(p_label.pid)
+#         p_label=None
+#         yield i18n("打标工具WebUI已关闭")
+
+def open_label(path_list):
+    global p_label
+    if p_label is None:
+        path_list=my_utils.clean_path(path_list)
+        if os.path.exists(path_list):
+            if path_list.endswith('.list'):
+                cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s'%(python_exec,path_list,webui_port_subfix,is_share)
+                print(cmd)
+                yield i18n("打标工具进程已开启，等待页面跳转。"), {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
+                p_label = Popen(cmd, shell=True)
+            else:
+                yield i18n("文件格式不正确，应为 .list 后缀"), {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
+        else:
+            yield i18n("文件路径不存在"), {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
+    else:
+        yield "已有正在进行的进程，需先终止才能重新开启。",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+
+def close_label():
+    global p_label
+    if p_label is not None:
+        kill_process(p_label.pid)
+        p_label = None
+    yield i18n("打标工具进程已终止"), {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
+
+# 1c-推理
 def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path,sovits_path):
     global p_tts_inference
     if(if_tts==True and p_tts_inference==None):
@@ -193,58 +343,6 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         kill_process(p_tts_inference.pid)
         p_tts_inference=None
         yield i18n("TTS推理进程已关闭")
-
-from tools.asr.config import asr_dict
-def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
-    global p_asr
-    if(p_asr==None):
-        asr_inp_dir=my_utils.clean_path(asr_inp_dir)
-        cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
-        cmd += f' -i "{asr_inp_dir}"'
-        cmd += f' -o "{asr_opt_dir}"'
-        cmd += f' -s {asr_model_size}'
-        cmd += f' -l {asr_lang}'
-        cmd += " -p %s"%("float16"if is_half==True else "float32")
-
-        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
-        print(cmd)
-        p_asr = Popen(cmd, shell=True)
-        p_asr.wait()
-        p_asr=None
-        yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
-    else:
-        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
-        # return None
-
-def close_asr():
-    global p_asr
-    if(p_asr!=None):
-        kill_process(p_asr.pid)
-        p_asr=None
-    return "已终止ASR进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
-def open_denoise(denoise_inp_dir, denoise_opt_dir):
-    global p_denoise
-    if(p_denoise==None):
-        denoise_inp_dir=my_utils.clean_path(denoise_inp_dir)
-        denoise_opt_dir=my_utils.clean_path(denoise_opt_dir)
-        cmd = '"%s" tools/cmd-denoise.py -i "%s" -o "%s" -p %s'%(python_exec,denoise_inp_dir,denoise_opt_dir,"float16"if is_half==True else "float32")
-
-        yield "语音降噪任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
-        print(cmd)
-        p_denoise = Popen(cmd, shell=True)
-        p_denoise.wait()
-        p_denoise=None
-        yield f"语音降噪任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
-    else:
-        yield "已有正在进行的语音降噪任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
-        # return None
-
-def close_denoise():
-    global p_denoise
-    if(p_denoise!=None):
-        kill_process(p_denoise.pid)
-        p_denoise=None
-    return "已终止语音降噪进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
@@ -337,43 +435,6 @@ def close1Bb():
         p_train_GPT=None
     return "已终止GPT训练",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
-ps_slice=[]
-def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_parts):
-    global ps_slice
-    inp = my_utils.clean_path(inp)
-    opt_root = my_utils.clean_path(opt_root)
-    if(os.path.exists(inp)==False):
-        yield "输入路径不存在",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
-        return
-    if os.path.isfile(inp):n_parts=1
-    elif os.path.isdir(inp):pass
-    else:
-        yield "输入路径存在但既不是文件也不是文件夹",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
-        return
-    if (ps_slice == []):
-        for i_part in range(n_parts):
-            cmd = '"%s" tools/slice_audio.py "%s" "%s" %s %s %s %s %s %s %s %s %s''' % (python_exec,inp, opt_root, threshold, min_length, min_interval, hop_size, max_sil_kept, _max, alpha, i_part, n_parts)
-            print(cmd)
-            p = Popen(cmd, shell=True)
-            ps_slice.append(p)
-        yield "切割执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
-        for p in ps_slice:
-            p.wait()
-        ps_slice=[]
-        yield "切割结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
-    else:
-        yield "已有正在进行的切割任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
-
-def close_slice():
-    global ps_slice
-    if (ps_slice != []):
-        for p_slice in ps_slice:
-            try:
-                kill_process(p_slice.pid)
-            except:
-                traceback.print_exc()
-        ps_slice=[]
-    return "已终止所有切割进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
 ps1a=[]
 def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
@@ -684,69 +745,107 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.TabItem(i18n("0-前置数据集获取工具")):#提前随机切片防止uvr5爆内存->uvr5->slicer->asr->打标
             gr.Markdown(value=i18n("0a-UVR5人声伴奏分离&去混响去延迟工具"))
             with gr.Row():
-                if_uvr5 = gr.Checkbox(label=i18n("是否开启UVR5-WebUI"),show_label=True)
-                uvr5_info = gr.Textbox(label=i18n("UVR5进程输出信息"))
+                # if_uvr5 = gr.Checkbox(label=i18n("是否开启UVR5-WebUI"),show_label=True)
+                open_uvr5_button  = gr.Button(i18n("开启 UVR5-WebUI"), variant="primary", visible=True)
+                close_uvr5_button = gr.Button(i18n("终止 UVR5-WebUI"), variant="primary", visible=False)
+                with gr.Column(scale=3):
+                    uvr5_info = gr.Textbox(label=i18n("UVR5进程输出信息"),scale=3)
+            # if_uvr5.change(change_uvr5, [if_uvr5], [uvr5_info])
+            open_uvr5_button.click(open_uvr5, [], [uvr5_info, open_uvr5_button, close_uvr5_button])
+            close_uvr5_button.click(close_uvr5, [], [uvr5_info, open_uvr5_button, close_uvr5_button])
+
             gr.Markdown(value=i18n("0b-语音切分工具"))
             with gr.Row():
-                with gr.Row():
-                    slice_inp_path=gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"),value="")
-                    slice_opt_root=gr.Textbox(label=i18n("切分后的子音频的输出根目录"),value="output/slicer_opt")
-                    threshold=gr.Textbox(label=i18n("threshold:音量小于这个值视作静音的备选切割点"),value="-34")
-                    min_length=gr.Textbox(label=i18n("min_length:每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值"),value="4000")
-                    min_interval=gr.Textbox(label=i18n("min_interval:最短切割间隔"),value="300")
-                    hop_size=gr.Textbox(label=i18n("hop_size:怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）"),value="10")
-                    max_sil_kept=gr.Textbox(label=i18n("max_sil_kept:切完后静音最多留多长"),value="500")
-                with gr.Row():
-                    open_slicer_button=gr.Button(i18n("开启语音切割"), variant="primary",visible=True)
-                    close_slicer_button=gr.Button(i18n("终止语音切割"), variant="primary",visible=False)
-                    _max=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("max:归一化后最大值多少"),value=0.9,interactive=True)
-                    alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)
-                    n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
-                    slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
-            gr.Markdown(value=i18n("0bb-语音降噪工具"))
-            with gr.Row():
-                open_denoise_button = gr.Button(i18n("开启语音降噪"), variant="primary",visible=True)
-                close_denoise_button = gr.Button(i18n("终止语音降噪进程"), variant="primary",visible=False)
-                denoise_input_dir=gr.Textbox(label=i18n("降噪音频文件输入文件夹"),value="")
-                denoise_output_dir=gr.Textbox(label=i18n("降噪结果输出文件夹"),value="output/denoise_opt")
-                denoise_info = gr.Textbox(label=i18n("语音降噪进程输出信息"))
-            gr.Markdown(value=i18n("0c-中文批量离线ASR工具"))
-            with gr.Row():
-                open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
-                close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)
-                with gr.Column():
+                open_slicer_button  = gr.Button(i18n("开启语音切割"), variant="primary", visible=True)
+                close_slicer_button = gr.Button(i18n("终止语音切割"), variant="primary", visible=False)
+                with gr.Column(scale=3):
                     with gr.Row():
-                        asr_inp_dir = gr.Textbox(
-                            label=i18n("输入文件夹路径"),
-                            value="D:\\GPT-SoVITS\\raw\\xxx",
-                            interactive=True,
-                        )
-                        asr_opt_dir = gr.Textbox(
-                            label       = i18n("输出文件夹路径"),
-                            value       = "output/asr_opt",
-                            interactive = True,
-                        )
+                        slice_inp_path = gr.Textbox(label=i18n("音频输入文件/文件夹"),value="")
+                        slice_opt_root = gr.Textbox(label=i18n("结果输出文件夹"),value="output/slicer_opt")
+                    with gr.Group():
+                        with gr.Row(equal_height=True):
+                            threshold = gr.Textbox(
+                                label       = i18n("threshold"),
+                                info        = i18n("静音检测阈值（分贝）"),
+                                placeholder = i18n("音量小于该值时视作静音的备选切割点。"),
+                                value       = "-34")
+                            max_sil_kept = gr.Textbox(
+                                label       = i18n("max_sil_kept"),
+                                info        = i18n("最大静音时长（毫秒）"),
+                                placeholder = i18n("切分过程中可以保留的最大静音持续时间。"),
+                                value       = "500")
+                            min_length = gr.Textbox(
+                                label       = i18n("min_length"),
+                                info        = i18n("分段最小时长（毫秒）"),
+                                placeholder = i18n("分段时长小于该值时和后续分段拼接直至超过该值。"),
+                                value       = "4000")
+                            min_interval = gr.Textbox(
+                                label       = i18n("min_interval"),
+                                info        = i18n("分段最小间隔（毫秒）"),
+                                placeholder = i18n("切分后分段之间的最小间隔时长。"),
+                                value       = "300")
+                            hop_size = gr.Textbox(
+                                label       = i18n("hop_size"),
+                                info        = i18n("相邻帧的间距（毫秒）"),
+                                placeholder = i18n("用于计算音量曲线，值越小精度越高计算量越大（效果不一定越好）。"),
+                                value       = "10")
+                        with gr.Row():
+                            _max      = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("max"), info=i18n("归一化音频幅度最大值"), value=0.9, interactive=True)
+                            alpha     = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix"), info=i18n("原始音频混入归一化音频的比例"), value=0.25, interactive=True)
+                            n_process = gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("num_process"), info=i18n("采样进程数"), value=4, interactive=True)
+                    with gr.Row():
+                        slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
+            open_slicer_button.click(
+                fn      = open_slice,
+                inputs  = [slice_inp_path, slice_opt_root, threshold, min_length, min_interval, hop_size, max_sil_kept, _max, alpha, n_process],
+                outputs = [slicer_info,open_slicer_button,close_slicer_button])
+            close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
+
+            gr.Markdown(value=i18n("0c-语音降噪工具"))
+            with gr.Row():
+                open_denoise_button  = gr.Button(i18n("开启语音降噪"), variant="primary", visible=True)
+                close_denoise_button = gr.Button(i18n("终止语音降噪"), variant="primary", visible=False)
+                with gr.Column(scale=3):
+                    with gr.Row():
+                        denoise_input_dir  = gr.Textbox(label=i18n("音频输入文件夹"),value="")
+                        denoise_output_dir = gr.Textbox(label=i18n("结果输出文件夹"),value="output/denoise_opt")
+                    with gr.Row():
+                        denoise_info = gr.Textbox(label=i18n("语音降噪进程输出信息"))
+            open_denoise_button.click(open_denoise, [denoise_input_dir,denoise_output_dir], [denoise_info,open_denoise_button,close_denoise_button])
+            close_denoise_button.click(close_denoise, [], [denoise_info,open_denoise_button,close_denoise_button])
+
+            gr.Markdown(value=i18n("0d-语音识别工具"))
+            with gr.Row():
+                open_asr_button  = gr.Button(i18n("开启语音识别"), variant="primary", visible=True)
+                close_asr_button = gr.Button(i18n("终止语音识别"), variant="primary", visible=False)
+                with gr.Column(scale=3):
+                    with gr.Row():
+                        asr_inp_dir = gr.Textbox(label=i18n("音频输入文件夹"), value="D:\\GPT-SoVITS\\raw\\xxx")
+                        asr_opt_dir = gr.Textbox(label=i18n("结果输出文件夹"), value="output/asr_opt")
                     with gr.Row():
                         asr_model = gr.Dropdown(
                             label       = i18n("ASR 模型"),
                             choices     = list(asr_dict.keys()),
                             interactive = True,
-                            value="达摩 ASR (中文)"
+                            value       = "达摩 ASR (中文)",
+                            info        = "右侧两项跟随此项刷新"
                         )
                         asr_size = gr.Dropdown(
                             label       = i18n("ASR 模型尺寸"),
                             choices     = ["large"],
                             interactive = True,
-                            value="large"
+                            value       = "large",
+                            info        = '本地 (-local)/下载'
                         )
                         asr_lang = gr.Dropdown(
                             label       = i18n("ASR 语言设置"),
                             choices     = ["zh"],
                             interactive = True,
-                            value="zh"
+                            value       = "zh",
+                            info        = "自动 (auto)/指定"
                         )
                     with gr.Row():
-                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
+                        asr_info = gr.Textbox(label=i18n("语音识别进程输出信息"))
 
                 def change_lang_choices(key): #根据选择的模型修改可选的语言
                     # return gr.Dropdown(choices=asr_dict[key]['lang'])
@@ -756,24 +855,26 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     return {"__type__": "update", "choices": asr_dict[key]['size']}
                 asr_model.change(change_lang_choices, [asr_model], [asr_lang])
                 asr_model.change(change_size_choices, [asr_model], [asr_size])
-                
-            gr.Markdown(value=i18n("0d-语音文本校对标注工具"))
-            with gr.Row():
-                if_label = gr.Checkbox(label=i18n("是否开启打标WebUI"),show_label=True)
-                path_list = gr.Textbox(
-                    label=i18n(".list标注文件的路径"),
-                    value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx.list",
-                    interactive=True,
-                )
-                label_info = gr.Textbox(label=i18n("打标工具进程输出信息"))
-            if_label.change(change_label, [if_label,path_list], [label_info])
-            if_uvr5.change(change_uvr5, [if_uvr5], [uvr5_info])
             open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang], [asr_info,open_asr_button,close_asr_button])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
-            open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button])
-            close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
-            open_denoise_button.click(open_denoise, [denoise_input_dir,denoise_output_dir], [denoise_info,open_denoise_button,close_denoise_button])
-            close_denoise_button.click(close_denoise, [], [denoise_info,open_denoise_button,close_denoise_button])
+
+            gr.Markdown(value=i18n("0e-语音文本校对标注工具"))
+            with gr.Row():
+                # if_label = gr.Checkbox(label=i18n("是否开启打标WebUI"),show_label=True)
+                open_label_button  = gr.Button(i18n("开启打标 WebUI"), variant="primary", visible=True)
+                close_label_button = gr.Button(i18n("终止打标 WebUI"), variant="primary", visible=False)
+                with gr.Column(scale=3):
+                    with gr.Row():
+                        path_list = gr.Textbox(
+                            label=i18n(".list标注文件的路径"),
+                            value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx.list",
+                            interactive=True,
+                        )
+                    with gr.Row():
+                        label_info = gr.Textbox(label=i18n("打标工具进程输出信息"))
+            # if_label.change(change_label, [if_label,path_list], [label_info])
+            open_label_button.click(open_label, [path_list], [label_info, open_label_button, close_label_button])
+            close_label_button.click(close_label, [], [label_info, open_label_button, close_label_button])
 
         with gr.TabItem(i18n("1-GPT-SoVITS-TTS")):
             with gr.Row():
