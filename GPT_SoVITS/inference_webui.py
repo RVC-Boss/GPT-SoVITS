@@ -6,6 +6,7 @@
 全部按英文识别
 全部按日文识别
 '''
+import random
 import os, sys
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -94,6 +95,7 @@ def inference(text, text_lang,
               split_bucket,fragment_interval,
               seed,
               ):
+    actual_seed = seed if seed not in [-1, "", None] else random.randrange(1 << 32)
     inputs={
         "text": text,
         "text_lang": dict_language[text_lang],
@@ -109,11 +111,10 @@ def inference(text, text_lang,
         "split_bucket":split_bucket,
         "return_fragment":False,
         "fragment_interval":fragment_interval,
-        "seed":seed,
+        "seed":actual_seed,
     }
-    
     for item in tts_pipline.run(inputs):
-        yield item
+        yield item, actual_seed
         
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
@@ -211,8 +212,6 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     inference_button = gr.Button(i18n("合成语音"), variant="primary")
                     stop_infer = gr.Button(i18n("终止合成"), variant="primary")
-                with gr.Row():
-                    inference_details = gr.Markdown()
                 
         
         inference_button.click(
@@ -226,7 +225,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 split_bucket,fragment_interval,
                 seed
              ],
-            [output, inference_details],
+            [output, seed],
         )
         stop_infer.click(tts_pipline.stop, [], [])
 
