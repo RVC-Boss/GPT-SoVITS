@@ -90,7 +90,7 @@ arpa = {
 
 
 def replace_phs(phs):
-    rep_map = {";": ",", ":": ",", "'": "-", '"': "-"}
+    rep_map = {"'": "-"}
     phs_new = []
     for ph in phs:
         if ph in symbols:
@@ -193,8 +193,18 @@ eng_dict = get_dict()
 
 def text_normalize(text):
     # todo: eng text normalize
-    # 适配 g2p_en 标点
-    return text.replace(";", ",").replace(":", ",").replace('"', "'")
+    # 适配中文及 g2p_en 标点
+    rep_map = {
+        "[;:：，；]": ",",
+        '["’]': "'",
+        "。": ".",
+        "！": "!",
+        "？": "?",
+    }
+    for p, r in rep_map.items():
+        text = re.sub(p, r, text)
+
+    return text
 
 
 class en_G2p(G2p):
@@ -219,6 +229,12 @@ class en_G2p(G2p):
         if (len(word) <= 3):
             return [phone for w in word for phone in self(w)]
 
+        # 尝试分离所有格
+        if re.match(r"^([a-z]+)('s)$", word):
+            phone = self(word[:-2])
+            phone.extend(['Z'])
+            return phone
+
         # 尝试进行分词，应对复合词
         comps = wordsegment.segment(word.lower())
 
@@ -234,8 +250,6 @@ _g2p = en_G2p()
 
 
 def g2p(text):
-    text = text_normalize(text)
-
     # g2p_en 整段推理，剔除不存在的arpa返回
     phone_list = _g2p(text)
     phones = [ph if ph != "<unk>" else "UNK" for ph in phone_list if ph not in [" ", "<pad>", "UW", "</s>", "<s>"]]
