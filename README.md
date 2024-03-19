@@ -21,6 +21,7 @@ Please note that we do not recommend using GSVI for training. Its existence is t
 
 We look forward to seeing how you use GSVI to bring your creative projects to life!
 
+Prezip : https://huggingface.co/XTer123/GSVI_prezip/tree/main
 ## Usage
 
 ### Use With Bat Files
