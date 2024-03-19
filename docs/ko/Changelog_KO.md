@@ -89,6 +89,21 @@
 1. 참조 텍스트 입력을 지원합니다.
 2. 프론트엔드에 있던 중국어 텍스트 입력 버그를 수정하였습니다.
 
-todolist :
+### 20240221 업데이트
 
-1. 중국어 다음음자 추론 최적화
+1. 데이터 처리에 음성 노이즈 감소 옵션을 추가하였습니다. (노이즈 감소는 16k 샘플링률만 남기며, 노이즈가 크지 않다면 사용하지 마십시오.)
+2. 중국어 및 일본어 프론트엔드 처리를 최적화하였습니다. https://github.com/RVC-Boss/GPT-SoVITS/pull/559 https://github.com/RVC-Boss/GPT-SoVITS/pull/556 https://github.com/RVC-Boss/GPT-SoVITS/pull/532 https://github.com/RVC-Boss/GPT-SoVITS/pull/507 https://github.com/RVC-Boss/GPT-SoVITS/pull/509
+3. Mac에서 CPU 추론이 더 빨라졌으므로 추론 장치를 mps에서 CPU로 변경하였습니다.
+4. colab에서 공용 URL을 열지 않는 문제를 수정하였습니다.
+
+### 20240306 업데이트
+
+1. 추론 속도를 50% 빠르게 하였습니다. (RTX3090+pytorch2.2.1+cu11.8+win10+py39 테스트 완료) https://github.com/RVC-Boss/GPT-SoVITS/pull/672
+2. faster whisper를 사용할 때 중국어 ASR을 먼저 다운로드할 필요가 없습니다.
+3. uvr5의 잔향 제거 모델이 잔향이 있는지 여부를 반대로 반환하는 문제를 수정하였습니다.
+4. faster whisper가 CUDA를 사용할 수 없는 경우 자동으로 CPU 추론을 사용하도록 수정하였습니다.
+5. is_half의 판단을 수정하여 Mac에서 CPU 추론이 정상적으로 작동하도록 수정하였습니다.
+
+todolist：
+
+1. 중국어 다양한 발음 단어 추론 최적화(테스트 결과를 작성하시는 분은 pr 코멘트 영역에 작성해주시면 감사하겠습니다)

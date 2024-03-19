@@ -1,6 +1,7 @@
 import pickle
 import os
 import re
+import wordsegment
 from g2p_en import G2p
 
 from string import punctuation
@@ -12,7 +13,6 @@ CMU_DICT_PATH = os.path.join(current_file_path, "cmudict.rep")
 CMU_DICT_FAST_PATH = os.path.join(current_file_path, "cmudict-fast.rep")
 CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
 CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
-_g2p = G2p()
 
 arpa = {
     "AH0",
@@ -90,7 +90,7 @@ arpa = {
 
 
 def replace_phs(phs):
-    rep_map = {";": ",", ":": ",", "'": "-", '"': "-"}
+    rep_map = {"'": "-"}
     phs_new = []
     for ph in phs:
         if ph in symbols:
@@ -112,7 +112,7 @@ def read_dict():
             if line_index >= start_line:
                 line = line.strip()
                 word_split = line.split("  ")
-                word = word_split[0]
+                word = word_split[0].lower()
 
                 syllable_split = word_split[1].split(" - ")
                 g2p_dict[word] = []
@@ -132,16 +132,11 @@ def read_dict_new():
         line = f.readline()
         line_index = 1
         while line:
-            if line_index >= 49:
+            if line_index >= 57:
                 line = line.strip()
                 word_split = line.split("  ")
-                word = word_split[0]
-
-                syllable_split = word_split[1].split(" - ")
-                g2p_dict[word] = []
-                for syllable in syllable_split:
-                    phone_split = syllable.split(" ")
-                    g2p_dict[word].append(phone_split)
+                word = word_split[0].lower()
+                g2p_dict[word] = [word_split[1].split(" ")]
 
             line_index = line_index + 1
             line = f.readline()
@@ -153,10 +148,9 @@ def read_dict_new():
             if line_index >= 0:
                 line = line.strip()
                 word_split = line.split(" ")
-                word = word_split[0]
+                word = word_split[0].lower()
                 if word not in g2p_dict:
-                    g2p_dict[word] = []
-                    g2p_dict[word].append(word_split[1:])
+                    g2p_dict[word] = [word_split[1:]]
 
             line_index = line_index + 1
             line = f.readline()
@@ -168,10 +162,9 @@ def read_dict_new():
             if line_index >= 0:
                 line = line.strip()
                 word_split = line.split(" ")
-                word = word_split[0]
-                #if word not in g2p_dict:
-                g2p_dict[word] = []
-                g2p_dict[word].append(word_split[1:])
+                word = word_split[0].lower()
+                # 自定义发音词直接覆盖字典
+                g2p_dict[word] = [word_split[1:]]
 
             line_index = line_index + 1
             line = f.readline()
@@ -200,24 +193,66 @@ eng_dict = get_dict()
 
 def text_normalize(text):
     # todo: eng text normalize
-    return text.replace(";", ",")
+    # 适配中文及 g2p_en 标点
+    rep_map = {
+        "[;:：，；]": ",",
+        '["’]': "'",
+        "。": ".",
+        "！": "!",
+        "？": "?",
+    }
+    for p, r in rep_map.items():
+        text = re.sub(p, r, text)
+
+    return text
+
+
+class en_G2p(G2p):
+    def __init__(self):
+        super().__init__()
+        # 分词初始化
+        wordsegment.load()
+
+        # 扩展过时字典
+        self.cmu = get_dict()
+
+        # 剔除读音错误的几个缩写
+        for word in ["AE", "AI", "AR", "IOS", "HUD", "OS"]:
+            del self.cmu[word.lower()]
+
+        # "A" 落单不读 "AH0" 读 "EY1"
+        self.cmu['a'] = [['EY1']]
+
+
+    def predict(self, word):
+        # 小写 oov 长度小于等于 3 直接读字母
+        if (len(word) <= 3):
+            return [phone for w in word for phone in self(w)]
+
+        # 尝试分离所有格
+        if re.match(r"^([a-z]+)('s)$", word):
+            phone = self(word[:-2])
+            phone.extend(['Z'])
+            return phone
+
+        # 尝试进行分词，应对复合词
+        comps = wordsegment.segment(word.lower())
+
+        # 无法分词的送回去预测
+        if len(comps)==1:
+            return super().predict(word)
+
+        # 可以分词的递归处理
+        return [phone for comp in comps for phone in self(comp)]
+
+
+_g2p = en_G2p()
 
 
 def g2p(text):
-    phones = []
-    words = re.split(r"([,;.\-\?\!\s+])", text)
-    for w in words:
-        if w.upper() in eng_dict:
-            phns = eng_dict[w.upper()]
-            for ph in phns:
-                phones += ph
-        else:
-            phone_list = list(filter(lambda p: p != " ", _g2p(w)))
-            for ph in phone_list:
-                if ph in arpa:
-                    phones.append(ph)
-                else:
-                    phones.append(ph)
+    # g2p_en 整段推理，剔除不存在的arpa返回
+    phone_list = _g2p(text)
+    phones = [ph if ph != "<unk>" else "UNK" for ph in phone_list if ph not in [" ", "<pad>", "UW", "</s>", "<s>"]]
 
     return replace_phs(phones)
 

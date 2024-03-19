@@ -57,7 +57,7 @@ bash install.sh
 
 ### macOS
 
-**주의: Mac에서 GPU로 훈련된 모델은 다른 장치에서 훈련된 모델에 비해 현저히 낮은 품질을 나타내므로, 우리는 일시적으로 CPU를 사용하여 훈련하고 있습니다.**
+**주의: Mac에서 GPU로 훈련된 모델은 다른 OS에서 훈련된 모델에 비해 품질이 낮습니다. 해당 문제를 해결하기 전까지 MacOS에선 CPU를 사용하여 훈련을 진행합니다.**
 
 먼저 `brew install ffmpeg` 또는 `conda install ffmpeg`를 실행하여 FFmpeg가 설치되었는지 확인한 다음, 다음 명령어를 사용하여 설치하세요:
 
