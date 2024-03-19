@@ -125,10 +125,8 @@ def send_request(
     params["seed"] = seed
     gen = tts_instance.get_wav_from_text_api(**params)
     sampling_rate, audio_data = next(gen)
-    wav = io.BytesIO()
-    sf.write(wav, audio_data, sampling_rate, format="wav")
-    wav.seek(0)
-    return sampling_rate, np.frombuffer(wav.read(), dtype=np.int16)
+
+    return sampling_rate, np.array(audio_data,dtype=np.int16)
     
 
 def stopAudioPlay():
