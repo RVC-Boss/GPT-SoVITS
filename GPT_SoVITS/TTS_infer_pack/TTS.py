@@ -576,22 +576,22 @@ class TTS:
         Args:
             inputs (dict): 
                 {
-                    "text": "",               # str. text to be synthesized
-                    "text_lang: "",           # str. language of the text to be synthesized
-                    "ref_audio_path": "",     # str. reference audio path
-                    "prompt_text": "",        # str. prompt text for the reference audio
-                    "prompt_lang": "",        # str. language of the prompt text for the reference audio
-                    "top_k": 5,               # int. top k sampling
-                    "top_p": 1,               # float. top p sampling
-                    "temperature": 1,         # float. temperature for sampling
-                    "text_split_method": "",  # str. text split method, see text_segmentaion_method.py for details.
-                    "batch_size": 1,          # int. batch size for inference
-                    "batch_threshold": 0.75,  # float. threshold for batch splitting.
-                    "split_bucket: True,      # bool. whether to split the batch into multiple buckets.
-                    "return_fragment": False, # bool. step by step return the audio fragment.
-                    "speed_factor":1.0,       # float. control the speed of the synthesized audio.
-                    "fragment_interval":0.3,  # float. to control the interval of the audio fragment.
-                    "seed": -1,               # int. random seed for reproducibility.
+                    "text": "",                   # str.(required) text to be synthesized
+                    "text_lang: "",               # str.(required) language of the text to be synthesized
+                    "ref_audio_path": "",         # str.(required) reference audio path
+                    "prompt_text": "",            # str.(optional) prompt text for the reference audio
+                    "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
+                    "top_k": 5,                   # int. top k sampling
+                    "top_p": 1,                   # float. top p sampling
+                    "temperature": 1,             # float. temperature for sampling
+                    "text_split_method": "cut0",  # str. text split method, see text_segmentaion_method.py for details.
+                    "batch_size": 1,              # int. batch size for inference
+                    "batch_threshold": 0.75,      # float. threshold for batch splitting.
+                    "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
+                    "return_fragment": False,     # bool. step by step return the audio fragment.
+                    "speed_factor":1.0,           # float. control the speed of the synthesized audio.
+                    "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
+                    "seed": -1,                   # int. random seed for reproducibility.
                 }
         returns:
             tulpe[int, np.ndarray]: sampling rate and audio data.
@@ -606,7 +606,7 @@ class TTS:
         top_k:int = inputs.get("top_k", 5)
         top_p:float = inputs.get("top_p", 1)
         temperature:float = inputs.get("temperature", 1)
-        text_split_method:str = inputs.get("text_split_method", "")
+        text_split_method:str = inputs.get("text_split_method", "cut0")
         batch_size = inputs.get("batch_size", 1)
         batch_threshold = inputs.get("batch_threshold", 0.75)
         speed_factor = inputs.get("speed_factor", 1.0)
@@ -824,16 +824,13 @@ class TTS:
 
             if not return_fragment:
                 print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t_34, t_45))
-                yield [
-                    self.audio_postprocess(audio, 
+                yield self.audio_postprocess(audio, 
                                                 self.configs.sampling_rate, 
                                                 batch_index_list, 
                                                 speed_factor, 
                                                 split_bucket,
                                                 fragment_interval
-                                                ), 
-                    f"<strong>text:</strong> {text} <strong>text_lang:</strong> {text_lang} <strong>prompt_text:</strong> {prompt_text} <strong>prompt_lang:</strong> {prompt_lang} <strong>top_k:</strong> {top_k} <strong>top_p:</strong> {top_p} <strong>temperature:</strong> {temperature} <strong>batch_size:</strong> {batch_size} <strong>batch_threshold:</strong> {batch_threshold} <strong>split_bucket:</strong> {split_bucket} <strong>return_fragment:</strong> {return_fragment} <strong>speed_factor:</strong> {speed_factor} <strong>fragment_interval:</strong> {fragment_interval} <strong>seed:</strong> {actual_seed}"
-                ]
+                                                )
 
         except Exception as e:
             traceback.print_exc()
