@@ -53,11 +53,158 @@ _注意: numba==0.56.4 需要 python<3.11_
 
 ### Linux
 
+#### Step 1:下载 GPT-SoVITS 源代码
+
+请通过本项目首页通过HTTP或SSH或下载ZIP压缩包的方式完整下载本项目
+
+#### Step 2:安装 conda
+
+可以根据 conda 的[清华镜像源](https://link.zhihu.com/?target=https%3A//mirror.tuna.tsinghua.edu.cn/help/anaconda/)去进行下载
+
+```text
+wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh        #原网址
+
+wget -c https://mirrors.bfsu.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh        #清华的镜像源latest的版本的话就是说以后一直会更新最新的版本
+```
+
+上述命令得到的是.sh 文件，使用如下命令安装：
+
+```bash
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+具体过程不再赘述，可自行查阅
+
+#### Step 3:安装其他
+
+在上述 cunda 安装完成后请重启命令行界面。
+这里要求先开启 cunda 环境，以免造成 GPT-SoVITS 的配置影响其他软件运行
+
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
+```
+
+此时你的命令行前应该会出现`(GPTSoVits)`的标志
+
+然后请进入你之前下载好的 GPT-SoVITS 文件夹内，如果此时使用`ls`命令，你可以在里面找到两个文件：`install.sh`和`requirements.txt`
+此时运行指令，等待安装完成即可：
+
+```bash
 bash install.sh
 ```
+
+（另：好像用`pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt`也可以安装，这里的回忆缺失了.jpg😭）
+参考教程：[MAC 教程 (yuque.com)](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/znoph9dtetg437xb)
+（对，我是看着 MAC 的教程安的）
+
+下次再启动，只需要打开终端，定位到项目目录，进入 conda 环境，运行启动conda 环境即可
+
+```bash
+cd /XXX/GPT-SoVITS
+
+conda activate GPTSoVits
+```
+
+#### Step 4:推理
+
+> 在/GPT-SoVITS-main/路径下，运行以下命令即可启动 webui 界面：
+>
+> ```bash
+> python webui.py
+> ```
+
+当然，你没有下载预训练模型肯定会报错，我是直接把 windows 的整合包里面的东西丢到报错缺失的文件夹内的，你可以这样做：
+
+> 从  [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS)  下载预训练模型，并将它们放置在  `GPT_SoVITS\pretrained_models`  中。
+>
+> 对于 UVR5（人声/伴奏分离和混响移除，附加），从  [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights)  下载模型，并将它们放置在  `tools/uvr5/uvr5_weights`  中。
+> 中国地区用户可以进入以下链接并点击“下载副本”下载以上两个模型：
+>
+> - [GPT-SoVITS Models](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
+>
+> - [UVR5 Weights](https://www.icloud.com.cn/iclouddrive/0bekRKDiJXboFhbfm3lM2fVbA#UVR5_Weights)
+>
+> 对于中文自动语音识别（附加），从  [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), 和  [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files)  下载模型，并将它们放置在  `tools/damo_asr/models`  中。
+
+~~我的目的是推理，又不是训练，而且都用命令行了还要什么 ui 界面 🤪~~
+
+如果你只希望推理，那么找到推理界面直接运行推理即可
+
+**（以下部分为错误示范）**
+
+- 在 GPT-SoVITS-main/GPT_SoVITS 内存有二级界面的启动.py 文件
+- 推理界面的.py 文件为`inference_webui.py`
+- 该文件需要依赖 GPT-SoVITS-main 文件夹下的其他内容，并且作者将其写成了相对路径
+
+理所当然的的就把他从 GPT-SoVITS-main/GPT_SoVITS 复制到了 GPT-SoVITS-main 下面。并且使用命令成功启动：
+
+```bash
+python inference_webui.py
+```
+
+但是此时问题来了，我如果仿照 Part1 中用 curl 的方法推送并获取结果，服务器会报错：
+
+```bash
+{'detail': 'Method Not Allowed'}
+```
+
+很好，只能另寻他法。
+然后我在 GPT-SoVITS-main 下翻到了 api.py
+
+**（以下为正确做法）**
+
+这个时候就简单了，直接启动远程端口：
+
+```bash
+python api.py
+```
+
+这里的端口号是 9880，使用<http://localhost:9880/>即可访问。
+
+这里使用 curl 方法推送参数并解析返回值，我已经写成了 python 文件如下：
+
+`getvoice.py`
+
+```python
+import requests
+import json
+
+# 读取文本内容
+with open("/XXX/你需要转化的文本.txt", "r") as f:
+    text = f.read()
+
+# 定义请求参数
+url = "http://localhost:9880/"
+headers = {"Content-Type": "application/json"}
+data = {
+    "refer_wav_path": "/xxx/示例语音，和网页端的要求相同，建议5-10.wav,
+    "prompt_text": "这是你上面示例语音的文本",
+    "prompt_language": "zh",
+    "text": text,
+    "text_language": "zh",
+}
+
+# 发送请求并获取响应
+response = requests.post(url, headers=headers, data=json.dumps(data))
+
+# 处理结果
+if response.status_code == 200:
+    # 成功
+    # 这里可以将音频数据保存到文件
+    with open("~/output.wav", "wb") as f:
+        f.write(response.content)
+else:
+    # 失败
+    error_info = json.loads(response.content)
+    print(error_info)
+```
+安装完成后启动总结如下：
+- 在~/GPT-SoVITS-main 中先使用 conda activate GPTSoVits 启动虚拟环境
+
+- 再使用 python api.py 启动远程端口
+
+- 使用 python getvoice.py 读取/XXX/你需要转化的文本.txt 的内容并在~/下生成 wav 文件
 
 ### macOS
 
