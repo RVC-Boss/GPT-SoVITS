@@ -33,3 +33,4 @@ Faster_Whisper
 pyaudio
 flask_httpauth
 flask_cors
+wordsegment
