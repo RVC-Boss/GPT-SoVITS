@@ -246,8 +246,8 @@ def auto_cut(inp, max_length=30):
     final_items = []
     for item in items:
         final_items+=process_commas(item,max_length=max_length).split("\n")
+    final_items = [item for item in final_items if item.strip() and not (len(item.strip())==2 and item[0] in "?!，,。？！~：.") and not item.isspace() and not item in "?!，,。？！~：."]
     
-    final_items = [item for item in final_items if item.strip() and not (len(item.strip()) == 1 and item.strip() in "?!，,。？！~：")]
 
     return "\n".join(final_items)
 
