@@ -402,7 +402,6 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         t2 = ttime()
         with torch.no_grad():
             # pred_semantic = t2s_model.model.infer(
-            print("-"*30)
             pred_semantic, idx = t2s_model.model.infer_panel(
                 all_phoneme_ids,
                 all_phoneme_len,
