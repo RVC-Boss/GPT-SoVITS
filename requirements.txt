@@ -34,3 +34,4 @@ pyaudio
 flask_httpauth
 flask_cors
 wordsegment
+srt

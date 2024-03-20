@@ -10,8 +10,8 @@ import os
 #              ]  # The path to the directory you want to scan, you can change it to your own path
 # scan_subfolders = False  # Whether to scan subfolders
 
-locale_path = "./Inference/i18n/locale"
-scan_list = ["./Inference/"]  # The path to the directory you want to scan, you can change it to your own path
+locale_path = "./tools/srt_slicer/i18n/locale"
+scan_list = ["./tools/srt_slicer"]  # The path to the directory you want to scan, you can change it to your own path
 scan_subfolders = True
 
 special_words_to_keep = {
@@ -90,10 +90,12 @@ print("Total unique:", len(code_keys))
 
 
 standard_file = os.path.join(locale_path, "zh_CN.json")
-with open(standard_file, "r", encoding="utf-8") as f:
-    standard_data = json.load(f, object_pairs_hook=OrderedDict)
-standard_keys = set(standard_data.keys())
-
+try:
+    with open(standard_file, "r", encoding="utf-8") as f:
+        standard_data = json.load(f, object_pairs_hook=OrderedDict)
+    standard_keys = set(standard_data.keys())
+except FileNotFoundError:
+    standard_keys = set()
 # Define the standard file name
 unused_keys = standard_keys - code_keys
 print("Unused keys:", len(unused_keys))
@@ -115,6 +117,7 @@ for s in strings:
         code_keys_dict[s] = s
 
 # write back
+os.makedirs(locale_path, exist_ok=True)
 with open(standard_file, "w", encoding="utf-8") as f:
     json.dump(code_keys_dict, f, ensure_ascii=False, indent=4, sort_keys=True)
     f.write("\n")
