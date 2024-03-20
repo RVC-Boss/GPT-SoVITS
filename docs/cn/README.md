@@ -212,13 +212,13 @@ python audio_slicer.py \
 ````
 这是使用命令行完成数据集ASR处理的方式（仅限中文）
 ````
-python tools/damo_asr/cmd-asr.py "<Path to the directory containing input audio files>"
+python tools/asr/funasr_asr.py -i <input> -o <output>
 ````
 通过Faster_Whisper进行ASR处理（除中文之外的ASR标记）
 
 （没有进度条，GPU性能可能会导致时间延迟）
 ````
-python ./tools/damo_asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -f <file_name.list> -l <language>
 ````
 启用自定义列表保存路径
 ## 致谢
