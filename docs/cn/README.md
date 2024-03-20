@@ -218,7 +218,7 @@ python tools/asr/funasr_asr.py -i <input> -o <output>
 
 （没有进度条，GPU性能可能会导致时间延迟）
 ````
-python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -f <file_name.list> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 ````
 启用自定义列表保存路径
 ## 致谢
