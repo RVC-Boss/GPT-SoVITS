@@ -212,13 +212,13 @@ python audio_slicer.py \
 ```
 This is how dataset ASR processing is done using the command line(Only Chinese)
 ```
-python tools/damo_asr/cmd-asr.py "<Path to the directory containing input audio files>"
+python tools/asr/funasr_asr.py -i <input> -o <output>
 ```
 ASR processing is performed through Faster_Whisper(ASR marking except Chinese)
 
 (No progress bars, GPU performance may cause time delays)
 ```
-python ./tools/damo_asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
+python ./tools/asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
 ```
 A custom list save path is enabled
 
