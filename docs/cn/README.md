@@ -147,6 +147,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 中国地区用户可以通过以下链接下载：
 - [Faster Whisper Large V3 Model](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)(点击“下载副本”)
+  
 - [Faster Whisper Large V3 Model](https://hf-mirror.com/Systran/faster-whisper-large-v3)(Hugging Face镜像站)
 
 
