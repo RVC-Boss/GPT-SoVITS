@@ -143,6 +143,12 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 对于中文自动语音识别（附加），从 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), 和 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 下载模型，并将它们放置在 `tools/damo_asr/models` 中。
 
+对于英语与日语自动语音识别（附加),从 [Faster Whisper Large V3 Model](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将它们放置在 `tools/damo_asr/models` 中。 此外，[其他模型](https://huggingface.co/Systran)可能具有类似效果，但占用更小的磁盘空间。
+中国地区用户可以进入以下链接并点击“下载副本”下载
+[Faster Whisper Large V3 Model](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)，
+或者从Hugging Face镜像站下载[Faster Whisper Large V3 Model](https://hf-mirror.com/Systran/faster-whisper-large-v3)。
+
+
 ## 数据集格式
 
 文本到语音（TTS）注释 .list 文件格式：
