@@ -143,13 +143,13 @@ Users in China region can download these two models by entering the links below 
 
 For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/damo_asr/models`.
 
-For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3 Model](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/damo_asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint. 
+For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/damo_asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint. 
 
 Users in China region can download this model by entering the links below
 
-- [Faster Whisper Large V3 Model](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3) (clicking "Download a copy")
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3) (clicking "Download a copy")
 
-- [Faster Whisper Large V3 Model](https://hf-mirror.com/Systran/faster-whisper-large-v3) (HuggingFace mirror site)
+- [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3) (HuggingFace mirror site)
 
 ## Dataset Format
 
