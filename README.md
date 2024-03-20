@@ -172,6 +172,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [x] Japanese and English dataset fine tune training.
   - [ ] Appending other languages
     - [ ] 'fa': Persian
+    - [ ] 'pt': Pashto
     - [ ] 'tr': Turkish
     - [ ] 'ar': Arebic
 
