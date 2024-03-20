@@ -10,7 +10,7 @@ from i18n.i18n import I18nAuto
 
 import os
 
-i18n = I18nAuto(language="en_US", locale_path="./tools/srt_slicer/i18n/locale")
+i18n = I18nAuto(language=None, locale_path="./tools/srt_slicer/i18n/locale")
 
 def merge_srt(input_text, output_text, short_interval=0.1, max_interval=1, max_text_length=30, add_period=True, merge_zero_interval=True):
     original_subtitles = parse_srt_with_lib(input_text)
