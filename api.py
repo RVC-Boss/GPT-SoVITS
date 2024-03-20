@@ -411,7 +411,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
                 top_k=config['inference']['top_k'],
                 early_stop_num=hz * max_sec)
         t3 = ttime()
-        # print(pred_semantic[:,])
+        # print(pred_semantic.shape,idx)
         if isinstance(pred_semantic, list) and isinstance(pred_semantic, list):
             pred_semantic = pred_semantic[0]
             idx=idx[0]
