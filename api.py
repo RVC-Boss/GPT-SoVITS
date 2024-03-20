@@ -109,7 +109,7 @@ import sys
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
-import re
+
 import signal
 from time import time as ttime
 import torch
