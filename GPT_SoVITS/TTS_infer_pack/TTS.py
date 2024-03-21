@@ -7,6 +7,7 @@ import traceback
 from tqdm import tqdm
 now_dir = os.getcwd()
 sys.path.append(now_dir)
+sys.path.append(os.path.join(now_dir, "GPT_SoVITS"))
 import ffmpeg
 import os
 from typing import Generator, List, Union

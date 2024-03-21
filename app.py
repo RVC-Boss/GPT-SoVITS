@@ -1,4 +1,4 @@
-frontend_version = "2.3.1 240320"
+frontend_version = "2.3.2 240322"
 
 from datetime import datetime
 import gradio as gr
@@ -12,31 +12,35 @@ import  wave
 import os, sys
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-sys.path.append(os.path.join(now_dir, "Inference/src"))
 
+# 尝试清空含有GPT_SoVITS的路径
+for path in sys.path:
+    if path.find(r"GPT_SoVITS") != -1:
+        sys.path.remove(path)
+        
 # 取得模型文件夹路径
-config_path = "Inference/config.json"
+from Inference.src.config_manager import Inference_Config
+inference_config = Inference_Config()
 
-# 读取config.json
-if os.path.exists(config_path):
-    with open(config_path, "r", encoding="utf-8") as f:
-        _config = json.load(f)
-        locale_language = str(_config.get("locale", "auto"))
-        locale_language = None if locale_language.lower() == "auto" else locale_language
-        tts_port = _config.get("tts_port", 5000)
-        max_text_length = _config.get("max_text_length", -1)
-        default_batch_size = _config.get("batch_size", 10)
-        default_word_count = _config.get("max_word_count", 80)
-        is_share = _config.get("is_share", "false").lower() == "true"
-        is_classic = False
-        enable_auth = _config.get("enable_auth", "false").lower() == "true"
-        users = _config.get("user", {})
-        try:
-            default_username = list(users.keys())[0]
-            default_password = users[default_username]
-        except:
-            default_username = "admin"
-            default_password = "admin123"
+config_path = inference_config.config_path
+locale_language = inference_config.locale_language
+tts_port = inference_config.tts_port
+default_batch_size = inference_config.default_batch_size
+default_word_count = inference_config.default_word_count
+enable_auth = inference_config.enable_auth
+is_classic = inference_config.is_classic
+models_path = inference_config.models_path
+max_text_length = inference_config.max_text_length
+is_share = inference_config.is_share
+default_username, default_password = "admin", "admin123"
+if enable_auth:
+    users = inference_config.users
+    try:
+        default_username = list(users.keys())[0]
+        default_password = users[default_username]
+    except:
+        default_username = "admin"
+        default_password = "admin123"
 
 from tools.i18n.i18n import I18nAuto
 i18n = I18nAuto(locale_language , "Inference/i18n/locale")
@@ -358,7 +362,7 @@ with gr.Blocks() as app:
                     
    
                     with gr.Group():
-                        top_k = gr.Slider(minimum=1, maximum=30, value=6, label=i18n("Top K"), step=1)
+                        top_k = gr.Slider(minimum=1, maximum=30, value=3, label=i18n("Top K"), step=1)
                         top_p = gr.Slider(minimum=0, maximum=1, value=0.8, label=i18n("Top P"))
                         temperature = gr.Slider(
                             minimum=0, maximum=1, value=0.8, label=i18n("Temperature")
