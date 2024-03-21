@@ -4,6 +4,8 @@ Welcome to GSVI, an inference-specialized plugin built on top of GPT-SoVITS to e
 
 Please note that we do not recommend using GSVI for training. Its existence is to make the process of using GPT-soVITS simpler and more comfortable for others, and to make model sharing easier.
 
+This fork is mainly based on the fast_inference_ branch, using a lot of PR code contributed by ChasonJiang. Thanks to this great developer
+
 ## Features
 
 - High-level abstract interface for easy character and emotion selection
