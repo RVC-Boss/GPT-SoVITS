@@ -16,10 +16,11 @@ from srt_utils import (
 )
 
 port = 8991
-
+is_share = False
 if len(sys.argv) > 2:
     port = int(sys.argv[1])
     is_share = eval(sys.argv[2])
+ 
 
 
 from i18n.i18n import I18nAuto
