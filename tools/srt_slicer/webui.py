@@ -270,7 +270,7 @@ with gr.Blocks() as app:
                                 pre_silence_time = gr.Slider(value=0.05, minimum=0, maximum=1, step=0.01, label=i18n("前置添加静音时间"),interactive=True,visible=False)
                                 post_silence_time = gr.Slider(value=0.1, minimum=0, maximum=1, step=0.01, label=i18n("后置添加静音时间"),interactive=True,visible=False)
                             with gr.Group():
-                                language = gr.Dropdown([i18n(i) for i in ["auto", "zh", "en", "ja", "all_zh", "all_ja"]], value="auto", label=i18n("语言"),interactive=True)
+                                language = gr.Dropdown([i18n(i) for i in [ "ZH", "EN", "JA"]], value="ZH", label=i18n("语言"),interactive=True)
                                 audio_format = gr.Dropdown(["mp3", "wav", "ogg"], value="wav", label=i18n("音频格式"),interactive=True)
                             with gr.Group():
                                 save_folder = gr.Textbox("output/sliced_audio", label=i18n("保存文件夹"),interactive=True)
