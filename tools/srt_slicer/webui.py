@@ -15,6 +15,11 @@ from srt_utils import (
     merge_list_folders
 )
 
+port = 8991
+
+if len(sys.argv) > 1:
+    port = int(sys.argv[1])
+
 
 from i18n.i18n import I18nAuto
 
@@ -371,4 +376,4 @@ with gr.Blocks() as app:
             [save_folder, character],
             [character_warning],
         )
-app.launch(inbrowser=True, server_port=8991, debug=True)
+app.launch(inbrowser=True, server_port=port, debug=True)
