@@ -6,6 +6,13 @@ Please note that we do not recommend using GSVI for training. Its existence is t
 
 This fork is mainly based on the `fast_inference_` branch, using a lot of PR code contributed by [ChasonJiang](https://github.com/ChasonJiang). Thanks to this great developer. ”Dalao NB！“
 
+At the same time, the Inference folder used by this branch is the main submodule, coming from https://github.com/X-T-E-R/TTS-for-GPT-soVITS. If you find that the Inference is empty after pulling, please manually execute:
+
+```
+git submodule add -b plug_in https://github.com/X-T-E-R/TTS-for-GPT-soVITS.git Inference
+git submodule update --init --recursive
+```
+
 ## Features
 
 - High-level abstract interface for easy character and emotion selection
