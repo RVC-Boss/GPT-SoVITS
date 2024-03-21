@@ -72,7 +72,7 @@ def count_words_multilang(text):
 
 import pydub, os
 
-def slice_audio_with_lib(audio_path, save_folder, format, subtitles, pre_preserve_time, post_preserve_time, pre_silence_time, post_silence_time, language='auto', character='character'):
+def slice_audio_with_lib(audio_path, save_folder, format, subtitles, pre_preserve_time, post_preserve_time, pre_silence_time, post_silence_time, language='ZH', character='character'):
     list_file = os.path.join(save_folder, 'datamapping.list')
     with open(list_file, 'w', encoding="utf-8") as f:
         for i in range(len(subtitles)):

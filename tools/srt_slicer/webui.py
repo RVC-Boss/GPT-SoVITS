@@ -15,6 +15,13 @@ from srt_utils import (
     merge_list_folders
 )
 
+port = 8991
+
+if len(sys.argv) > 2:
+    port = int(sys.argv[1])
+    is_share = eval(sys.argv[2])
+
+is_share = False
 
 from i18n.i18n import I18nAuto
 
@@ -194,7 +201,7 @@ def preview_merged_list(first_list_folder, second_list_folder, merge_list_charac
     except Exception as e:
         gr.Warning(f"Can't Merge, Error: {e}")
         return ""
-    
+
 
 from datetime import datetime
 
@@ -264,7 +271,7 @@ with gr.Blocks() as app:
                                 pre_silence_time = gr.Slider(value=0.05, minimum=0, maximum=1, step=0.01, label=i18n("前置添加静音时间"),interactive=True,visible=False)
                                 post_silence_time = gr.Slider(value=0.1, minimum=0, maximum=1, step=0.01, label=i18n("后置添加静音时间"),interactive=True,visible=False)
                             with gr.Group():
-                                language = gr.Dropdown([i18n(i) for i in ["auto", "zh", "en", "ja", "all_zh", "all_ja"]], value="auto", label=i18n("语言"),interactive=True)
+                                language = gr.Dropdown([i18n(i) for i in [ "ZH", "EN", "JA"]], value="ZH", label=i18n("语言"),interactive=True)
                                 audio_format = gr.Dropdown(["mp3", "wav", "ogg"], value="wav", label=i18n("音频格式"),interactive=True)
                             with gr.Group():
                                 save_folder = gr.Textbox("output/sliced_audio", label=i18n("保存文件夹"),interactive=True)
@@ -290,7 +297,7 @@ with gr.Blocks() as app:
                     merge_list_button = gr.Button(i18n("合并文件夹与List"), variant="primary")
                 with gr.Column(scale=2):
                     list_preview = gr.Textbox("", lines=20, max_lines=30, label=i18n("合并后的List"))
-                
+
             scan_list_button.click(scan_list_folders, [scan_list_folder], [first_list_folder, second_list_folder])
             merge_list_button.click(preview_merged_list, [first_list_folder, second_list_folder, merge_list_character_name, scan_list_folder], [list_preview])
         save_folder.change(lambda x:gr.Textbox(value=x), [save_folder], [scan_list_folder])
@@ -312,7 +319,7 @@ with gr.Blocks() as app:
             [input_audio],
             [character],
         )
-        
+
         upload_audio.change(
             change_character_name,
             [upload_audio],
@@ -322,7 +329,7 @@ with gr.Blocks() as app:
             [upload_audio],
             [input_audio],
         )
-            
+
         merge_button.click(
             merge_srt,
             [
@@ -371,4 +378,19 @@ with gr.Blocks() as app:
             [save_folder, character],
             [character_warning],
         )
-app.launch(inbrowser=True, server_port=8991, debug=True)
+if gr.__version__.split(".")[0] == "4":
+    app.launch(
+        server_name="0.0.0.0",
+        inbrowser=True,
+        share=is_share,
+        server_port=port,
+        quiet=True,
+    )
+else:
+    app.queue(concurrency_count=511, max_size=1022).launch(
+        server_name="0.0.0.0",
+        inbrowser=True,
+        share=is_share,
+        server_port=port,
+        quiet=True,
+    )
