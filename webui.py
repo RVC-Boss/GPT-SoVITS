@@ -166,7 +166,7 @@ def change_label(if_label,path_list):
 def change_srt_slicer(if_srt_slicer):
     global p_srt_slicer
     if(if_srt_slicer==True and p_srt_slicer==None):
-        cmd = '"%s" tools/srt_slicer/webui.py %s'%(python_exec,webui_port_srt_slicer)
+        cmd = '"%s" tools/srt_slicer/webui.py %s %s'%(python_exec,webui_port_srt_slicer,is_share)
         yield i18n("SRT切割工具WebUI已开启")
         print(cmd)
         p_srt_slicer = Popen(cmd, shell=True)
