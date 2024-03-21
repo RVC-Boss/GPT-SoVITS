@@ -50,10 +50,15 @@ class SinePositionalEmbedding(nn.Module):
         self.div_term = torch.exp(torch.arange(0, self.embedding_dim, 2) * -(math.log(10000.0) / self.embedding_dim))
 
     def extend_pe(self, x):
-        position = torch.cumsum(torch.ones_like(x[:,:,0]), dim=1).transpose(0, 1)
-        scpe = (position * self.div_term).unsqueeze(0)
-        pe = torch.cat([torch.sin(scpe), torch.cos(scpe)]).permute(1, 2, 0)
-        pe = pe.contiguous().view(1, -1, self.embedding_dim)
+        position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, self.embedding_dim, 2, dtype=torch.float32)
+            * -(math.log(10000.0) / self.embedding_dim)
+        )
+        pe = torch.zeros(x.size(1), self.embedding_dim)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
         return pe
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
