@@ -4,3 +4,11 @@ __pycache__
 env
 runtime
 .idea
+output
+logs
+reference
+GPT_weights
+SoVITS_weights
+TEMP
+
+

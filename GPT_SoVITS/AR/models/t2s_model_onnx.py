@@ -1,4 +1,5 @@
-# modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/model/t2s_model.py
+# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/t2s_model.py
+# reference: https://github.com/lifeiteng/vall-e
 import torch
 from tqdm import tqdm
 
@@ -57,7 +58,7 @@ def logits_to_probs(
     logits = logits / max(temperature, 1e-5)
 
     if top_k is not None:
-        v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+        v, _ = torch.topk(logits, top_k)
         pivot = v.select(-1, -1).unsqueeze(-1)
         logits = torch.where(logits < pivot, inf_tensor_value, logits)
 

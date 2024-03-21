@@ -896,9 +896,6 @@ class SynthesizerTrn(nn.Module):
         refer_mask = torch.ones_like(refer[:1,:1,:])
         ge = self.ref_enc(refer * refer_mask, refer_mask)
 
-        y_lengths = torch.LongTensor([codes.size(2) * 2]).to(codes.device)
-        text_lengths = torch.LongTensor([text.size(-1)]).to(text.device)
-
         quantized = self.quantizer.decode(codes)
         if self.semantic_frame_rate == "25hz":
             dquantized = torch.cat([quantized, quantized]).permute(1, 2, 0)
@@ -907,6 +904,7 @@ class SynthesizerTrn(nn.Module):
         x, m_p, logs_p, y_mask = self.enc_p(
             quantized, text, ge
         )
+        
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p)
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)

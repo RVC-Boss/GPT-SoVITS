@@ -35,7 +35,7 @@ def slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_
                 if(tmp_max>1):chunk/=tmp_max
                 chunk = (chunk / tmp_max * (_max * alpha)) + (1 - alpha) * chunk
                 wavfile.write(
-                    "%s/%s_%s_%s.wav" % (opt_root, name, start, end),
+                    "%s/%s_%010d_%010d.wav" % (opt_root, name, start, end),
                     32000,
                     # chunk.astype(np.float32),
                     (chunk * 32767).astype(np.int16),

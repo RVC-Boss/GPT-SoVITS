@@ -228,6 +228,7 @@ class TextEncoder(nn.Module):
         )
 
         y = self.ssl_proj(y * y_mask) * y_mask
+     
         y = self.encoder_ssl(y * y_mask, y_mask)
 
         text_mask = torch.unsqueeze(
@@ -892,6 +893,7 @@ class SynthesizerTrn(nn.Module):
         if freeze_quantizer:
             self.ssl_proj.requires_grad_(False)
             self.quantizer.requires_grad_(False)
+            #self.quantizer.eval()
             # self.enc_p.text_embedding.requires_grad_(False)
             # self.enc_p.encoder_text.requires_grad_(False)
             # self.enc_p.mrte.requires_grad_(False)
@@ -958,11 +960,13 @@ class SynthesizerTrn(nn.Module):
 
     @torch.no_grad()
     def decode(self, codes, text, refer, noise_scale=0.5):
-        refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
-        refer_mask = torch.unsqueeze(
-            commons.sequence_mask(refer_lengths, refer.size(2)), 1
-        ).to(refer.dtype)
-        ge = self.ref_enc(refer * refer_mask, refer_mask)
+        ge = None
+        if refer is not None:
+            refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
+            refer_mask = torch.unsqueeze(
+                commons.sequence_mask(refer_lengths, refer.size(2)), 1
+            ).to(refer.dtype)
+            ge = self.ref_enc(refer * refer_mask, refer_mask)
 
         y_lengths = torch.LongTensor([codes.size(2) * 2]).to(codes.device)
         text_lengths = torch.LongTensor([text.size(-1)]).to(text.device)
