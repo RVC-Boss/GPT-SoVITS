@@ -378,7 +378,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
     text_language = dict_language[text_language]
     phones1, word2ph1, norm_text1 = clean_text(prompt_text, prompt_language)
     phones1 = cleaned_text_to_sequence(phones1)
-    texts = text.split("\n")
+    _ = text.split("\n")
+    texts = [t for t in _ if t != '']
     audio_opt = []
 
     for text in texts:
