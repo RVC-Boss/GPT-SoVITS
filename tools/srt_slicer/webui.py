@@ -16,7 +16,7 @@ from srt_utils import (
 )
 
 port = 8991
-is_share = False
+is_share = True
 if len(sys.argv) > 2:
     port = int(sys.argv[1])
     is_share = eval(sys.argv[2])

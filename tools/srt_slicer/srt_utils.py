@@ -74,11 +74,16 @@ import pydub, os
 
 def slice_audio_with_lib(audio_path, save_folder, format, subtitles, pre_preserve_time, post_preserve_time, pre_silence_time, post_silence_time, language='ZH', character='character'):
     list_file = os.path.join(save_folder, 'datamapping.list')
+    try:
+        audio = pydub.AudioSegment.from_file(audio_path)
+    except Exception as e:
+        raise e
     with open(list_file, 'w', encoding="utf-8") as f:
         for i in range(len(subtitles)):
             subtitle = subtitles[i]
             start = subtitle.start.total_seconds() - pre_preserve_time
             end = subtitle.end.total_seconds() + post_preserve_time
+                
             if i < len(subtitles) - 1:
                 next_subtitle = subtitles[i + 1]
                 end = min(end, 1.0/2*(subtitle.end.total_seconds()+next_subtitle.start.total_seconds()))
@@ -86,12 +91,12 @@ def slice_audio_with_lib(audio_path, save_folder, format, subtitles, pre_preserv
                 prev_subtitle = subtitles[i - 1]
                 start = max(start, 1.0/2*(prev_subtitle.end.total_seconds()+subtitle.start.total_seconds()))
             try:
-                audio = pydub.AudioSegment.from_file(audio_path)
                 sliced_audio = audio[int(start * 1000):int(end * 1000)]
                 file_name = f'{character}_{i + 1:03d}.{format}'
                 save_path = os.path.join(save_folder, file_name)
                 sliced_audio.export(save_path, format=format)
                 f.write(f"{file_name}|{character}|{language}|{subtitle.content}\n")
+                print(f"Slice {file_name} from {start} to {end}")
             except Exception as e:
                 raise e
         
