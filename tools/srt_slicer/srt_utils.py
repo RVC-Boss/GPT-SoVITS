@@ -1,4 +1,5 @@
 import srt
+import shutil
 
 def parse_srt_with_lib(content):
 
@@ -87,10 +88,47 @@ def slice_audio_with_lib(audio_path, save_folder, format, subtitles, pre_preserv
             try:
                 audio = pydub.AudioSegment.from_file(audio_path)
                 sliced_audio = audio[int(start * 1000):int(end * 1000)]
-                file_name = f'{i + 1:03d}.{format}'
+                file_name = f'{character}_{i + 1:03d}.{format}'
                 save_path = os.path.join(save_folder, file_name)
                 sliced_audio.export(save_path, format=format)
                 f.write(f"{file_name}|{character}|{language}|{subtitle.content}\n")
             except Exception as e:
                 raise e
         
+def merge_list_folders(first_list_file, second_list_file, character, first_folder, second_folder):
+    merged_lines = []
+    character1 = ""
+    filenames = set()
+    with open(first_list_file, 'r', encoding="utf-8") as f:
+        first_list = f.readlines()
+        for line in first_list:
+            filename, character1, language, content = line.split('|')
+            filenames.add(filename)
+            if character=="" or character is None:
+                character = character1
+            new_line = f"{filename}|{character}|{language}|{content}"
+            merged_lines.append(new_line)
+    with open(second_list_file, 'r', encoding="utf-8") as f:
+        second_list = f.readlines()
+        for line in second_list:
+            filename, _, language, content = line.split('|')
+            orig_filename = filename
+            num = 1
+            while filename in filenames:
+                filename = f"{filename.rsplit('.', 1)[0]}_{num}.{filename.rsplit('.', 1)[1]}"
+                num += 1
+            try:
+                os.rename(os.path.join(second_folder, orig_filename), os.path.join(first_folder, filename))
+            except Exception as e:
+                raise e
+            new_line = f"{filename}|{character}|{language}|{content}"
+            merged_lines.append(new_line)
+    os.remove(second_list_file)
+    if not os.listdir(second_folder):
+        os.rmdir(second_folder)
+    with open(first_list_file, 'w', encoding="utf-8") as f:
+        f.writelines(merged_lines)
+    return "\n".join(merged_lines)
+            
+        
+    
