@@ -3,6 +3,7 @@
     "SRT文件": "SRT File",
     "srt文件内容": "SRT File Content",
     "上传SRT文件": "Upload SRT File",
+    "上传文件": "Upload Files",
     "作者: ": "Author: ",
     "使用方法": "How to Use",
     "保存合并后字幕": "Save Merged Subtitles",
@@ -33,6 +34,7 @@
     "最长允许单句长度": "Maximum Allowed Sentence Length",
     "根据面板合并短句并过滤你不希望出现的句子。": "Merge short sentences according to the panel and filter out sentences you do not want to appear.",
     "正在建设，敬请期待": "Under Construction, Stay Tuned",
+    "注意：该文件夹已存在": "Warning: The folder already exists",
     "语言": "Language",
     "读取文件": "Read File",
     "读取本地文件": "Read Local File",
@@ -44,4 +46,4 @@
     "随后保存成切分好的音频与list文件。": "Then save as split audio and list files.",
     "音频文件": "Audio File",
     "音频格式": "Audio Format"
-    }
+}

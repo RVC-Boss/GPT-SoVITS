@@ -3,7 +3,7 @@ import gradio as gr
 import sys
 sys.path.append('.')
 sys.path.append('..')
-from srt_utils import merge_subtitles_with_lib, parse_srt_with_lib, generate_srt_with_lib, slice_audio_with_lib, count_words_multilang
+from tools.srt_slicer.srt_utils import merge_subtitles_with_lib, parse_srt_with_lib, generate_srt_with_lib, slice_audio_with_lib, count_words_multilang
 
 
 from i18n.i18n import I18nAuto
@@ -162,7 +162,11 @@ def change_character_name(input_audio):
         character = datetime.now().strftime("%m%d%H%M")
     return gr.Textbox(value=character)
 
-
+def check_character_foldfer(folder, character):
+    character_folder = os.path.join(folder, character)
+    if os.path.exists(character_folder):
+        return gr.Textbox(visible=True)
+    return gr.Textbox(visible=False)
 
 with gr.Blocks() as app:
     with gr.Row():
@@ -185,12 +189,13 @@ with gr.Blocks() as app:
                     srt_files_list = gr.Dropdown([], label=i18n("SRT文件"),interactive=True)
                     audio_files_list = gr.Dropdown([], label=i18n("音频文件"),interactive=True)
                     srt_read_button = gr.Button(i18n("读取文件"), variant="secondary",interactive=True)
-                with gr.Tab(i18n("上传SRT文件")):
+                with gr.Tab(i18n("上传文件")):
                     input_srt_file = gr.File(label=i18n("上传SRT文件"), type="filepath", file_types=["srt"])
+                    upload_audio = gr.Audio(type="filepath",label=i18n("音频文件"))
                     # input_audio_file = gr.File(label=i18n("上传音频文件"), type="audio", file_types=["mp3", "wav", "ogg"])
             with gr.Tabs():
                 with gr.Tab(i18n("内容预览")):
-                    input_audio = gr.Audio(type="filepath",label=i18n("音频文件"))
+                    input_audio = gr.Textbox("", label=i18n("音频文件"),interactive=False)
                     input_text = gr.Textbox("", lines=20, max_lines=30, label=i18n("srt文件内容"))
             input_srt_file.change(load_srt_from_file, [input_srt_file], [input_text])
         with gr.Column(scale=1) as control_col:
@@ -209,15 +214,18 @@ with gr.Blocks() as app:
                     filter_words = gr.Textbox("", label=i18n("过滤词语，一行一个"),lines=5,max_lines=10,interactive=True)
                     filter_button = gr.Button(i18n("过滤字幕"), variant="primary",interactive=False)
                 with gr.Tab(i18n("切分与保存")):
-                    pre_preserve_time = gr.Slider(value=0.1, minimum=0, maximum=1, step=0.01, label=i18n("前置保留时间"),interactive=True)
-                    post_preserve_time = gr.Slider(value=0.1, minimum=0, maximum=1, step=0.01, label=i18n("后置保留时间"),interactive=True)
-                    pre_silence_time = gr.Slider(value=0.05, minimum=0, maximum=1, step=0.01, label=i18n("前置添加静音时间"),interactive=True,visible=False)
-                    post_silence_time = gr.Slider(value=0.1, minimum=0, maximum=1, step=0.01, label=i18n("后置添加静音时间"),interactive=True,visible=False)
-
-                    language = gr.Dropdown([i18n(i) for i in ["auto", "zh", "en", "ja", "all_zh", "all_ja"]], value="auto", label=i18n("语言"),interactive=True)
-                    audio_format = gr.Dropdown(["mp3", "wav", "ogg"], value="wav", label=i18n("音频格式"),interactive=True)
-                    save_folder = gr.Textbox("output/sliced_audio", label=i18n("保存文件夹"),interactive=True)
-                    character = gr.Textbox("character", label=i18n("保存子文件夹名称"),interactive=True)
+                    with gr.Group():
+                        pre_preserve_time = gr.Slider(value=0.1, minimum=0, maximum=1, step=0.01, label=i18n("前置保留时间"),interactive=True)
+                        post_preserve_time = gr.Slider(value=0.1, minimum=0, maximum=1, step=0.01, label=i18n("后置保留时间"),interactive=True)
+                        pre_silence_time = gr.Slider(value=0.05, minimum=0, maximum=1, step=0.01, label=i18n("前置添加静音时间"),interactive=True,visible=False)
+                        post_silence_time = gr.Slider(value=0.1, minimum=0, maximum=1, step=0.01, label=i18n("后置添加静音时间"),interactive=True,visible=False)
+                    with gr.Group():
+                        language = gr.Dropdown([i18n(i) for i in ["auto", "zh", "en", "ja", "all_zh", "all_ja"]], value="auto", label=i18n("语言"),interactive=True)
+                        audio_format = gr.Dropdown(["mp3", "wav", "ogg"], value="wav", label=i18n("音频格式"),interactive=True)
+                    with gr.Group():
+                        save_folder = gr.Textbox("output/sliced_audio", label=i18n("保存文件夹"),interactive=True)
+                        character = gr.Textbox("character", label=i18n("保存子文件夹名称"),interactive=True)
+                        character_warning = gr.Textbox(i18n("注意：该文件夹已存在"), label=i18n("提示"),interactive=False,visible=False)
                     save_srt_button = gr.Button(i18n("保存合并后字幕"),variant="secondary",interactive=True)
                     slice_audio_button = gr.Button(i18n("切分并保存音频、list"), variant="primary",interactive=False)
 
@@ -244,10 +252,15 @@ with gr.Blocks() as app:
             [input_audio],
             [character],
         )
-        input_audio.change(
+        
+        upload_audio.change(
             change_character_name,
-            [input_audio],
+            [upload_audio],
             [character],
+        ).then(
+            lambda x:gr.Textbox(value=x),
+            [upload_audio],
+            [input_audio],
         )
             
         merge_button.click(
@@ -293,6 +306,9 @@ with gr.Blocks() as app:
             [output_text, min_length, filter_english, filter_words],
             [output_text],
         )
-        save_srt_button.click
-
+        character.change(
+            check_character_foldfer,
+            [save_folder, character],
+            [character_warning],
+        )
 app.launch(inbrowser=True, server_port=8991, debug=True)
