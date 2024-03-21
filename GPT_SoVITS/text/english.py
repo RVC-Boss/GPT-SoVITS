@@ -234,6 +234,10 @@ class en_G2p(G2p):
         for word in ["AE", "AI", "AR", "IOS", "HUD", "OS"]:
             del self.cmu[word.lower()]
 
+        # 修正多音字
+        self.homograph2features["read"] = (['R', 'IY1', 'D'], ['R', 'EH1', 'D'], 'VBP')
+        self.homograph2features["complex"] = (['K', 'AH0', 'M', 'P', 'L', 'EH1', 'K', 'S'], ['K', 'AA1', 'M', 'P', 'L', 'EH0', 'K', 'S'], 'JJ')
+
 
     def __call__(self, text):
         # tokenization
@@ -259,6 +263,9 @@ class en_G2p(G2p):
             elif word in self.homograph2features:  # Check homograph
                 pron1, pron2, pos1 = self.homograph2features[word]
                 if pos.startswith(pos1):
+                    pron = pron1
+                # pos1比pos长仅出现在read
+                elif len(pos) < len(pos1) and pos == pos1[:len(pos)]:
                     pron = pron1
                 else:
                     pron = pron2
@@ -306,7 +313,6 @@ class en_G2p(G2p):
 
         # 尝试进行分词，应对复合词
         comps = wordsegment.segment(word.lower())
-
         # 无法分词的送回去预测
         if len(comps)==1:
             return self.predict(word)
