@@ -161,6 +161,38 @@ Writing Now, Please Wait
 Remove the `pyaudio` in the `requirements.txt` !!!!
 
 
+## Credits
 
+This fork is mainly based on the `fast_inference_` branch of [GPT-soVITS](https://github.com/RVC-Boss/GPT-SoVITS) project, using a lot of PR code contributed by [ChasonJiang](https://github.com/ChasonJiang).
 
+Special thanks to the following projects and contributors:
+
+### Theoretical
+- [ar-vits](https://github.com/innnky/ar-vits)
+- [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
+- [vits](https://github.com/jaywalnut310/vits)
+- [TransferTTS](https://github.com/hcy71o/TransferTTS/blob/master/models.py#L556)
+- [contentvec](https://github.com/auspicious3000/contentvec/)
+- [hifi-gan](https://github.com/jik876/hifi-gan)
+- [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
+### Pretrained Models
+- [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
+- [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
+### Text Frontend for Inference
+- [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
+- [LangSegment](https://github.com/juntaosun/LangSegment)
+### WebUI Tools
+- [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
+- [audio-slicer](https://github.com/openvpi/audio-slicer)
+- [SubFix](https://github.com/cronrpc/SubFix)
+- [FFmpeg](https://github.com/FFmpeg/FFmpeg)
+- [gradio](https://github.com/gradio-app/gradio)
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
+- [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+  
+## Thanks to all contributors for their efforts
+
+<a href="https://github.com/X-T-E-R/GPT-SoVITS-Inference/graphs/contributors" target="_blank">
+  <img src="https://contrib.rocks/image?repo=X-T-E-R/GPT-SoVITS-Inference" />
+</a>
 
