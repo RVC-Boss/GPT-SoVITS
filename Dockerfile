@@ -24,7 +24,7 @@ ARG IMAGE_TYPE=full
 
 # Conditional logic based on the IMAGE_TYPE argument
 # Always copy the Docker directory, but only use it if IMAGE_TYPE is not "elite"
-COPY ./Docker /workspace/Docker 
+COPY ./Docker /workspace/Docker
 # elite 类型的镜像里面不包含额外的模型
 RUN if [ "$IMAGE_TYPE" != "elite" ]; then \
         chmod +x /workspace/Docker/download.sh && \
@@ -33,9 +33,6 @@ RUN if [ "$IMAGE_TYPE" != "elite" ]; then \
         python -m nltk.downloader averaged_perceptron_tagger cmudict; \
     fi
 
-
-# Copy the rest of the application
-COPY . /workspace
 
 # Copy the rest of the application
 COPY . /workspace
