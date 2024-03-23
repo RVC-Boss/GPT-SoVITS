@@ -47,7 +47,7 @@ def execute_asr(input_folder, output_folder, model_size, language,precision):
     print("loading faster whisper model:",model_size,model_path)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     try:
-        model = WhisperModel(model_path, device=device, compute_type=precision)
+        model = WhisperModel(model_path, device=device, compute_type=precision,download_root="./tools/asr/models",local_files_only=False)
     except:
         return print(traceback.format_exc())
     output = []
