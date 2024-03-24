@@ -134,6 +134,7 @@ parser.add_argument("-dl", "--default_refer_language", type=str, default="", hel
 parser.add_argument("-d", "--device", type=str, default=g_config.infer_device, help="cuda / cpu")
 parser.add_argument("-a", "--bind_addr", type=str, default="0.0.0.0", help="default: 0.0.0.0")
 parser.add_argument("-p", "--port", type=int, default=g_config.api_port, help="default: 9880")
+parser.add_argument("-w", "--workers", type=int, default=1, help="num_workers")
 #parser.add_argument("-fp", "--full_precision", action="store_true", default=False, help="覆盖config.is_half为False, 使用全精度")
 #parser.add_argument("-hp", "--half_precision", action="store_true", default=False, help="覆盖config.is_half为True, 使用半精度")
 # bool值的用法为 `python ./api.py -fp ...`
@@ -174,6 +175,7 @@ default_refer = DefaultRefer(args.default_refer_path, args.default_refer_text, a
 device = args.device
 port = args.port
 host = args.bind_addr
+workers=args.workers
 
 
 
@@ -360,4 +362,4 @@ async def tts_endpoint(
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=host, port=port, workers=1)
+    uvicorn.run(f'{os.path.basename(__file__).split(".")[0]}:app', host=host, port=port, workers=workers)
