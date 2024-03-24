@@ -20,6 +20,7 @@ CMU_DICT_PATH = os.path.join(current_file_path, "cmudict.rep")
 CMU_DICT_FAST_PATH = os.path.join(current_file_path, "cmudict-fast.rep")
 CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
 CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
+NAMECACHE_PATH = os.path.join(current_file_path, "namedict_cache.pickle")
 
 arpa = {
     "AH0",
@@ -200,6 +201,16 @@ def get_dict():
     return g2p_dict
 
 
+def get_namedict():
+    if os.path.exists(NAMECACHE_PATH):
+        with open(NAMECACHE_PATH, "rb") as pickle_file:
+            name_dict = pickle.load(pickle_file)
+    else:
+        name_dict = {}
+
+    return name_dict
+
+
 def text_normalize(text):
     # todo: eng text normalize
     # 适配中文及 g2p_en 标点
@@ -232,8 +243,9 @@ class en_G2p(G2p):
         # 分词初始化
         wordsegment.load()
 
-        # 扩展过时字典
+        # 扩展过时字典, 添加姓名字典
         self.cmu = get_dict()
+        self.namedict = get_namedict()
 
         # 剔除读音错误的几个缩写
         for word in ["AE", "AI", "AR", "IOS", "HUD", "OS"]:
@@ -274,6 +286,9 @@ class en_G2p(G2p):
                     pron = pron1
                 else:
                     pron = pron2
+            # 单词仅首字母大写时查找姓名字典
+            elif o_word.istitle() and word in self.namedict:
+                pron = self.namedict[word][0]
             else:
                 # 递归查找预测
                 pron = self.qryword(word)
@@ -290,7 +305,7 @@ class en_G2p(G2p):
             return self.cmu[word][0]
 
         # oov 长度小于等于 3 直接读字母
-        if (len(word) <= 3):
+        if len(word) <= 3:
             phones = []
             for w in word:
                 # 单读 A 发音修正, 此处不存在大写的情况
