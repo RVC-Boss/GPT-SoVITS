@@ -10,7 +10,7 @@ all_parts = os.environ.get("all_parts")
 os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("_CUDA_VISIBLE_DEVICES")
 opt_dir = os.environ.get("opt_dir")
 bert_pretrained_dir = os.environ.get("bert_pretrained_dir")
-is_half = eval(os.environ.get("is_half", "True"))
+from config import is_half
 import sys, numpy as np, traceback, pdb
 import os.path
 from glob import glob

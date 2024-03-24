@@ -8,7 +8,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("_CUDA_VISIBLE_DEVICES")
 opt_dir = os.environ.get("opt_dir")
 pretrained_s2G = os.environ.get("pretrained_s2G")
 s2config_path = os.environ.get("s2config_path")
-is_half = eval(os.environ.get("is_half", "True"))
+from config import is_half
 import math, traceback
 import multiprocessing
 import sys, pdb
