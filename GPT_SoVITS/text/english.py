@@ -286,12 +286,9 @@ class en_G2p(G2p):
                     pron = pron1
                 else:
                     pron = pron2
-            # 单词仅首字母大写时查找姓名字典
-            elif o_word.istitle() and word in self.namedict:
-                pron = self.namedict[word][0]
             else:
                 # 递归查找预测
-                pron = self.qryword(word)
+                pron = self.qryword(o_word)
 
             prons.extend(pron)
             prons.extend([" "])
@@ -299,10 +296,16 @@ class en_G2p(G2p):
         return prons[:-1]
 
 
-    def qryword(self, word):
+    def qryword(self, o_word):
+        word = o_word.lower()
+
         # 查字典, 单字母除外
         if len(word) > 1 and word in self.cmu:  # lookup CMU dict
             return self.cmu[word][0]
+
+        # 单词仅首字母大写时查找姓名字典
+        if o_word.istitle() and word in self.namedict:
+            return self.namedict[word][0]
 
         # oov 长度小于等于 3 直接读字母
         if len(word) <= 3:
@@ -333,6 +336,7 @@ class en_G2p(G2p):
 
         # 尝试进行分词，应对复合词
         comps = wordsegment.segment(word.lower())
+
         # 无法分词的送回去预测
         if len(comps)==1:
             return self.predict(word)
