@@ -162,6 +162,9 @@ def read_dict_new():
             line_index = line_index + 1
             line = f.readline()
 
+    return g2p_dict
+
+def hot_reload_hot(g2p_dict):
     with open(CMU_DICT_HOT_PATH) as f:
         line = f.readline()
         line_index = 1
@@ -175,7 +178,7 @@ def read_dict_new():
 
             line_index = line_index + 1
             line = f.readline()
-    
+
     return g2p_dict
 
 
@@ -191,6 +194,8 @@ def get_dict():
     else:
         g2p_dict = read_dict_new()
         cache_dict(g2p_dict, CACHE_PATH)
+
+    g2p_dict = hot_reload_hot(g2p_dict)
 
     return g2p_dict
 
