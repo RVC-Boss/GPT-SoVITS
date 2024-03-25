@@ -10,5 +10,4 @@ reference
 GPT_weights
 SoVITS_weights
 TEMP
-
-
+.venv
