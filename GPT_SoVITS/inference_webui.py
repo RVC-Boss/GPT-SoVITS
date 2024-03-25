@@ -17,6 +17,11 @@ logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 import pdb
 import torch
+from resemble_enhance.enhancer.inference import denoise, enhance
+import torchaudio
+import gc
+import librosa
+import soundfile as sf
 
 if os.path.exists("./gweight.txt"):
     with open("./gweight.txt", 'r', encoding="utf-8") as file:
@@ -83,6 +88,31 @@ if is_half == True:
 else:
     bert_model = bert_model.to(device)
 
+def clear_gpu_cash():
+    # del model
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+def _fn(path, solver="Midpoint", nfe=64, tau=0.5,chunk_seconds=10,chunks_overlap=0.5, denoising=True):
+    if path is None:
+        return None, None
+    print(path)
+    sf.write('./output.wav', path[1], path[0], 'PCM_24')
+
+    solver = solver.lower()
+    nfe = int(nfe)
+    lambd = 0.9 if denoising else 0.1
+
+    dwav, sr = torchaudio.load('./output.wav')
+    dwav = dwav.mean(dim=0)
+
+    wav2, new_sr = enhance(dwav = dwav, sr = sr, device = device, nfe=nfe,chunk_seconds=chunk_seconds,chunks_overlap=chunks_overlap, solver=solver, lambd=lambd, tau=tau)
+
+    wav2 = wav2.cpu().numpy()
+
+    clear_gpu_cash()
+    return (new_sr, wav2)
 
 def get_bert_feature(text, word2ph):
     with torch.no_grad():
@@ -590,12 +620,15 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True)
             inference_button = gr.Button(i18n("合成语音"), variant="primary")
             output = gr.Audio(label=i18n("输出的语音"))
+            up_button = gr.Button(i18n("音频降噪增强"), variant="primary")
 
         inference_button.click(
             get_tts_wav,
             [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free],
             [output],
         )
+
+        up_button.click(_fn, [output], [output])
 
         gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         with gr.Row():
