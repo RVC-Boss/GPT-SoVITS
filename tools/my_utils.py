@@ -26,6 +26,8 @@ def load_audio(file, sr):
 
 
 def clean_path(path_str):
-    if platform.system() == 'Windows':
-        path_str = path_str.replace('/', '\\')
-    return path_str.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
+    # 获取当前工作目录
+    current_dir = os.getcwd()
+    # 将相对路径转换为绝对路径
+    absolute_path = os.path.join(current_dir, os.path.normpath(path_str))
+    return absolute_path
