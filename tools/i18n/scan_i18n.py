@@ -1,7 +1,16 @@
 import ast
-import glob
 import json
 from collections import OrderedDict
+import os
+
+locale_path = "./i18n/locale" # The path to the i18n locale directory, you can change it to your own path
+scan_list = ["./",
+             "GPT_SoVITS/",
+             "tools/"
+             ]  # The path to the directory you want to scan, you can change it to your own path
+scan_subfolders = False  # Whether to scan subfolders
+
+
 
 
 def extract_i18n_strings(node):
@@ -21,20 +30,32 @@ def extract_i18n_strings(node):
 
     return i18n_strings
 
+strings = []
 
-# scan the directory for all .py files (recursively)
 # for each file, parse the code into an AST
 # for each AST, extract the i18n strings
-
-strings = []
-for filename in glob.iglob("**/*.py", recursive=True):
-    with open(filename, "r") as f:
+def scan_i18n_strings(filename):
+    with open(filename, "r", encoding="utf-8") as f:
         code = f.read()
         if "I18nAuto" in code:
             tree = ast.parse(code)
             i18n_strings = extract_i18n_strings(tree)
             print(filename, len(i18n_strings))
             strings.extend(i18n_strings)
+
+
+# scan the directory for all .py files (recursively)
+if scan_subfolders:
+    for folder in scan_list:
+        for dirpath, dirnames, filenames in os.walk(folder):
+            for filename in [f for f in filenames if f.endswith(".py")]:
+                scan_i18n_strings(os.path.join(dirpath, filename))
+else:
+    for folder in scan_list:
+        for filename in os.listdir(folder):
+            if filename.endswith(".py"):
+                scan_i18n_strings(os.path.join(folder, filename))
+        
 code_keys = set(strings)
 """
 n_i18n.py
@@ -49,7 +70,7 @@ print()
 print("Total unique:", len(code_keys))
 
 
-standard_file = "i18n/locale/zh_CN.json"
+standard_file = os.path.join(locale_path, "zh_CN.json")
 with open(standard_file, "r", encoding="utf-8") as f:
     standard_data = json.load(f, object_pairs_hook=OrderedDict)
 standard_keys = set(standard_data.keys())

@@ -2,11 +2,12 @@ import json
 import os
 from collections import OrderedDict
 
+dir_path = "./i18n/locale" # The path to the i18n locale directory, you can change it to your own path
+
 # Define the standard file name
-standard_file = "locale/zh_CN.json"
+standard_file = os.path.join(dir_path, "zh_CN.json")
 
 # Find all JSON files in the directory
-dir_path = "locale/"
 languages = [
     os.path.join(dir_path, f)
     for f in os.listdir(dir_path)
