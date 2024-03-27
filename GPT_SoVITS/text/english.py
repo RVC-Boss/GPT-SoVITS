@@ -20,6 +20,7 @@ CMU_DICT_PATH = os.path.join(current_file_path, "cmudict.rep")
 CMU_DICT_FAST_PATH = os.path.join(current_file_path, "cmudict-fast.rep")
 CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
 CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
+NAMECACHE_PATH = os.path.join(current_file_path, "namedict_cache.pickle")
 
 arpa = {
     "AH0",
@@ -162,6 +163,9 @@ def read_dict_new():
             line_index = line_index + 1
             line = f.readline()
 
+    return g2p_dict
+
+def hot_reload_hot(g2p_dict):
     with open(CMU_DICT_HOT_PATH) as f:
         line = f.readline()
         line_index = 1
@@ -175,7 +179,7 @@ def read_dict_new():
 
             line_index = line_index + 1
             line = f.readline()
-    
+
     return g2p_dict
 
 
@@ -192,7 +196,19 @@ def get_dict():
         g2p_dict = read_dict_new()
         cache_dict(g2p_dict, CACHE_PATH)
 
+    g2p_dict = hot_reload_hot(g2p_dict)
+
     return g2p_dict
+
+
+def get_namedict():
+    if os.path.exists(NAMECACHE_PATH):
+        with open(NAMECACHE_PATH, "rb") as pickle_file:
+            name_dict = pickle.load(pickle_file)
+    else:
+        name_dict = {}
+
+    return name_dict
 
 
 def text_normalize(text):
@@ -227,12 +243,17 @@ class en_G2p(G2p):
         # 分词初始化
         wordsegment.load()
 
-        # 扩展过时字典
+        # 扩展过时字典, 添加姓名字典
         self.cmu = get_dict()
+        self.namedict = get_namedict()
 
         # 剔除读音错误的几个缩写
         for word in ["AE", "AI", "AR", "IOS", "HUD", "OS"]:
             del self.cmu[word.lower()]
+
+        # 修正多音字
+        self.homograph2features["read"] = (['R', 'IY1', 'D'], ['R', 'EH1', 'D'], 'VBP')
+        self.homograph2features["complex"] = (['K', 'AH0', 'M', 'P', 'L', 'EH1', 'K', 'S'], ['K', 'AA1', 'M', 'P', 'L', 'EH0', 'K', 'S'], 'JJ')
 
 
     def __call__(self, text):
@@ -260,11 +281,14 @@ class en_G2p(G2p):
                 pron1, pron2, pos1 = self.homograph2features[word]
                 if pos.startswith(pos1):
                     pron = pron1
+                # pos1比pos长仅出现在read
+                elif len(pos) < len(pos1) and pos == pos1[:len(pos)]:
+                    pron = pron1
                 else:
                     pron = pron2
             else:
                 # 递归查找预测
-                pron = self.qryword(word)
+                pron = self.qryword(o_word)
 
             prons.extend(pron)
             prons.extend([" "])
@@ -272,13 +296,19 @@ class en_G2p(G2p):
         return prons[:-1]
 
 
-    def qryword(self, word):
+    def qryword(self, o_word):
+        word = o_word.lower()
+
         # 查字典, 单字母除外
         if len(word) > 1 and word in self.cmu:  # lookup CMU dict
             return self.cmu[word][0]
 
+        # 单词仅首字母大写时查找姓名字典
+        if o_word.istitle() and word in self.namedict:
+            return self.namedict[word][0]
+
         # oov 长度小于等于 3 直接读字母
-        if (len(word) <= 3):
+        if len(word) <= 3:
             phones = []
             for w in word:
                 # 单读 A 发音修正, 此处不存在大写的情况
