@@ -366,7 +366,12 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         audio_opt.append(zero_wav)
         t4 = ttime()
     # logger.info("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t3 - t2, t4 - t3))
-    yield hps.data.sampling_rate, (np.concatenate(audio_opt, 0) * 32768).astype(np.int16)
+        ogg = BytesIO()
+        sf.write(ogg, (np.concatenate(audio_opt, 0) * 32768).astype(np.int16), hps.data.sampling_rate, format="ogg")
+        ogg.seek(0)
+        chunk = ogg.read()
+        yield chunk
+        audio_opt = []
 
 
 def handle_control(command):
@@ -411,18 +416,7 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language):
         if not default_refer.is_ready():
             return JSONResponse({"code": 400, "message": "未指定参考音频且接口无预设"}, status_code=400)
 
-    with torch.no_grad():
-        gen = get_tts_wav(
-            refer_wav_path, prompt_text, prompt_language, text, text_language
-        )
-        sampling_rate, audio_data = next(gen)
-
-    wav = BytesIO()
-    sf.write(wav, audio_data, sampling_rate, format="wav")
-    wav.seek(0)
-
-    torch.cuda.empty_cache()
-    return StreamingResponse(wav, media_type="audio/wav")
+    return StreamingResponse(get_tts_wav(refer_wav_path, prompt_text, prompt_language, text, text_language), media_type="audio/ogg")
 
 
 
