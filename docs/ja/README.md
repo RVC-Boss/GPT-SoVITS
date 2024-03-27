@@ -39,7 +39,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 - Python 3.9, PyTorch 2.0.1, CUDA 11
 - Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple silicon)
+- Python 3.9, PyTorch 2.2.1, macOS 14.4 (Apple silicon)
+- Python 3.9, PyTorch 2.2.1, CPUデバイス
 
 _注記: numba==0.56.4 は py<3.11 が必要です_
 

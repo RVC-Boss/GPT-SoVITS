@@ -43,7 +43,8 @@ For users in China region, you can [click here](https://www.codewithgpu.com/i/RV
 
 - Python 3.9, PyTorch 2.0.1, CUDA 11
 - Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.3.0.dev20240122, macOS 14.3 (Apple silicon)
+- Python 3.9, PyTorch 2.2.1, macOS 14.4 (Apple silicon)
+- Python 3.9, PyTorch 2.2.1, CPU devices
 
 _Note: numba==0.56.4 requires py<3.11_
 
