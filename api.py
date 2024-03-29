@@ -20,6 +20,7 @@
 `-hp` - `覆盖 config.py 使用半精度`
 `-sm` - `流式返回模式, 默认不启用, "close","c", "normal","n", "keepalive","k"`
 ·-mt` - `返回的音频编码格式, 流式默认ogg, 非流式默认wav, "wav", "ogg", "aac"`
+·-cp` - `文本切分符号设定, 默认为空, 以",.，。"字符串的方式传入`
 
 `-hb` - `cnhubert路径`
 `-b` - `bert路径`
@@ -38,6 +39,18 @@ POST:
 {
     "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
     "text_language": "zh"
+}
+```
+
+使用执行参数指定的参考音频并设定分割符号:
+GET:
+    `http://127.0.0.1:9880?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh&cut_punc=，。`
+POST:
+```json
+{
+    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
+    "text_language": "zh",
+    "cut_punc": "，。",
 }
 ```
 
@@ -105,7 +118,7 @@ RESP: 无
 
 
 import argparse
-import os
+import os,re
 import sys
 import signal
 import LangSegment
@@ -367,6 +380,24 @@ def read_clean_buffer(audio_bytes):
     return audio_bytes, audio_chunk
 
 
+def cut_text(text, punc):
+    punc_list = [p for p in punc if p in {",", ".", ";", "?", "!", "、", "，", "。", "？", "！", ";", "：", "…"}]
+    if len(punc_list) > 0:
+        punds = r"[" + "".join(punc_list) + r"]"
+        text = text.strip("\n")
+        items = re.split(f"({punds})", text)
+        mergeitems = ["".join(group) for group in zip(items[::2], items[1::2])]
+        # 在句子不存在符号或句尾无符号的时候保证文本完整
+        if len(items)%2 == 1:
+            mergeitems.append(items[-1])
+        text = "\n".join(mergeitems)
+
+    while "\n\n" in text:
+        text = text.replace("\n\n", "\n")
+
+    return text
+
+
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
@@ -470,7 +501,7 @@ def handle_change(path, text, language):
     return JSONResponse({"code": 0, "message": "Success"}, status_code=200)
 
 
-def handle(refer_wav_path, prompt_text, prompt_language, text, text_language):
+def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc):
     if (
             refer_wav_path == "" or refer_wav_path is None
             or prompt_text == "" or prompt_text is None
@@ -483,6 +514,11 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language):
         )
         if not default_refer.is_ready():
             return JSONResponse({"code": 400, "message": "未指定参考音频且接口无预设"}, status_code=400)
+
+    if cut_punc == None:
+        text = cut_text(text,default_cut_punc)
+    else:
+        text = cut_text(text,cut_punc)
 
     return StreamingResponse(get_tts_wav(refer_wav_path, prompt_text, prompt_language, text, text_language), media_type="audio/"+media_type)
 
@@ -535,6 +571,8 @@ parser.add_argument("-hp", "--half_precision", action="store_true", default=Fals
 # 此时 full_precision==True, half_precision==False
 parser.add_argument("-sm", "--stream_mode", type=str, default="close", help="流式返回模式, close / normal / keepalive")
 parser.add_argument("-mt", "--media_type", type=str, default="wav", help="音频编码格式, wav / ogg / aac")
+parser.add_argument("-cp", "--cut_punc", type=str, default="", help="文本切分符号设定, 符号范围,.;?!、，。？！;：…")
+# 切割常用分句符为 `python ./api.py -cp ".?!。？！"`
 parser.add_argument("-hb", "--hubert_path", type=str, default=g_config.cnhubert_path, help="覆盖config.cnhubert_path")
 parser.add_argument("-b", "--bert_path", type=str, default=g_config.bert_path, help="覆盖config.bert_path")
 
@@ -546,6 +584,7 @@ port = args.port
 host = args.bind_addr
 cnhubert_base_path = args.hubert_path
 bert_path = args.bert_path
+default_cut_punc = args.cut_punc
 
 # 应用参数配置
 default_refer = DefaultRefer(args.default_refer_path, args.default_refer_text, args.default_refer_language)
@@ -667,6 +706,7 @@ async def tts_endpoint(request: Request):
         json_post_raw.get("prompt_language"),
         json_post_raw.get("text"),
         json_post_raw.get("text_language"),
+        json_post_raw.get("cut_punc"),
     )
 
 
@@ -677,8 +717,9 @@ async def tts_endpoint(
         prompt_language: str = None,
         text: str = None,
         text_language: str = None,
+        cut_punc: str = None,
 ):
-    return handle(refer_wav_path, prompt_text, prompt_language, text, text_language)
+    return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc)
 
 
 if __name__ == "__main__":
