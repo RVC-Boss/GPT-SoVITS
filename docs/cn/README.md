@@ -133,15 +133,16 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 只能运行在Ubuntu 20.04 LTS（内核版本5.4.X-5.15.X）下，非虚拟机，Intel CORE系列CPU
 
-1.前往[摩尔线程应用商店](https://developer.mthreads.com/sdk/download/musa?equipment=&os=Ubuntu&driverVersion=&version=)下载并按顺序安装`musa driver`、`musa_toolkit`、`mudnn`、`mccl`
-2.前往[torch_musa](https://github.com/MooreThreads/torch_musa/releases/tag/v1.1.0)，根据你的显卡和python版本下载`torch`、`torch_musa`，将文件名`-linux_x86_64`后部分删除，使用以下命令安装
+1. 前往[摩尔线程应用商店](https://developer.mthreads.com/sdk/download/musa?equipment=&os=Ubuntu&driverVersion=&version=)下载并按顺序安装`musa driver`、`musa_toolkit`、`mudnn`、`mccl`
+
+2. 前往[torch_musa](https://github.com/MooreThreads/torch_musa/releases/tag/v1.1.0)，根据你的显卡和python版本下载`torch`、`torch_musa`，将文件名`-linux_x86_64`后部分删除，使用以下命令安装
 
 ```
 pip install torch-2.0.0-cp39-cp39-linux_x86_64.whl
 pip install torch_musa-1.1.0-cp39-cp39-linux_x86_64.whl
 ```
 
-3.安装环境
+3. 安装环境
 
 ```
 conda install -c conda-forge gcc
@@ -162,7 +163,7 @@ USE_CUDA=0 python setup.py install
 pip install -r requirements.txt
 ```
 
-4.运行`python webui.py`
+4. 运行`python webui.py`
 
 ## 预训练模型
 
