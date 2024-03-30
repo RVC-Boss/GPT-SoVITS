@@ -69,9 +69,7 @@ bash install.sh
 **Note: The models trained with GPUs on Macs result in significantly lower quality compared to those trained on other devices, so we are temporarily using CPUs instead.**
 
 1. Install Xcode command-line tools by running `xcode-select --install`
-
 2. Install FFmpeg by running `brew install ffmpeg` or `conda install ffmpeg`.
-
 3. Install the program by running the following commands:
 
 ```bash
