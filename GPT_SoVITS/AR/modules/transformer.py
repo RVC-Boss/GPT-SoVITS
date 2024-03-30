@@ -10,6 +10,10 @@ from typing import Tuple
 from typing import Union
 
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 from AR.modules.activation import MultiheadAttention
 from AR.modules.scaling import BalancedDoubleSwish
 from torch import nn

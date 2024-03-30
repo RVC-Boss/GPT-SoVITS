@@ -1,4 +1,8 @@
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 from torch.nn import functional as F
 
 import numpy as np

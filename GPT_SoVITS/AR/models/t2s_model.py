@@ -1,6 +1,10 @@
 # modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/t2s_model.py
 # reference: https://github.com/lifeiteng/vall-e
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 from tqdm import tqdm
 
 from AR.models.utils import make_pad_mask

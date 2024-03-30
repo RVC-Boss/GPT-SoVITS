@@ -7,6 +7,10 @@ from torch.nn.functional import (
 )
 from torch.nn import functional as F
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 # Tensor = torch.Tensor
 # from typing import Callable, List, Optional, Tuple, Union
 

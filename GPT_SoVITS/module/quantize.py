@@ -11,6 +11,10 @@ import math
 import typing as tp
 
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 from torch import nn
 
 from module.core_vq import ResidualVectorQuantization
