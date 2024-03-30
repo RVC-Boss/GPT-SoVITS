@@ -8,11 +8,19 @@ from string import punctuation
 
 from text import symbols
 
+import unicodedata
+from builtins import str as unicode
+from g2p_en.expand import normalize_numbers
+from nltk.tokenize import TweetTokenizer
+word_tokenize = TweetTokenizer().tokenize
+from nltk import pos_tag
+
 current_file_path = os.path.dirname(__file__)
 CMU_DICT_PATH = os.path.join(current_file_path, "cmudict.rep")
 CMU_DICT_FAST_PATH = os.path.join(current_file_path, "cmudict-fast.rep")
 CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
 CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
+NAMECACHE_PATH = os.path.join(current_file_path, "namedict_cache.pickle")
 
 arpa = {
     "AH0",
@@ -155,6 +163,9 @@ def read_dict_new():
             line_index = line_index + 1
             line = f.readline()
 
+    return g2p_dict
+
+def hot_reload_hot(g2p_dict):
     with open(CMU_DICT_HOT_PATH) as f:
         line = f.readline()
         line_index = 1
@@ -168,7 +179,7 @@ def read_dict_new():
 
             line_index = line_index + 1
             line = f.readline()
-    
+
     return g2p_dict
 
 
@@ -185,10 +196,19 @@ def get_dict():
         g2p_dict = read_dict_new()
         cache_dict(g2p_dict, CACHE_PATH)
 
+    g2p_dict = hot_reload_hot(g2p_dict)
+
     return g2p_dict
 
 
-eng_dict = get_dict()
+def get_namedict():
+    if os.path.exists(NAMECACHE_PATH):
+        with open(NAMECACHE_PATH, "rb") as pickle_file:
+            name_dict = pickle.load(pickle_file)
+    else:
+        name_dict = {}
+
+    return name_dict
 
 
 def text_normalize(text):
@@ -204,6 +224,16 @@ def text_normalize(text):
     for p, r in rep_map.items():
         text = re.sub(p, r, text)
 
+    # 来自 g2p_en 文本格式化处理
+    # 增加大写兼容
+    text = unicode(text)
+    text = normalize_numbers(text)
+    text = ''.join(char for char in unicodedata.normalize('NFD', text)
+                    if unicodedata.category(char) != 'Mn')  # Strip accents
+    text = re.sub("[^ A-Za-z'.,?!\-]", "", text)
+    text = re.sub(r"(?i)i\.e\.", "that is", text)
+    text = re.sub(r"(?i)e\.g\.", "for example", text)
+
     return text
 
 
@@ -213,37 +243,106 @@ class en_G2p(G2p):
         # 分词初始化
         wordsegment.load()
 
-        # 扩展过时字典
+        # 扩展过时字典, 添加姓名字典
         self.cmu = get_dict()
+        self.namedict = get_namedict()
 
         # 剔除读音错误的几个缩写
         for word in ["AE", "AI", "AR", "IOS", "HUD", "OS"]:
             del self.cmu[word.lower()]
 
-        # "A" 落单不读 "AH0" 读 "EY1"
-        self.cmu['a'] = [['EY1']]
+        # 修正多音字
+        self.homograph2features["read"] = (['R', 'IY1', 'D'], ['R', 'EH1', 'D'], 'VBP')
+        self.homograph2features["complex"] = (['K', 'AH0', 'M', 'P', 'L', 'EH1', 'K', 'S'], ['K', 'AA1', 'M', 'P', 'L', 'EH0', 'K', 'S'], 'JJ')
 
 
-    def predict(self, word):
-        # 小写 oov 长度小于等于 3 直接读字母
-        if (len(word) <= 3):
-            return [phone for w in word for phone in self(w)]
+    def __call__(self, text):
+        # tokenization
+        words = word_tokenize(text)
+        tokens = pos_tag(words)  # tuples of (word, tag)
+
+        # steps
+        prons = []
+        for o_word, pos in tokens:
+            # 还原 g2p_en 小写操作逻辑
+            word = o_word.lower()
+
+            if re.search("[a-z]", word) is None:
+                pron = [word]
+            # 先把单字母推出去
+            elif len(word) == 1:
+                # 单读 A 发音修正, 这里需要原格式 o_word 判断大写
+                if o_word == "A":
+                    pron = ['EY1']
+                else:
+                    pron = self.cmu[word][0]
+            # g2p_en 原版多音字处理
+            elif word in self.homograph2features:  # Check homograph
+                pron1, pron2, pos1 = self.homograph2features[word]
+                if pos.startswith(pos1):
+                    pron = pron1
+                # pos1比pos长仅出现在read
+                elif len(pos) < len(pos1) and pos == pos1[:len(pos)]:
+                    pron = pron1
+                else:
+                    pron = pron2
+            else:
+                # 递归查找预测
+                pron = self.qryword(o_word)
+
+            prons.extend(pron)
+            prons.extend([" "])
+
+        return prons[:-1]
+
+
+    def qryword(self, o_word):
+        word = o_word.lower()
+
+        # 查字典, 单字母除外
+        if len(word) > 1 and word in self.cmu:  # lookup CMU dict
+            return self.cmu[word][0]
+
+        # 单词仅首字母大写时查找姓名字典
+        if o_word.istitle() and word in self.namedict:
+            return self.namedict[word][0]
+
+        # oov 长度小于等于 3 直接读字母
+        if len(word) <= 3:
+            phones = []
+            for w in word:
+                # 单读 A 发音修正, 此处不存在大写的情况
+                if w == "a":
+                    phones.extend(['EY1'])
+                else:
+                    phones.extend(self.cmu[w][0])
+            return phones
 
         # 尝试分离所有格
         if re.match(r"^([a-z]+)('s)$", word):
-            phone = self(word[:-2])
-            phone.extend(['Z'])
-            return phone
+            phones = self.qryword(word[:-2])
+            # P T K F TH HH 无声辅音结尾 's 发 ['S']
+            if phones[-1] in ['P', 'T', 'K', 'F', 'TH', 'HH']:
+                phones.extend(['S'])
+            # S Z SH ZH CH JH 擦声结尾 's 发 ['IH1', 'Z'] 或 ['AH0', 'Z']
+            elif phones[-1] in ['S', 'Z', 'SH', 'ZH', 'CH', 'JH']:
+                phones.extend(['AH0', 'Z'])
+            # B D G DH V M N NG L R W Y 有声辅音结尾 's 发 ['Z']
+            # AH0 AH1 AH2 EY0 EY1 EY2 AE0 AE1 AE2 EH0 EH1 EH2 OW0 OW1 OW2 UH0 UH1 UH2 IY0 IY1 IY2 AA0 AA1 AA2 AO0 AO1 AO2
+            # ER ER0 ER1 ER2 UW0 UW1 UW2 AY0 AY1 AY2 AW0 AW1 AW2 OY0 OY1 OY2 IH IH0 IH1 IH2 元音结尾 's 发 ['Z']
+            else:
+                phones.extend(['Z'])
+            return phones
 
         # 尝试进行分词，应对复合词
         comps = wordsegment.segment(word.lower())
 
         # 无法分词的送回去预测
         if len(comps)==1:
-            return super().predict(word)
+            return self.predict(word)
 
         # 可以分词的递归处理
-        return [phone for comp in comps for phone in self(comp)]
+        return [phone for comp in comps for phone in self.qryword(comp)]
 
 
 _g2p = en_G2p()
@@ -258,12 +357,6 @@ def g2p(text):
 
 
 if __name__ == "__main__":
-    # print(get_dict())
     print(g2p("hello"))
-    print(g2p("In this; paper, we propose 1 DSPGAN, a GAN-based universal vocoder."))
-    # all_phones = set()
-    # for k, syllables in eng_dict.items():
-    #     for group in syllables:
-    #         for ph in group:
-    #             all_phones.add(ph)
-    # print(all_phones)
+    print(g2p(text_normalize("e.g. I used openai's AI tool to draw a picture.")))
+    print(g2p(text_normalize("In this; paper, we propose 1 DSPGAN, a GAN-based universal vocoder.")))
