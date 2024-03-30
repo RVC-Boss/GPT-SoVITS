@@ -43,8 +43,8 @@ For users in China region, you can [click here](https://www.codewithgpu.com/i/RV
 
 - Python 3.9, PyTorch 2.0.1, CUDA 11
 - Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.2.1, macOS 14.4 (Apple silicon)
-- Python 3.9, PyTorch 2.2.1, CPU devices
+- Python 3.9, PyTorch 2.2.2, macOS 14.4.1 (Apple silicon)
+- Python 3.9, PyTorch 2.2.2, CPU devices
 
 _Note: numba==0.56.4 requires py<3.11_
 
@@ -52,7 +52,9 @@ _Note: numba==0.56.4 requires py<3.11_
 
 If you are a Windows user (tested with win>=10), you can directly download the [pre-packaged distribution](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
 
-Users in China region can download the file by clicking [here](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217) and then selecting "Download a copy."
+Users in China region can download [the 0217 package](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217) or [the 0306fix2 package](https://www.icloud.com.cn/iclouddrive/09aaTLf96aa92dbLe0fPNM5CQ#GPT-SoVITS-beta0306fix2) by clicking the links and then selecting "Download a copy."
+
+_Note: The 0306fix2 version doubles the inference speed and fixes all issues with the no reference text mode._
 
 ### Linux
 
@@ -66,7 +68,11 @@ bash install.sh
 
 **Note: The models trained with GPUs on Macs result in significantly lower quality compared to those trained on other devices, so we are temporarily using CPUs instead.**
 
-First make sure you have installed FFmpeg by running `brew install ffmpeg` or `conda install ffmpeg`, then install by using the following commands:
+1. Install Xcode command-line tools by running `xcode-select --install`
+
+2. Install FFmpeg by running `brew install ffmpeg` or `conda install ffmpeg`.
+
+3. Install the program by running the following commands:
 
 ```bash
 conda create -n GPTSoVits python=3.9

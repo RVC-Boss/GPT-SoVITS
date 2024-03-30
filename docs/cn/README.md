@@ -43,16 +43,18 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 - Python 3.9，PyTorch 2.0.1，CUDA 11
 - Python 3.10.13，PyTorch 2.1.2，CUDA 12.3
-- Python 3.9，Pytorch 2.2.1，macOS 14.4（Apple 芯片）
-- Python 3.9，PyTorch 2.2.1，CPU 设备
+- Python 3.9，Pytorch 2.2.2，macOS 14.4.1（Apple 芯片）
+- Python 3.9，PyTorch 2.2.2，CPU 设备
 
-_注意: numba==0.56.4 需要 python<3.11_
+_注: numba==0.56.4 需要 python<3.11_
 
 ### Windows
 
 如果你是 Windows 用户（已在 win>=10 上测试），可以直接下载[预打包文件](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
 
-中国地区用户可以进入[此处](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217)并点击“下载副本”进行下载。
+中国地区用户可以通过点击链接并选择“下载副本”来下载[0217版本包](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217)或[0306fix2版本包](https://www.icloud.com.cn/iclouddrive/09aaTLf96aa92dbLe0fPNM5CQ#GPT-SoVITS-beta0306fix2)。
+
+_注：0306fix2版本推理速度翻倍，节约生命。修复了无参考文本模式的所有问题。_
 
 ### Linux
 
@@ -66,7 +68,9 @@ bash install.sh
 
 **注：在 Mac 上使用 GPU 训练的模型效果显著低于其他设备训练的模型，所以我们暂时使用CPU进行训练。**
 
-首先确保你已通过运行 `brew install ffmpeg` 或 `conda install ffmpeg` 安装 FFmpeg，然后运行以下命令安装：
+1. 运行 `xcode-select --install` 安装 Xcode command-line tools。
+2. 运行 `brew install ffmpeg` 或 `conda install ffmpeg` 安装 FFmpeg。
+3. 完成上述步骤后，运行以下的命令来安装本项目：
 
 ```bash
 conda create -n GPTSoVits python=3.9
