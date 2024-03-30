@@ -129,6 +129,41 @@ docker compose -f "docker-compose.yaml" up -d
 docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
 ```
 
+### 在摩尔线程显卡（MUSA）运行
+
+只能运行在Ubuntu 20.04 LTS（内核版本5.4.X-5.15.X）下，非虚拟机，Intel CORE系列CPU
+
+1.前往[摩尔线程应用商店](https://developer.mthreads.com/sdk/download/musa?equipment=&os=Ubuntu&driverVersion=&version=)下载并按顺序安装`musa driver``musa_toolkit``mudnn``mccl`
+2.前往[torch_musa](https://github.com/MooreThreads/torch_musa/releases/tag/v1.1.0)，根据你的显卡和python版本下载`torch``torch_musa`，将文件名`-linux_x86_64`后部分删除，使用以下命令安装
+
+```
+pip install torch-2.0.0-cp39-cp39-linux_x86_64.whl
+pip install torch_musa-1.1.0-cp39-cp39-linux_x86_64.whl
+```
+
+3.安装环境
+
+```
+conda install -c conda-forge gcc
+conda install -c conda-forge gxx
+conda install ffmpeg cmake=3.18 ninja
+```
+
+之后你需要通过source安装torchaudio，因为摩尔线程官方并没有放出编译好的wheel
+```
+git clone https://github.com/pytorch/audio
+cd audio
+USE_CUDA=0 python setup.py install
+```
+
+安装其他依赖
+
+```
+pip install -r requirements.txt
+```
+
+4.运行`python webui.py`
+
 ## 预训练模型
 
 从 [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 下载预训练模型，并将它们放置在 `GPT_SoVITS\pretrained_models` 中。
