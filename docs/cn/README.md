@@ -131,7 +131,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 ### 在摩尔线程显卡（MUSA）运行
 
-只能运行在Ubuntu 20.04 LTS（内核版本5.4.X-5.15.X）下，非虚拟机，Intel CORE系列CPU
+只能运行在Ubuntu 20.04 LTS（内核版本5.4.X-5.15.X）下，非虚拟机，Intel CORE系列CPU，**目前只支持推理**
 
 1. 前往[摩尔线程应用商店](https://developer.mthreads.com/sdk/download/musa?equipment=&os=Ubuntu&driverVersion=&version=)下载并按顺序安装`musa driver`、`musa_toolkit`、`mudnn`、`mccl`
 
