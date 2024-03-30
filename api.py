@@ -398,6 +398,10 @@ def cut_text(text, punc):
     return text
 
 
+def only_punc(text):
+    return not any(t.isalnum() or t.isalpha() for t in text)
+
+
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
@@ -425,6 +429,10 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
     audio_bytes = BytesIO()
 
     for text in texts:
+        # 简单防止纯符号引发参考音频泄露
+        if only_punc(text):
+            continue
+
         audio_opt = []
         phones2, bert2, norm_text2 = get_phones_and_bert(text, text_language)
         bert = torch.cat([bert1, bert2], 1)
