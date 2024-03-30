@@ -79,6 +79,22 @@ if torch.cuda.is_available() or ngpu != 0:
 #     gpu_infos.append("%s\t%s" % ("0", "Apple GPU"))
 #     mem.append(psutil.virtual_memory().total/ 1024 / 1024 / 1024) # 实测使用系统内存作为显存不会爆显存
 
+# 判断是否有摩尔线程显卡可用
+try:
+    import torch_musa
+    use_torch_musa = True
+except ImportError:
+    use_torch_musa = False
+if use_torch_musa:
+    ngpu = torch.musa.device_count()
+    if torch.musa.is_available():
+        for i in range(ngpu):
+            if_gpu_ok = True
+            gpu_name = torch.musa.get_device_name(i)
+            gpu_infos.append("%s\t%s" % ("0", gpu_name))
+            mem.append(int(torch.musa.get_device_properties(i).total_memory/ 1024/ 1024/ 1024+ 0.4))
+        print("GPT-SoVITS running on MUSA!")
+
 if if_gpu_ok and len(gpu_infos) > 0:
     gpu_info = "\n".join(gpu_infos)
     default_batch_size = min(mem) // 2
