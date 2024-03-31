@@ -13,7 +13,7 @@
 `-dt` - `默认参考音频文本`
 `-dl` - `默认参考音频语种, "中文","英文","日文","zh","en","ja"`
 
-`-d` - `推理设备, "cuda","cpu"`
+`-d` - `推理设备, "cuda","cpu","musa"`
 `-a` - `绑定地址, 默认"127.0.0.1"`
 `-p` - `绑定端口, 默认9880, 可在 config.py 中指定`
 `-fp` - `覆盖 config.py 使用全精度`
@@ -124,6 +124,10 @@ import signal
 import LangSegment
 from time import time as ttime
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 import librosa
 import soundfile as sf
 from fastapi import FastAPI, Request, HTTPException
@@ -570,7 +574,7 @@ parser.add_argument("-g", "--gpt_path", type=str, default=g_config.gpt_path, hel
 parser.add_argument("-dr", "--default_refer_path", type=str, default="", help="默认参考音频路径")
 parser.add_argument("-dt", "--default_refer_text", type=str, default="", help="默认参考音频文本")
 parser.add_argument("-dl", "--default_refer_language", type=str, default="", help="默认参考音频语种")
-parser.add_argument("-d", "--device", type=str, default=g_config.infer_device, help="cuda / cpu")
+parser.add_argument("-d", "--device", type=str, default=g_config.infer_device, help="cuda / cpu / MUSA ")
 parser.add_argument("-a", "--bind_addr", type=str, default="0.0.0.0", help="default: 0.0.0.0")
 parser.add_argument("-p", "--port", type=int, default=g_config.api_port, help="default: 9880")
 parser.add_argument("-fp", "--full_precision", action="store_true", default=False, help="覆盖config.is_half为False, 使用全精度")

@@ -17,10 +17,23 @@ pretrained_gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=
 
 exp_root = "logs"
 python_exec = sys.executable or "python"
+
+infer_device = "cpu"
+
+# 判断是否有摩尔线程显卡可用
+try:
+    import torch_musa
+    use_torch_musa = True
+except ImportError:
+    use_torch_musa = False
+if use_torch_musa:
+    if torch.musa.is_available():
+        infer_device = "musa"
+        is_half=False
+        print("GPT-SoVITS running on MUSA!")
+
 if torch.cuda.is_available():
     infer_device = "cuda"
-else:
-    infer_device = "cpu"
 
 webui_port_main = 9874
 webui_port_uvr5 = 9873
