@@ -37,9 +37,10 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### 테스트 통과 환경
 
-- Python 3.9, PyTorch 2.0.1 및 CUDA 11
-- Python 3.10.13, PyTorch 2.1.2 및 CUDA 12.3
-- Python 3.9, Pytorch 2.3.0.dev20240122 및 macOS 14.3 (Apple Slilicon)
+- Python 3.9, PyTorch 2.0.1, CUDA 11
+- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
+- Python 3.9, Pytorch 2.2.2, macOS 14.4.1 (Apple Slilicon)
+- Python 3.9, PyTorch 2.2.2, CPU 장치
 
 _참고: numba==0.56.4 는 python<3.11 을 필요로 합니다._
 
@@ -59,7 +60,9 @@ bash install.sh
 
 **주의: Mac에서 GPU로 훈련된 모델은 다른 OS에서 훈련된 모델에 비해 품질이 낮습니다. 해당 문제를 해결하기 전까지 MacOS에선 CPU를 사용하여 훈련을 진행합니다.**
 
-먼저 `brew install ffmpeg` 또는 `conda install ffmpeg`를 실행하여 FFmpeg가 설치되었는지 확인한 다음, 다음 명령어를 사용하여 설치하세요:
+1. `xcode-select --install`을 실행하여 Xcode 커맨드라인 도구를 설치하세요.
+2. `brew install ffmpeg` 또는 `conda install ffmpeg`을 실행하여 FFmpeg를 설치하세요.
+3. 위의 단계를 완료한 후, 다음 명령어를 실행하여 이 프로젝트를 설치하세요.
 
 ```bash
 conda create -n GPTSoVits python=3.9
