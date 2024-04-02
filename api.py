@@ -120,6 +120,11 @@ RESP: 无
 import argparse
 import os,re
 import sys
+
+now_dir = os.getcwd()
+sys.path.append(now_dir)
+sys.path.append("%s/GPT_SoVITS" % (now_dir))
+
 import signal
 import LangSegment
 from time import time as ttime
@@ -536,9 +541,6 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cu
 # --------------------------------
 # 初始化部分
 # --------------------------------
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
 
 dict_language = {
     "中文": "all_zh",
