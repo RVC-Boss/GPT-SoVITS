@@ -5,7 +5,7 @@
 
 ## 执行参数:
     `-a` - `绑定地址, 默认"127.0.0.1"`
-    `-p` - `绑定端口, 默认9880, 可在 config.py 中指定`
+    `-p` - `绑定端口, 默认9880`
     `-c` - `TTS配置文件路径, 默认"GPT_SoVITS/configs/tts_infer.yaml"`
 
 ## 调用:
@@ -60,9 +60,7 @@ POST:
 }
 ```
 
-RESP: 
-成功: 返回"success", http code 200
-失败: 返回包含错误信息的 json, http code 400
+RESP: 无
 
 
 ### 切换GPT模型
