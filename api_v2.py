@@ -1,7 +1,7 @@
 """
 # api.py usage
 
-` python api.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/tts_infer.yaml `
+` python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/tts_infer.yaml `
 
 ## 执行参数:
     `-a` - `绑定地址, 默认"127.0.0.1"`
