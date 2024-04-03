@@ -664,8 +664,6 @@ def run(ref:REF, text, text_lang):
         logger.info("run")
 
         ########## variables initialization ###########
-        if not is_fast_inference:
-            batch_size = 1
         top_k = 5
         top_p = 1
         temperature = 1
@@ -695,7 +693,6 @@ def run(ref:REF, text, text_lang):
                                 threshold=batch_threshold,
             )
         else:
-            print(i18n("############ 切分文本 ############"))
             texts = text.split("\n")
             data = []
             for i in range(len(texts)):
@@ -705,7 +702,6 @@ def run(ref:REF, text, text_lang):
                 
             def make_batch(batch_texts):
                 batch_data = []
-                print(i18n("############ 提取文本Bert特征 ############"))
                 batch_data = preprocess(batch_texts, text_lang)
                 if len(batch_data) == 0:
                     return None
@@ -716,7 +712,6 @@ def run(ref:REF, text, text_lang):
             
         t2 = ttime()
         try:
-            print("############ 推理 ############")
             ###### inference ######
             t_34 = 0.0
             t_45 = 0.0
