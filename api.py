@@ -19,8 +19,11 @@
 `-fp` - `覆盖 config.py 使用全精度`
 `-hp` - `覆盖 config.py 使用半精度`
 `-sm` - `流式返回模式, 默认不启用, "close","c", "normal","n", "keepalive","k"`
-·-mt` - `返回的音频编码格式, 流式默认ogg, 非流式默认wav, "wav", "ogg", "aac"`
-·-cp` - `文本切分符号设定, 默认为空, 以",.，。"字符串的方式传入`
+`-mt` - `返回的音频编码格式, 流式默认ogg, 非流式默认wav, "wav", "ogg", "aac"`
+`-cp` - `文本切分符号设定, 默认为空, 以",.，。"字符串的方式传入`
+`-bs` - `批处理大小,默认为1`
+`-rf` - `碎片返回,约等于流`
+`-sb` - `分桶处理,可能可以减少计算量,与碎片返回冲突`
 
 `-hb` - `cnhubert路径`
 `-b` - `bert路径`
@@ -484,7 +487,6 @@ def only_punc(text):
 
 def preprocess(text:list, lang:str)->List[Dict]:
     result = []
-    print(i18n("############ 提取文本Bert特征 ############"))
     for _text in text:
         phones, bert_features, norm_text = extract_feature_for_text(_text, lang)
         if phones is None:
@@ -979,12 +981,12 @@ change_gpt_weights(gpt_path)
 
 
 # ?????
-if split_bucket and is_fast_inference:
-    return_fragment = False
-    logger.info("分桶处理已开启")
-    logger.info("碎片返回已关闭")
-
 if return_fragment:
+    split_bucket = False
+    logger.info("碎片返回已开启")
+    logger.info("分桶处理已关闭")
+
+if split_bucket and is_fast_inference:
     logger.info("碎片返回已开启")
 
 if batch_size != 1 and is_fast_inference:
