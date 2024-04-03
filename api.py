@@ -76,20 +76,21 @@ RESP:
 失败: 返回包含错误信息的 json, http code 400
 
 
-### 更换默认参考音频
+### 更换默认参考音频和切割符号
 
 endpoint: `/change_refer`
 
 key与推理端一样
 
 GET:
-    `http://127.0.0.1:9880/change_refer?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh`
+    `http://127.0.0.1:9880/change_refer?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh&cut_punc=，。`
 POST:
 ```json
 {
     "refer_wav_path": "123.wav",
     "prompt_text": "一二三。",
     "prompt_language": "zh"
+    "cut_punc": "，。"
 }
 ```
 
@@ -893,7 +894,7 @@ parser.add_argument("-fa", "--flash_atten", action="store_true", default=False, 
 # bool值的用法为 `python ./api.py -fp ...`
 # 此时 full_precision==True, half_precision==False
 parser.add_argument("-mt", "--media_type", type=str, default="wav", help="音频编码格式, wav / ogg / aac")
-parser.add_argument("-cp", "--cut_punc", type=str, default="", help="文本切分符号设定, 符号范围,.;?!、，。？！;：…")
+parser.add_argument("-cp", "--cut_punc", type=str, default=".?!。？！", help="文本切分符号设定, 符号范围,.;?!、，。？！;：…")
 # 切割常用分句符为 `python ./api.py -cp ".?!。？！"`
 parser.add_argument("-hb", "--hubert_path", type=str, default=g_config.cnhubert_path, help="覆盖config.cnhubert_path")
 parser.add_argument("-b", "--bert_path", type=str, default=g_config.bert_path, help="覆盖config.bert_path")
