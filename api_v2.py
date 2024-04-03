@@ -119,7 +119,6 @@ from io import BytesIO
 from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from fastapi.responses import StreamingResponse
-from pydub import AudioSegment
 # print(sys.path)
 i18n = I18nAuto()
 
