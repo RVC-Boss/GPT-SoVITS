@@ -1,5 +1,5 @@
 """
-# web api 接口文档
+# WebAPI文档
 
 ` python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/tts_infer.yaml `
 
@@ -20,7 +20,7 @@ POST:
 ```json
 {
     "text": "",                   # str.(required) text to be synthesized
-    "text_lang: "",               # str.(required) language of the text to be synthesized
+    "text_lang": "",               # str.(required) language of the text to be synthesized
     "ref_audio_path": "",         # str.(required) reference audio path.
     "prompt_text": "",            # str.(optional) prompt text for the reference audio
     "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
@@ -30,12 +30,12 @@ POST:
     "text_split_method": "cut5",  # str.(optional) text split method, see text_segmentation_method.py for details.
     "batch_size": 1,              # int.(optional) batch size for inference
     "batch_threshold": 0.75,      # float.(optional) threshold for batch splitting.
-    "split_bucket: True,          # bool.(optional) whether to split the batch into multiple buckets.
+    "split_bucket": true,          # bool.(optional) whether to split the batch into multiple buckets.
     "speed_factor":1.0,           # float.(optional) control the speed of the synthesized audio.
     "fragment_interval":0.3,      # float.(optional) to control the interval of the audio fragment.
     "seed": -1,                   # int.(optional) random seed for reproducibility.
     "media_type": "wav",          # str.(optional) media type of the output audio, support "wav", "raw", "ogg", "aac".
-    "streaming_mode": False,      # bool.(optional) whether to return a streaming response.
+    "streaming_mode": false,      # bool.(optional) whether to return a streaming response.
 }
 ```
 
@@ -85,9 +85,6 @@ GET:
 RESP: 
 成功: 返回"success", http code 200
 失败: 返回包含错误信息的 json, http code 400
-
-
-### 
     
 """
 import os
