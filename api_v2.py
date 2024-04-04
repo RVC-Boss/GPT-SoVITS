@@ -14,7 +14,9 @@
 
 endpoint: `/tts`
 GET:
-    `http://127.0.0.1:9880/tts?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_lang=zh&ref_audio_path=archive_jingyuan_1.wav&prompt_lang=zh&prompt_text=我是「罗浮」云骑将军景元。不必拘谨，「将军」只是一时的身份，你称呼我景元便可&text_split_method=cut5&batch_size=1&media_type=wav&streaming_mode=true`
+```
+http://127.0.0.1:9880/tts?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_lang=zh&ref_audio_path=archive_jingyuan_1.wav&prompt_lang=zh&prompt_text=我是「罗浮」云骑将军景元。不必拘谨，「将军」只是一时的身份，你称呼我景元便可&text_split_method=cut5&batch_size=1&media_type=wav&streaming_mode=true
+```
 
 POST:
 ```json
@@ -52,7 +54,9 @@ command:
 "exit": 结束运行
 
 GET:
-    `http://127.0.0.1:9880/control?command=restart`
+```
+http://127.0.0.1:9880/control?command=restart
+```
 POST:
 ```json
 {
@@ -68,8 +72,9 @@ RESP: 无
 endpoint: `/set_gpt_weights`
 
 GET:
-    `http://127.0.0.1:9880/set_gpt_weights?weights_path=GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt`
-
+```
+http://127.0.0.1:9880/set_gpt_weights?weights_path=GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
+```
 RESP: 
 成功: 返回"success", http code 200
 失败: 返回包含错误信息的 json, http code 400
@@ -80,7 +85,9 @@ RESP:
 endpoint: `/set_sovits_weights`
 
 GET:
-    `http://127.0.0.1:9880/set_sovits_weights?weights_path=GPT_SoVITS/pretrained_models/s2G488k.pth`
+```
+http://127.0.0.1:9880/set_sovits_weights?weights_path=GPT_SoVITS/pretrained_models/s2G488k.pth
+```
 
 RESP: 
 成功: 返回"success", http code 200
