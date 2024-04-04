@@ -246,9 +246,9 @@ def check_params(req:dict):
     if text in [None, ""]:
         return JSONResponse(status_code=400, content={"message": "text is required"})
     if (text_lang in [None, ""]) :
-        return JSONResponse(status_code=400, content={"message": "text_language is required"})
+        return JSONResponse(status_code=400, content={"message": "text_lang is required"})
     elif text_lang.lower() not in tts_config.languages:
-        return JSONResponse(status_code=400, content={"message": "text_language is not supported"})
+        return JSONResponse(status_code=400, content={"message": "text_lang is not supported"})
     if (prompt_lang in [None, ""]) :
         return JSONResponse(status_code=400, content={"message": "prompt_lang is required"})
     elif prompt_lang.lower() not in tts_config.languages:
@@ -278,7 +278,7 @@ async def tts_handle(req:dict):
                 "top_k": 5,                   # int. top k sampling
                 "top_p": 1,                   # float. top p sampling
                 "temperature": 1,             # float. temperature for sampling
-                "text_split_method": "cut0",  # str. text split method, see text_segmentation_method.py for details.
+                "text_split_method": "cut5",  # str. text split method, see text_segmentation_method.py for details.
                 "batch_size": 1,              # int. batch size for inference
                 "batch_threshold": 0.75,      # float. threshold for batch splitting.
                 "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
