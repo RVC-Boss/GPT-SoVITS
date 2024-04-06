@@ -598,30 +598,7 @@ class TTS:
             tuple[int, np.ndarray]: sampling rate and audio data.
         """
         
-        def make_batch(batch_texts):
-            batch_data = []
-            print(i18n("############ 提取文本Bert特征 ############"))
-            for text in tqdm(batch_texts):
-                phones, bert_features, norm_text = self.text_preprocessor.segment_and_extract_feature_for_text(text, text_lang)
-                if phones is None:
-                    continue
-                res={
-                    "phones": phones,
-                    "bert_features": bert_features,
-                    "norm_text": norm_text,
-                }
-                batch_data.append(res)
-            if len(batch_data) == 0:
-                return None
-            batch, _ = self.to_batch(batch_data, 
-                        prompt_data=self.prompt_cache if not no_prompt_text else None, 
-                        batch_size=batch_size, 
-                        threshold=batch_threshold,
-                        split_bucket=False,
-                        device=self.configs.device,
-                        precision=self.precision
-                        )
-            return batch[0]
+
         
         # 直接给全体套一个torch.no_grad()
         with torch.no_grad():
@@ -719,7 +696,31 @@ class TTS:
                     if i%batch_size == 0:
                         data.append([])
                     data[-1].append(texts[i])
-
+                
+                def make_batch(batch_texts):
+                    batch_data = []
+                    print(i18n("############ 提取文本Bert特征 ############"))
+                    for text in tqdm(batch_texts):
+                        phones, bert_features, norm_text = self.text_preprocessor.segment_and_extract_feature_for_text(text, text_lang)
+                        if phones is None:
+                            continue
+                        res={
+                            "phones": phones,
+                            "bert_features": bert_features,
+                            "norm_text": norm_text,
+                        }
+                        batch_data.append(res)
+                    if len(batch_data) == 0:
+                        return None
+                    batch, _ = self.to_batch(batch_data, 
+                                prompt_data=self.prompt_cache if not no_prompt_text else None, 
+                                batch_size=batch_size, 
+                                threshold=batch_threshold,
+                                split_bucket=False,
+                                device=self.configs.device,
+                                precision=self.precision
+                                )
+                    return batch[0]
 
 
             t2 = ttime()
