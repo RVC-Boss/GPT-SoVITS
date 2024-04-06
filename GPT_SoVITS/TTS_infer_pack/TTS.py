@@ -598,10 +598,6 @@ class TTS:
         returns:
             tuple[int, np.ndarray]: sampling rate and audio data.
         """
-        
-
-        
-        
         ########## variables initialization ###########
         self.stop_flag:bool = False
         text:str = inputs.get("text", "")
