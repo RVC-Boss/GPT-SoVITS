@@ -48,16 +48,17 @@ class SinePositionalEmbedding(nn.Module):
         self.dropout = torch.nn.Dropout(p=dropout)
         self.reverse = False
         self.div_term = torch.exp(torch.arange(0, self.embedding_dim, 2) * -(math.log(10000.0) / self.embedding_dim))
+        self.pe = self.extend_pe(2000)
 
     def extend_pe(self, x):
-        position = torch.cumsum(torch.ones_like(x[:,:,0]), dim=1).transpose(0, 1)
+        position = torch.cumsum(torch.ones((x,1)), dim=0)
         scpe = (position * self.div_term).unsqueeze(0)
         pe = torch.cat([torch.sin(scpe), torch.cos(scpe)]).permute(1, 2, 0)
         pe = pe.contiguous().view(1, -1, self.embedding_dim)
         return pe
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        pe = self.extend_pe(x)
+        pe = self.pe[:,:x.size(1),:]
         output = x.unsqueeze(-1) if x.ndim == 2 else x
         output = output * self.x_scale + self.alpha * pe
         return self.dropout(output)
