@@ -16,6 +16,9 @@ def get_method(name:str)->Callable:
         raise ValueError(f"Method {name} not found")
     return method
 
+def get_method_names()->list:
+    return list(METHODS.keys())
+
 def register_method(name):
     def decorator(func):
         METHODS[name] = func

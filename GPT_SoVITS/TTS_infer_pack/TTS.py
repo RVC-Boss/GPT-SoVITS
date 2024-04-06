@@ -844,6 +844,7 @@ class TTS:
             self.vits_model = None
             self.init_t2s_weights(self.configs.t2s_weights_path)
             self.init_vits_weights(self.configs.vits_weights_path)
+            raise e
         finally:
             self.empty_cache()
     
