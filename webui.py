@@ -119,6 +119,7 @@ p_label=None
 p_uvr5=None
 p_asr=None
 p_denoise=None
+p_loudness_norm=None
 p_tts_inference=None
 
 def kill_proc_tree(pid, including_parent=True):  
@@ -246,6 +247,31 @@ def close_denoise():
         p_denoise=None
     return "已终止语音降噪进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
+def open_loudness_norm(loudness_norm_inp_dir,loudness,peak,num_worker):
+    global p_loudness_norm
+    if(p_loudness_norm == None):
+        loudness_norm_inp_dir=my_utils.clean_path(loudness_norm_inp_dir)
+        cmd = '"%s" tools/loudness_norm.py -i "%s" -l "%s" -p "%s" -n "%s"'%(python_exec,loudness_norm_inp_dir,loudness,peak,num_worker)
+
+        yield "响度匹配任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        print(cmd)
+        p_loudness_morm = Popen(cmd, shell=True)
+        p_loudness_morm.wait()
+        p_loudness_morm=None
+        yield f"响度匹配任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    else:
+        yield "已有正在进行的响度匹配任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+
+
+def close_loudness_norm():
+    global p_loudness_norm
+    if(p_loudness_norm!=None):
+        try:
+            kill_process(p_loudness_norm.pid)
+        except:
+            traceback.print_exc()
+    return "已终止响度匹配进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
     global p_train_SoVITS
@@ -337,42 +363,56 @@ def close1Bb():
         p_train_GPT=None
     return "已终止GPT训练",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
 
-ps_slice=[]
-def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_parts):
-    global ps_slice
-    inp = my_utils.clean_path(inp)
-    opt_root = my_utils.clean_path(opt_root)
-    if(os.path.exists(inp)==False):
+p_slice=None
+def open_slice(input_path, output_dir, num_worker, min_duration, max_duration, min_interval, threshold, hop_size, max_sil_kept, merge_short, loudness_norm,loudness, peak):
+    global p_slice
+    input_path = my_utils.clean_path(input_path)
+    output_dir = my_utils.clean_path(output_dir)
+    if(os.path.exists(input_path)==False):
         yield "输入路径不存在",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
         return
-    if os.path.isfile(inp):n_parts=1
-    elif os.path.isdir(inp):pass
+    if os.path.isfile(input_path):num_worker=1
+    elif os.path.isdir(input_path):pass
     else:
         yield "输入路径存在但既不是文件也不是文件夹",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
         return
-    if (ps_slice == []):
-        for i_part in range(n_parts):
-            cmd = '"%s" tools/slice_audio.py "%s" "%s" %s %s %s %s %s %s %s %s %s''' % (python_exec,inp, opt_root, threshold, min_length, min_interval, hop_size, max_sil_kept, _max, alpha, i_part, n_parts)
-            print(cmd)
-            p = Popen(cmd, shell=True)
-            ps_slice.append(p)
+    if (p_slice == None):
+        cmd = f'"{python_exec}" tools/slice_audio.py -i "{input_path}" -o "{output_dir}" --threshold {threshold} --min_duration {min_duration} --max_duration {max_duration} --min_interval {min_interval} --hop_size {hop_size} --max_sil_kept {max_sil_kept} --num_worker {num_worker} --merge_short {merge_short}'''
+        print(cmd)
+        p_slice = Popen(cmd, shell=True)
         yield "切割执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
-        for p in ps_slice:
-            p.wait()
-        ps_slice=[]
+        p_slice.wait()
+        p_slice=None
+        if loudness_norm:
+            loudness_norm_inp_dir = output_dir
+            global p_loudness_norm
+            if(p_loudness_norm == None):
+                loudness_norm_inp_dir=my_utils.clean_path(loudness_norm_inp_dir)
+                cmd = '"%s" tools/loudness_norm.py -i "%s" -l "%s" -p "%s" -n "%s"'%(python_exec,loudness_norm_inp_dir,loudness,peak,num_worker)
+                print("响度匹配任务开启")
+                print(cmd)
+                p_loudness_morm = Popen(cmd, shell=True)
+                p_loudness_morm.wait()
+                p_loudness_morm=None
+        print("响度匹配任务完成, 查看终端进行下一步")
+
         yield "切割结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
     else:
         yield "已有正在进行的切割任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
 def close_slice():
-    global ps_slice
-    if (ps_slice != []):
-        for p_slice in ps_slice:
-            try:
-                kill_process(p_slice.pid)
-            except:
-                traceback.print_exc()
-        ps_slice=[]
+    global p_slice
+    if (p_slice != None):
+        try:
+            kill_process(p_slice.pid)
+        except:
+            traceback.print_exc()
+        p_slice=None
+    if (p_loudness_norm != None):
+        global p_denoise
+        if(p_denoise!=None):
+            kill_process(p_denoise.pid)
+            p_denoise=None
     return "已终止所有切割进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
 ps1a=[]
@@ -692,16 +732,19 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     slice_inp_path=gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"),value="")
                     slice_opt_root=gr.Textbox(label=i18n("切分后的子音频的输出根目录"),value="output/slicer_opt")
                     threshold=gr.Textbox(label=i18n("threshold:音量小于这个值视作静音的备选切割点"),value="-34")
-                    min_length=gr.Textbox(label=i18n("min_length:每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值"),value="4000")
-                    min_interval=gr.Textbox(label=i18n("min_interval:最短切割间隔"),value="300")
+                    min_duration=gr.Textbox(label=i18n("min_duration:每段最短多长，如果第一段太短一直和后面段连起来直到超过这个值"),value="4.0")
+                    max_duration=gr.Textbox(label=i18n("max_duration:每段最长多长"),value="10.0")
+                    min_interval=gr.Textbox(label=i18n("min_interval:最短切割间隔"),value="0.3")
+                    max_sil_kept=gr.Textbox(label=i18n("max_sil_kept:切完后静音最多留多长"),value="0.5")
                     hop_size=gr.Textbox(label=i18n("hop_size:怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）"),value="10")
-                    max_sil_kept=gr.Textbox(label=i18n("max_sil_kept:切完后静音最多留多长"),value="500")
+                    if_merge_short = gr.Checkbox(label=i18n("对于过短音频的处理方法,勾选则合并,不勾选则抛弃"),show_label=True)         
                 with gr.Row():
+                    loudness=gr.Textbox(label=i18n("目标响度"),value="-23")
+                    peak=gr.Textbox(label=i18n("峰值响度"),value="-1")       
+                    if_loudness_norm = gr.Checkbox(label=i18n("是否匹配响度"),show_label=True,value=True)         
+                    num_worker=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True) 
                     open_slicer_button=gr.Button(i18n("开启语音切割"), variant="primary",visible=True)
                     close_slicer_button=gr.Button(i18n("终止语音切割"), variant="primary",visible=False)
-                    _max=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("max:归一化后最大值多少"),value=0.9,interactive=True)
-                    alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)
-                    n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
                     slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
             gr.Markdown(value=i18n("0bb-语音降噪工具"))
             with gr.Row():
@@ -770,8 +813,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             if_uvr5.change(change_uvr5, [if_uvr5], [uvr5_info])
             open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang], [asr_info,open_asr_button,close_asr_button])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
-            open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button])
-            close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
+            open_slicer_button.click(open_slice, [slice_inp_path, slice_opt_root, num_worker, min_duration, max_duration, min_interval, threshold, hop_size, max_sil_kept,if_merge_short, if_loudness_norm, loudness, peak], [slicer_info,open_slicer_button,close_slicer_button])
             open_denoise_button.click(open_denoise, [denoise_input_dir,denoise_output_dir], [denoise_info,open_denoise_button,close_denoise_button])
             close_denoise_button.click(close_denoise, [], [denoise_info,open_denoise_button,close_denoise_button])
 
@@ -785,7 +827,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.TabItem(i18n("1A-训练集格式化工具")):
                 gr.Markdown(value=i18n("输出logs/实验名目录下应有23456开头的文件和文件夹"))
                 with gr.Row():
-                    inp_text = gr.Textbox(label=i18n("*文本标注文件"),value=r"D:\RVC1006\GPT-SoVITS\raw\xxx.list",interactive=True)
+                    inp_text = gr.Textbox(label=i18n("*文本标注文件"),value=r"output/asr_opt/slicer_opt.list",interactive=True)
                     inp_wav_dir = gr.Textbox(
                         label=i18n("*训练集音频文件目录"),
                         # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
