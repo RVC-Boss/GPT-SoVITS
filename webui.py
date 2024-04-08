@@ -377,7 +377,7 @@ def open_slice(input_path, output_dir, num_worker, min_duration, max_duration, m
         yield "输入路径存在但既不是文件也不是文件夹",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
         return
     if (p_slice == None):
-        cmd = f'"{python_exec}" tools/slice_audio.py -i "{input_path}" -o "{output_dir}" --threshold {threshold} --min_duration {min_duration} --max_duration {max_duration} --min_interval {min_interval} --hop_size {hop_size} --max_sil_kept {max_sil_kept} --num_worker {num_worker} --merge_short {merge_short}'''
+        cmd = '"%s" tools/slice_audio.py -i "%s" -o "%s" --threshold %s --min_duration %s --max_duration %s --min_interval %s --hop_size %s --max_sil_kept %s --num_worker %s --merge_short %s'%(python_exec, input_path, output_dir, threshold, min_duration, max_duration, min_interval, hop_size, max_sil_kept, num_worker, merge_short)
         print(cmd)
         p_slice = Popen(cmd, shell=True)
         yield "切割执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
@@ -814,6 +814,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang], [asr_info,open_asr_button,close_asr_button])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
             open_slicer_button.click(open_slice, [slice_inp_path, slice_opt_root, num_worker, min_duration, max_duration, min_interval, threshold, hop_size, max_sil_kept,if_merge_short, if_loudness_norm, loudness, peak], [slicer_info,open_slicer_button,close_slicer_button])
+            close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
             open_denoise_button.click(open_denoise, [denoise_input_dir,denoise_output_dir], [denoise_info,open_denoise_button,close_denoise_button])
             close_denoise_button.click(close_denoise, [], [denoise_info,open_denoise_button,close_denoise_button])
 
