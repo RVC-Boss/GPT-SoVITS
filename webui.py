@@ -739,7 +739,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     hop_size=gr.Textbox(label=i18n("hop_size:怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）"),value="10")
                     if_merge_short = gr.Checkbox(label=i18n("对于过短音频的处理方法,勾选则合并,不勾选则抛弃"),show_label=True)         
                 with gr.Row():
-                    loudness=gr.Textbox(label=i18n("目标响度"),value="-23")
+                    loudness=gr.Textbox(label=i18n("目标响度"),value="-18")
                     peak=gr.Textbox(label=i18n("峰值响度"),value="-1")       
                     if_loudness_norm = gr.Checkbox(label=i18n("是否匹配响度"),show_label=True,value=True)         
                     num_worker=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True) 
