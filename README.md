@@ -255,6 +255,7 @@ Special thanks to the following projects and contributors:
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+- [audio-preprocess](https://github.com/fishaudio/audio-preprocess)
   
 ## Thanks to all contributors for their efforts
 

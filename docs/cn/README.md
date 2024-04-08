@@ -244,7 +244,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 - [SubFix](https://github.com/cronrpc/SubFix)
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - [gradio](https://github.com/gradio-app/gradio)
-
+- [audio-preprocess](https://github.com/fishaudio/audio-preprocess)
 ## 感谢所有贡献者的努力
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">

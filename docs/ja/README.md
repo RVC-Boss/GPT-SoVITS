@@ -222,6 +222,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 - [SubFix](https://github.com/cronrpc/SubFix)
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - [gradio](https://github.com/gradio-app/gradio)
+- [audio-preprocess](https://github.com/fishaudio/audio-preprocess)
 
 ## すべてのコントリビューターに感謝します
 
