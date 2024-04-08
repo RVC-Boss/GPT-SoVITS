@@ -171,7 +171,7 @@ class TTS_Request(BaseModel):
         for key in req:
             if hasattr(self, key):
                 type_ = type(getattr(self, key))
-                value = unquote(req[key])
+                value = unquote(str(req[key]))
                 if type_ == bool:
                     value = value.lower() in ["true", "1"]
                 elif type_ == int:
