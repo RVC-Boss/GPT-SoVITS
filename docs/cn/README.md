@@ -176,6 +176,140 @@ vocal_path|speaker_name|language|text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
+## 主分支 API 使用指南
+
+```bash
+ python api.py -dr "123.wav" -dt "一二三。" -dl "zh"
+ ```
+
+### 执行参数
+
+必要参数:
+- `-s` - SoVITS模型路径，可以在`config.py`中指定。
+- `-g` - GPT模型路径，可以在`config.py`中指定。
+
+调用请求缺少参考音频时使用:
+- `-dr` - 默认参考音频路径，当请求中未提供参考音频时使用。
+- `-dt` - 默认参考音频对应的文本。
+- `-dl` - 默认参考音频的语言，选项包括"all_zh"、"en"、"all_ja","zh"、"ja"。
+
+可选参数:
+- `-d` - 推理设备，选项包括"cuda"、"cpu"。
+- `-a` - 绑定地址，默认为"127.0.0.1"。
+- `-p` - 绑定端口，默认为9880，可以在`config.py`中指定。
+- `-fp` - 使用全精度覆盖`config.py`的设置。
+- `-hp` - 使用半精度覆盖`config.py`的设置。
+- `-sm` - 流式返回模式，默认不启用，选项包括"close"、"c"、"normal"、"n"、"keepalive"、"k"。
+- `-mt` - 返回的音频编码格式，流式默认为ogg，非流式默认为wav，选项包括"wav"、"ogg"、"aac"。
+- `-cp` - 文本切分符号设置，默认为空，以"，。？！"字符串的方式传入。
+
+- `-hb` - cnhubert路径。
+- `-b` - bert路径。
+
+### 推理
+
+#### 端点: `/`
+
+使用执行参数指定的参考音频和切分符号进行推理。可使用GET或POST方法：
+
+GET：
+`
+http://127.0.0.1:9880?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh
+`
+
+POST：
+```json
+{
+    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
+    "text_language": "zh"
+}
+```
+
+使用执行参数指定的参考音频并设置分割符号。可使用GET或POST方法：
+
+GET：
+
+`
+http://127.0.0.1:9880?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh&cut_punc=，。
+`
+
+POST：
+
+```json
+{
+    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
+    "text_language": "zh",
+    "cut_punc": "，。"
+}
+```
+
+手动指定当次推理所使用的参考音频。可使用GET或POST方法:
+
+GET：
+
+`
+http://127.0.0.1:9880?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh&text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh&cut_punc=，。
+`
+
+POST：
+
+```json
+{
+    "refer_wav_path": "三国杀.wav",
+    "prompt_text": "这就是玩三国杀，带给我的自信。",
+    "prompt_language": "zh",
+    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
+    "text_language": "zh",
+    "cut_punc": "，。"
+}
+```
+
+成功时，直接返回wav音频流，HTTP状态码为200。失败时，返回包含错误信息的JSON，HTTP状态码为400。
+
+### 更换默认参考音频
+
+#### 端点: `/change_refer`
+
+手动更换所使用的默认参考音频。可使用GET或POST方法:
+
+GET：
+
+`
+http://127.0.0.1:9880/change_refer?refer_wav_path=三国杀.wav&prompt_text=这就是玩三国杀，带给我的自信。&prompt_language=zh`
+`
+
+POST：
+
+```json
+{
+    "refer_wav_path": "三国杀.wav",
+    "prompt_text": "这就是玩三国杀，带给我的自信。",
+    "prompt_language": "zh"
+}
+```
+
+成功时，返回JSON，HTTP状态码为200。失败时，返回JSON，HTTP状态码为400。
+
+### 命令控制
+
+#### 端点: `/control`
+
+命令包括："restart"（重新运行）和"exit"（结束运行）。可使用GET或POST方法：
+
+GET：
+
+`
+http://127.0.0.1:9880/control?command=restart`
+`
+
+POST：
+
+```json
+{
+    "command": "restart"
+}
+```
+
 ## 待办事项清单
 
 - [ ] **高优先级：**

@@ -178,6 +178,142 @@ Example:
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
+## Main Branch API Usage Guide
+
+```bash
+ python api.py -dr "123.wav" -dt "one two three." -dl "en"
+ ```
+
+### Execution Parameters
+
+Required parameters:
+- `-s` - Path to the SoVITS model, which can be specified in `config.py`.
+- `-g` - GPath to the GPT model, which can be specified in `config.py`.
+
+Used when the request lacks reference audio:
+- `-dr` - Default reference audio path, used when no reference audio is provided in the request.
+- `-dt` - Text corresponding to the default reference audio.
+- `-dl` -  Language of the default reference audio, options include "all_zh", "en", "all_ja", "zh",, "ja".
+
+Optional parameters:
+- `-d` - Inference device, options include "cuda", "cpu".
+- `-a` - Binding address, default is "127.0.0.1".
+- `-p` - Binding port, default is 9880, which can be specified in `config.py`.
+- `-fp` - Use full precision to override the settings in `config.py`.
+- `-hp` - Use half precision to override the settings in `config.py`.
+- `-sm` - Streaming return mode, not enabled by default, options include "close", "c", "normal", "n".
+- `-mt` - The audio encoding format of the return, default is ogg for streaming and wav for non-streaming, options include "wav", "ogg", "aac".
+- `-cp` - Text segmentation symbol setting, default is empty, entered as a string such as ",.!?".
+
+- `-hb` - Path to cnhubert model.
+- `-b` - Path to bert model.
+
+### Inference
+
+#### Endpoint: `/`
+
+Inference using the reference audio and text segmentation symbol specified in the execution parameters. Can use GET or POST methods:
+
+GET:
+
+`
+http://127.0.0.1:9880?text=The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival. &text_language=en
+`
+
+POST：
+```json
+{
+    "text": "The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.",
+    "text_language": "en"
+}
+```
+
+Use the reference audio specified in the execution parameters and set the segmentation symbol. Can use GET or POST methods:
+
+GET：
+
+`
+http://127.0.0.1:9880?text=The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.&text_language=en&cut_punc=,.
+`
+
+POST:
+
+```json
+{
+    "text": "The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.",
+    "text_language": "en",
+    "cut_punc": ",."
+}
+```
+
+Manually specify the reference audio used for this inference. Can use GET or POST methods:
+
+GET：
+
+`
+http://127.0.0.1:9880?refer_wav_path=Genshin.wav&prompt_text=I like playing Genshin Impact.&prompt_language=en&text=The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.&text_language=en&cut_punc=,.
+`
+
+POST：
+
+```json
+{
+    "refer_wav_path": "Genshin.wav",
+    "prompt_text": "I like playing Genshin Impact.",
+    "prompt_language": "en",
+    "text": "The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.",
+    "text_language": "en",
+    "cut_punc": ",."
+}
+```
+
+On success, returns the wav audio stream directly with HTTP status code 200. On failure, returns a JSON containing the error message with HTTP status code 400.
+
+### Change Default Reference Audio
+
+#### Endpoint: `/change_refer`
+
+Manually change the default reference audio used. Can use GET or POST methods:
+
+GET:
+
+`
+http://127.0.0.1:9880/change_refer?refer_wav_path=Genshin.wav&prompt_text=I like playing Genshin Impact.&prompt_language=en`
+`
+
+POST:
+
+```json
+{
+    "refer_wav_path": "Genshin.wav",
+    "prompt_text": "I like playing Genshin Impact.",
+    "prompt_language": "en"
+}
+```
+
+On success, returns JSON with HTTP status code 200. On failure, returns JSON with HTTP status code 400.
+
+### Command Control
+
+#### Endpoint:  `/control`
+
+Commands include: "restart" (to restart the operation) and "exit" (to end the operation). Can use GET or POST methods:
+
+GET：
+
+`
+http://127.0.0.1:9880/control?command=restart
+`
+
+POST：
+
+```json
+{
+    "command": "restart"
+}
+```
+
+
 ## Todo List
 
 - [ ] **High Priority:**

@@ -157,6 +157,141 @@ vocal_path|speaker_name|language|text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
+## 메인 브랜치 API 사용 가이드
+
+```bash
+ python api.py -dr "123.wav" -dt "one two three" -dl "en"
+ ```
+
+### 실행 매개변수
+
+필수 매개변수:
+- `-s` - SoVITS 모델 경로, `config.py`에서 지정할 수 있습니다.
+- `-g` - GPT 모델 경로, `config.py`에서 지정할 수 있습니다.
+
+요청에 참조 오디오가 누락될 경우 사용:
+- `-dr` - 기본 참조 오디오 경로, 요청에 참조 오디오가 제공되지 않을 때 사용합니다.
+- `-dt` - 기본 참조 오디오에 해당하는 텍스트.
+- `-dl` - 기본 참조 오디오의 언어, 옵션은 "all_zh", "en", "all_ja", "zh", "ja"를 포함합니다.
+
+선택적 매개변수:
+- `-d` - 추론 장치, 옵션에는 "cuda", "cpu"가 있습니다.
+- `-a` - 바인딩 주소, 기본값은 "127.0.0.1"입니다.
+- `-p` - 바인딩 포트, 기본값은 9880이며, `config.py`에서 지정할 수 있습니다.
+- `-fp` - `config.py`의 설정을 덮어쓰고 전체 정밀도를 사용합니다.
+- `-hp` - `config.py`의 설정을 덮어쓰고 반정밀도를 사용합니다.
+- `-sm` - 스트리밍 반환 모드, 기본적으로 사용하지 않으며, 옵션에는 "close", "c", "normal", "n", "keepalive", "k"가 있습니다.
+- `-mt` - 반환하는 오디오의 인코딩 형식, 스트리밍의 경우 기본값은 ogg, 비스트리밍의 경우 기본값은 wav이며, 옵션에는 "wav", "ogg", "aac"가 있습니다.
+- `-cp` - 텍스트 분할 기호 설정, 기본값은 비어 있으며, "，。？！" 문자열로 입력합니다.
+
+- `-hb` - cnhubert 경로.
+- `-b` - bert 경로.
+
+### 추론
+
+#### 엔드포인트: `/`
+
+실행 매개변수가 지정된 참조 오디오와 분할 기호를 사용하여 추론을 수행합니다.. GET 또는 POST 방법을 사용할 수 있습니다:
+
+GET：
+`
+http://127.0.0.1:9880?text= The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.&text_language=en
+`
+
+POST：
+
+```json
+{
+    "text": " The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.",
+    "text_language": "en"
+}
+```
+
+실행 매개변수로 지정된 참조 오디오를 할 기호를 설정하여 추론을 수행합니다. GET 또는 POST 방법을 사용할 수 있습니다:
+
+GET：
+
+`
+http://127.0.0.1:9880?text= The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.&text_language=en&cut_punc=,.
+`
+
+POST：
+
+```json
+{
+    "text": " The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.",
+    "text_language": "en",
+    "cut_punc": ",."
+}
+```
+
+이번 추론에 사용할 참조 오디오를 수동으로 지정합니다. GET 또는 POST 방법을 사용할 수 있습니다:
+
+GET：
+
+`
+http://127.0.0.1:9880?refer_wav_path=123.wav&prompt_text=one two three。&prompt_language=en&text= The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.&text_language=en&cut_punc=,.
+`
+
+POST：
+
+```json
+{
+    "refer_wav_path": "123.wav",
+    "prompt_text": "one two three",
+    "prompt_language": "en",
+    "text": " The founding emperor's endeavors were not yet halfway completed when he suddenly passed away. Now, the world is divided into three kingdoms, and our Shu Han dynasty finds itself in dire straits, facing a critical moment of survival.",
+    "text_language": "en",
+    "cut_punc": ",."
+}
+```
+
+성공 시, 직접 wav 오디오 스트림을 반환하고, HTTP 상태 코드는 200 입니다. 실패 시, 오류 메시지를 포함한 JSON을 반환하고, HTTP 상태 코드는 400 입니다.
+
+### 기본 참조 오디오 변경
+
+#### 엔드포인트: `/change_refer`
+
+사용하는 기본 참조 오디오를 수동으로 변경합니다. GET 또는 POST 방법을 사용할 수 있습니다:
+
+GET：
+
+`
+http://127.0.0.1:9880/change_refer?refer_wav_path=Genshin.wav&prompt_text=I like playing Genshin Impact.&prompt_language=en`
+`
+
+POST：
+
+```json
+{
+    "refer_wav_path": "Genshin.wav",
+    "prompt_text": "I like playing Genshin Impact.",
+    "prompt_language": "zh"
+}
+```
+
+성공 시, JSON을 반환하고, HTTP 상태 코드는 200 입니다. 실패 시, JSON을 반환하고, HTTP 상태 코드는 400 입니다.
+
+### 명령 제어
+
+#### 엔드포인트: `/control`
+
+명령에는 "restart"(다시 시작)와 "exit"(종료)가 포함됩니다. GET 또는 POST 방법을 사용할 수 있습니다:
+
+GET：
+
+`
+http://127.0.0.1:9880/control?command=restart`
+`
+
+POST：
+
+```json
+{
+    "command": "restart"
+}
+```
+
 ## 할 일 목록
 
 - [ ] **최우선순위:**
