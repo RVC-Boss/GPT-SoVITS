@@ -106,6 +106,29 @@ def replace_default_num(match):
     return verbalize_digit(number, alt_one=True)
 
 
+# 加减乘除
+RE_ASMD = re.compile(
+    r'((-?)((\d+)(\.\d+)?)|(\.(\d+)))([\+\-\×÷=])((-?)((\d+)(\.\d+)?)|(\.(\d+)))')
+asmd_map = {
+    '+': '加',
+    '-': '减',
+    '×': '乘',
+    '÷': '除',
+    '=': '等于'
+}
+
+
+def replace_asmd(match) -> str:
+    """
+    Args:
+        match (re.Match)
+    Returns:
+        str
+    """
+    result = match.group(1) + asmd_map[match.group(8)] + match.group(9)
+    return result
+
+
 # 数字表达式
 # 纯小数
 RE_DECIMAL_NUM = re.compile(r'(-?)((\d+)(\.\d+))' r'|(\.(\d+))')
@@ -155,7 +178,13 @@ def replace_number(match) -> str:
 # match.group(1) and match.group(8) are copy from RE_NUMBER
 
 RE_RANGE = re.compile(
-    r'((-?)((\d+)(\.\d+)?)|(\.(\d+)))[-~]((-?)((\d+)(\.\d+)?)|(\.(\d+)))')
+    r"""
+    (?<![\d\+\-\×÷=])      # 使用反向前瞻以确保数字范围之前没有其他数字和操作符
+    ((-?)((\d+)(\.\d+)?))  # 匹配范围起始的负数或正数（整数或小数）
+    [-~]                   # 匹配范围分隔符
+    ((-?)((\d+)(\.\d+)?))  # 匹配范围结束的负数或正数（整数或小数）
+    (?![\d\+\-\×÷=])       # 使用正向前瞻以确保数字范围之后没有其他数字和操作符
+    """, re.VERBOSE)
 
 
 def replace_range(match) -> str:
@@ -165,7 +194,7 @@ def replace_range(match) -> str:
     Returns:
         str
     """
-    first, second = match.group(1), match.group(8)
+    first, second = match.group(1), match.group(6)
     first = RE_NUMBER.sub(replace_number, first)
     second = RE_NUMBER.sub(replace_number, second)
     result = f"{first}到{second}"
