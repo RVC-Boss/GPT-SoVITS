@@ -424,22 +424,48 @@ class Slicer:
             return chunks
         
 
+# def merge_short_chunks(chunks, max_duration, rate):
+#     merged_chunks = []
+#     buffer, length = [], 0
+#     lengths = [len(chunk)/rate for chunk in chunks]
+#     print(lengths)
+#     for chunk in chunks:
+#         if length + len(chunk) > max_duration * rate and len(buffer) > 0:
+#             print(len(buffer))
+#             merged_chunks.append(np.concatenate(buffer))
+#             buffer, length = [], 0
+#         else:
+#             buffer.append(chunk)
+#             length += len(chunk)
+            
+
+#     if len(buffer) > 0:
+#         print(len(buffer))
+#         merged_chunks.append(np.concatenate(buffer))
+    
+#     print([len(chunk)/rate for chunk in merged_chunks])
+
+#     return merged_chunks
+
+
 def merge_short_chunks(chunks, max_duration, rate):
-    merged_chunks = []
-    buffer, length = [], 0
-
-    for chunk in chunks:
-        if length + len(chunk) > max_duration * rate and len(buffer) > 0:
-            merged_chunks.append(np.concatenate(buffer))
-            buffer, length = [], 0
+    if not chunks:
+        return []
+    
+    max_length = int(max_duration * rate)  # 确保 max_length 是整数
+    merged = []
+    current = chunks[0]  # 开始时 current 是第一个音频块
+    for chunk in chunks[1:]:  # 从第二个音频块开始遍历
+        if len(current) + len(chunk) <= max_length:
+            current = np.concatenate((current, np.zeros(int(0.1*rate)), chunk))  # 在合并前后加入一个0.1s作为间隔
         else:
-            buffer.append(chunk)
-            length += len(chunk)
+            merged.append(current)
+            current = chunk  # 开始新的合并块
 
-    if len(buffer) > 0:
-        merged_chunks.append(np.concatenate(buffer))
+    merged.append(current)  # 添加最后一个块
+    return merged
 
-    return merged_chunks
+
 
 
 
@@ -472,7 +498,7 @@ min_interval = float(args.min_interval)
 hop_size = float(args.hop_size)
 max_sil_kept = float(args.max_sil_kept)
 num_worker = int(args.num_worker)
-merge_short = bool(args.merge_short)
+merge_short = eval(args.merge_short)
 
 if __name__ == "__main__":
     slice_audio_v2_(input_path, output_dir, num_worker, min_duration, max_duration, min_interval, threshold, hop_size, max_sil_kept,merge_short)
