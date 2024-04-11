@@ -71,22 +71,24 @@ class TextPreprocessor:
 
     def pre_seg_text(self, text:str, lang:str, text_split_method:str):
         text = text.strip("\n")
-        if (text[0] not in splits and len(get_first(text)) < 4): 
-            text = "。" + text if lang != "en" else "." + text
+        #防止text成为空字符串
+        if text:
+            if (text[0] not in splits and len(get_first(text)) < 4): 
+                text = text + "。" if lang != "en" else text + "."
         print(i18n("实际输入的目标文本:"))
         print(text)
         
         seg_method = get_seg_method(text_split_method)
         text = seg_method(text)
         
-        while "\n\n" in text:
-            text = text.replace("\n\n", "\n")
+        # while "\n\n" in text:
+        #     text = text.replace("\n\n", "\n")
+        text = re.sub(r'\n+','\n', text)
 
         _texts = text.split("\n")
         _texts = merge_short_text_in_array(_texts, 5)
         texts = []
 
-        
         for text in _texts:
             # 解决输入目标文本的空行导致报错的问题
             if (len(text.strip()) == 0):
@@ -98,7 +100,7 @@ class TextPreprocessor:
                 texts.extend(split_big_text(text))
             else:
                 texts.append(text)
-            
+        
         print(i18n("实际输入的目标文本(切句后):"))
         print(texts)
         return texts
