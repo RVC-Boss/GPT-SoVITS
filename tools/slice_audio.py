@@ -452,15 +452,15 @@ def merge_short_chunks(chunks, max_duration, rate):
     if not chunks:
         return []
     
-    max_length = int(max_duration * rate)  # 确保 max_length 是整数
+    max_length = int(max_duration * rate)  
     merged = []
-    current = chunks[0]  # 开始时 current 是第一个音频块
-    for chunk in chunks[1:]:  # 从第二个音频块开始遍历
+    current = chunks[0]  
+    for chunk in chunks[1:]:  
         if len(current) + len(chunk) <= max_length:
             current = np.concatenate((current, np.zeros(int(0.1*rate)), chunk))  # 在合并前后加入一个0.1s作为间隔
         else:
             merged.append(current)
-            current = chunk  # 开始新的合并块
+            current = chunk  
 
     merged.append(current)  # 添加最后一个块
     return merged
