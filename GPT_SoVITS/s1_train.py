@@ -126,6 +126,7 @@ def main(args):
         benchmark=False,
         fast_dev_run=False,
         strategy = DDPStrategy(
+            find_unused_parameters=True,
             process_group_backend="nccl" if platform.system() != "Windows" else "gloo"
         ) if torch.cuda.is_available() else "auto",
         precision=config["train"]["precision"],

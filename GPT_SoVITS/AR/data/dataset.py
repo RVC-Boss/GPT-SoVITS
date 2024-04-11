@@ -55,9 +55,10 @@ class Text2SemanticDataset(Dataset):
         min_ps_ratio: int = 3,
         # max value of phoneme/sec
         max_ps_ratio: int = 25,
+        padding_on_left:bool=False,
     ) -> None:
         super().__init__()
-
+        self.padding_on_left=padding_on_left
         self.semantic_data = pd.read_csv(
             semantic_path, delimiter="\t", encoding="utf-8"
         )
@@ -164,7 +165,9 @@ class Text2SemanticDataset(Dataset):
             # if len(semantic_ids) > 1000:###########3
             #     num_deleted_bigger += 1
             #     continue
-
+            if (len(semantic_ids)+len(phoneme_ids)) > 1000:###########3
+                num_deleted_bigger += 1
+                continue
             ps_ratio = len(phoneme_ids) / (len(semantic_ids) / self.hz)
 
             if (
@@ -173,7 +176,8 @@ class Text2SemanticDataset(Dataset):
                 num_deleted_ps += 1
                 # print(item_name)
                 continue
-
+            idx_len=[]
+            
             self.semantic_phoneme.append((semantic_ids, phoneme_ids))
             idx += 1
             self.item_names.append(item_name)
@@ -253,46 +257,73 @@ class Text2SemanticDataset(Dataset):
         phoneme_ids_lens: List[int] = []
         semantic_ids: List[torch.Tensor] = []
         semantic_ids_lens: List[int] = []
-        # return
 
-        for item in examples:
-            sample_index.append(item["idx"])
-            phoneme_ids.append(np.array(item["phoneme_ids"], dtype=np.int64))
-            semantic_ids.append(np.array(item["semantic_ids"], dtype=np.int64))
-            phoneme_ids_lens.append(item["phoneme_ids_len"])
-            semantic_ids_lens.append(item["semantic_ids_len"])
+        if not self.padding_on_left:
+            for item in examples:
+                sample_index.append(item["idx"])
+                phoneme_ids.append(np.array(item["phoneme_ids"], dtype=np.int64))
+                semantic_ids.append(np.array(item["semantic_ids"], dtype=np.int64))
+                phoneme_ids_lens.append(item["phoneme_ids_len"])
+                semantic_ids_lens.append(item["semantic_ids_len"])
 
-        # pad 0
-        phoneme_ids = batch_sequences(phoneme_ids)
-        semantic_ids = batch_sequences(semantic_ids, pad_value=self.PAD)
+            # pad 0
+            phoneme_ids = batch_sequences(phoneme_ids)
+            semantic_ids = batch_sequences(semantic_ids, pad_value=self.PAD)
 
-        # # convert each batch to torch.tensor
-        phoneme_ids = torch.tensor(phoneme_ids)
-        semantic_ids = torch.tensor(semantic_ids)
-        phoneme_ids_lens = torch.tensor(phoneme_ids_lens)
-        semantic_ids_lens = torch.tensor(semantic_ids_lens)
-        bert_padded = torch.FloatTensor(len(examples), 1024, max(phoneme_ids_lens))
-        bert_padded.zero_()
+            # # convert each batch to torch.tensor
+            phoneme_ids = torch.tensor(phoneme_ids)
+            semantic_ids = torch.tensor(semantic_ids)
+            phoneme_ids_lens = torch.tensor(phoneme_ids_lens)
+            semantic_ids_lens = torch.tensor(semantic_ids_lens)
+            bert_padded = torch.FloatTensor(len(examples), 1024, max(phoneme_ids_lens))
+            bert_padded.zero_()
 
-        for idx, item in enumerate(examples):
-            bert = item["bert_feature"]
-            if bert != None:
-                bert_padded[idx, :, : bert.shape[-1]] = bert
+            for idx, item in enumerate(examples):
+                bert = item["bert_feature"]
+                if bert != None:
+                    bert_padded[idx, :, : bert.shape[-1]] = bert
 
-        return {
-            # List[int]
-            "ids": sample_index,
-            # torch.Tensor (B, max_phoneme_length)
-            "phoneme_ids": phoneme_ids,
-            # torch.Tensor (B)
-            "phoneme_ids_len": phoneme_ids_lens,
-            # torch.Tensor (B, max_semantic_ids_length)
-            "semantic_ids": semantic_ids,
-            # torch.Tensor (B)
-            "semantic_ids_len": semantic_ids_lens,
-            # torch.Tensor (B, 1024, max_phoneme_length)
-            "bert_feature": bert_padded,
-        }
+            return {
+                # List[int]
+                "ids": sample_index,
+                # torch.Tensor (B, max_phoneme_length)
+                "phoneme_ids": phoneme_ids,
+                # torch.Tensor (B)
+                "phoneme_ids_len": phoneme_ids_lens,
+                # torch.Tensor (B, max_semantic_ids_length)
+                "semantic_ids": semantic_ids,
+                # torch.Tensor (B)
+                "semantic_ids_len": semantic_ids_lens,
+                # torch.Tensor (B, 1024, max_phoneme_length)
+                "bert_feature": bert_padded,
+            }
+
+        else:
+            for item in examples:
+                sample_index.append(item["idx"])
+                phoneme_ids.append(torch.LongTensor(np.array(item["phoneme_ids"], dtype=np.int64)))
+                semantic_ids.append(torch.LongTensor(np.array(item["semantic_ids"], dtype=np.int64)))
+                phoneme_ids_lens.append(item["phoneme_ids_len"])
+                semantic_ids_lens.append(item["semantic_ids_len"])
+
+            phoneme_ids_lens = torch.tensor(phoneme_ids_lens)
+            semantic_ids_lens = torch.tensor(semantic_ids_lens)
+            bert_features: List[torch.Tensor] = [item["bert_feature"] for item in examples]
+
+            return {
+                # List[int]
+                "ids": sample_index,
+                # List[torch.Tensor] (B, max_phoneme_length)
+                "phoneme_ids": phoneme_ids,
+                # torch.Tensor (B)
+                "phoneme_ids_len": phoneme_ids_lens,
+                # List[torch.Tensor] (B, max_semantic_ids_length)
+                "semantic_ids": semantic_ids,
+                # torch.Tensor (B)
+                "semantic_ids_len": semantic_ids_lens,
+                # List[torch.Tensor] (B, 1024, max_phoneme_length)
+                "bert_feature": bert_features,
+            }
 
 
 if __name__ == "__main__":

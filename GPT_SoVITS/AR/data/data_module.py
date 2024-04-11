@@ -32,6 +32,7 @@ class Text2SemanticDataModule(LightningDataModule):
             semantic_path=self.train_semantic_path,
             max_sec=self.config["data"]["max_sec"],
             pad_val=self.config["data"]["pad_val"],
+            padding_on_left=self.config["train"]["padding_on_left"],
         )
         self._dev_dataset = self._train_dataset
         # self._dev_dataset = Text2SemanticDataset(

@@ -89,12 +89,14 @@ sovits_path = tts_config.vits_weights_path
 def inference(text, text_lang, 
               ref_audio_path, prompt_text, 
               prompt_lang, top_k, 
-              top_p, temperature, 
+              top_p, temperature, repetition_penalty,
               text_split_method, batch_size, 
               speed_factor, ref_text_free,
-              split_bucket,fragment_interval,
-              seed,
+              split_bucket, fragment_interval,
+              seed, keep_random, padding_on_left
               ):
+    if keep_random:
+        seed = random.randrange(1 << 32)
     actual_seed = seed if seed not in [-1, "", None] else random.randrange(1 << 32)
     inputs={
         "text": text,
@@ -105,6 +107,7 @@ def inference(text, text_lang,
         "top_k": top_k,
         "top_p": top_p,
         "temperature": temperature,
+        "repetition_penalty": repetition_penalty,
         "text_split_method": cut_method[text_split_method],
         "batch_size":int(batch_size),
         "speed_factor":float(speed_factor),
@@ -112,6 +115,7 @@ def inference(text, text_lang,
         "return_fragment":False,
         "fragment_interval":fragment_interval,
         "seed":actual_seed,
+        "padding_on_left":padding_on_left
     }
     for item in tts_pipeline.run(inputs):
         yield item, actual_seed
@@ -197,6 +201,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
                 temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True)
+                repetition_penalty = gr.Slider(minimum=0.5,maximum=4.0,step=0.01,label=i18n("repetition_penalty"),value=1.35,interactive=True)
             with gr.Column():
                 how_to_cut = gr.Radio(
                     label=i18n("怎么切"),
@@ -207,6 +212,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     split_bucket = gr.Checkbox(label=i18n("数据分桶(可能会降低一点计算量，选就对了)"), value=True, interactive=True, show_label=True)
                     seed = gr.Number(label=i18n("随机种子"),value=-1)
+                    keep_random = gr.Checkbox(label=i18n("保持随机"), value=True, interactive=True, show_label=True)
+                    padding_on_left = gr.Checkbox(label=i18n("左侧补齐"), value=True, interactive=True, show_label=True)
             # with gr.Column():
                 output = gr.Audio(label=i18n("输出的语音"))
                 with gr.Row():
@@ -219,11 +226,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             [
                 text,text_language, inp_ref, 
                 prompt_text, prompt_language, 
-                top_k, top_p, temperature, 
+                top_k, top_p, temperature, repetition_penalty,
                 how_to_cut, batch_size, 
                 speed_factor, ref_text_free,
                 split_bucket,fragment_interval,
-                seed
+                seed, keep_random, padding_on_left
              ],
             [output, seed],
         )

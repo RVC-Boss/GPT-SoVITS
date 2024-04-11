@@ -11,7 +11,7 @@ def sequence_mask(length, max_length=None):
     return x.unsqueeze(0) < length.unsqueeze(1)
 
 
-def make_pad_mask(lengths: torch.Tensor, max_len: int = 0) -> torch.Tensor:
+def make_pad_mask(lengths: torch.Tensor, max_len: int = 0, padding_left:bool=False) -> torch.Tensor:
     """
     Args:
       lengths:
@@ -35,8 +35,10 @@ def make_pad_mask(lengths: torch.Tensor, max_len: int = 0) -> torch.Tensor:
     n = lengths.size(0)
     seq_range = torch.arange(0, max_len, device=lengths.device)
     expaned_lengths = seq_range.unsqueeze(0).expand(n, max_len)
-
-    return expaned_lengths >= lengths.unsqueeze(-1)
+    if padding_left:
+        return expaned_lengths < (max_len-lengths.unsqueeze(-1))
+    else:
+        return expaned_lengths >= lengths.unsqueeze(-1)
 
 
 # https://github.com/microsoft/unilm/blob/master/xtune/src/transformers/modeling_utils.py
