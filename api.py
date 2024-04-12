@@ -129,6 +129,9 @@ from text.cleaner import clean_text
 from module.mel_processing import spectrogram_torch
 from my_utils import load_audio
 import config as global_config
+from starlette.middleware.cors import CORSMiddleware  #引入 CORS中间件模块
+#设置允许访问的域名
+origins = ["*"]  #"*"，即为所有。
 
 g_config = global_config.Config()
 
@@ -486,6 +489,13 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language):
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware, 
+    allow_origins=origins,  #设置允许的origins来源
+    allow_credentials=True,
+    allow_methods=["*"],  # 设置允许跨域的http方法，比如 get、post、put等。
+    allow_headers=["*"])  #允许跨域的headers，可以用来鉴别来源等作用。
 
 #clark新增-----2024-02-21
 #可在启动后动态修改模型，以此满足同一个api不同的朗读者请求
