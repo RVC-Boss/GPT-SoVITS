@@ -2,14 +2,14 @@ import argparse
 import os
 import traceback
 
+os.environ["HF_ENDPOINT"]          = "https://hf-mirror.com"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import torch
 from faster_whisper import WhisperModel
 from tqdm import tqdm
 
 from tools.asr.config import check_fw_local_models
-
-os.environ["HF_ENDPOINT"]          = "https://hf-mirror.com"
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 language_code_list = [
     "af", "am", "ar", "as", "az", 
