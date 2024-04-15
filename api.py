@@ -174,11 +174,12 @@ def change_sovits_weights(sovits_path):
     hps = dict_s2["config"]
     hps = DictToAttrRecursive(hps)
     hps.model.semantic_frame_rate = "25hz"
+    model_params_dict = vars(hps.model)
     vq_model = SynthesizerTrn(
         hps.data.filter_length // 2 + 1,
         hps.train.segment_size // hps.data.hop_length,
         n_speakers=hps.data.n_speakers,
-        **hps.model
+        **model_params_dict
     )
     if ("pretrained" not in sovits_path):
         del vq_model.enc_q
