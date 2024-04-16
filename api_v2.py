@@ -22,7 +22,7 @@ POST:
 ```json
 {
     "text": "",                   # str.(required) text to be synthesized
-    "text_lang": "",               # str.(required) language of the text to be synthesized
+    "text_lang": "",              # str.(required) language of the text to be synthesized
     "ref_audio_path": "",         # str.(required) reference audio path.
     "prompt_text": "",            # str.(optional) prompt text for the reference audio
     "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
@@ -32,12 +32,14 @@ POST:
     "text_split_method": "cut5",  # str.(optional) text split method, see text_segmentation_method.py for details.
     "batch_size": 1,              # int.(optional) batch size for inference
     "batch_threshold": 0.75,      # float.(optional) threshold for batch splitting.
-    "split_bucket": true,          # bool.(optional) whether to split the batch into multiple buckets.
+    "split_bucket": true,         # bool.(optional) whether to split the batch into multiple buckets.
     "speed_factor":1.0,           # float.(optional) control the speed of the synthesized audio.
     "fragment_interval":0.3,      # float.(optional) to control the interval of the audio fragment.
     "seed": -1,                   # int.(optional) random seed for reproducibility.
     "media_type": "wav",          # str.(optional) media type of the output audio, support "wav", "raw", "ogg", "aac".
     "streaming_mode": false,      # bool.(optional) whether to return a streaming response.
+    "parallel_infer": True,       # bool.(optional) whether to use parallel inference.
+    "repetition_penalty": 1.35    # float.(optional) repetition penalty for T2S model.
 }
 ```
 
@@ -159,6 +161,8 @@ class TTS_Request(BaseModel):
     seed:int = -1
     media_type:str = "wav"
     streaming_mode:bool = False
+    parallel_infer:bool = True
+    repetition_penalty:float = 1.35
 
 ### modify from https://github.com/RVC-Boss/GPT-SoVITS/pull/894/files
 def pack_ogg(io_buffer:BytesIO, data:np.ndarray, rate:int):
@@ -287,6 +291,8 @@ async def tts_handle(req:dict):
                 "seed": -1,                   # int. random seed for reproducibility.
                 "media_type": "wav",          # str. media type of the output audio, support "wav", "raw", "ogg", "aac".
                 "streaming_mode": False,      # bool. whether to return a streaming response.
+                "parallel_infer": True,       # bool.(optional) whether to use parallel inference.
+                "repetition_penalty": 1.35    # float.(optional) repetition penalty for T2S model.          
             }
     returns:
         StreamingResponse: audio stream response.
@@ -354,6 +360,8 @@ async def tts_get_endpoint(
                         seed:int = -1,
                         media_type:str = "wav",
                         streaming_mode:bool = False,
+                        parallel_infer:bool = True,
+                        repetition_penalty:float = 1.35
                         ):
     req = {
         "text": text,
@@ -373,6 +381,8 @@ async def tts_get_endpoint(
         "seed":seed,
         "media_type":media_type,
         "streaming_mode":streaming_mode,
+        "parallel_infer":parallel_infer,
+        "repetition_penalty":float(repetition_penalty)
     }
     return await tts_handle(req)
                 
