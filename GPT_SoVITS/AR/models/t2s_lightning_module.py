@@ -13,11 +13,11 @@ from AR.modules.lr_schedulers import WarmupCosineLRSchedule
 from AR.modules.optim import ScaledAdam
 
 class Text2SemanticLightningModule(LightningModule):
-    def __init__(self, config, output_dir, is_train=True,  flash_attn_enabled:bool = False):
+    def __init__(self, config, output_dir, is_train=True):
         super().__init__()
         self.config = config
         self.top_k = 3
-        self.model = Text2SemanticDecoder(config=config, top_k=self.top_k,flash_attn_enabled=flash_attn_enabled)
+        self.model = Text2SemanticDecoder(config=config, top_k=self.top_k)
         pretrained_s1 = config.get("pretrained_s1")
         if pretrained_s1 and is_train:
             # print(self.load_state_dict(torch.load(pretrained_s1,map_location="cpu")["state_dict"]))

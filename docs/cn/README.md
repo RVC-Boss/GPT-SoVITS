@@ -8,7 +8,7 @@
 <img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
 
 [![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
-[![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
 [**English**](../../README.md) | [**中文简体**](./README.md) | [**日本語**](../ja/README.md) | [**한국어**](../ko/README.md)
@@ -41,15 +41,20 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### 测试通过的环境
 
-- Python 3.9、PyTorch 2.0.1 和 CUDA 11
-- Python 3.10.13, PyTorch 2.1.2 和 CUDA 12.3
-- Python 3.9、Pytorch 2.3.0.dev20240122 和 macOS 14.3（Apple 芯片）
+- Python 3.9，PyTorch 2.0.1，CUDA 11
+- Python 3.10.13，PyTorch 2.1.2，CUDA 12.3
+- Python 3.9，Pytorch 2.2.2，macOS 14.4.1（Apple 芯片）
+- Python 3.9，PyTorch 2.2.2，CPU 设备
 
-_注意: numba==0.56.4 需要 python<3.11_
+_注: numba==0.56.4 需要 python<3.11_
 
 ### Windows
 
 如果你是 Windows 用户（已在 win>=10 上测试），可以直接下载[预打包文件](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
+
+中国地区用户可以通过点击链接并选择“下载副本”来下载[0217版本包](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217)或[0306fix2版本包](https://www.icloud.com.cn/iclouddrive/09aaTLf96aa92dbLe0fPNM5CQ#GPT-SoVITS-beta0306fix2)。
+
+_注：0306fix2版本推理速度翻倍，节约生命。修复了无参考文本模式的所有问题。_
 
 ### Linux
 
@@ -63,7 +68,9 @@ bash install.sh
 
 **注：在 Mac 上使用 GPU 训练的模型效果显著低于其他设备训练的模型，所以我们暂时使用CPU进行训练。**
 
-首先确保你已通过运行 `brew install ffmpeg` 或 `conda install ffmpeg` 安装 FFmpeg，然后运行以下命令安装：
+1. 运行 `xcode-select --install` 安装 Xcode command-line tools。
+2. 运行 `brew install ffmpeg` 或 `conda install ffmpeg` 安装 FFmpeg。
+3. 完成上述步骤后，运行以下的命令来安装本项目：
 
 ```bash
 conda create -n GPTSoVits python=3.9
@@ -139,7 +146,15 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 - [UVR5 Weights](https://www.icloud.com.cn/iclouddrive/0bekRKDiJXboFhbfm3lM2fVbA#UVR5_Weights)
 
-对于中文自动语音识别（附加），从 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), 和 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 下载模型，并将它们放置在 `tools/damo_asr/models` 中。
+对于中文自动语音识别（附加），从 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), 和 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 下载模型，并将它们放置在 `tools/asr/models` 中。
+
+对于英语与日语自动语音识别（附加),从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将它们放置在 `tools/asr/models` 中。 此外，[其他模型](https://huggingface.co/Systran)可能具有类似效果，但占用更小的磁盘空间。
+
+中国地区用户可以通过以下链接下载：
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)(点击“下载副本”)
+  
+- [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3)(Hugging Face镜像站)
+
 
 ## 数据集格式
 
@@ -202,13 +217,13 @@ python audio_slicer.py \
 ````
 这是使用命令行完成数据集ASR处理的方式（仅限中文）
 ````
-python tools/damo_asr/cmd-asr.py "<Path to the directory containing input audio files>"
+python tools/asr/funasr_asr.py -i <input> -o <output>
 ````
 通过Faster_Whisper进行ASR处理（除中文之外的ASR标记）
 
 （没有进度条，GPU性能可能会导致时间延迟）
 ````
-python ./tools/damo_asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 ````
 启用自定义列表保存路径
 ## 致谢

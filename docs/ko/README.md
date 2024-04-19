@@ -8,7 +8,7 @@
 <img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
 
 [![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
-[![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | [**日本語**](../ja/README.md) | [**한국어**](./README.md)
@@ -37,9 +37,10 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### 테스트 통과 환경
 
-- Python 3.9, PyTorch 2.0.1 및 CUDA 11
-- Python 3.10.13, PyTorch 2.1.2 및 CUDA 12.3
-- Python 3.9, Pytorch 2.3.0.dev20240122 및 macOS 14.3 (Apple Slilicon)
+- Python 3.9, PyTorch 2.0.1, CUDA 11
+- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
+- Python 3.9, Pytorch 2.2.2, macOS 14.4.1 (Apple Slilicon)
+- Python 3.9, PyTorch 2.2.2, CPU 장치
 
 _참고: numba==0.56.4 는 python<3.11 을 필요로 합니다._
 
@@ -57,9 +58,11 @@ bash install.sh
 
 ### macOS
 
-**주의: Mac에서 GPU로 훈련된 모델은 다른 장치에서 훈련된 모델에 비해 현저히 낮은 품질을 나타내므로, 우리는 일시적으로 CPU를 사용하여 훈련하고 있습니다.**
+**주의: Mac에서 GPU로 훈련된 모델은 다른 OS에서 훈련된 모델에 비해 품질이 낮습니다. 해당 문제를 해결하기 전까지 MacOS에선 CPU를 사용하여 훈련을 진행합니다.**
 
-먼저 `brew install ffmpeg` 또는 `conda install ffmpeg`를 실행하여 FFmpeg가 설치되었는지 확인한 다음, 다음 명령어를 사용하여 설치하세요:
+1. `xcode-select --install`을 실행하여 Xcode 커맨드라인 도구를 설치하세요.
+2. `brew install ffmpeg` 또는 `conda install ffmpeg`을 실행하여 FFmpeg를 설치하세요.
+3. 위의 단계를 완료한 후, 다음 명령어를 실행하여 이 프로젝트를 설치하세요.
 
 ```bash
 conda create -n GPTSoVits python=3.9
@@ -130,7 +133,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS)에서 사전 훈련된 모델을 다운로드하고 `GPT_SoVITS\pretrained_models`에 넣습니다.
 
-중국어 자동 음성 인식(ASR), 음성 반주 분리 및 음성 제거를 위해 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) 및 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files)을 다운로드하고 `tools/damo_asr/models`에 넣습니다.
+중국어 자동 음성 인식(ASR), 음성 반주 분리 및 음성 제거를 위해 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) 및 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files)을 다운로드하고 `tools/asr/models`에 넣습니다.
 
 UVR5(음성/반주 분리 및 잔향 제거)를 위해 [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights)에서 모델을 다운로드하고 `tools/uvr5/uvr5_weights`에 넣습니다.
 
@@ -196,13 +199,13 @@ python audio_slicer.py \
 ```
 명령줄을 사용하여 데이터 세트 ASR 처리를 수행하는 방법입니다(중국어만 해당).
 ```
-python tools/damo_asr/cmd-asr.py "<Path to the directory containing input audio files>"
+python tools/asr/funasr_asr.py -i <input> -o <output>
 ```
 ASR 처리는 Faster_Whisper(중국어를 제외한 ASR 마킹)를 통해 수행됩니다.
 
 (진행률 표시줄 없음, GPU 성능으로 인해 시간 지연이 발생할 수 있음)
 ```
-python ./tools/damo_asr/WhisperASR.py -i <input> -o <output> -f <file_name.list> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 ```
 사용자 정의 목록 저장 경로가 활성화되었습니다.
 ## 감사의 말
