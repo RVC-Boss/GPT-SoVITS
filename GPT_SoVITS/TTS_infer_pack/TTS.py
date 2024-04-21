@@ -749,7 +749,7 @@ class TTS:
                 if no_prompt_text :
                     prompt = None
                 else:
-                    prompt = self.prompt_cache["prompt_semantic"].expand(all_phoneme_ids.shape[0], -1).to(self.configs.device)
+                    prompt = self.prompt_cache["prompt_semantic"].expand(len(all_phoneme_ids), -1).to(self.configs.device)
 
 
                 pred_semantic_list, idx_list = self.t2s_model.model.infer_panel(
