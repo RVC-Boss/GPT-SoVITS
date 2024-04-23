@@ -1,4 +1,7 @@
+import os.path
+
 import gradio as gr
+import Ref_Audio_Selector.tool.ref_audio_opt as ref_audio_opt
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
@@ -14,13 +17,14 @@ def check_base_info(text_work_space_dir, text_character):
 
 # 从list文件，提取参考音频
 def convert_from_list(text_work_space_dir, text_character, text_list_input):
-    text_convert_from_list_info = "转换成功：生成目录XXX"
-    text_sample_dir = "D：//tt"
+    ref_audio_all = os.path.join(text_work_space_dir, 'ref_audio_all')
+    text_convert_from_list_info = f"转换成功：生成目录${ref_audio_all}"
+    text_sample_dir = ref_audio_all
     try:
         check_base_info(text_work_space_dir, text_character)
         if text_list_input is None or text_list_input == '':
             raise Exception(i18n("list文件路径不能为空"))
-        pass
+        ref_audio_opt.convert_from_list(text_list_input, ref_audio_all)
     except Exception as e:
         text_convert_from_list_info = f"发生异常：{e}"
         text_sample_dir = ''
@@ -69,7 +73,8 @@ def model_inference(text_work_space_dir, text_character, text_model_inference_vo
             raise Exception(i18n("文本参数名不能为空"))
         if text_test_content is None or text_test_content == '':
             raise Exception(i18n("待推理文本路径不能为空"))
-        if (text_ref_path is None or text_ref_path == '') and (text_ref_text is None or text_ref_text == '') and (text_emotion is None or text_emotion == ''):
+        if (text_ref_path is None or text_ref_path == '') and (text_ref_text is None or text_ref_text == '') and (
+                text_emotion is None or text_emotion == ''):
             raise Exception(i18n("参考音频路径/文本和角色情绪二选一填写，不能全部为空"))
         pass
     except Exception as e:
