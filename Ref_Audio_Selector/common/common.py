@@ -19,6 +19,8 @@ class RefAudioListManager:
                 if file.endswith('.wav'):
                     # 将相对路径转换为绝对路径
                     audio_abs_path = os.path.join(subdir, file)
+                    if category not in self.audio_dict:
+                        self.audio_dict[category] = []
                     self.audio_dict[category].append(audio_abs_path)
 
     def get_audio_list(self):
@@ -65,3 +67,29 @@ def read_text_file_to_list(file_path):
         # 读取所有行并存储到一个列表中
         lines = file.read().splitlines()
     return lines
+
+
+def get_filename_without_extension(file_path):
+    """
+    Given a file path string, returns the file name without its extension.
+
+    Parameters:
+    file_path (str): The full path to the file.
+
+    Returns:
+    str: The file name without its extension.
+    """
+    base_name = os.path.basename(file_path)  # Get the base name (file name with extension)
+    file_name, file_extension = os.path.splitext(base_name)  # Split the base name into file name and extension
+    return file_name  # Return the file name without extension
+
+
+def read_file(file_path):
+    # 使用with语句打开并读取文件
+    with open(file_path, 'r', encoding='utf-8') as file:  # 'r' 表示以读取模式打开文件
+        # 一次性读取文件所有内容
+        file_content = file.read()
+
+    # 文件在with语句结束时会自动关闭
+    # 现在file_content变量中存储了文件的所有文本内容
+    return file_content

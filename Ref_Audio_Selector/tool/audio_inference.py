@@ -1,11 +1,12 @@
 import os
 import requests
-import urllib.parse
+from pathlib import Path
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
 
 class URLComposer:
     def __init__(self, base_url, emotion_param_name, text_param_name, ref_path_param_name, ref_text_param_name):
-        self.base_url = base_url
+        self.base_url = safe_encode_query_params(base_url)
         self.emotion_param_name = emotion_param_name
         self.text_param_name = text_param_name
         self.ref_path_param_name = ref_path_param_name
@@ -28,8 +29,8 @@ class URLComposer:
         if not self.emotion_param_name:
             raise ValueError("Emotion parameter name is not set.")
         params = {
-            self.text_param_name: urllib.parse.quote(text_value),
-            self.emotion_param_name: urllib.parse.quote(emotion_value),
+            self.text_param_name: quote(text_value),
+            self.emotion_param_name: quote(emotion_value),
         }
         return self._append_params_to_url(params)
 
@@ -37,9 +38,9 @@ class URLComposer:
         if self.emotion_param_name:
             raise ValueError("Cannot use reference parameters when emotion parameter is set.")
         params = {
-            self.text_param_name: urllib.parse.quote(text_value),
-            self.ref_path_param_name: urllib.parse.quote(ref_path_value),
-            self.ref_text_param_name: urllib.parse.quote(ref_text_value),
+            self.text_param_name: quote(text_value),
+            self.ref_path_param_name: quote(ref_path_value),
+            self.ref_text_param_name: quote(ref_text_value),
         }
         return self._append_params_to_url(params)
 
@@ -51,16 +52,36 @@ class URLComposer:
         return url_with_params
 
 
+def safe_encode_query_params(original_url):
+
+    # 分析URL以获取查询字符串部分
+    parsed_url = urlparse(original_url)
+    query_params = parse_qs(parsed_url.query)
+
+    # 将查询参数转换为编码过的字典（键值对会被转码）
+    encoded_params = {k: quote(v[0]) for k, v in query_params.items()}
+
+    # 重新编码查询字符串
+    new_query_string = urlencode(encoded_params, doseq=False)
+
+    # 重建完整的URL
+    new_parsed_url = parsed_url._replace(query=new_query_string)
+    encoded_url = urlunparse(new_parsed_url)
+
+    print(encoded_url)
+    return encoded_url
+
+
 def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path):
     # Ensure the output directory exists
-    output_dir = Path(output_dir_path)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = os.path.abspath(output_dir_path)
+    os.makedirs(output_dir, exist_ok=True)
 
     # Create subdirectories for text and emotion categories
     text_subdir = os.path.join(output_dir, 'text')
-    text_subdir.mkdir(exist_ok=True)
+    os.makedirs(text_subdir, exist_ok=True)
     emotion_subdir = os.path.join(output_dir, 'emotion')
-    emotion_subdir.mkdir(exist_ok=True)
+    os.makedirs(emotion_subdir, exist_ok=True)
 
     for text, emotion in zip(text_list, emotion_list):
         # Generate audio byte stream using the create_audio function
@@ -74,18 +95,18 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
 
         emotion_name = emotion['emotion']
 
-        # Save audio files in both directories with the desired structure
-        text_file_path = os.path.join(text_subdir, text, emotion_name, '.wav')
-        emotion_file_path = os.path.join(emotion_subdir, emotion_name, text, '.wav')
+        text_subdir_text = os.path.join(text_subdir, text)
+        os.makedirs(text_subdir_text, exist_ok=True)
+        text_subdir_text_file_path = os.path.join(text_subdir_text, emotion_name + '.wav')
 
-        # Ensure intermediate directories for nested file paths exist
-        text_file_path.parent.mkdir(parents=True, exist_ok=True)
-        emotion_file_path.parent.mkdir(parents=True, exist_ok=True)
+        emotion_subdir_emotion = os.path.join(emotion_subdir, emotion_name)
+        os.makedirs(emotion_subdir_emotion, exist_ok=True)
+        emotion_subdir_emotion_file_path = os.path.join(emotion_subdir_emotion, text + '.wav')
 
         # Write audio bytes to the respective files
-        with open(text_file_path, 'wb') as f:
+        with open(text_subdir_text_file_path, 'wb') as f:
             f.write(audio_bytes)
-        with open(emotion_file_path, 'wb') as f:
+        with open(emotion_subdir_emotion_file_path, 'wb') as f:
             f.write(audio_bytes)
 
 

@@ -4,7 +4,7 @@ import os
 from modelscope.pipelines import pipeline
 sv_pipeline = pipeline(
     task='speaker-verification',
-    model='/tools/speaker_verification/models/speech_campplus_sv_zh-cn_16k-common',
+    model='Ref_Audio_Selector/tool/speaker_verification/models/speech_campplus_sv_zh-cn_16k-common',
     model_revision='v1.0.0'
 )
 
@@ -21,6 +21,7 @@ def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path,
             'score': score,
             'path': audio_path
         })
+        print(f'similarity score: {score}, path: {audio_path}')
 
     # Step 3: 根据相似度分数降序排列
     similarity_scores.sort(key=lambda x: x['score'], reverse=True)
@@ -57,8 +58,9 @@ def parse_arguments():
 
 if __name__ == '__main__':
     cmd = parse_arguments()
+    print(cmd)
     compare_audio_and_generate_report(
         reference_audio_path  = cmd.reference_audio,
-        comparison_dir = cmd.comparison_dir,
-        output_file    = cmd.output_file,
+        comparison_dir_path = cmd.comparison_dir,
+        output_file_path    = cmd.output_file,
     )

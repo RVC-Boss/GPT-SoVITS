@@ -1,4 +1,5 @@
 import os.path
+import traceback
 
 import gradio as gr
 import Ref_Audio_Selector.tool.audio_similarity as audio_similarity
@@ -7,8 +8,12 @@ import Ref_Audio_Selector.tool.audio_asr as audio_asr
 import Ref_Audio_Selector.tool.audio_config as audio_config
 import Ref_Audio_Selector.common.common as common
 from tools.i18n.i18n import I18nAuto
+from config import python_exec
+from subprocess import Popen
 
 i18n = I18nAuto()
+
+p_similarity = None
 
 
 # 校验基础信息
@@ -28,9 +33,42 @@ def convert_from_list(text_work_space_dir, text_list_input):
             raise Exception(i18n("list文件路径不能为空"))
         audio_similarity.convert_from_list(text_list_input, ref_audio_all)
     except Exception as e:
+        traceback.print_exc()
         text_convert_from_list_info = f"发生异常：{e}"
         text_sample_dir = ''
     return [text_convert_from_list_info, text_sample_dir]
+
+
+def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_similarity_output):
+    similarity_list = None
+    similarity_file_dir = None
+
+    similarity_dir = os.path.join(work_space_dir, 'similarity')
+    os.makedirs(similarity_dir, exist_ok=True)
+
+    base_voice_file_name = common.get_filename_without_extension(base_voice_path)
+    similarity_file = os.path.join(similarity_dir, f'{base_voice_file_name}.txt')
+
+    global p_similarity
+    if p_similarity is None:
+        cmd = f'"{python_exec}" Ref_Audio_Selector/tool/speaker_verification/voice_similarity.py '
+        cmd += f' -r "{base_voice_path}"'
+        cmd += f' -c "{sample_dir}"'
+        cmd += f' -o {similarity_file}'
+
+        print(cmd)
+        p_similarity = Popen(cmd, shell=True)
+        p_similarity.wait()
+
+        if need_similarity_output:
+            similarity_list = audio_similarity.parse_similarity_file(similarity_file)
+            similarity_file_dir = os.path.join(similarity_dir, base_voice_file_name)
+            audio_similarity.copy_and_move(similarity_file_dir, similarity_list)
+
+        p_similarity = None
+        return similarity_list, similarity_file, similarity_file_dir
+    else:
+        return similarity_list, None, None
 
 
 # 基于一个基准音频，从参考音频目录中进行分段抽样
@@ -49,15 +87,16 @@ def sample(text_work_space_dir, text_sample_dir, text_base_voice_path,
         if text_sample_num is None or text_sample_num == '':
             raise Exception(i18n("每段随机抽样个数不能为空"))
 
-        similarity_list = audio_similarity.start_similarity_analysis(text_work_space_dir, text_sample_dir,
-                                                                     text_base_voice_path, checkbox_similarity_output)
+        similarity_list, _, _ = start_similarity_analysis(text_work_space_dir, text_sample_dir,
+                                                          text_base_voice_path, checkbox_similarity_output)
 
         if similarity_list is None:
             raise Exception(i18n("相似度分析失败"))
 
-        audio_similarity.sample(ref_audio_dir, similarity_list, text_subsection_num, text_sample_num)
+        audio_similarity.sample(ref_audio_dir, similarity_list, int(text_subsection_num), int(text_sample_num))
 
     except Exception as e:
+        traceback.print_exc()
         text_sample_info = f"发生异常：{e}"
         ref_audio_dir = ''
     text_model_inference_voice_dir = ref_audio_dir
@@ -98,6 +137,7 @@ def model_inference(text_work_space_dir, text_model_inference_voice_dir, text_ur
         audio_inference.generate_audio_files(url_composer, text_list, ref_audio_manager.get_ref_audio_list(),
                                              inference_dir)
     except Exception as e:
+        traceback.print_exc()
         text_model_inference_info = f"发生异常：{e}"
         text_asr_audio_dir = ''
     return [text_model_inference_info, text_asr_audio_dir]
@@ -124,6 +164,7 @@ def asr(text_work_space_dir, text_asr_audio_dir, dropdown_asr_model,
         text_text_similarity_analysis_path = asr_file
         text_asr_info = f"asr成功：生成文件{asr_file}"
     except Exception as e:
+        traceback.print_exc()
         text_asr_info = f"发生异常：{e}"
         text_text_similarity_analysis_path = ''
     return [text_asr_info, text_text_similarity_analysis_path]
@@ -140,6 +181,7 @@ def text_similarity_analysis(text_work_space_dir,
             raise Exception(i18n("asr生成的文件路径不能为空，请先完成上一步操作"))
         pass
     except Exception as e:
+        traceback.print_exc()
         text_text_similarity_analysis_info = f"发生异常：{e}"
     return text_text_similarity_analysis_info
 
@@ -154,7 +196,7 @@ def similarity_audio_output(text_work_space_dir, text_base_audio_path,
             raise Exception(i18n("基准音频路径不能为空"))
         if text_compare_audio_dir is None or text_compare_audio_dir == '':
             raise Exception(i18n("待分析的音频所在目录不能为空"))
-        similarity_list, similarity_file, similarity_file_dir = audio_similarity.start_similarity_analysis(
+        similarity_list, similarity_file, similarity_file_dir = start_similarity_analysis(
             text_work_space_dir, text_compare_audio_dir, text_base_audio_path, True)
 
         if similarity_list is None:
@@ -163,6 +205,7 @@ def similarity_audio_output(text_work_space_dir, text_base_audio_path,
         text_similarity_audio_output_info = f'相似度分析成功：生成目录{similarity_file_dir}，文件{similarity_file}'
 
     except Exception as e:
+        traceback.print_exc()
         text_similarity_audio_output_info = f"发生异常：{e}"
     return text_similarity_audio_output_info
 
@@ -179,6 +222,7 @@ def sync_ref_audio(text_work_space_dir, text_sync_ref_audio_dir,
             raise Exception(i18n("推理生成的音频目录不能为空"))
         pass
     except Exception as e:
+        traceback.print_exc()
         text_sync_ref_audio_info = f"发生异常：{e}"
     return text_sync_ref_audio_info
 
@@ -194,8 +238,9 @@ def create_config(text_work_space_dir, text_template, text_sync_ref_audio_dir2):
         if text_sync_ref_audio_dir2 is None or text_sync_ref_audio_dir2 == '':
             raise Exception(i18n("参考音频目录不能为空"))
         ref_audio_manager = common.RefAudioListManager(text_sync_ref_audio_dir2)
-        audio_config.generate_audio_config(text_template, ref_audio_manager.get_ref_audio_list(), config_file)
+        audio_config.generate_audio_config(text_work_space_dir, text_template, ref_audio_manager.get_ref_audio_list(), config_file)
     except Exception as e:
+        traceback.print_exc()
         text_create_config_info = f"发生异常：{e}"
     return text_create_config_info
 
@@ -234,14 +279,14 @@ with gr.Blocks() as app:
     with gr.Accordion(label=i18n("第二步：基于参考音频和测试文本，执行批量推理"), open=False):
         gr.Markdown(value=i18n("2.1：配置推理服务参数信息，参考音频路径/文本和角色情绪二选一，如果是角色情绪，需要先执行第四步，"
                                "将参考音频打包配置到推理服务下，在推理前，请确认完整请求地址是否与正常使用时的一致，包括角色名称，尤其是文本分隔符是否正确"))
-        text_model_inference_voice_dir = gr.Text(label=i18n("待推理的参考音频所在目录"), value="", interactive=False)
+        text_model_inference_voice_dir = gr.Text(label=i18n("待推理的参考音频所在目录"), value="", interactive=True)
         text_url = gr.Text(label=i18n("请输入推理服务请求地址与参数"), value="")
         with gr.Row():
             text_text = gr.Text(label=i18n("请输入文本参数名"), value="text")
-            text_ref_path = gr.Text(label=i18n("请输入参考音频路径参数名"), value="text")
-            text_ref_text = gr.Text(label=i18n("请输入参考音频文本参数名"), value="text")
-            text_emotion = gr.Text(label=i18n("请输入角色情绪参数名"), value="text")
-        text_whole_url = gr.Text(label=i18n("完整地址"), value="5555555555555555", interactive=False)
+            text_ref_path = gr.Text(label=i18n("请输入参考音频路径参数名"), value="")
+            text_ref_text = gr.Text(label=i18n("请输入参考音频文本参数名"), value="")
+            text_emotion = gr.Text(label=i18n("请输入角色情绪参数名"), value="emotion")
+        text_whole_url = gr.Text(label=i18n("完整地址"), value="", interactive=False)
         text_url.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
                        [text_whole_url])
         text_text.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
@@ -253,7 +298,8 @@ with gr.Blocks() as app:
         text_emotion.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
                            [text_whole_url])
         gr.Markdown(value=i18n("2.2：配置待推理文本，一句一行，不要太多，10条即可"))
-        text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value="text")
+        default_test_content_path = 'Ref_Audio_Selector/tool/test_content/test_content.txt'
+        text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value=default_test_content_path)
         gr.Markdown(value=i18n("2.3：启动推理服务，如果还没启动的话"))
         gr.Markdown(value=i18n("2.4：开始批量推理，这个过程比较耗时，可以去干点别的"))
         with gr.Row():
@@ -311,7 +357,7 @@ with gr.Blocks() as app:
                                                  [text_work_space_dir, text_base_audio_path,
                                                   text_compare_audio_dir], [text_similarity_audio_output_info])
         with gr.Row():
-            text_sync_ref_audio_dir = gr.Text(label=i18n("参考音频路径"), value="", interactive=False)
+            text_sync_ref_audio_dir = gr.Text(label=i18n("参考音频路径"), value="", interactive=True)
             text_sync_inference_audio_dir = gr.Text(label=i18n("被同步的推理音频路径"), value="", interactive=False)
         with gr.Row():
             button_sync_ref_audio = gr.Button(i18n("将参考音频的删除情况，同步到推理音频目录"), variant="primary")
@@ -320,10 +366,12 @@ with gr.Blocks() as app:
                                                          text_sync_inference_audio_dir], [text_sync_ref_info])
     with gr.Accordion("第四步：生成参考音频配置文本", open=False):
         gr.Markdown(value=i18n("4.1：编辑模板"))
-        text_template_path = gr.Text(label=i18n("模板文件路径"), value="", interactive=False)
-        text_template = gr.Text(label=i18n("模板内容"), value="text", lines=10)
+        default_template_path = 'Ref_Audio_Selector/tool/config_template/ref_audio_template.txt'
+        default_template_content = common.read_file(default_template_path)
+        text_template_path = gr.Text(label=i18n("模板文件路径"), value=default_template_path, interactive=False)
+        text_template = gr.Text(label=i18n("模板内容"), value=default_template_content, lines=10)
         gr.Markdown(value=i18n("4.2：生成配置"))
-        text_sync_ref_audio_dir2 = gr.Text(label=i18n("参考音频路径"), value="", interactive=False)
+        text_sync_ref_audio_dir2 = gr.Text(label=i18n("参考音频路径"), value="", interactive=True)
         with gr.Row():
             button_create_config = gr.Button(i18n("生成配置"), variant="primary")
             text_create_config_info = gr.Text(label=i18n("生成结果"), value="", interactive=False)

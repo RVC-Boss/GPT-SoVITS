@@ -1,7 +1,7 @@
 import os
 import shutil
-from config import python_exec
-from subprocess import Popen
+import random
+
 
 
 def convert_from_list(list_file, output_dir):
@@ -70,7 +70,7 @@ def sample(output_audio_dir, similarity_list, subsection_num, sample_num):
         sampled_subsection = similarity_list[start:start + num]
 
         # 创建并进入子目录
-        subdir_name = f'subsection_{i + 1}'
+        subdir_name = f'emotion_{i + 1}'
         subdir_path = os.path.join(output_audio_dir, subdir_name)
         os.makedirs(subdir_path, exist_ok=True)
 
@@ -81,37 +81,6 @@ def sample(output_audio_dir, similarity_list, subsection_num, sample_num):
             shutil.copyfile(src_path, dst_path)
 
     print("Sampling completed.")
-
-
-def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_similarity_output):
-    similarity_list = None
-
-    similarity_dir = os.path.join(work_space_dir, 'similarity')
-    os.makedirs(similarity_dir, exist_ok=True)
-
-    base_voice_file_name = ref_audio_opt.get_filename_without_extension(base_voice_path)
-    similarity_file = os.path.join(similarity_dir, f'{base_voice_file_name}.txt')
-
-    global p_similarity
-    if (p_similarity == None):
-        cmd = f'"{python_exec}" tools/speaker_verification/voice_similarity.py '
-        cmd += f' -r "{base_voice_path}"'
-        cmd += f' -c "{sample_dir}"'
-        cmd += f' -o {similarity_file}'
-
-        print(cmd)
-        p_similarity = Popen(cmd, shell=True)
-        p_similarity.wait()
-
-        if need_similarity_output:
-            similarity_list = ref_audio_opt.parse_similarity_file(similarity_file)
-            similarity_file_dir = os.path.dirname(similarity_dir, base_voice_file_name)
-            ref_audio_opt.copy_and_move(similarity_file_dir, similarity_list)
-
-        p_similarity = None
-        return similarity_list, similarity_file, similarity_file_dir
-    else:
-        return similarity_list, None, None
 
 
 def parse_similarity_file(file_path):
@@ -126,7 +95,7 @@ def parse_similarity_file(file_path):
     """
     result_list = []
 
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding='utf-8') as file:
         for line in file:
             # 去除行尾换行符并按'|'分割
             score, filepath = line.strip().split('|')
@@ -163,16 +132,6 @@ def copy_and_move(output_audio_directory, similarity_scores):
     print("已完成复制和重命名操作。")
 
 
-def get_filename_without_extension(file_path):
-    """
-    Given a file path string, returns the file name without its extension.
-
-    Parameters:
-    file_path (str): The full path to the file.
-
-    Returns:
-    str: The file name without its extension.
-    """
-    base_name = os.path.basename(file_path)  # Get the base name (file name with extension)
-    file_name, file_extension = os.path.splitext(base_name)  # Split the base name into file name and extension
-    return file_name  # Return the file name without extension
+if __name__ == '__main__':
+    similarity_list = parse_similarity_file("D:/tt/similarity/啊，除了伊甸和樱，竟然还有其他人会提起我？.txt")
+    sample('D:/tt/similarity/output', similarity_list, 10, 4)
