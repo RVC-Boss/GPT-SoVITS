@@ -1,7 +1,9 @@
 import os.path
 
 import gradio as gr
-import Ref_Audio_Selector.tool.ref_audio_opt as ref_audio_opt
+import Ref_Audio_Selector.tool.audio_similarity as audio_similarity
+import Ref_Audio_Selector.tool.audio_inference as audio_inference
+import Ref_Audio_Selector.common.common as common
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
@@ -17,14 +19,14 @@ def check_base_info(text_work_space_dir, text_character):
 
 # 从list文件，提取参考音频
 def convert_from_list(text_work_space_dir, text_character, text_list_input):
-    ref_audio_all = os.path.join(text_work_space_dir, 'ref_audio_all')
-    text_convert_from_list_info = f"转换成功：生成目录${ref_audio_all}"
+    ref_audio_all = os.path.join(text_work_space_dir, 'refer_audio_all')
+    text_convert_from_list_info = f"转换成功：生成目录{ref_audio_all}"
     text_sample_dir = ref_audio_all
     try:
         check_base_info(text_work_space_dir, text_character)
         if text_list_input is None or text_list_input == '':
             raise Exception(i18n("list文件路径不能为空"))
-        ref_audio_opt.convert_from_list(text_list_input, ref_audio_all)
+        audio_similarity.convert_from_list(text_list_input, ref_audio_all)
     except Exception as e:
         text_convert_from_list_info = f"发生异常：{e}"
         text_sample_dir = ''
@@ -34,8 +36,8 @@ def convert_from_list(text_work_space_dir, text_character, text_list_input):
 # 基于一个基准音频，从参考音频目录中进行分段抽样
 def sample(text_work_space_dir, text_character, text_sample_dir, text_base_voice_path,
            text_subsection_num, text_sample_num, checkbox_similarity_output):
-    text_sample_info = "抽样成功：生成目录XXX"
-    ref_audio_dir = "D：//tt"
+    ref_audio_dir = os.path.join(text_work_space_dir, 'refer_audio')
+    text_sample_info = f"抽样成功：生成目录{ref_audio_dir}"
     try:
         check_base_info(text_work_space_dir, text_character)
         if text_sample_dir is None or text_sample_dir == '':
@@ -46,7 +48,14 @@ def sample(text_work_space_dir, text_character, text_sample_dir, text_base_voice
             raise Exception(i18n("分段数不能为空"))
         if text_sample_num is None or text_sample_num == '':
             raise Exception(i18n("每段随机抽样个数不能为空"))
-        pass
+
+        similarity_list = audio_similarity.start_similarity_analysis(text_work_space_dir, text_sample_dir, text_base_voice_path, checkbox_similarity_output)
+        
+        if similarity_list is None:
+            raise Exception(i18n("相似度分析失败"))
+        
+        audio_similarity.sample(ref_audio_dir, similarity_list, text_subsection_num, text_sample_num)
+        
     except Exception as e:
         text_sample_info = f"发生异常：{e}"
         ref_audio_dir = ''
@@ -61,8 +70,9 @@ def sample(text_work_space_dir, text_character, text_sample_dir, text_base_voice
 def model_inference(text_work_space_dir, text_character, text_model_inference_voice_dir, text_url,
                     text_text, text_ref_path, text_ref_text, text_emotion,
                     text_test_content):
-    text_model_inference_info = "推理成功：生成目录XXX"
-    text_asr_audio_dir = "D：//tt"
+    inference_dir = os.path.join(text_work_space_dir, 'inference_audio')
+    text_asr_audio_dir = os.path.join(inference_dir, 'text')
+    text_model_inference_info = f"推理成功：生成目录{inference_dir}"
     try:
         check_base_info(text_work_space_dir, text_character)
         if text_model_inference_voice_dir is None or text_model_inference_voice_dir == '':
@@ -76,7 +86,15 @@ def model_inference(text_work_space_dir, text_character, text_model_inference_vo
         if (text_ref_path is None or text_ref_path == '') and (text_ref_text is None or text_ref_text == '') and (
                 text_emotion is None or text_emotion == ''):
             raise Exception(i18n("参考音频路径/文本和角色情绪二选一填写，不能全部为空"))
-        pass
+        url_composer = audio_inference.URLComposer(text_url, text_emotion, text_text, text_ref_path, text_ref_text)
+        url_composer.is_valid()
+        text_list = common.read_text_file_to_list(text_test_content)
+        if text_list is None or len(text_list) == 0:
+            raise Exception(i18n("待推理文本内容不能为空"))
+        ref_audio_manager = common.RefAudioListManager(text_model_inference_voice_dir)
+        if len(ref_audio_manager.get_audio_list()) == 0:
+            raise Exception(i18n("待推理的参考音频不能为空"))
+        audio_inference.generate_audio_files(url_composer, text_list, ref_audio_manager.get_ref_audio_list(), inference_dir)
     except Exception as e:
         text_model_inference_info = f"发生异常：{e}"
         text_asr_audio_dir = ''
@@ -86,8 +104,9 @@ def model_inference(text_work_space_dir, text_character, text_model_inference_vo
 # 对推理生成音频执行asr
 def asr(text_work_space_dir, text_character, text_asr_audio_dir, dropdown_asr_model,
         dropdown_asr_size, dropdown_asr_lang):
-    text_asr_info = "asr成功：生成目录XXX"
-    text_text_similarity_analysis_path = "D：//tt"
+    asr_file = os.path.join(text_work_space_dir, 'asr.list')
+    text_text_similarity_analysis_path = asr_file
+    text_asr_info = f"asr成功：生成文件asr.list"
     try:
         check_base_info(text_work_space_dir, text_character)
         if text_asr_audio_dir is None or text_asr_audio_dir == '':
@@ -108,7 +127,8 @@ def asr(text_work_space_dir, text_character, text_asr_audio_dir, dropdown_asr_mo
 # 对asr生成的文件，与原本的文本内容，进行相似度分析
 def text_similarity_analysis(text_work_space_dir, text_character,
                              text_text_similarity_analysis_path):
-    text_text_similarity_analysis_info = "相似度分析成功：生成目录XXX"
+    similarity_file = os.path.join(text_work_space_dir, 'similarity.txt')
+    text_text_similarity_analysis_info = f"相似度分析成功：生成文件{similarity_file}"
     try:
         check_base_info(text_work_space_dir, text_character)
         if text_text_similarity_analysis_path is None or text_text_similarity_analysis_path == '':
@@ -153,7 +173,8 @@ def sync_ref_audio(text_work_space_dir, text_character, text_sync_ref_audio_dir,
 
 # 根据模板和参考音频目录，生成参考音频配置内容
 def create_config(text_work_space_dir, text_character, text_template, text_sync_ref_audio_dir2):
-    text_create_config_info = "配置生成成功：生成目录XXX"
+    config_file = os.path.join(text_work_space_dir, 'refer_audio.json')
+    text_create_config_info = f"配置生成成功：生成文件{config_file}"
     try:
         check_base_info(text_work_space_dir, text_character)
         if text_template is None or text_template == '':
@@ -168,8 +189,12 @@ def create_config(text_work_space_dir, text_character, text_template, text_sync_
 
 # 基于请求路径和参数，合成完整的请求路径
 def whole_url(text_url, text_text, text_ref_path, text_ref_text, text_emotion):
-    text_whole_url = f'{text_url}?{text_text}=文本内容&{text_ref_path}=参考音频路径&{text_ref_text}=参考文本&{text_emotion}=情绪类型'
-    return [text_whole_url]
+    url_composer = audio_inference.URLComposer(text_url, text_emotion, text_text, text_ref_path, text_ref_text)
+    if url_composer.is_emotion():
+        text_whole_url = url_composer.build_url_with_emotion('测试内容','情绪类型')
+    else:
+        text_whole_url = url_composer.build_url_with_ref('测试内容','参考路径','参考文本')
+    return text_whole_url
 
 
 with gr.Blocks() as app:
