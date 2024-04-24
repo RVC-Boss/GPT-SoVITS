@@ -3,6 +3,7 @@ import shutil
 from config import python_exec
 from subprocess import Popen
 
+
 def convert_from_list(list_file, output_dir):
     # 创建输出目录，如果它不存在的话
     if not os.path.exists(output_dir):
@@ -61,15 +62,15 @@ def sample(output_audio_dir, similarity_list, subsection_num, sample_num):
         start = i * step
         end = (i + 1) * step
         end = min(end, len(similarity_list))  # 防止最后一段越界
-        
+
         num = min(sample_num, len(similarity_list[start:end]))
 
         # 随机采样
         random.shuffle(similarity_list[start:end])
-        sampled_subsection = similarity_list[start:start+num]
+        sampled_subsection = similarity_list[start:start + num]
 
         # 创建并进入子目录
-        subdir_name = f'subsection_{i+1}'
+        subdir_name = f'subsection_{i + 1}'
         subdir_path = os.path.join(output_audio_dir, subdir_name)
         os.makedirs(subdir_path, exist_ok=True)
 
@@ -82,9 +83,7 @@ def sample(output_audio_dir, similarity_list, subsection_num, sample_num):
     print("Sampling completed.")
 
 
-
 def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_similarity_output):
-
     similarity_list = None
 
     similarity_dir = os.path.join(work_space_dir, 'similarity')
@@ -94,7 +93,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
     similarity_file = os.path.join(similarity_dir, f'{base_voice_file_name}.txt')
 
     global p_similarity
-    if(p_similarity==None):
+    if (p_similarity == None):
         cmd = f'"{python_exec}" tools/speaker_verification/voice_similarity.py '
         cmd += f' -r "{base_voice_path}"'
         cmd += f' -c "{sample_dir}"'
@@ -109,7 +108,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
             similarity_file_dir = os.path.dirname(similarity_dir, base_voice_file_name)
             ref_audio_opt.copy_and_move(similarity_file_dir, similarity_list)
 
-        p_similarity=None
+        p_similarity = None
         return similarity_list, similarity_file, similarity_file_dir
     else:
         return similarity_list, None, None
@@ -145,7 +144,6 @@ def parse_similarity_file(file_path):
 
 
 def copy_and_move(output_audio_directory, similarity_scores):
-
     # 确保新目录存在
     if not os.path.exists(output_audio_directory):
         os.makedirs(output_audio_directory)
@@ -178,5 +176,3 @@ def get_filename_without_extension(file_path):
     base_name = os.path.basename(file_path)  # Get the base name (file name with extension)
     file_name, file_extension = os.path.splitext(base_name)  # Split the base name into file name and extension
     return file_name  # Return the file name without extension
-
-

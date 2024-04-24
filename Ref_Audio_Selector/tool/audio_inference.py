@@ -2,6 +2,7 @@ import os
 import requests
 import urllib.parse
 
+
 class URLComposer:
     def __init__(self, base_url, emotion_param_name, text_param_name, ref_path_param_name, ref_text_param_name):
         self.base_url = base_url
@@ -9,18 +10,17 @@ class URLComposer:
         self.text_param_name = text_param_name
         self.ref_path_param_name = ref_path_param_name
         self.ref_text_param_name = ref_text_param_name
-        
-    
+
     def is_valid(self):
         if self.base_url is None or self.base_url == '':
             raise ValueError("请输入url")
-        
+
         if self.text_param_name is None or self.text_param_name == '':
             raise ValueError("请输入text参数名")
-        
+
         if self.emotion_param_name is None and self.ref_path_param_name is None and self.ref_text_param_name is None:
             raise ValueError("请输入至少一个参考or情绪的参数")
-        
+
     def is_emotion(self):
         return self.emotion_param_name is not None and self.emotion_param_name != ''
 
@@ -49,10 +49,9 @@ class URLComposer:
             query_params = '&'.join([f"{k}={v}" for k, v in params.items()])
             url_with_params += '?' + query_params if '?' not in self.base_url else '&' + query_params
         return url_with_params
-    
-    
-def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path):
 
+
+def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path):
     # Ensure the output directory exists
     output_dir = Path(output_dir_path)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -65,12 +64,12 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
 
     for text, emotion in zip(text_list, emotion_list):
         # Generate audio byte stream using the create_audio function
-        
+
         if url_composer.is_emotion():
             real_url = url_composer.build_url_with_emotion(text, emotion['emotion'])
         else:
             real_url = url_composer.build_url_with_ref(text, emotion['ref_path'], emotion['ref_text'])
-        
+
         audio_bytes = inference_audio_from_api(real_url)
 
         emotion_name = emotion['emotion']
@@ -88,11 +87,9 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
             f.write(audio_bytes)
         with open(emotion_file_path, 'wb') as f:
             f.write(audio_bytes)
-    
 
 
 def inference_audio_from_api(url):
-
     # 发起GET请求
     response = requests.get(url, stream=True)
 

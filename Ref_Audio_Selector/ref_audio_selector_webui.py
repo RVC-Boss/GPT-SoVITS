@@ -12,20 +12,18 @@ i18n = I18nAuto()
 
 
 # 校验基础信息
-def check_base_info(text_work_space_dir, text_character):
+def check_base_info(text_work_space_dir):
     if text_work_space_dir is None or text_work_space_dir == '':
         raise Exception(i18n("工作目录不能为空"))
-    if text_character is None or text_character == '':
-        raise Exception(i18n("角色名称不能为空"))
 
 
 # 从list文件，提取参考音频
-def convert_from_list(text_work_space_dir, text_character, text_list_input):
+def convert_from_list(text_work_space_dir, text_list_input):
     ref_audio_all = os.path.join(text_work_space_dir, 'refer_audio_all')
     text_convert_from_list_info = f"转换成功：生成目录{ref_audio_all}"
     text_sample_dir = ref_audio_all
     try:
-        check_base_info(text_work_space_dir, text_character)
+        check_base_info(text_work_space_dir)
         if text_list_input is None or text_list_input == '':
             raise Exception(i18n("list文件路径不能为空"))
         audio_similarity.convert_from_list(text_list_input, ref_audio_all)
@@ -36,12 +34,12 @@ def convert_from_list(text_work_space_dir, text_character, text_list_input):
 
 
 # 基于一个基准音频，从参考音频目录中进行分段抽样
-def sample(text_work_space_dir, text_character, text_sample_dir, text_base_voice_path,
+def sample(text_work_space_dir, text_sample_dir, text_base_voice_path,
            text_subsection_num, text_sample_num, checkbox_similarity_output):
     ref_audio_dir = os.path.join(text_work_space_dir, 'refer_audio')
     text_sample_info = f"抽样成功：生成目录{ref_audio_dir}"
     try:
-        check_base_info(text_work_space_dir, text_character)
+        check_base_info(text_work_space_dir)
         if text_sample_dir is None or text_sample_dir == '':
             raise Exception(i18n("参考音频抽样目录不能为空，请先完成上一步操作"))
         if text_base_voice_path is None or text_base_voice_path == '':
@@ -70,14 +68,14 @@ def sample(text_work_space_dir, text_character, text_sample_dir, text_base_voice
 
 
 # 根据参考音频和测试文本，执行批量推理
-def model_inference(text_work_space_dir, text_character, text_model_inference_voice_dir, text_url,
+def model_inference(text_work_space_dir, text_model_inference_voice_dir, text_url,
                     text_text, text_ref_path, text_ref_text, text_emotion,
                     text_test_content):
     inference_dir = os.path.join(text_work_space_dir, 'inference_audio')
     text_asr_audio_dir = os.path.join(inference_dir, 'text')
     text_model_inference_info = f"推理成功：生成目录{inference_dir}"
     try:
-        check_base_info(text_work_space_dir, text_character)
+        check_base_info(text_work_space_dir)
         if text_model_inference_voice_dir is None or text_model_inference_voice_dir == '':
             raise Exception(i18n("待推理的参考音频所在目录不能为空，请先完成上一步操作"))
         if text_url is None or text_url == '':
@@ -106,13 +104,13 @@ def model_inference(text_work_space_dir, text_character, text_model_inference_vo
 
 
 # 对推理生成音频执行asr
-def asr(text_work_space_dir, text_character, text_asr_audio_dir, dropdown_asr_model,
+def asr(text_work_space_dir, text_asr_audio_dir, dropdown_asr_model,
         dropdown_asr_size, dropdown_asr_lang):
     asr_file = None
     text_text_similarity_analysis_path = None
     text_asr_info = None
     try:
-        check_base_info(text_work_space_dir, text_character)
+        check_base_info(text_work_space_dir)
         if text_asr_audio_dir is None or text_asr_audio_dir == '':
             raise Exception(i18n("待asr的音频所在目录不能为空，请先完成上一步操作"))
         if dropdown_asr_model is None or dropdown_asr_model == '':
@@ -132,12 +130,12 @@ def asr(text_work_space_dir, text_character, text_asr_audio_dir, dropdown_asr_mo
 
 
 # 对asr生成的文件，与原本的文本内容，进行相似度分析
-def text_similarity_analysis(text_work_space_dir, text_character,
+def text_similarity_analysis(text_work_space_dir,
                              text_text_similarity_analysis_path):
     similarity_file = os.path.join(text_work_space_dir, 'similarity.txt')
     text_text_similarity_analysis_info = f"相似度分析成功：生成文件{similarity_file}"
     try:
-        check_base_info(text_work_space_dir, text_character)
+        check_base_info(text_work_space_dir)
         if text_text_similarity_analysis_path is None or text_text_similarity_analysis_path == '':
             raise Exception(i18n("asr生成的文件路径不能为空，请先完成上一步操作"))
         pass
@@ -147,11 +145,11 @@ def text_similarity_analysis(text_work_space_dir, text_character,
 
 
 # 根据一个参考音频，对指定目录下的音频进行相似度分析，并输出到另一个目录
-def similarity_audio_output(text_work_space_dir, text_character, text_base_audio_path,
+def similarity_audio_output(text_work_space_dir, text_base_audio_path,
                             text_compare_audio_dir):
     text_similarity_audio_output_info = "相似度分析成功：生成目录XXX"
     try:
-        check_base_info(text_work_space_dir, text_character)
+        check_base_info(text_work_space_dir)
         if text_base_audio_path is None or text_base_audio_path == '':
             raise Exception(i18n("基准音频路径不能为空"))
         if text_compare_audio_dir is None or text_compare_audio_dir == '':
@@ -170,11 +168,11 @@ def similarity_audio_output(text_work_space_dir, text_character, text_base_audio
 
 
 # 根据参考音频目录的删除情况，将其同步到推理生成的音频目录中，即参考音频目录下，删除了几个参考音频，就在推理目录下，将这些参考音频生成的音频文件移除
-def sync_ref_audio(text_work_space_dir, text_character, text_sync_ref_audio_dir,
+def sync_ref_audio(text_work_space_dir, text_sync_ref_audio_dir,
                    text_sync_inference_audio_dir):
     text_sync_ref_audio_info = "同步参考音频成功：生成目录XXX"
     try:
-        check_base_info(text_work_space_dir, text_character)
+        check_base_info(text_work_space_dir)
         if text_sync_ref_audio_dir is None or text_sync_ref_audio_dir == '':
             raise Exception(i18n("参考音频目录不能为空"))
         if text_sync_inference_audio_dir is None or text_sync_inference_audio_dir == '':
@@ -186,11 +184,11 @@ def sync_ref_audio(text_work_space_dir, text_character, text_sync_ref_audio_dir,
 
 
 # 根据模板和参考音频目录，生成参考音频配置内容
-def create_config(text_work_space_dir, text_character, text_template, text_sync_ref_audio_dir2):
+def create_config(text_work_space_dir, text_template, text_sync_ref_audio_dir2):
     config_file = os.path.join(text_work_space_dir, 'refer_audio.json')
     text_create_config_info = f"配置生成成功：生成文件{config_file}"
     try:
-        check_base_info(text_work_space_dir, text_character)
+        check_base_info(text_work_space_dir)
         if text_template is None or text_template == '':
             raise Exception(i18n("参考音频抽样目录不能为空"))
         if text_sync_ref_audio_dir2 is None or text_sync_ref_audio_dir2 == '':
@@ -214,9 +212,7 @@ def whole_url(text_url, text_text, text_ref_path, text_ref_text, text_emotion):
 
 with gr.Blocks() as app:
     gr.Markdown(value=i18n("基本介绍：这是一个从训练素材中，批量提取参考音频，并进行效果评估与配置生成的工具"))
-    with gr.Row():
-        text_work_space_dir = gr.Text(label=i18n("工作目录，后续操作所生成文件都会保存在此目录下"), value="")
-        text_character = gr.Text(label=i18n("请输入角色名称"), value="")
+    text_work_space_dir = gr.Text(label=i18n("工作目录，后续操作所生成文件都会保存在此目录下"), value="")
     with gr.Accordion(label=i18n("第一步：基于训练素材，生成待选参考音频列表"), open=False):
         gr.Markdown(value=i18n("1.1：选择list文件，并提取3-10秒的素材作为参考候选"))
         text_list_input = gr.Text(label=i18n("请输入list文件路径"), value="")
@@ -225,7 +221,7 @@ with gr.Blocks() as app:
             text_convert_from_list_info = gr.Text(label=i18n("参考列表生成结果"), value="", interactive=False)
         gr.Markdown(value=i18n("1.2：选择基准音频，执行相似度匹配，并分段随机抽样"))
         text_sample_dir = gr.Text(label=i18n("参考音频抽样目录"), value="", interactive=False)
-        button_convert_from_list.click(convert_from_list, [text_work_space_dir, text_character, text_list_input],
+        button_convert_from_list.click(convert_from_list, [text_work_space_dir, text_list_input],
                                        [text_convert_from_list_info, text_sample_dir])
         with gr.Row():
             text_base_voice_path = gr.Text(label=i18n("请输入基准音频路径"), value="")
@@ -267,7 +263,7 @@ with gr.Blocks() as app:
         gr.Markdown(value=i18n("3.1：启动asr，获取推理音频文本"))
         text_asr_audio_dir = gr.Text(label=i18n("待asr的音频所在目录"), value="", interactive=False)
         button_model_inference.click(model_inference,
-                                     [text_work_space_dir, text_character, text_model_inference_voice_dir, text_url,
+                                     [text_work_space_dir, text_model_inference_voice_dir, text_url,
                                       text_text, text_ref_path, text_ref_text, text_emotion,
                                       text_test_content], [text_model_inference_info, text_asr_audio_dir])
         with gr.Row():
@@ -294,13 +290,13 @@ with gr.Blocks() as app:
             text_asr_info = gr.Text(label=i18n("asr结果"), value="", interactive=False)
         gr.Markdown(value=i18n("3.2：启动文本相似度分析"))
         text_text_similarity_analysis_path = gr.Text(label=i18n("待分析的文件路径"), value="", interactive=False)
-        button_asr.click(asr, [text_work_space_dir, text_character, text_asr_audio_dir, dropdown_asr_model,
+        button_asr.click(asr, [text_work_space_dir, text_asr_audio_dir, dropdown_asr_model,
                                dropdown_asr_size, dropdown_asr_lang],
                          [text_asr_info, text_text_similarity_analysis_path])
         with gr.Row():
             button_text_similarity_analysis = gr.Button(i18n("启动文本相似度分析"), variant="primary")
             text_text_similarity_analysis_info = gr.Text(label=i18n("文本相似度分析结果"), value="", interactive=False)
-            button_text_similarity_analysis.click(text_similarity_analysis, [text_work_space_dir, text_character,
+            button_text_similarity_analysis.click(text_similarity_analysis, [text_work_space_dir,
                                                                              text_text_similarity_analysis_path],
                                                   [text_text_similarity_analysis_info])
         gr.Markdown(value=i18n("3.3：根据相似度分析结果，重点检查最后几条是否存在复读等问题"))
@@ -312,7 +308,7 @@ with gr.Blocks() as app:
             button_similarity_audio_output = gr.Button(i18n("输出相似度-参考音频到临时目录"), variant="primary")
             text_similarity_audio_output_info = gr.Text(label=i18n("输出结果"), value="", interactive=False)
             button_similarity_audio_output.click(similarity_audio_output,
-                                                 [text_work_space_dir, text_character, text_base_audio_path,
+                                                 [text_work_space_dir, text_base_audio_path,
                                                   text_compare_audio_dir], [text_similarity_audio_output_info])
         with gr.Row():
             text_sync_ref_audio_dir = gr.Text(label=i18n("参考音频路径"), value="", interactive=False)
@@ -320,7 +316,7 @@ with gr.Blocks() as app:
         with gr.Row():
             button_sync_ref_audio = gr.Button(i18n("将参考音频的删除情况，同步到推理音频目录"), variant="primary")
             text_sync_ref_info = gr.Text(label=i18n("同步结果"), value="", interactive=False)
-            button_sync_ref_audio.click(sync_ref_audio, [text_work_space_dir, text_character, text_sync_ref_audio_dir,
+            button_sync_ref_audio.click(sync_ref_audio, [text_work_space_dir, text_sync_ref_audio_dir,
                                                          text_sync_inference_audio_dir], [text_sync_ref_info])
     with gr.Accordion("第四步：生成参考音频配置文本", open=False):
         gr.Markdown(value=i18n("4.1：编辑模板"))
@@ -332,9 +328,9 @@ with gr.Blocks() as app:
             button_create_config = gr.Button(i18n("生成配置"), variant="primary")
             text_create_config_info = gr.Text(label=i18n("生成结果"), value="", interactive=False)
             button_create_config.click(create_config,
-                                       [text_work_space_dir, text_character, text_template, text_sync_ref_audio_dir2],
+                                       [text_work_space_dir, text_template, text_sync_ref_audio_dir2],
                                        [text_create_config_info])
-    button_sample.click(sample, [text_work_space_dir, text_character, text_sample_dir, text_base_voice_path,
+    button_sample.click(sample, [text_work_space_dir, text_sample_dir, text_base_voice_path,
                                  text_subsection_num, text_sample_num, checkbox_similarity_output],
                         [text_sample_info, text_model_inference_voice_dir, text_sync_ref_audio_dir,
                          text_sync_ref_audio_dir2])
