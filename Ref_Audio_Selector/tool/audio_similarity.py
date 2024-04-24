@@ -95,7 +95,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
 
     global p_similarity
     if(p_similarity==None):
-        cmd = f'"{python_exec}" tools/speaker_verification/audio_similarity.py '
+        cmd = f'"{python_exec}" tools/speaker_verification/voice_similarity.py '
         cmd += f' -r "{base_voice_path}"'
         cmd += f' -c "{sample_dir}"'
         cmd += f' -o {similarity_file}'
@@ -110,9 +110,9 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
             ref_audio_opt.copy_and_move(similarity_file_dir, similarity_list)
 
         p_similarity=None
-        return similarity_list
+        return similarity_list, similarity_file, similarity_file_dir
     else:
-        return similarity_list
+        return similarity_list, None, None
 
 
 def parse_similarity_file(file_path):

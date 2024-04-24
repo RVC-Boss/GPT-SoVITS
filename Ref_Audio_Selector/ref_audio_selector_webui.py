@@ -3,6 +3,8 @@ import os.path
 import gradio as gr
 import Ref_Audio_Selector.tool.audio_similarity as audio_similarity
 import Ref_Audio_Selector.tool.audio_inference as audio_inference
+import Ref_Audio_Selector.tool.audio_asr as audio_asr
+import Ref_Audio_Selector.tool.audio_config as audio_config
 import Ref_Audio_Selector.common.common as common
 from tools.i18n.i18n import I18nAuto
 
@@ -49,13 +51,14 @@ def sample(text_work_space_dir, text_character, text_sample_dir, text_base_voice
         if text_sample_num is None or text_sample_num == '':
             raise Exception(i18n("每段随机抽样个数不能为空"))
 
-        similarity_list = audio_similarity.start_similarity_analysis(text_work_space_dir, text_sample_dir, text_base_voice_path, checkbox_similarity_output)
-        
+        similarity_list = audio_similarity.start_similarity_analysis(text_work_space_dir, text_sample_dir,
+                                                                     text_base_voice_path, checkbox_similarity_output)
+
         if similarity_list is None:
             raise Exception(i18n("相似度分析失败"))
-        
+
         audio_similarity.sample(ref_audio_dir, similarity_list, text_subsection_num, text_sample_num)
-        
+
     except Exception as e:
         text_sample_info = f"发生异常：{e}"
         ref_audio_dir = ''
@@ -94,7 +97,8 @@ def model_inference(text_work_space_dir, text_character, text_model_inference_vo
         ref_audio_manager = common.RefAudioListManager(text_model_inference_voice_dir)
         if len(ref_audio_manager.get_audio_list()) == 0:
             raise Exception(i18n("待推理的参考音频不能为空"))
-        audio_inference.generate_audio_files(url_composer, text_list, ref_audio_manager.get_ref_audio_list(), inference_dir)
+        audio_inference.generate_audio_files(url_composer, text_list, ref_audio_manager.get_ref_audio_list(),
+                                             inference_dir)
     except Exception as e:
         text_model_inference_info = f"发生异常：{e}"
         text_asr_audio_dir = ''
@@ -104,9 +108,9 @@ def model_inference(text_work_space_dir, text_character, text_model_inference_vo
 # 对推理生成音频执行asr
 def asr(text_work_space_dir, text_character, text_asr_audio_dir, dropdown_asr_model,
         dropdown_asr_size, dropdown_asr_lang):
-    asr_file = os.path.join(text_work_space_dir, 'asr.list')
-    text_text_similarity_analysis_path = asr_file
-    text_asr_info = f"asr成功：生成文件asr.list"
+    asr_file = None
+    text_text_similarity_analysis_path = None
+    text_asr_info = None
     try:
         check_base_info(text_work_space_dir, text_character)
         if text_asr_audio_dir is None or text_asr_audio_dir == '':
@@ -117,7 +121,10 @@ def asr(text_work_space_dir, text_character, text_asr_audio_dir, dropdown_asr_mo
             raise Exception(i18n("asr模型大小不能为空"))
         if dropdown_asr_lang is None or dropdown_asr_lang == '':
             raise Exception(i18n("asr语言不能为空"))
-        pass
+        asr_file = audio_asr.open_asr(text_asr_audio_dir, text_work_space_dir, dropdown_asr_model, dropdown_asr_size,
+                                      dropdown_asr_lang)
+        text_text_similarity_analysis_path = asr_file
+        text_asr_info = f"asr成功：生成文件{asr_file}"
     except Exception as e:
         text_asr_info = f"发生异常：{e}"
         text_text_similarity_analysis_path = ''
@@ -149,7 +156,14 @@ def similarity_audio_output(text_work_space_dir, text_character, text_base_audio
             raise Exception(i18n("基准音频路径不能为空"))
         if text_compare_audio_dir is None or text_compare_audio_dir == '':
             raise Exception(i18n("待分析的音频所在目录不能为空"))
-        pass
+        similarity_list, similarity_file, similarity_file_dir = audio_similarity.start_similarity_analysis(
+            text_work_space_dir, text_compare_audio_dir, text_base_audio_path, True)
+
+        if similarity_list is None:
+            raise Exception(i18n("相似度分析失败"))
+
+        text_similarity_audio_output_info = f'相似度分析成功：生成目录{similarity_file_dir}，文件{similarity_file}'
+
     except Exception as e:
         text_similarity_audio_output_info = f"发生异常：{e}"
     return text_similarity_audio_output_info
@@ -181,7 +195,8 @@ def create_config(text_work_space_dir, text_character, text_template, text_sync_
             raise Exception(i18n("参考音频抽样目录不能为空"))
         if text_sync_ref_audio_dir2 is None or text_sync_ref_audio_dir2 == '':
             raise Exception(i18n("参考音频目录不能为空"))
-        pass
+        ref_audio_manager = common.RefAudioListManager(text_sync_ref_audio_dir2)
+        audio_config.generate_audio_config(text_template, ref_audio_manager.get_ref_audio_list(), config_file)
     except Exception as e:
         text_create_config_info = f"发生异常：{e}"
     return text_create_config_info
@@ -191,9 +206,9 @@ def create_config(text_work_space_dir, text_character, text_template, text_sync_
 def whole_url(text_url, text_text, text_ref_path, text_ref_text, text_emotion):
     url_composer = audio_inference.URLComposer(text_url, text_emotion, text_text, text_ref_path, text_ref_text)
     if url_composer.is_emotion():
-        text_whole_url = url_composer.build_url_with_emotion('测试内容','情绪类型')
+        text_whole_url = url_composer.build_url_with_emotion('测试内容', '情绪类型')
     else:
-        text_whole_url = url_composer.build_url_with_ref('测试内容','参考路径','参考文本')
+        text_whole_url = url_composer.build_url_with_ref('测试内容', '参考路径', '参考文本')
     return text_whole_url
 
 
