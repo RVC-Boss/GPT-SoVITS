@@ -3,10 +3,8 @@ import argparse
 from collections import defaultdict
 from operator import itemgetter
 import Ref_Audio_Selector.tool.text_comparison.text_comparison as text_comparison
-import Ref_Audio_Selector.config.config_manager as config_manager
+import Ref_Audio_Selector.config.config_params as params
 import Ref_Audio_Selector.common.common as common
-
-config = config_manager.get_config()
 
 
 def parse_asr_file(file_path):
@@ -100,19 +98,19 @@ def process(asr_file_path, output_dir, similarity_enlarge_boundary):
     average_similarity_list = calculate_average_similarity_by_emotion(records)
 
     average_similarity_file = os.path.join(output_dir,
-                                           f'{config.get_result_check("text_emotion_average_similarity_report_filename")}.txt')
+                                           f'{params.text_emotion_average_similarity_report_filename}.txt')
     average_similarity_content = \
         '\n'.join([f"{item['average_similarity_score']}|{item['emotion']}" for item in average_similarity_list])
     common.write_text_to_file(average_similarity_content, average_similarity_file)
 
     emotion_detail_list = group_and_sort_by_field(records, 'emotion')
 
-    emotion_detail_file = os.path.join(output_dir, f'{config.get_result_check("emotion_group_detail")}.txt')
+    emotion_detail_file = os.path.join(output_dir, f'{params.text_similarity_by_emotion_detail_filename}.txt')
     format_list_to_text(emotion_detail_list, emotion_detail_file)
 
     original_text_detail_list = group_and_sort_by_field(records, 'original_text')
 
-    original_text_detail_file = os.path.join(output_dir, f'{config.get_result_check("text_group_detail")}.txt')
+    original_text_detail_file = os.path.join(output_dir, f'{params.text_similarity_by_text_detail_filename}.txt')
     format_list_to_text(original_text_detail_list, original_text_detail_file)
 
     print('文本相似度分析完成。')

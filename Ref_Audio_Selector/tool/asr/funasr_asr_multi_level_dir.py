@@ -3,10 +3,9 @@
 import argparse
 import os
 import traceback
-import Ref_Audio_Selector.config.config_manager as config_manager
+import Ref_Audio_Selector.config.config_params as params
 from tqdm import tqdm
 from funasr import AutoModel
-config = config_manager.get_config()
 
 path_asr = 'tools/asr/models/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch'
 path_vad = 'tools/asr/models/speech_fsmn_vad_zh-cn-16k-common-pytorch'
@@ -85,7 +84,7 @@ def execute_asr_multi_level_dir(input_folder, output_folder, model_size, languag
     os.makedirs(output_dir_abs, exist_ok=True)
 
     # 构造输出文件路径
-    output_file_path = os.path.join(output_dir_abs, f'{config.get_result_check("asr_filename")}.list')
+    output_file_path = os.path.join(output_dir_abs, f'{params.asr_filename}.list')
 
     # 将输出写入文件
     with open(output_file_path, "w", encoding="utf-8") as f:

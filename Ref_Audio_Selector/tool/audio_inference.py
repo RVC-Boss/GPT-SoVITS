@@ -1,10 +1,8 @@
 import os
 import requests
 import itertools
-import Ref_Audio_Selector.config.config_manager as config_manager
+import Ref_Audio_Selector.config.config_params as params
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
-
-config = config_manager.get_config()
 
 
 class URLComposer:
@@ -80,9 +78,9 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
     os.makedirs(output_dir, exist_ok=True)
 
     # Create subdirectories for text and emotion categories
-    text_subdir = os.path.join(output_dir, config.get_inference('inference_audio_text_aggregation_dir'))
+    text_subdir = os.path.join(output_dir, params.inference_audio_text_aggregation_dir)
     os.makedirs(text_subdir, exist_ok=True)
-    emotion_subdir = os.path.join(output_dir, config.get_inference('inference_audio_emotion_aggregation_dir'))
+    emotion_subdir = os.path.join(output_dir, params.inference_audio_emotion_aggregation_dir)
     os.makedirs(emotion_subdir, exist_ok=True)
 
     # 计算笛卡尔积

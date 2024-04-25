@@ -44,4 +44,3 @@ def get_config():
 
 if __name__ == '__main__':
     print(_config.print())
-    print(_config.get_base('reference_audio_dir'))
