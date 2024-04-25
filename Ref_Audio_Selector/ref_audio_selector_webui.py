@@ -8,7 +8,7 @@ import Ref_Audio_Selector.tool.audio_inference as audio_inference
 import Ref_Audio_Selector.tool.audio_config as audio_config
 import Ref_Audio_Selector.tool.delete_inference_with_ref as delete_inference_with_ref
 import Ref_Audio_Selector.common.common as common
-import Ref_Audio_Selector.config.config_params as params
+import Ref_Audio_Selector.config_param.config_params as params
 from tools.i18n.i18n import I18nAuto
 from config import python_exec, is_half
 from tools import my_utils
@@ -176,7 +176,7 @@ def model_inference(text_work_space_dir, text_role, text_model_inference_voice_d
         traceback.print_exc()
         text_model_inference_info = f"发生异常：{e}"
         text_asr_audio_dir = ''
-    return i18n(text_model_inference_info), text_asr_audio_dir
+    return i18n(text_model_inference_info), text_asr_audio_dir, text_asr_audio_dir
 
 
 # 对推理生成音频执行asr
@@ -371,9 +371,9 @@ def save_work_dir(text_work_space_dir, text_role):
     else:
         role_dir = ''
         for i in range(1, 101):
-            dir_name = os.path.join(text_work_space_dir, f"role_{i}")
+            role_dir = f"role_{i}"
+            dir_name = os.path.join(text_work_space_dir, role_dir)
             if not os.path.isdir(dir_name):
-                role_dir = dir_name
                 break
         rw_param.write_role(role_dir)
         return role_dir
@@ -398,7 +398,7 @@ with gr.Blocks() as app:
             button_convert_from_list = gr.Button(i18n("开始生成待参考列表"), variant="primary")
             text_convert_from_list_info = gr.Text(label=i18n("参考列表生成结果"), value="", interactive=False)
         gr.Markdown(value=i18n("1.2：选择基准音频，执行相似度匹配，并分段随机抽样"))
-        text_sample_dir = gr.Text(label=i18n("参考音频抽样目录"), value="", interactive=False)
+        text_sample_dir = gr.Text(label=i18n("参考音频抽样目录"), value="", interactive=True)
         button_convert_from_list.click(convert_from_list, [text_work_space_dir, text_role, text_list_input],
                                        [text_convert_from_list_info, text_sample_dir])
         with gr.Row():
@@ -440,11 +440,7 @@ with gr.Blocks() as app:
             text_model_inference_info = gr.Text(label=i18n("批量推理结果"), value="", interactive=False)
     with gr.Accordion(label=i18n("第三步：进行参考音频效果校验与筛选"), open=False):
         gr.Markdown(value=i18n("3.1：启动asr，获取推理音频文本"))
-        text_asr_audio_dir = gr.Text(label=i18n("待asr的音频所在目录"), value="", interactive=False)
-        button_model_inference.click(model_inference,
-                                     [text_work_space_dir, text_role, text_model_inference_voice_dir, text_url,
-                                      text_text, text_ref_path, text_ref_text, text_emotion,
-                                      text_test_content], [text_model_inference_info, text_asr_audio_dir])
+        text_asr_audio_dir = gr.Text(label=i18n("待asr的音频所在目录"), value="", interactive=True)
         with gr.Row():
             dropdown_asr_model = gr.Dropdown(
                 label=i18n("ASR 模型"),
@@ -468,7 +464,7 @@ with gr.Blocks() as app:
             button_asr = gr.Button(i18n("启动asr"), variant="primary")
             text_asr_info = gr.Text(label=i18n("asr结果"), value="", interactive=False)
         gr.Markdown(value=i18n("3.2：启动文本相似度分析"))
-        text_text_similarity_analysis_path = gr.Text(label=i18n("待分析的文件路径"), value="", interactive=False)
+        text_text_similarity_analysis_path = gr.Text(label=i18n("待分析的文件路径"), value="", interactive=True)
         button_asr.click(asr, [text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
                                dropdown_asr_size, dropdown_asr_lang],
                          [text_asr_info, text_text_similarity_analysis_path])
@@ -491,7 +487,7 @@ with gr.Blocks() as app:
                                                   text_compare_audio_dir], [text_similarity_audio_output_info])
         with gr.Row():
             text_sync_ref_audio_dir = gr.Text(label=i18n("参考音频路径"), value="", interactive=True)
-            text_sync_inference_audio_dir = gr.Text(label=i18n("被同步的推理音频路径"), value="", interactive=False)
+            text_sync_inference_audio_dir = gr.Text(label=i18n("被同步的推理音频路径"), value="", interactive=True)
         with gr.Row():
             button_sync_ref_audio = gr.Button(i18n("将参考音频的删除情况，同步到推理音频目录"), variant="primary")
             text_sync_ref_info = gr.Text(label=i18n("同步结果"), value="", interactive=False)
@@ -501,7 +497,7 @@ with gr.Blocks() as app:
         gr.Markdown(value=i18n("4.1：编辑模板"))
         default_template_path = params.default_template_path
         default_template_content = common.read_file(default_template_path)
-        text_template_path = gr.Text(label=i18n("模板文件路径"), value=default_template_path, interactive=False)
+        text_template_path = gr.Text(label=i18n("模板文件路径"), value=default_template_path, interactive=True)
         text_template = gr.Text(label=i18n("模板内容"), value=default_template_content, lines=10)
         gr.Markdown(value=i18n("4.2：生成配置"))
         text_sync_ref_audio_dir2 = gr.Text(label=i18n("参考音频路径"), value="", interactive=True)
@@ -515,6 +511,10 @@ with gr.Blocks() as app:
                                  text_subsection_num, text_sample_num, checkbox_similarity_output],
                         [text_sample_info, text_model_inference_voice_dir, text_sync_ref_audio_dir,
                          text_sync_ref_audio_dir2])
+    button_model_inference.click(model_inference,
+                                 [text_work_space_dir, text_role, text_model_inference_voice_dir, text_url,
+                                  text_text, text_ref_path, text_ref_text, text_emotion,
+                                  text_test_content], [text_model_inference_info, text_asr_audio_dir, text_sync_inference_audio_dir])
 
 app.launch(
     server_port=9423,

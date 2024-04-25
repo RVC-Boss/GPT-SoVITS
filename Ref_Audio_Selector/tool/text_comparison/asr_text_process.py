@@ -3,7 +3,7 @@ import argparse
 from collections import defaultdict
 from operator import itemgetter
 import Ref_Audio_Selector.tool.text_comparison.text_comparison as text_comparison
-import Ref_Audio_Selector.config.config_params as params
+import Ref_Audio_Selector.config_param.config_params as params
 import Ref_Audio_Selector.common.common as common
 
 
@@ -34,7 +34,7 @@ def parse_asr_file(file_path):
 
 def calculate_similarity_and_append_to_list(input_list, boundary):
     for item in input_list:
-        similarity_score = text_comparison.calculate_result(item['original_text'], item['asr_text'], boundary)
+        _, similarity_score = text_comparison.calculate_result(item['original_text'], item['asr_text'], boundary)
         item['similarity_score'] = similarity_score
 
     return input_list

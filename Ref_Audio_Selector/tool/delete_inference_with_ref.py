@@ -1,7 +1,7 @@
 import os
 import shutil
 import Ref_Audio_Selector.common.common as common
-import Ref_Audio_Selector.config.config_params as params
+import Ref_Audio_Selector.config_param.config_params as params
 
 
 def remove_matching_audio_files_in_text_dir(text_dir, emotions_list):
@@ -11,7 +11,7 @@ def remove_matching_audio_files_in_text_dir(text_dir, emotions_list):
             emotion_tag = emotion_dict['emotion']
             wav_file_name = f"{emotion_tag}.wav"
             file_path = os.path.join(root, wav_file_name)
-            if os.path.exists(file_path):
+            if not os.path.exists(file_path):
                 print(f"Deleting file: {file_path}")
                 try:
                     os.remove(file_path)
@@ -38,7 +38,7 @@ def delete_emotion_subdirectories(emotion_dir, emotions_list):
         folder_path = os.path.join(emotion_dir, emotion_folder)
 
         # 检查emotion子目录是否存在
-        if os.path.isdir(folder_path):
+        if not os.path.isdir(folder_path):
             print(f"Deleting directory: {folder_path}")
             try:
                 # 使用shutil.rmtree删除整个子目录及其内容

@@ -3,7 +3,7 @@
 import argparse
 import os
 import traceback
-import Ref_Audio_Selector.config.config_params as params
+import Ref_Audio_Selector.config_param.config_params as params
 from tqdm import tqdm
 from funasr import AutoModel
 

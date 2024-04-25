@@ -1,7 +1,7 @@
 import os
 import requests
 import itertools
-import Ref_Audio_Selector.config.config_params as params
+import Ref_Audio_Selector.config_param.config_params as params
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
 

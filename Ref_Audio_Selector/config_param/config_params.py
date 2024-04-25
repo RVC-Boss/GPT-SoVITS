@@ -1,4 +1,4 @@
-import Ref_Audio_Selector.config.config_manager as config_manager
+import Ref_Audio_Selector.config_param.config_manager as config_manager
 
 config = config_manager.get_config()
 
