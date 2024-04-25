@@ -93,3 +93,13 @@ def read_file(file_path):
     # 文件在with语句结束时会自动关闭
     # 现在file_content变量中存储了文件的所有文本内容
     return file_content
+
+
+def write_text_to_file(text, output_file_path):
+    try:
+        with open(output_file_path, 'w', encoding='utf-8') as file:
+            file.write(text)
+    except IOError as e:
+        print(f"Error occurred while writing to the file: {e}")
+    else:
+        print(f"Text successfully written to file: {output_file_path}")

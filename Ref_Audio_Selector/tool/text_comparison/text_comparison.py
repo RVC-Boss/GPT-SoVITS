@@ -8,7 +8,6 @@ bert_path = os.environ.get(
     "bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
 )
 
-
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 model = AutoModel.from_pretrained(bert_path)
 
@@ -28,26 +27,26 @@ def calculate_similarity(text1, text2, max_length=512):
 
     return similarity
 
-# 对0.8-1区间的值进行放大
-def adjusted_similarity(similarity_score2, boundary=0.8):
 
+# 对boundary到1区间的值进行放大
+def adjusted_similarity(similarity_score2, boundary=0.8):
     if similarity_score2 < boundary:
         return 0
 
     # 倍数
-    multiple = 1/(1 - boundary)
+    multiple = 1 / (1 - boundary)
 
-    adjusted_score = (similarity_score2 - boundary)*multiple
+    adjusted_score = (similarity_score2 - boundary) * multiple
 
     return adjusted_score
 
 
-def calculate_result(t1, t2):
+def calculate_result(t1, t2, boundary):
     # 计算并打印相似度
     similarity_score2 = calculate_similarity(t1, t2)
 
     # 调整相似度
-    adjusted_similarity_score2 = adjusted_similarity(similarity_score2)
+    adjusted_similarity_score2 = adjusted_similarity(similarity_score2, boundary)
 
     return similarity_score2, adjusted_similarity_score2
 

@@ -1,19 +1,23 @@
 import os.path
+import os
 import traceback
 
 import gradio as gr
 import Ref_Audio_Selector.tool.audio_similarity as audio_similarity
 import Ref_Audio_Selector.tool.audio_inference as audio_inference
-import Ref_Audio_Selector.tool.audio_asr as audio_asr
 import Ref_Audio_Selector.tool.audio_config as audio_config
 import Ref_Audio_Selector.common.common as common
 from tools.i18n.i18n import I18nAuto
-from config import python_exec
+from config import python_exec, is_half
+from tools import my_utils
+from tools.asr.config import asr_dict
 from subprocess import Popen
 
 i18n = I18nAuto()
 
 p_similarity = None
+p_asr = None
+p_text_similarity = None
 
 
 # 校验基础信息
@@ -159,7 +163,7 @@ def asr(text_work_space_dir, text_asr_audio_dir, dropdown_asr_model,
             raise Exception(i18n("asr模型大小不能为空"))
         if dropdown_asr_lang is None or dropdown_asr_lang == '':
             raise Exception(i18n("asr语言不能为空"))
-        asr_file = audio_asr.open_asr(text_asr_audio_dir, text_work_space_dir, dropdown_asr_model, dropdown_asr_size,
+        asr_file = open_asr(text_asr_audio_dir, text_work_space_dir, dropdown_asr_model, dropdown_asr_size,
                                       dropdown_asr_lang)
         text_text_similarity_analysis_path = asr_file
         text_asr_info = f"asr成功：生成文件{asr_file}"
@@ -170,20 +174,70 @@ def asr(text_work_space_dir, text_asr_audio_dir, dropdown_asr_model,
     return [text_asr_info, text_text_similarity_analysis_path]
 
 
+def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
+    global p_asr
+    if p_asr is None:
+        asr_inp_dir = my_utils.clean_path(asr_inp_dir)
+        asr_py_path = asr_dict[asr_model]["path"]
+        if asr_py_path == 'funasr_asr.py':
+            asr_py_path = 'funasr_asr_multi_level_dir.py'
+        if asr_py_path == 'fasterwhisper.py':
+            asr_py_path = 'fasterwhisper_asr_multi_level_dir.py'
+        cmd = f'"{python_exec}" Ref_Audio_Selector/tool/asr/{asr_py_path} '
+        cmd += f' -i "{asr_inp_dir}"'
+        cmd += f' -o "{asr_opt_dir}"'
+        cmd += f' -s {asr_model_size}'
+        cmd += f' -l {asr_lang}'
+        cmd += " -p %s" % ("float16" if is_half == True else "float32")
+
+        print(cmd)
+        p_asr = Popen(cmd, shell=True)
+        p_asr.wait()
+        p_asr = None
+
+        output_dir_abs = os.path.abspath(asr_opt_dir)
+        output_file_name = os.path.basename(asr_inp_dir)
+        # 构造输出文件路径
+        output_file_path = os.path.join(output_dir_abs, f'{output_file_name}_asr.list')
+        return output_file_path
+
+    else:
+        return None
+
+
 # 对asr生成的文件，与原本的文本内容，进行相似度分析
 def text_similarity_analysis(text_work_space_dir,
                              text_text_similarity_analysis_path):
-    similarity_file = os.path.join(text_work_space_dir, 'similarity.txt')
-    text_text_similarity_analysis_info = f"相似度分析成功：生成文件{similarity_file}"
+    similarity_dir = os.path.join(text_work_space_dir, 'text_similarity')
+    text_text_similarity_analysis_info = f"相似度分析成功：生成目录{similarity_dir}"
     try:
         check_base_info(text_work_space_dir)
         if text_text_similarity_analysis_path is None or text_text_similarity_analysis_path == '':
             raise Exception(i18n("asr生成的文件路径不能为空，请先完成上一步操作"))
-        pass
+        open_text_similarity_analysis(text_text_similarity_analysis_path, similarity_dir)
     except Exception as e:
         traceback.print_exc()
         text_text_similarity_analysis_info = f"发生异常：{e}"
     return text_text_similarity_analysis_info
+
+
+def open_text_similarity_analysis(asr_file_path, output_dir, similarity_enlarge_boundary=0.8):
+    global p_text_similarity
+    if p_text_similarity is None:
+        cmd = f'"{python_exec}" Ref_Audio_Selector/tool/text_comparison/asr_text_process.py '
+        cmd += f' -a "{asr_file_path}"'
+        cmd += f' -o "{output_dir}"'
+        cmd += f' -b {similarity_enlarge_boundary}'
+
+        print(cmd)
+        p_text_similarity = Popen(cmd, shell=True)
+        p_text_similarity.wait()
+        p_text_similarity = None
+
+        return output_dir
+
+    else:
+        return None
 
 
 # 根据一个参考音频，对指定目录下的音频进行相似度分析，并输出到另一个目录
