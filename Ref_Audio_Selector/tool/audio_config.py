@@ -1,6 +1,5 @@
 import os
 import platform
-from tools import my_utils
 
 
 def generate_audio_config(work_space_dir, template_str, audio_list, output_file_path):

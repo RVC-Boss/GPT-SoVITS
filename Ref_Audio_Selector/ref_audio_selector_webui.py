@@ -39,6 +39,8 @@ def check_base_info(text_work_space_dir, text_role):
 
 # 从list文件，提取参考音频
 def convert_from_list(text_work_space_dir, text_role, text_list_input):
+    text_work_space_dir, text_list_input = common.batch_clean_paths([text_work_space_dir, text_list_input])
+
     text_convert_from_list_info = None
     text_sample_dir = None
     try:
@@ -94,6 +96,9 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
 # 基于一个基准音频，从参考音频目录中进行分段抽样
 def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path,
            text_subsection_num, text_sample_num, checkbox_similarity_output):
+    text_work_space_dir, text_sample_dir, text_base_voice_path \
+        = common.batch_clean_paths([text_work_space_dir, text_sample_dir, text_base_voice_path])
+
     ref_audio_dir = None
     text_sample_info = None
     try:
@@ -132,6 +137,9 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
 def model_inference(text_work_space_dir, text_role, text_model_inference_voice_dir, text_url,
                     text_text, text_ref_path, text_ref_text, text_emotion,
                     text_test_content):
+    text_work_space_dir, text_model_inference_voice_dir, text_test_content \
+        = common.batch_clean_paths([text_work_space_dir, text_model_inference_voice_dir, text_test_content])
+
     inference_dir = None
     text_asr_audio_dir = None
     text_model_inference_info = None
@@ -174,6 +182,9 @@ def model_inference(text_work_space_dir, text_role, text_model_inference_voice_d
 # 对推理生成音频执行asr
 def asr(text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
         dropdown_asr_size, dropdown_asr_lang):
+    text_work_space_dir, text_asr_audio_dir \
+        = common.batch_clean_paths([text_work_space_dir, text_asr_audio_dir])
+
     asr_file = None
     text_text_similarity_analysis_path = None
     text_asr_info = None
@@ -232,6 +243,9 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
 # 对asr生成的文件，与原本的文本内容，进行相似度分析
 def text_similarity_analysis(text_work_space_dir, text_role,
                              text_text_similarity_analysis_path):
+    text_work_space_dir, text_text_similarity_analysis_path \
+        = common.batch_clean_paths([text_work_space_dir, text_text_similarity_analysis_path])
+
     similarity_dir = None
     text_text_similarity_analysis_info = None
     try:
@@ -269,6 +283,9 @@ def open_text_similarity_analysis(asr_file_path, output_dir, similarity_enlarge_
 # 根据一个参考音频，对指定目录下的音频进行相似度分析，并输出到另一个目录
 def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path,
                             text_compare_audio_dir):
+    text_work_space_dir, text_base_audio_path, text_compare_audio_dir \
+        = common.batch_clean_paths([text_work_space_dir, text_base_audio_path, text_compare_audio_dir])
+
     text_similarity_audio_output_info = None
     try:
         base_role_dir = check_base_info(text_work_space_dir, text_role)
@@ -293,6 +310,9 @@ def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path
 # 根据参考音频目录的删除情况，将其同步到推理生成的音频目录中，即参考音频目录下，删除了几个参考音频，就在推理目录下，将这些参考音频生成的音频文件移除
 def sync_ref_audio(text_work_space_dir, text_role, text_sync_ref_audio_dir,
                    text_sync_inference_audio_dir):
+    text_work_space_dir, text_sync_ref_audio_dir, text_sync_inference_audio_dir \
+        = common.batch_clean_paths([text_work_space_dir, text_sync_ref_audio_dir, text_sync_inference_audio_dir])
+
     text_sync_ref_audio_info = None
     try:
         check_base_info(text_work_space_dir, text_role)
@@ -311,6 +331,9 @@ def sync_ref_audio(text_work_space_dir, text_role, text_sync_ref_audio_dir,
 
 # 根据模板和参考音频目录，生成参考音频配置内容
 def create_config(text_work_space_dir, text_role, text_template, text_sync_ref_audio_dir2):
+    text_work_space_dir, text_sync_ref_audio_dir2 \
+        = common.batch_clean_paths([text_work_space_dir, text_sync_ref_audio_dir2])
+
     config_file = None
     text_create_config_info = None
     try:
@@ -341,6 +364,7 @@ def whole_url(text_url, text_text, text_ref_path, text_ref_text, text_emotion):
 
 
 def save_work_dir(text_work_space_dir, text_role):
+    text_work_space_dir = my_utils.clean_path(text_work_space_dir)
     rw_param.write_work_dir(text_work_space_dir)
     if text_role is not None and text_role != '':
         return text_role

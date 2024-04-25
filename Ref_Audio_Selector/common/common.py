@@ -105,3 +105,10 @@ def write_text_to_file(text, output_file_path):
         print(f"Error occurred while writing to the file: {e}")
     else:
         print(f"Text successfully written to file: {output_file_path}")
+
+
+if __name__ == '__main__':
+    dir = r'C:\Users\Administrator\Desktop/test'
+    dir2 = r'"C:\Users\Administrator\Desktop\test2"'
+    dir, dir2 = batch_clean_paths([dir, dir2])
+    print(dir, dir2)
