@@ -2,8 +2,6 @@ import os
 import requests
 import itertools
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
-from tools.i18n.i18n import I18nAuto
-i18n = I18nAuto()
 
 
 class URLComposer:
@@ -16,13 +14,13 @@ class URLComposer:
 
     def is_valid(self):
         if self.base_url is None or self.base_url == '':
-            raise ValueError(i18n("请输入url"))
+            raise ValueError("请输入url")
 
         if self.text_param_name is None or self.text_param_name == '':
-            raise ValueError(i18n("请输入text参数名"))
+            raise ValueError("请输入text参数名")
 
         if self.emotion_param_name is None and self.ref_path_param_name is None and self.ref_text_param_name is None:
-            raise ValueError(i18n("请输入至少一个参考or情绪的参数"))
+            raise ValueError("请输入至少一个参考or情绪的参数")
 
     def is_emotion(self):
         return self.emotion_param_name is not None and self.emotion_param_name != ''

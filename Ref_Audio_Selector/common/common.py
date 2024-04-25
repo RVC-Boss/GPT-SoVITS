@@ -2,6 +2,7 @@ from tools import my_utils
 import glob
 import os
 
+
 class RefAudioListManager:
     def __init__(self, root_dir):
         self.audio_dict = {'default': []}
@@ -44,6 +45,7 @@ class RefAudioListManager:
                 }
                 audio_info_list.append(audio_info)
         return audio_info_list
+
 
 def batch_clean_paths(paths):
     """
