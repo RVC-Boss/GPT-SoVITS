@@ -8,6 +8,7 @@ import Ref_Audio_Selector.tool.audio_inference as audio_inference
 import Ref_Audio_Selector.tool.audio_config as audio_config
 import Ref_Audio_Selector.tool.delete_inference_with_ref as delete_inference_with_ref
 import Ref_Audio_Selector.common.common as common
+import Ref_Audio_Selector.config.config_manager as config_manager
 from tools.i18n.i18n import I18nAuto
 from config import python_exec, is_half
 from tools import my_utils
@@ -15,6 +16,7 @@ from tools.asr.config import asr_dict
 from subprocess import Popen
 
 i18n = I18nAuto()
+config = config_manager.get_config()
 
 p_similarity = None
 p_asr = None
@@ -29,7 +31,8 @@ def check_base_info(text_work_space_dir):
 
 # 从list文件，提取参考音频
 def convert_from_list(text_work_space_dir, text_list_input):
-    ref_audio_all = os.path.join(text_work_space_dir, 'refer_audio_all')
+    ref_audio_all = os.path.join(text_work_space_dir,
+                                 config.get_audio_sample('list_to_convert_reference_audio_dir'))
     text_convert_from_list_info = f"转换成功：生成目录{ref_audio_all}"
     text_sample_dir = ref_audio_all
     try:
@@ -48,7 +51,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
     similarity_list = None
     similarity_file_dir = None
 
-    similarity_dir = os.path.join(work_space_dir, 'similarity')
+    similarity_dir = os.path.join(work_space_dir, config.get_audio_sample('audio_similarity_dir'))
     os.makedirs(similarity_dir, exist_ok=True)
 
     base_voice_file_name = common.get_filename_without_extension(base_voice_path)
@@ -79,7 +82,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
 # 基于一个基准音频，从参考音频目录中进行分段抽样
 def sample(text_work_space_dir, text_sample_dir, text_base_voice_path,
            text_subsection_num, text_sample_num, checkbox_similarity_output):
-    ref_audio_dir = os.path.join(text_work_space_dir, 'refer_audio')
+    ref_audio_dir = os.path.join(text_work_space_dir, config.get_base('reference_audio_dir'))
     text_sample_info = f"抽样成功：生成目录{ref_audio_dir}"
     try:
         check_base_info(text_work_space_dir)
@@ -114,8 +117,9 @@ def sample(text_work_space_dir, text_sample_dir, text_base_voice_path,
 def model_inference(text_work_space_dir, text_model_inference_voice_dir, text_url,
                     text_text, text_ref_path, text_ref_text, text_emotion,
                     text_test_content):
-    inference_dir = os.path.join(text_work_space_dir, 'inference_audio')
-    text_asr_audio_dir = os.path.join(inference_dir, 'text')
+    inference_dir = os.path.join(text_work_space_dir, config.get_inference('inference_audio_dir'))
+    text_asr_audio_dir = os.path.join(inference_dir, 
+                                      config.get_inference('inference_audio_text_aggregation_dir'))
     text_model_inference_info = f"推理成功：生成目录{inference_dir}"
     try:
         check_base_info(text_work_space_dir)
@@ -164,7 +168,7 @@ def asr(text_work_space_dir, text_asr_audio_dir, dropdown_asr_model,
         if dropdown_asr_lang is None or dropdown_asr_lang == '':
             raise Exception("asr语言不能为空")
         asr_file = open_asr(text_asr_audio_dir, text_work_space_dir, dropdown_asr_model, dropdown_asr_size,
-                                      dropdown_asr_lang)
+                            dropdown_asr_lang)
         text_text_similarity_analysis_path = asr_file
         text_asr_info = f"asr成功：生成文件{asr_file}"
     except Exception as e:
@@ -198,7 +202,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
         output_dir_abs = os.path.abspath(asr_opt_dir)
         output_file_name = os.path.basename(asr_inp_dir)
         # 构造输出文件路径
-        output_file_path = os.path.join(output_dir_abs, f'{output_file_name}_asr.list')
+        output_file_path = os.path.join(output_dir_abs, f'{config.get_result_check("asr_filename")}.list')
         return output_file_path
 
     else:
@@ -208,7 +212,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
 # 对asr生成的文件，与原本的文本内容，进行相似度分析
 def text_similarity_analysis(text_work_space_dir,
                              text_text_similarity_analysis_path):
-    similarity_dir = os.path.join(text_work_space_dir, 'text_similarity')
+    similarity_dir = os.path.join(text_work_space_dir, config.get_result_check('text_similarity_output_dir'))
     text_text_similarity_analysis_info = f"相似度分析成功：生成目录{similarity_dir}"
     try:
         check_base_info(text_work_space_dir)
@@ -243,7 +247,7 @@ def open_text_similarity_analysis(asr_file_path, output_dir, similarity_enlarge_
 # 根据一个参考音频，对指定目录下的音频进行相似度分析，并输出到另一个目录
 def similarity_audio_output(text_work_space_dir, text_base_audio_path,
                             text_compare_audio_dir):
-    text_similarity_audio_output_info = "相似度分析成功：生成目录XXX"
+    text_similarity_audio_output_info = None
     try:
         check_base_info(text_work_space_dir)
         if text_base_audio_path is None or text_base_audio_path == '':
@@ -274,7 +278,8 @@ def sync_ref_audio(text_work_space_dir, text_sync_ref_audio_dir,
             raise Exception("参考音频目录不能为空")
         if text_sync_inference_audio_dir is None or text_sync_inference_audio_dir == '':
             raise Exception("推理生成的音频目录不能为空")
-        delete_text_wav_num, delete_emotion_dir_num = delete_inference_with_ref.sync_ref_audio(text_sync_ref_audio_dir, text_sync_inference_audio_dir)
+        delete_text_wav_num, delete_emotion_dir_num = delete_inference_with_ref.sync_ref_audio(text_sync_ref_audio_dir,
+                                                                                               text_sync_inference_audio_dir)
         text_sync_ref_audio_info = f"推理音频目录{text_sync_inference_audio_dir}下，text目录删除了{delete_text_wav_num}个参考音频，emotion目录下，删除了{delete_emotion_dir_num}个目录"
     except Exception as e:
         traceback.print_exc()
@@ -284,7 +289,7 @@ def sync_ref_audio(text_work_space_dir, text_sync_ref_audio_dir,
 
 # 根据模板和参考音频目录，生成参考音频配置内容
 def create_config(text_work_space_dir, text_template, text_sync_ref_audio_dir2):
-    config_file = os.path.join(text_work_space_dir, 'refer_audio.json')
+    config_file = os.path.join(text_work_space_dir, f'{config.get_audio_config("reference_audio_config_filename")}.json')
     text_create_config_info = f"配置生成成功：生成文件{config_file}"
     try:
         check_base_info(text_work_space_dir)
@@ -293,7 +298,8 @@ def create_config(text_work_space_dir, text_template, text_sync_ref_audio_dir2):
         if text_sync_ref_audio_dir2 is None or text_sync_ref_audio_dir2 == '':
             raise Exception("参考音频目录不能为空")
         ref_audio_manager = common.RefAudioListManager(text_sync_ref_audio_dir2)
-        audio_config.generate_audio_config(text_work_space_dir, text_template, ref_audio_manager.get_ref_audio_list(), config_file)
+        audio_config.generate_audio_config(text_work_space_dir, text_template, ref_audio_manager.get_ref_audio_list(),
+                                           config_file)
     except Exception as e:
         traceback.print_exc()
         text_create_config_info = f"发生异常：{e}"
@@ -353,7 +359,7 @@ with gr.Blocks() as app:
         text_emotion.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
                            [text_whole_url])
         gr.Markdown(value=i18n("2.2：配置待推理文本，一句一行，不要太多，10条即可"))
-        default_test_content_path = 'Ref_Audio_Selector/tool/test_content/test_content.txt'
+        default_test_content_path = config.get_inference('default_test_text_path')
         text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value=default_test_content_path)
         gr.Markdown(value=i18n("2.3：启动推理服务，如果还没启动的话"))
         gr.Markdown(value=i18n("2.4：开始批量推理，这个过程比较耗时，可以去干点别的"))
@@ -421,7 +427,7 @@ with gr.Blocks() as app:
                                                          text_sync_inference_audio_dir], [text_sync_ref_info])
     with gr.Accordion("第四步：生成参考音频配置文本", open=False):
         gr.Markdown(value=i18n("4.1：编辑模板"))
-        default_template_path = 'Ref_Audio_Selector/tool/config_template/ref_audio_template.txt'
+        default_template_path = config.get_audio_config('default_template_path')
         default_template_content = common.read_file(default_template_path)
         text_template_path = gr.Text(label=i18n("模板文件路径"), value=default_template_path, interactive=False)
         text_template = gr.Text(label=i18n("模板内容"), value=default_template_content, lines=10)

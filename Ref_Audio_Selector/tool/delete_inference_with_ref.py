@@ -1,7 +1,9 @@
 import os
 import shutil
 import Ref_Audio_Selector.common.common as common
+import Ref_Audio_Selector.config.config_manager as config_manager
 
+config = config_manager.get_config()
 
 def remove_matching_audio_files_in_text_dir(text_dir, emotions_list):
     count = 0
@@ -51,8 +53,8 @@ def delete_emotion_subdirectories(emotion_dir, emotions_list):
 def sync_ref_audio(ref_audio_dir, inference_audio_dir):
     ref_audio_manager = common.RefAudioListManager(ref_audio_dir)
     ref_list = ref_audio_manager.get_ref_audio_list()
-    text_dir = os.path.join(inference_audio_dir, 'text')
-    emotion_dir = os.path.join(inference_audio_dir, 'emotion')
+    text_dir = os.path.join(inference_audio_dir, config.get_inference('inference_audio_text_aggregation_dir'))
+    emotion_dir = os.path.join(inference_audio_dir, config.get_inference('inference_audio_emotion_aggregation_dir'))
     delete_text_wav_num = remove_matching_audio_files_in_text_dir(text_dir, ref_list)
     delete_emotion_dir_num = delete_emotion_subdirectories(emotion_dir, ref_list)
     return delete_text_wav_num, delete_emotion_dir_num

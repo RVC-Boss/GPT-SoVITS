@@ -2,6 +2,7 @@ import argparse
 import os
 
 from modelscope.pipelines import pipeline
+
 sv_pipeline = pipeline(
     task='speaker-verification',
     model='Ref_Audio_Selector/tool/speaker_verification/models/speech_campplus_sv_zh-cn_16k-common',
@@ -11,7 +12,8 @@ sv_pipeline = pipeline(
 
 def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path, output_file_path):
     # Step 1: 获取比较音频目录下所有音频文件的路径
-    comparison_audio_paths = [os.path.join(comparison_dir_path, f) for f in os.listdir(comparison_dir_path) if f.endswith('.wav')]
+    comparison_audio_paths = [os.path.join(comparison_dir_path, f) for f in os.listdir(comparison_dir_path) if
+                              f.endswith('.wav')]
 
     # Step 2: 用参考音频依次比较音频目录下的每个音频，获取相似度分数及对应路径
     similarity_scores = []
@@ -31,10 +33,10 @@ def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path,
         open(output_file_path, 'w').close()  # Create an empty file
 
     # Step 5: 将排序后的结果写入输出结果文件（支持中文）
-    formatted_scores  = [f'{item["score"]}|{item["path"]}' for item in similarity_scores]
+    formatted_scores = [f'{item["score"]}|{item["path"]}' for item in similarity_scores]
     with open(output_file_path, 'w', encoding='utf-8') as f:
         # 使用'\n'将每个字符串分开，使其写入不同行
-        content = '\n'.join(formatted_scores )
+        content = '\n'.join(formatted_scores)
         f.write(content)
 
 
@@ -60,7 +62,7 @@ if __name__ == '__main__':
     cmd = parse_arguments()
     print(cmd)
     compare_audio_and_generate_report(
-        reference_audio_path  = cmd.reference_audio,
-        comparison_dir_path = cmd.comparison_dir,
-        output_file_path    = cmd.output_file,
+        reference_audio_path=cmd.reference_audio,
+        comparison_dir_path=cmd.comparison_dir,
+        output_file_path=cmd.output_file,
     )
