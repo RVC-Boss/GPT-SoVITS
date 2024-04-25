@@ -310,9 +310,9 @@ def create_config(text_work_space_dir, text_template, text_sync_ref_audio_dir2):
 def whole_url(text_url, text_text, text_ref_path, text_ref_text, text_emotion):
     url_composer = audio_inference.URLComposer(text_url, text_emotion, text_text, text_ref_path, text_ref_text)
     if url_composer.is_emotion():
-        text_whole_url = url_composer.build_url_with_emotion('测试内容', '情绪类型')
+        text_whole_url = url_composer.build_url_with_emotion('测试内容', '情绪类型', False)
     else:
-        text_whole_url = url_composer.build_url_with_ref('测试内容', '参考路径', '参考文本')
+        text_whole_url = url_composer.build_url_with_ref('测试内容', '参考路径', '参考文本', False)
     return text_whole_url
 
 
@@ -409,8 +409,8 @@ with gr.Blocks() as app:
         gr.Markdown(value=i18n("3.3：根据相似度分析结果，重点检查最后几条是否存在复读等问题"))
         gr.Markdown(value=i18n("3.4：对结果按音频相似度排序，筛选低音质音频"))
         with gr.Row():
-            text_base_audio_path = gr.Text(label=i18n("请输入基准音频"), value="text")
-            text_compare_audio_dir = gr.Text(label=i18n("请输入待比较的音频文件目录"), value="text")
+            text_base_audio_path = gr.Text(label=i18n("请输入基准音频"), value="")
+            text_compare_audio_dir = gr.Text(label=i18n("请输入待比较的音频文件目录"), value="")
         with gr.Row():
             button_similarity_audio_output = gr.Button(i18n("输出相似度-参考音频到临时目录"), variant="primary")
             text_similarity_audio_output_info = gr.Text(label=i18n("输出结果"), value="", interactive=False)

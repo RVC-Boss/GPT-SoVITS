@@ -9,7 +9,7 @@ config = config_manager.get_config()
 
 class URLComposer:
     def __init__(self, base_url, emotion_param_name, text_param_name, ref_path_param_name, ref_text_param_name):
-        self.base_url = safe_encode_query_params(base_url)
+        self.base_url = base_url
         self.emotion_param_name = emotion_param_name
         self.text_param_name = text_param_name
         self.ref_path_param_name = ref_path_param_name
@@ -28,35 +28,34 @@ class URLComposer:
     def is_emotion(self):
         return self.emotion_param_name is not None and self.emotion_param_name != ''
 
-    def build_url_with_emotion(self, text_value, emotion_value):
+    def build_url_with_emotion(self, text_value, emotion_value, need_url_encode=True):
         if not self.emotion_param_name:
             raise ValueError("Emotion parameter name is not set.")
         params = {
-            self.text_param_name: quote(text_value),
-            self.emotion_param_name: quote(emotion_value),
+            self.text_param_name: text_value,
+            self.emotion_param_name: emotion_value,
         }
-        return self._append_params_to_url(params)
+        return self._append_params_to_url(params, need_url_encode)
 
-    def build_url_with_ref(self, text_value, ref_path_value, ref_text_value):
+    def build_url_with_ref(self, text_value, ref_path_value, ref_text_value, need_url_encode=True):
         if self.emotion_param_name:
             raise ValueError("Cannot use reference parameters when emotion parameter is set.")
         params = {
-            self.text_param_name: quote(text_value),
-            self.ref_path_param_name: quote(ref_path_value),
-            self.ref_text_param_name: quote(ref_text_value),
+            self.text_param_name: text_value,
+            self.ref_path_param_name: ref_path_value,
+            self.ref_text_param_name: ref_text_value,
         }
-        return self._append_params_to_url(params)
+        return self._append_params_to_url(params, need_url_encode)
 
-    def _append_params_to_url(self, params: dict):
+    def _append_params_to_url(self, params, need_url_encode):
         url_with_params = self.base_url
         if params:
             query_params = '&'.join([f"{k}={v}" for k, v in params.items()])
             url_with_params += '?' + query_params if '?' not in self.base_url else '&' + query_params
-        return url_with_params
+        return url_with_params if not need_url_encode else safe_encode_query_params(url_with_params)
 
 
 def safe_encode_query_params(original_url):
-
     # 分析URL以获取查询字符串部分
     parsed_url = urlparse(original_url)
     query_params = parse_qs(parsed_url.query)
