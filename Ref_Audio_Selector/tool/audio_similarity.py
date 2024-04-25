@@ -1,7 +1,26 @@
 import os
 import shutil
 import random
+import librosa
 
+
+def check_audio_duration(path, min_duration=3, max_duration=10):
+    try:
+        # 加载音频文件
+        audio, sample_rate = librosa.load(path)
+
+        # 计算音频的时长（单位：秒）
+        duration = librosa.get_duration(y=audio, sr=sample_rate)
+
+        # 判断时长是否在3s至10s之间
+        if min_duration <= duration <= max_duration:
+            return True
+        else:
+            return False
+
+    except Exception as e:
+        print(f"无法打开或处理音频文件：{e}")
+        return None
 
 
 def convert_from_list(list_file, output_dir):
@@ -38,9 +57,13 @@ def convert_from_list(list_file, output_dir):
                 print(f"Audio file does not exist: {audio_path}")
                 continue
 
-            # 复制音频文件到output目录并重命名
-            shutil.copy2(audio_path, new_path)
-            print(f"File copied and renamed to: {new_path}")
+            if check_audio_duration(audio_path):
+                # 复制音频文件到output目录并重命名
+                shutil.copy2(audio_path, new_path)
+                print(f"File copied and renamed to: {new_path}")
+            else:
+                print(f"File skipped due to duration: {audio_path}")
+
         except Exception as e:
             print(f"An error occurred while processing: {audio_path}")
             print(e)
