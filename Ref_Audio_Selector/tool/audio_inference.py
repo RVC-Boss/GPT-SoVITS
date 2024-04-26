@@ -85,18 +85,14 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
     emotion_subdir = os.path.join(output_dir, params.inference_audio_emotion_aggregation_dir)
     os.makedirs(emotion_subdir, exist_ok=True)
 
+    all_count = len(text_list) * len(emotion_list)
+    has_generated_count = 0
+
     # 计算笛卡尔积
     cartesian_product = list(itertools.product(text_list, emotion_list))
 
     for text, emotion in cartesian_product:
         # Generate audio byte stream using the create_audio function
-
-        if url_composer.is_emotion():
-            real_url = url_composer.build_url_with_emotion(text, emotion['emotion'])
-        else:
-            real_url = url_composer.build_url_with_ref(text, emotion['ref_path'], emotion['ref_text'])
-
-        audio_bytes = inference_audio_from_api(real_url)
 
         emotion_name = emotion['emotion']
 
@@ -108,11 +104,27 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
         os.makedirs(emotion_subdir_emotion, exist_ok=True)
         emotion_subdir_emotion_file_path = os.path.join(emotion_subdir_emotion, text + '.wav')
 
+        # 检查是否已经存在对应的音频文件，如果存在则跳过
+        if os.path.exists(text_subdir_text_file_path) and os.path.exists(emotion_subdir_emotion_file_path):
+            has_generated_count += 1
+            print(f"进度: {has_generated_count}/{all_count}")
+            continue
+
+        if url_composer.is_emotion():
+            real_url = url_composer.build_url_with_emotion(text, emotion['emotion'])
+        else:
+            real_url = url_composer.build_url_with_ref(text, emotion['ref_path'], emotion['ref_text'])
+
+        audio_bytes = inference_audio_from_api(real_url)
+
         # Write audio bytes to the respective files
         with open(text_subdir_text_file_path, 'wb') as f:
             f.write(audio_bytes)
         with open(emotion_subdir_emotion_file_path, 'wb') as f:
             f.write(audio_bytes)
+
+        has_generated_count += 1
+        print(f"进度: {has_generated_count}/{all_count}")
 
 
 def inference_audio_from_api(url):

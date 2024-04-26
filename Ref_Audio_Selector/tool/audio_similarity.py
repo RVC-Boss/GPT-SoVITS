@@ -142,7 +142,7 @@ def copy_and_move(output_audio_directory, similarity_scores):
     for item in similarity_scores:
         # 构造新的文件名
         base_name = os.path.basename(item['wav_path'])[:-4]  # 去掉.wav扩展名
-        new_name = f"{item['score']}-{base_name}.wav"
+        new_name = f"{item['score']*10000:04.0f}-{base_name}.wav"
 
         # 新文件的完整路径
         new_path = os.path.join(output_audio_directory, new_name)

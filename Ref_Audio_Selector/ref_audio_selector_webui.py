@@ -289,7 +289,7 @@ def text_similarity_analysis(text_work_space_dir, text_role,
     return i18n(text_text_similarity_analysis_info)
 
 
-def open_text_similarity_analysis(asr_file_path, output_dir, similarity_enlarge_boundary=0.8):
+def open_text_similarity_analysis(asr_file_path, output_dir, similarity_enlarge_boundary=0.9):
     global p_text_similarity
     if p_text_similarity is None:
         cmd = f'"{python_exec}" Ref_Audio_Selector/tool/text_comparison/asr_text_process.py '

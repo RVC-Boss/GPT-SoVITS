@@ -33,10 +33,16 @@ def parse_asr_file(file_path):
     return output
 
 
+@timeit_decorator
 def calculate_similarity_and_append_to_list(input_list, boundary):
+    all_count = len(input_list)
+    has_been_processed_count = 0
     for item in input_list:
-        _, similarity_score = text_comparison.calculate_result(item['original_text'], item['asr_text'], boundary)
+        original_score, similarity_score = text_comparison.calculate_result(item['original_text'], item['asr_text'], boundary)
         item['similarity_score'] = similarity_score
+        item['original_score'] = original_score
+        has_been_processed_count += 1
+        print(f'进度：{has_been_processed_count}/{all_count}')
 
     return input_list
 
@@ -79,13 +85,27 @@ def group_and_sort_by_field(data, group_by_field):
 
 def format_list_to_text(data_list, output_filename):
     with open(output_filename, 'w', encoding='utf-8') as output_file:
+        output_file.write('放大后的相似度分值|原始分值|ASR文本|原文文本\n')
         for key, items in data_list:
             # 写入情绪标题
             output_file.write(key + '\n')
 
             # 写入每条记录
             for item in items:
-                formatted_line = f"{item['similarity_score']}|{item['original_text']}|{item['asr_text']}\n"
+                formatted_line = f"{item['similarity_score']}|{item['original_score']}|{item['asr_text']}|{item['original_text']}\n"
+                output_file.write(formatted_line)
+
+
+def format_list_to_emotion(data_list, output_filename):
+    with open(output_filename, 'w', encoding='utf-8') as output_file:
+        output_file.write('放大后的相似度分值|原始分值|ASR文本|情绪类型\n')
+        for key, items in data_list:
+            # 写入情绪标题
+            output_file.write(key + '\n')
+
+            # 写入每条记录
+            for item in items:
+                formatted_line = f"{item['similarity_score']}|{item['original_score']}|{item['asr_text']}|{item['emotion']}\n"
                 output_file.write(formatted_line)
 
 
@@ -113,7 +133,7 @@ def process(asr_file_path, output_dir, similarity_enlarge_boundary):
     original_text_detail_list = group_and_sort_by_field(records, 'original_text')
 
     original_text_detail_file = os.path.join(output_dir, f'{params.text_similarity_by_text_detail_filename}.txt')
-    format_list_to_text(original_text_detail_list, original_text_detail_file)
+    format_list_to_emotion(original_text_detail_list, original_text_detail_file)
 
     print('文本相似度分析完成。')
 
