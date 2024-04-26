@@ -50,24 +50,6 @@ def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path,
 
 
 def ensure_16k_wav(audio_file_path, target_sample_rate=16000):
-    # 读取音频文件信息
-    sample_rate, audio_data = sf.read(audio_file_path)
-
-    # 检查采样率是否为16kHz
-    if sample_rate == target_sample_rate:
-        # 是16kHz采样率，直接返回原始文件路径
-        return audio_file_path
-
-    # 设置临时文件名
-    temp_file_path = os.path.join(params.temp_dir, os.path.basename(audio_file_path))
-
-    # 重采样至16kHz并保存到临时文件
-    sf.write(temp_file_path, audio_data, samplerate=target_sample_rate, format="WAV")
-
-    return temp_file_path
-
-
-def ensure_16k_wav_2(audio_file_path, target_sample_rate=16000):
     """
     输入一个音频文件地址，判断其采样率并决定是否进行重采样，然后将结果保存到指定的输出文件。
 
@@ -119,9 +101,14 @@ def parse_arguments():
 
 if __name__ == '__main__':
     cmd = parse_arguments()
-    print(cmd)
     compare_audio_and_generate_report(
         reference_audio_path=cmd.reference_audio,
         comparison_dir_path=cmd.comparison_dir,
         output_file_path=cmd.output_file,
     )
+
+    # compare_audio_and_generate_report(
+    #     reference_audio_path="D:/tt/渡鸦/refer_audio_all/也对，你的身份和我们不同吗？.wav",
+    #     comparison_dir_path='D:/tt/渡鸦/refer_audio_all',
+    #     output_file_path='D:/tt/渡鸦/test.txt',
+    # )
