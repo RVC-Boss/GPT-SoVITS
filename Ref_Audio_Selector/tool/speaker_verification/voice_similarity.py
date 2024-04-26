@@ -5,6 +5,7 @@ import torchaudio.transforms as T
 import platform
 import Ref_Audio_Selector.config_param.config_params as params
 from Ref_Audio_Selector.common.time_util import timeit_decorator
+from Ref_Audio_Selector.config_param.log_config import logger
 
 from modelscope.pipelines import pipeline
 
@@ -32,6 +33,8 @@ def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path,
         reference_audio_16k = reference_audio_path
 
     # Step 2: 用参考音频依次比较音频目录下的每个音频，获取相似度分数及对应路径
+    all_count = len(comparison_audio_paths)
+    has_processed_count = 0
     similarity_scores = []
     for audio_path in comparison_audio_paths:
         score = sv_pipeline([reference_audio_16k, audio_path])['score']
@@ -39,7 +42,8 @@ def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path,
             'score': score,
             'path': audio_path
         })
-        print(f'similarity score: {score}, path: {audio_path}')
+        has_processed_count += 1
+        logger.info(f'进度：{has_processed_count}/{all_count}')
 
     # Step 3: 根据相似度分数降序排列
     similarity_scores.sort(key=lambda x: x['score'], reverse=True)

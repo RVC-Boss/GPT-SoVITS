@@ -4,6 +4,7 @@ import itertools
 import Ref_Audio_Selector.config_param.config_params as params
 from Ref_Audio_Selector.common.time_util import timeit_decorator
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
+from Ref_Audio_Selector.config_param.log_config import logger
 
 
 class URLComposer:
@@ -69,7 +70,7 @@ def safe_encode_query_params(original_url):
     new_parsed_url = parsed_url._replace(query=new_query_string)
     encoded_url = urlunparse(new_parsed_url)
 
-    print(encoded_url)
+    logger.info(encoded_url)
     return encoded_url
 
 
@@ -107,7 +108,7 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
         # 检查是否已经存在对应的音频文件，如果存在则跳过
         if os.path.exists(text_subdir_text_file_path) and os.path.exists(emotion_subdir_emotion_file_path):
             has_generated_count += 1
-            print(f"进度: {has_generated_count}/{all_count}")
+            logger.info(f"进度: {has_generated_count}/{all_count}")
             continue
 
         if url_composer.is_emotion():
@@ -124,7 +125,7 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
             f.write(audio_bytes)
 
         has_generated_count += 1
-        print(f"进度: {has_generated_count}/{all_count}")
+        logger.info(f"进度: {has_generated_count}/{all_count}")
 
 
 def inference_audio_from_api(url):

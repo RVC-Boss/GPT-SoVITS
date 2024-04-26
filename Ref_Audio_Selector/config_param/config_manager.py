@@ -33,6 +33,9 @@ class ConfigManager:
     def get_base(self, key):
         return self.config.get('Base', key)
 
+    def get_log(self, key):
+        return self.config.get('Log', key)
+
     def get_audio_sample(self, key):
         return self.config.get('AudioSample', key)
 

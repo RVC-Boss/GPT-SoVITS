@@ -6,6 +6,7 @@ from Ref_Audio_Selector.common.time_util import timeit_decorator
 import Ref_Audio_Selector.tool.text_comparison.text_comparison as text_comparison
 import Ref_Audio_Selector.config_param.config_params as params
 import Ref_Audio_Selector.common.common as common
+from Ref_Audio_Selector.config_param.log_config import logger
 
 
 def parse_asr_file(file_path):
@@ -42,7 +43,7 @@ def calculate_similarity_and_append_to_list(input_list, boundary):
         item['similarity_score'] = similarity_score
         item['original_score'] = original_score
         has_been_processed_count += 1
-        print(f'进度：{has_been_processed_count}/{all_count}')
+        logger.info(f'进度：{has_been_processed_count}/{all_count}')
 
     return input_list
 
@@ -135,7 +136,7 @@ def process(asr_file_path, output_dir, similarity_enlarge_boundary):
     original_text_detail_file = os.path.join(output_dir, f'{params.text_similarity_by_text_detail_filename}.txt')
     format_list_to_emotion(original_text_detail_list, original_text_detail_file)
 
-    print('文本相似度分析完成。')
+    logger.info('文本相似度分析完成。')
 
 
 def parse_arguments():

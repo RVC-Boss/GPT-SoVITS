@@ -2,6 +2,7 @@ import os
 import shutil
 import Ref_Audio_Selector.common.common as common
 import Ref_Audio_Selector.config_param.config_params as params
+from Ref_Audio_Selector.config_param.log_config import logger
 
 
 def remove_matching_audio_files_in_text_dir(text_dir, emotions_list):
@@ -12,12 +13,12 @@ def remove_matching_audio_files_in_text_dir(text_dir, emotions_list):
             wav_file_name = f"{emotion_tag}.wav"
             file_path = os.path.join(root, wav_file_name)
             if not os.path.exists(file_path):
-                print(f"Deleting file: {file_path}")
+                logger.info(f"Deleting file: {file_path}")
                 try:
                     os.remove(file_path)
                     count += 1
                 except Exception as e:
-                    print(f"Error deleting file {file_path}: {e}")
+                    logger.error(f"Error deleting file {file_path}: {e}")
     return count
 
 
@@ -39,13 +40,13 @@ def delete_emotion_subdirectories(emotion_dir, emotions_list):
 
         # 检查emotion子目录是否存在
         if not os.path.isdir(folder_path):
-            print(f"Deleting directory: {folder_path}")
+            logger.info(f"Deleting directory: {folder_path}")
             try:
                 # 使用shutil.rmtree删除整个子目录及其内容
                 shutil.rmtree(folder_path)
                 count += 1
             except Exception as e:
-                print(f"Error deleting directory {folder_path}: {e}")
+                logger.error(f"Error deleting directory {folder_path}: {e}")
     return count
 
 

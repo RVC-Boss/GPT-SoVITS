@@ -2,7 +2,7 @@ import os
 import torch
 from transformers import AutoTokenizer, AutoModel
 from scipy.spatial.distance import cosine
-import math
+from Ref_Audio_Selector.config_param.log_config import logger
 
 bert_path = os.environ.get(
     "bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
@@ -11,7 +11,7 @@ bert_path = os.environ.get(
 # Set device to GPU if available, else CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-print(f'使用计算设备: {device}')
+logger.info(f'使用计算设备: {device}')
 
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 model = AutoModel.from_pretrained(bert_path).to(device)

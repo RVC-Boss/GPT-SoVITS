@@ -1,5 +1,5 @@
 from tools import my_utils
-import glob
+from Ref_Audio_Selector.config_param.log_config import logger
 import os
 
 
@@ -102,9 +102,9 @@ def write_text_to_file(text, output_file_path):
         with open(output_file_path, 'w', encoding='utf-8') as file:
             file.write(text)
     except IOError as e:
-        print(f"Error occurred while writing to the file: {e}")
+        logger.info(f"Error occurred while writing to the file: {e}")
     else:
-        print(f"Text successfully written to file: {output_file_path}")
+        logger.info(f"Text successfully written to file: {output_file_path}")
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import os
 import shutil
 import random
 import librosa
+from Ref_Audio_Selector.config_param.log_config import logger
 
 
 def check_audio_duration(path, min_duration=3, max_duration=10):
@@ -17,7 +18,7 @@ def check_audio_duration(path, min_duration=3, max_duration=10):
             return False
 
     except Exception as e:
-        print(f"无法打开或处理音频文件：{e}")
+        logger.error(f"无法打开或处理音频文件：{e}")
         return None
 
 
@@ -33,7 +34,7 @@ def convert_from_list(list_file, output_dir):
     for line in lines:
         parts = line.strip().split('|')
         if len(parts) != 4:
-            print(f"Line format incorrect: {line}")
+            logger.error(f"Line format incorrect: {line}")
             continue
 
         audio_path, _, _, transcription = parts
@@ -46,27 +47,27 @@ def convert_from_list(list_file, output_dir):
 
         # 如果目标文件已存在，不要覆盖
         if os.path.exists(new_path):
-            print(f"File already exists: {new_path}")
+            logger.info(f"File already exists: {new_path}")
             continue
 
         try:
             # 检查音频文件是否存在
             if not os.path.exists(audio_path):
-                print(f"Audio file does not exist: {audio_path}")
+                logger.info(f"Audio file does not exist: {audio_path}")
                 continue
 
             if check_audio_duration(audio_path):
                 # 复制音频文件到output目录并重命名
                 shutil.copy2(audio_path, new_path)
-                print(f"File copied and renamed to: {new_path}")
+                logger.info(f"File copied and renamed to: {new_path}")
             else:
-                print(f"File skipped due to duration: {audio_path}")
+                logger.info(f"File skipped due to duration: {audio_path}")
 
         except Exception as e:
-            print(f"An error occurred while processing: {audio_path}")
-            print(e)
+            logger.error(f"An error occurred while processing: {audio_path}")
+            logger.error(e)
 
-    print("Processing complete.")
+    logger.info("Processing complete.")
 
 
 def sample(output_audio_dir, similarity_list, subsection_num, sample_num):
@@ -101,7 +102,7 @@ def sample(output_audio_dir, similarity_list, subsection_num, sample_num):
             dst_path = os.path.join(subdir_path, os.path.basename(src_path))
             shutil.copyfile(src_path, dst_path)
 
-    print("Sampling completed.")
+    logger.info("Sampling completed.")
 
 
 def parse_similarity_file(file_path):
@@ -150,7 +151,7 @@ def copy_and_move(output_audio_directory, similarity_scores):
         # 复制文件到新目录
         shutil.copyfile(item['wav_path'], new_path)
 
-    print("已完成复制和重命名操作。")
+    logger.info("已完成复制和重命名操作。")
 
 
 if __name__ == '__main__':

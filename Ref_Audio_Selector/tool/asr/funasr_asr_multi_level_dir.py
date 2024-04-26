@@ -4,6 +4,7 @@ import argparse
 import os
 import traceback
 import Ref_Audio_Selector.config_param.config_params as params
+from Ref_Audio_Selector.config_param.log_config import logger
 from Ref_Audio_Selector.common.time_util import timeit_decorator
 from tqdm import tqdm
 from funasr import AutoModel
@@ -31,7 +32,7 @@ def only_asr(input_file):
         text = model.generate(input=input_file)[0]["text"]
     except:
         text = ''
-        print(traceback.format_exc())
+        logger.error(traceback.format_exc())
     return text
 
 
@@ -54,7 +55,7 @@ def execute_asr_multi_level_dir(input_folder, output_folder, model_size, languag
                     output.append(f"{input_file_path}|{original_text}|{language.upper()}|{asr_text}")
 
                 except:
-                    print(traceback.format_exc())
+                    logger.error(traceback.format_exc())
 
     # 创建或打开指定的输出目录
     output_folder = output_folder or "output/asr_opt"
@@ -67,7 +68,7 @@ def execute_asr_multi_level_dir(input_folder, output_folder, model_size, languag
     # 将输出写入文件
     with open(output_file_path, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-        print(f"ASR 任务完成->标注文件路径: {output_file_path}\n")
+        logger.info(f"ASR 任务完成->标注文件路径: {output_file_path}\n")
 
     return output_file_path
 

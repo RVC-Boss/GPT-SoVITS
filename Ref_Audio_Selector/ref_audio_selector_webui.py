@@ -60,7 +60,7 @@ def convert_from_list(text_work_space_dir, text_role, text_list_input):
 
         # audio_similarity.convert_from_list(text_list_input, ref_audio_all)
     except Exception as e:
-        traceback.print_exc()
+        logger.error("发生异常: \n%s", traceback.format_exc())
         text_convert_from_list_info = f"发生异常：{e}"
         text_sample_dir = ''
     return i18n(text_convert_from_list_info), text_sample_dir
@@ -83,7 +83,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
         cmd += f' -c "{sample_dir}"'
         cmd += f' -o {similarity_file}'
 
-        print(cmd)
+        logger.info(cmd)
         p_similarity = Popen(cmd, shell=True)
         p_similarity.wait()
 
@@ -136,7 +136,7 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
         audio_similarity.sample(ref_audio_dir, similarity_list, int(text_subsection_num), int(text_sample_num))
 
     except Exception as e:
-        traceback.print_exc()
+        logger.error("发生异常: \n%s", traceback.format_exc())
         text_sample_info = f"发生异常：{e}"
         ref_audio_dir = ''
     text_model_inference_voice_dir = ref_audio_dir
@@ -191,7 +191,7 @@ def model_inference(text_work_space_dir, text_role, text_model_inference_voice_d
         # audio_inference.generate_audio_files(url_composer, text_list, ref_audio_manager.get_ref_audio_list(),
         #                                      inference_dir)
     except Exception as e:
-        traceback.print_exc()
+        logger.error("发生异常: \n%s", traceback.format_exc())
         text_model_inference_info = f"发生异常：{e}"
         text_asr_audio_dir = ''
     return i18n(text_model_inference_info), text_asr_audio_dir, text_asr_audio_dir
@@ -226,7 +226,7 @@ def asr(text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
         text_text_similarity_analysis_path = asr_file
         text_asr_info = f"耗时：{time_consuming:0.1f}秒；asr成功：生成文件{asr_file}"
     except Exception as e:
-        traceback.print_exc()
+        logger.error("发生异常: \n%s", traceback.format_exc())
         text_asr_info = f"发生异常：{e}"
         text_text_similarity_analysis_path = ''
     return i18n(text_asr_info), text_text_similarity_analysis_path
@@ -248,7 +248,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
         cmd += f' -l {asr_lang}'
         cmd += " -p %s" % ("float16" if is_half == True else "float32")
 
-        print(cmd)
+        logger.info(cmd)
         p_asr = Popen(cmd, shell=True)
         p_asr.wait()
         p_asr = None
@@ -284,7 +284,7 @@ def text_similarity_analysis(text_work_space_dir, text_role,
 
         # open_text_similarity_analysis(text_text_similarity_analysis_path, similarity_dir)
     except Exception as e:
-        traceback.print_exc()
+        logger.error("发生异常: \n%s", traceback.format_exc())
         text_text_similarity_analysis_info = f"发生异常：{e}"
     return i18n(text_text_similarity_analysis_info)
 
@@ -297,7 +297,7 @@ def open_text_similarity_analysis(asr_file_path, output_dir, similarity_enlarge_
         cmd += f' -o "{output_dir}"'
         cmd += f' -b {similarity_enlarge_boundary}'
 
-        print(cmd)
+        logger.info(cmd)
         p_text_similarity = Popen(cmd, shell=True)
         p_text_similarity.wait()
         p_text_similarity = None
@@ -335,7 +335,7 @@ def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path
         text_similarity_audio_output_info = f'耗时：{time_consuming:0.1f}秒；相似度分析成功：生成目录{similarity_file_dir}，文件{similarity_file}'
 
     except Exception as e:
-        traceback.print_exc()
+        logger.error("发生异常: \n%s", traceback.format_exc())
         text_similarity_audio_output_info = f"发生异常：{e}"
     return i18n(text_similarity_audio_output_info)
 
@@ -361,7 +361,7 @@ def sync_ref_audio(text_work_space_dir, text_role, text_sync_ref_audio_dir,
         text_sync_ref_audio_info = (f"耗时：{time_consuming:0.1f}秒；推理音频目录{text_sync_inference_audio_dir}下，"
                                     f"text目录删除了{delete_text_wav_num}个参考音频，emotion目录下，删除了{delete_emotion_dir_num}个目录")
     except Exception as e:
-        traceback.print_exc()
+        logger.error("发生异常: \n%s", traceback.format_exc())
         text_sync_ref_audio_info = f"发生异常：{e}"
     return i18n(text_sync_ref_audio_info)
 
@@ -392,7 +392,7 @@ def create_config(text_work_space_dir, text_role, text_template, text_sync_ref_a
         text_create_config_info = f"耗时：{time_consuming:0.1f}秒；配置生成成功：生成文件{config_file}"
 
     except Exception as e:
-        traceback.print_exc()
+        logger.error("发生异常: \n%s", traceback.format_exc())
         text_create_config_info = f"发生异常：{e}"
     return i18n(text_create_config_info)
 
