@@ -1,11 +1,19 @@
+import time
 import os
 import requests
 import itertools
+import multiprocessing
+from multiprocessing import Pool
+from concurrent.futures import ProcessPoolExecutor
+import numpy as np
 import Ref_Audio_Selector.config_param.config_params as params
 from Ref_Audio_Selector.common.time_util import timeit_decorator
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
-from Ref_Audio_Selector.config_param.log_config import logger
+from Ref_Audio_Selector.config_param.log_config import logger, p_logger
 
+
+# 假设手动指定端口范围为9400-9500
+available_ports = list(range(9400, 9500))
 
 class URLComposer:
     def __init__(self, base_url, emotion_param_name, text_param_name, ref_path_param_name, ref_text_param_name):
@@ -74,8 +82,24 @@ def safe_encode_query_params(original_url):
     return encoded_url
 
 
-@timeit_decorator
-def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path):
+def generate_audio_files_parallel(url_composer, text_list, emotion_list, output_dir_path, num_processes=None):
+    if num_processes is None:
+        num_processes = multiprocessing.cpu_count()
+
+    num_processes = min(num_processes, len(available_ports))  # 限制进程数不超过可用端口数
+
+    # 将emotion_list均匀分成num_processes个子集
+    emotion_groups = np.array_split(emotion_list, num_processes)
+
+    with ProcessPoolExecutor(max_workers=num_processes) as executor:
+        futures = [executor.submit(generate_audio_files_for_emotion_group, url_composer, text_list, group, output_dir_path)
+                   for group in emotion_groups]
+        for future in futures:
+            future.result()  # 等待所有进程完成
+
+
+def generate_audio_files_for_emotion_group(url_composer, text_list, emotion_list, output_dir_path):
+    start_time = time.perf_counter()  # 使用 perf_counter 获取高精度计时起点
     # Ensure the output directory exists
     output_dir = os.path.abspath(output_dir_path)
     os.makedirs(output_dir, exist_ok=True)
@@ -108,7 +132,7 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
         # 检查是否已经存在对应的音频文件，如果存在则跳过
         if os.path.exists(text_subdir_text_file_path) and os.path.exists(emotion_subdir_emotion_file_path):
             has_generated_count += 1
-            logger.info(f"进度: {has_generated_count}/{all_count}")
+            logger.info(f"进程ID: {os.getpid()}, 进度: {has_generated_count}/{all_count}")
             continue
 
         if url_composer.is_emotion():
@@ -126,6 +150,11 @@ def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path)
 
         has_generated_count += 1
         logger.info(f"进度: {has_generated_count}/{all_count}")
+    end_time = time.perf_counter()  # 获取计时终点
+    elapsed_time = end_time - start_time  # 计算执行耗时
+    # 记录日志内容
+    log_message = f"进程ID: {os.getpid()}, generate_audio_files_for_emotion_group 执行耗时: {elapsed_time:.6f} 秒"
+    p_logger.info(log_message)
 
 
 def inference_audio_from_api(url):

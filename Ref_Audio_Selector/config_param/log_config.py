@@ -13,6 +13,7 @@ def create_general_logger():
     # 可以设置控制台输出的格式
     console_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(console_formatter)
+    console_handler.encoding = 'utf-8'  # 设置字符编码为utf-8
 
     # 创建一个用于常规日志的处理器
     general_handler = logging.FileHandler(f"{params.log_dir}/{current_date}.log", mode='a', encoding='utf-8')

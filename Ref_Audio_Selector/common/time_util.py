@@ -1,4 +1,5 @@
 import time
+import os
 from Ref_Audio_Selector.config_param.log_config import p_logger
 import Ref_Audio_Selector.config_param.config_params as params
 
@@ -26,7 +27,7 @@ def timeit_decorator(func):
         elapsed_time = end_time - start_time  # 计算执行耗时
 
         # 记录日志内容
-        log_message = f"{func.__name__} 执行耗时: {elapsed_time:.6f} 秒"
+        log_message = f"进程ID: {os.getpid()}, {func.__name__} 执行耗时: {elapsed_time:.6f} 秒"
         p_logger.info(log_message)
 
         return func_result
