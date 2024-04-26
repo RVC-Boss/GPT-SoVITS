@@ -28,7 +28,10 @@ def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path,
         # 改用torchaudio.transforms.Resample进行重采样，如果在非windows环境下，没有更改依赖包的采样方法的话，
         # 使用这段代码进行预采样会出现因为采样方法不同，而导致的模型相似度计算不准确的问题
         # 当然如果在windows下，使用了其他的采样方法，也会出现不准确的问题
-        reference_audio_16k = ensure_16k_wav(reference_audio_path)
+        if params.enable_pre_sample == 'true':
+            reference_audio_16k = ensure_16k_wav(reference_audio_path)
+        else:
+            reference_audio_16k = reference_audio_path
     else:
         reference_audio_16k = reference_audio_path
 

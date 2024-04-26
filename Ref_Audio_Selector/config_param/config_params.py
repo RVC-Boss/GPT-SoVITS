@@ -23,6 +23,8 @@ time_log_print_dir = config.get_log('time_log_print_dir')
 list_to_convert_reference_audio_dir = config.get_audio_sample('list_to_convert_reference_audio_dir')
 # 音频相似度目录
 audio_similarity_dir = config.get_audio_sample('audio_similarity_dir')
+# 是否开启基准音频预采样 true false
+enable_pre_sample = config.get_audio_sample('enable_pre_sample')
 
 # [Inference]
 # 默认测试文本位置
