@@ -3,6 +3,9 @@ import os
 import traceback
 
 import gradio as gr
+
+from Ref_Audio_Selector.config_param.log_config import logger
+
 import Ref_Audio_Selector.tool.audio_similarity as audio_similarity
 import Ref_Audio_Selector.tool.audio_inference as audio_inference
 import Ref_Audio_Selector.tool.audio_config as audio_config
@@ -10,7 +13,7 @@ import Ref_Audio_Selector.tool.delete_inference_with_ref as delete_inference_wit
 import Ref_Audio_Selector.common.common as common
 import Ref_Audio_Selector.config_param.config_params as params
 import Ref_Audio_Selector.common.time_util as time_util
-from Ref_Audio_Selector.config_param.log_config import logger
+
 from tools.i18n.i18n import I18nAuto
 from config import python_exec, is_half
 from tools import my_utils
@@ -515,7 +518,7 @@ with gr.Blocks() as app:
             button_asr = gr.Button(i18n("启动asr"), variant="primary")
             text_asr_info = gr.Text(label=i18n("asr结果"), value="", interactive=False)
         gr.Markdown(value=i18n("3.2：启动文本相似度分析"))
-        default_text_similarity_analysis_path = common.check_path_existence_and_return(os.path.join(default_base_dir, params.asr_filename))
+        default_text_similarity_analysis_path = common.check_path_existence_and_return(os.path.join(default_base_dir, params.asr_filename + '.list'))
         text_text_similarity_analysis_path = gr.Text(label=i18n("待分析的文件路径"), value=default_text_similarity_analysis_path, interactive=True)
         button_asr.click(asr, [text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
                                dropdown_asr_size, dropdown_asr_lang],
