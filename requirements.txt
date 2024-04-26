@@ -17,7 +17,7 @@ g2p_en
 torchaudio
 modelscope==1.10.0
 sentencepiece
-transformers=4.40.0
+transformers==4.39.3
 chardet
 PyYAML
 psutil
