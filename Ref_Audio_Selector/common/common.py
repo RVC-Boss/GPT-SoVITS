@@ -107,6 +107,18 @@ def write_text_to_file(text, output_file_path):
         logger.info(f"Text successfully written to file: {output_file_path}")
 
 
+def check_path_existence_and_return(path):
+    """
+    检查给定路径（文件或目录）是否存在。如果存在，返回该路径；否则，返回空字符串。
+    :param path: 待检查的文件或目录路径（字符串）
+    :return: 如果路径存在，返回原路径；否则，返回空字符串
+    """
+    if os.path.exists(path):
+        return path
+    else:
+        return ""
+
+
 if __name__ == '__main__':
     dir = r'C:\Users\Administrator\Desktop/test'
     dir2 = r'"C:\Users\Administrator\Desktop\test2"'
