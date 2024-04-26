@@ -1,8 +1,8 @@
 import argparse
 import os
-import soundfile as sf
 import torchaudio
 import torchaudio.transforms as T
+import platform
 import Ref_Audio_Selector.config_param.config_params as params
 from Ref_Audio_Selector.common.time_util import timeit_decorator
 
@@ -21,8 +21,15 @@ def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path,
     comparison_audio_paths = [os.path.join(comparison_dir_path, f) for f in os.listdir(comparison_dir_path) if
                               f.endswith('.wav')]
 
-    # 因为这个模型是基于16k音频数据训练的，为了避免后续比较时，每次都对参考音频进行重采样，所以，提前进行了采样
-    reference_audio_16k = ensure_16k_wav(reference_audio_path)
+    if platform.system() == 'Windows':
+        # 因为这个模型是基于16k音频数据训练的，为了避免后续比较时，每次都对参考音频进行重采样，所以，提前进行了采样
+        # windows不支持torchaudio.sox_effects.apply_effects_tensor，所以改写了依赖文件中的重采样方法
+        # 改用torchaudio.transforms.Resample进行重采样，如果在非windows环境下，没有更改依赖包的采样方法的话，
+        # 使用这段代码进行预采样会出现因为采样方法不同，而导致的模型相似度计算不准确的问题
+        # 当然如果在windows下，使用了其他的采样方法，也会出现不准确的问题
+        reference_audio_16k = ensure_16k_wav(reference_audio_path)
+    else:
+        reference_audio_16k = reference_audio_path
 
     # Step 2: 用参考音频依次比较音频目录下的每个音频，获取相似度分数及对应路径
     similarity_scores = []
@@ -71,6 +78,9 @@ def ensure_16k_wav(audio_file_path, target_sample_rate=16000):
 
         # 应用重采样
         resampled_waveform = resampler(waveform)
+
+        # 创建临时文件夹
+        os.makedirs(params.temp_dir, exist_ok=True)
 
         # 设置临时文件名
         temp_file_path = os.path.join(params.temp_dir, os.path.basename(audio_file_path))
