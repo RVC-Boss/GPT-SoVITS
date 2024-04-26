@@ -1,27 +1,31 @@
 import configparser
+import os
 import Ref_Audio_Selector.common.common as common
 
 
 class ParamReadWriteManager:
     def __init__(self):
-        self.work_dir_path = 'Ref_Audio_Selector/file/base_info/work_dir.txt'
-        self.role_path = 'Ref_Audio_Selector/file/base_info/role.txt'
+        self.base_dir = 'Ref_Audio_Selector/file/base_info'
+        self.work_dir = 'work_dir'
+        self.role = 'role'
+        self.generate_audio_url = 'generate_audio_url'
+        self.text_param = 'text_param'
+        self.ref_path_param = 'ref_path_param'
+        self.ref_text_param = 'ref_text_param'
+        self.emotion_param = 'emotion_param'
 
-    def read_work_dir(self):
-        content = common.read_file(self.work_dir_path)
-        return content.strip()
+    def read(self, key):
+        file_path = os.path.join(self.base_dir, key + '.txt')
+        if os.path.exists(file_path):
+            content = common.read_file(file_path)
+            return content.strip()
+        else:
+            return ''
 
-    def read_role(self):
-        content = common.read_file(self.role_path)
-        return content.strip()
-
-    def write_work_dir(self, work_dir_content):
-        clean_content = work_dir_content.strip()
-        common.write_text_to_file(clean_content, self.work_dir_path)
-
-    def write_role(self, role_content):
-        clean_content = role_content.strip()
-        common.write_text_to_file(clean_content, self.role_path)
+    def write(self, key, content):
+        file_path = os.path.join(self.base_dir, key + '.txt')
+        clean_content = content.strip()
+        common.write_text_to_file(clean_content, file_path)
 
 
 class ConfigManager:
