@@ -2,6 +2,7 @@ import os
 import argparse
 from collections import defaultdict
 from operator import itemgetter
+from Ref_Audio_Selector.common.time_util import timeit_decorator
 import Ref_Audio_Selector.tool.text_comparison.text_comparison as text_comparison
 import Ref_Audio_Selector.config_param.config_params as params
 import Ref_Audio_Selector.common.common as common
@@ -88,6 +89,7 @@ def format_list_to_text(data_list, output_filename):
                 output_file.write(formatted_line)
 
 
+@timeit_decorator
 def process(asr_file_path, output_dir, similarity_enlarge_boundary):
     # 检查输出目录是否存在，如果不存在则创建
     if not os.path.exists(output_dir):

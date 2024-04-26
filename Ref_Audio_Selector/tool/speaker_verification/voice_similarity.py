@@ -1,5 +1,6 @@
 import argparse
 import os
+from Ref_Audio_Selector.common.time_util import timeit_decorator
 
 from modelscope.pipelines import pipeline
 
@@ -10,6 +11,7 @@ sv_pipeline = pipeline(
 )
 
 
+@timeit_decorator
 def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path, output_file_path):
     # Step 1: 获取比较音频目录下所有音频文件的路径
     comparison_audio_paths = [os.path.join(comparison_dir_path, f) for f in os.listdir(comparison_dir_path) if

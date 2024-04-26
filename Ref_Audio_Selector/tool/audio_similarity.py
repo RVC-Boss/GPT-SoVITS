@@ -6,11 +6,9 @@ import librosa
 
 def check_audio_duration(path, min_duration=3, max_duration=10):
     try:
-        # 加载音频文件
-        audio, sample_rate = librosa.load(path)
 
-        # 计算音频的时长（单位：秒）
-        duration = librosa.get_duration(y=audio, sr=sample_rate)
+        # 直接计算音频文件的时长（单位：秒）
+        duration = librosa.get_duration(filename=path)
 
         # 判断时长是否在3s至10s之间
         if min_duration <= duration <= max_duration:

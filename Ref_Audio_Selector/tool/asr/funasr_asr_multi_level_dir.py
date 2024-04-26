@@ -4,6 +4,7 @@ import argparse
 import os
 import traceback
 import Ref_Audio_Selector.config_param.config_params as params
+from Ref_Audio_Selector.common.time_util import timeit_decorator
 from tqdm import tqdm
 from funasr import AutoModel
 
@@ -34,30 +35,7 @@ def only_asr(input_file):
     return text
 
 
-def execute_asr(input_folder, output_folder, model_size, language):
-    input_file_names = os.listdir(input_folder)
-    input_file_names.sort()
-
-    output = []
-    output_file_name = os.path.basename(input_folder)
-
-    for name in tqdm(input_file_names):
-        try:
-            text = model.generate(input="%s/%s" % (input_folder, name))[0]["text"]
-            output.append(f"{input_folder}/{name}|{output_file_name}|{language.upper()}|{text}")
-        except:
-            print(traceback.format_exc())
-
-    output_folder = output_folder or "output/asr_opt"
-    os.makedirs(output_folder, exist_ok=True)
-    output_file_path = os.path.abspath(f'{output_folder}/{output_file_name}.list')
-
-    with open(output_file_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(output))
-        print(f"ASR 任务完成->标注文件路径: {output_file_path}\n")
-    return output_file_path
-
-
+@timeit_decorator
 def execute_asr_multi_level_dir(input_folder, output_folder, model_size, language):
     output = []
     output_file_name = os.path.basename(input_folder)

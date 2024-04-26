@@ -3,6 +3,10 @@ import Ref_Audio_Selector.config_param.config_manager as config_manager
 config = config_manager.get_config()
 
 # [Base]
+# 函数时间消耗日志打印类型 file 打印到文件; close 关闭
+time_log_print_type = config.get_base('time_log_print_type')
+# 函数时间消耗日志保存目录路径
+time_log_print_dir = config.get_base('time_log_print_dir')
 # 参考音频目录
 reference_audio_dir = config.get_base('reference_audio_dir')
 

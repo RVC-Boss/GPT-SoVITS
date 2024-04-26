@@ -2,6 +2,7 @@ import os
 import requests
 import itertools
 import Ref_Audio_Selector.config_param.config_params as params
+from Ref_Audio_Selector.common.time_util import timeit_decorator
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
 
@@ -72,6 +73,7 @@ def safe_encode_query_params(original_url):
     return encoded_url
 
 
+@timeit_decorator
 def generate_audio_files(url_composer, text_list, emotion_list, output_dir_path):
     # Ensure the output directory exists
     output_dir = os.path.abspath(output_dir_path)

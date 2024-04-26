@@ -9,6 +9,8 @@ import Ref_Audio_Selector.tool.audio_config as audio_config
 import Ref_Audio_Selector.tool.delete_inference_with_ref as delete_inference_with_ref
 import Ref_Audio_Selector.common.common as common
 import Ref_Audio_Selector.config_param.config_params as params
+import Ref_Audio_Selector.common.time_util as time_util
+from Ref_Audio_Selector.config_param.log_config import logger
 from tools.i18n.i18n import I18nAuto
 from config import python_exec, is_half
 from tools import my_utils
@@ -16,11 +18,11 @@ from tools.asr.config import asr_dict
 from subprocess import Popen
 
 i18n = I18nAuto()
+rw_param = params.config_manager.get_rw_param()
 
 p_similarity = None
 p_asr = None
 p_text_similarity = None
-rw_param = params.config_manager.get_rw_param()
 
 
 # 校验基础信息
@@ -50,10 +52,13 @@ def convert_from_list(text_work_space_dir, text_role, text_list_input):
 
         ref_audio_all = os.path.join(base_role_dir,
                                      params.list_to_convert_reference_audio_dir)
-        text_convert_from_list_info = f"转换成功：生成目录{ref_audio_all}"
+
+        time_consuming, _ = time_util.time_monitor(audio_similarity.convert_from_list)(text_list_input, ref_audio_all)
+
+        text_convert_from_list_info = f"耗时：{time_consuming:0.1f}秒；转换成功：生成目录{ref_audio_all}"
         text_sample_dir = ref_audio_all
 
-        audio_similarity.convert_from_list(text_list_input, ref_audio_all)
+        # audio_similarity.convert_from_list(text_list_input, ref_audio_all)
     except Exception as e:
         traceback.print_exc()
         text_convert_from_list_info = f"发生异常：{e}"
@@ -113,10 +118,17 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
             raise Exception("每段随机抽样个数不能为空")
 
         ref_audio_dir = os.path.join(base_role_dir, params.reference_audio_dir)
-        text_sample_info = f"抽样成功：生成目录{ref_audio_dir}"
 
-        similarity_list, _, _ = start_similarity_analysis(base_role_dir, text_sample_dir,
-                                                          text_base_voice_path, checkbox_similarity_output)
+        time_consuming, similarity_list, _, _ = (
+            time_util.time_monitor(start_similarity_analysis)(base_role_dir,
+                                                              text_sample_dir,
+                                                              text_base_voice_path,
+                                                              checkbox_similarity_output))
+
+        text_sample_info = f"耗时：{time_consuming:0.1f}秒；抽样成功：生成目录{ref_audio_dir}"
+
+        # similarity_list, _, _ = start_similarity_analysis(base_role_dir, text_sample_dir,
+        #                                                   text_base_voice_path, checkbox_similarity_output)
 
         if similarity_list is None:
             raise Exception("相似度分析失败")
@@ -136,9 +148,9 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
 # 根据参考音频和测试文本，执行批量推理
 def model_inference(text_work_space_dir, text_role, text_model_inference_voice_dir, text_url,
                     text_text, text_ref_path, text_ref_text, text_emotion,
-                    text_test_content):
-    text_work_space_dir, text_model_inference_voice_dir, text_test_content \
-        = common.batch_clean_paths([text_work_space_dir, text_model_inference_voice_dir, text_test_content])
+                    text_test_content_dir):
+    text_work_space_dir, text_model_inference_voice_dir, text_test_content_dir \
+        = common.batch_clean_paths([text_work_space_dir, text_model_inference_voice_dir, text_test_content_dir])
 
     inference_dir = None
     text_asr_audio_dir = None
@@ -151,7 +163,7 @@ def model_inference(text_work_space_dir, text_role, text_model_inference_voice_d
             raise Exception("推理服务请求地址不能为空")
         if text_text is None or text_text == '':
             raise Exception("文本参数名不能为空")
-        if text_test_content is None or text_test_content == '':
+        if text_test_content_dir is None or text_test_content_dir == '':
             raise Exception("待推理文本路径不能为空")
         if (text_ref_path is None or text_ref_path == '') and (text_ref_text is None or text_ref_text == '') and (
                 text_emotion is None or text_emotion == ''):
@@ -160,18 +172,24 @@ def model_inference(text_work_space_dir, text_role, text_model_inference_voice_d
         inference_dir = os.path.join(base_role_dir, params.inference_audio_dir)
         text_asr_audio_dir = os.path.join(inference_dir,
                                           params.inference_audio_text_aggregation_dir)
-        text_model_inference_info = f"推理成功：生成目录{inference_dir}"
 
         url_composer = audio_inference.URLComposer(text_url, text_emotion, text_text, text_ref_path, text_ref_text)
         url_composer.is_valid()
-        text_list = common.read_text_file_to_list(text_test_content)
+        text_list = common.read_text_file_to_list(text_test_content_dir)
         if text_list is None or len(text_list) == 0:
             raise Exception("待推理文本内容不能为空")
         ref_audio_manager = common.RefAudioListManager(text_model_inference_voice_dir)
         if len(ref_audio_manager.get_audio_list()) == 0:
             raise Exception("待推理的参考音频不能为空")
-        audio_inference.generate_audio_files(url_composer, text_list, ref_audio_manager.get_ref_audio_list(),
-                                             inference_dir)
+
+        time_consuming, _ = time_util.time_monitor(audio_inference.generate_audio_files)(url_composer, text_list,
+                                                                                         ref_audio_manager.get_ref_audio_list(),
+                                                                                         inference_dir)
+
+        text_model_inference_info = f"耗时：{time_consuming:0.1f}秒；推理成功：生成目录{inference_dir}"
+
+        # audio_inference.generate_audio_files(url_composer, text_list, ref_audio_manager.get_ref_audio_list(),
+        #                                      inference_dir)
     except Exception as e:
         traceback.print_exc()
         text_model_inference_info = f"发生异常：{e}"
@@ -198,10 +216,15 @@ def asr(text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
             raise Exception("asr模型大小不能为空")
         if dropdown_asr_lang is None or dropdown_asr_lang == '':
             raise Exception("asr语言不能为空")
-        asr_file = open_asr(text_asr_audio_dir, base_role_dir, dropdown_asr_model, dropdown_asr_size,
-                            dropdown_asr_lang)
+
+        time_consuming, asr_file = time_util.time_monitor(open_asr)(text_asr_audio_dir, base_role_dir,
+                                                                    dropdown_asr_model, dropdown_asr_size,
+                                                                    dropdown_asr_lang)
+
+        # asr_file = open_asr(text_asr_audio_dir, base_role_dir, dropdown_asr_model, dropdown_asr_size,
+        #                     dropdown_asr_lang)
         text_text_similarity_analysis_path = asr_file
-        text_asr_info = f"asr成功：生成文件{asr_file}"
+        text_asr_info = f"耗时：{time_consuming:0.1f}秒；asr成功：生成文件{asr_file}"
     except Exception as e:
         traceback.print_exc()
         text_asr_info = f"发生异常：{e}"
@@ -253,8 +276,13 @@ def text_similarity_analysis(text_work_space_dir, text_role,
         if text_text_similarity_analysis_path is None or text_text_similarity_analysis_path == '':
             raise Exception("asr生成的文件路径不能为空，请先完成上一步操作")
         similarity_dir = os.path.join(base_role_dir, params.text_similarity_output_dir)
-        text_text_similarity_analysis_info = f"相似度分析成功：生成目录{similarity_dir}"
-        open_text_similarity_analysis(text_text_similarity_analysis_path, similarity_dir)
+
+        time_consuming, _ = time_util.time_monitor(open_text_similarity_analysis)(text_text_similarity_analysis_path,
+                                                                                  similarity_dir)
+
+        text_text_similarity_analysis_info = f"耗时：{time_consuming:0.1f}秒；相似度分析成功：生成目录{similarity_dir}"
+
+        # open_text_similarity_analysis(text_text_similarity_analysis_path, similarity_dir)
     except Exception as e:
         traceback.print_exc()
         text_text_similarity_analysis_info = f"发生异常：{e}"
@@ -293,13 +321,18 @@ def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path
             raise Exception("基准音频路径不能为空")
         if text_compare_audio_dir is None or text_compare_audio_dir == '':
             raise Exception("待分析的音频所在目录不能为空")
-        similarity_list, similarity_file, similarity_file_dir = start_similarity_analysis(
-            base_role_dir, text_compare_audio_dir, text_base_audio_path, True)
+
+        time_consuming, similarity_list, similarity_file, similarity_file_dir \
+            = time_util.time_monitor(start_similarity_analysis)(base_role_dir,
+                                                                text_compare_audio_dir, text_base_audio_path, True)
+
+        # similarity_list, similarity_file, similarity_file_dir = start_similarity_analysis(
+        #     base_role_dir, text_compare_audio_dir, text_base_audio_path, True)
 
         if similarity_list is None:
             raise Exception("相似度分析失败")
 
-        text_similarity_audio_output_info = f'相似度分析成功：生成目录{similarity_file_dir}，文件{similarity_file}'
+        text_similarity_audio_output_info = f'耗时：{time_consuming:0.1f}秒；相似度分析成功：生成目录{similarity_file_dir}，文件{similarity_file}'
 
     except Exception as e:
         traceback.print_exc()
@@ -320,9 +353,13 @@ def sync_ref_audio(text_work_space_dir, text_role, text_sync_ref_audio_dir,
             raise Exception("参考音频目录不能为空")
         if text_sync_inference_audio_dir is None or text_sync_inference_audio_dir == '':
             raise Exception("推理生成的音频目录不能为空")
-        delete_text_wav_num, delete_emotion_dir_num = delete_inference_with_ref.sync_ref_audio(text_sync_ref_audio_dir,
-                                                                                               text_sync_inference_audio_dir)
-        text_sync_ref_audio_info = f"推理音频目录{text_sync_inference_audio_dir}下，text目录删除了{delete_text_wav_num}个参考音频，emotion目录下，删除了{delete_emotion_dir_num}个目录"
+        time_consuming, delete_text_wav_num, delete_emotion_dir_num \
+            = time_util.time_monitor(delete_inference_with_ref.sync_ref_audio)(text_sync_ref_audio_dir,
+                                                                               text_sync_inference_audio_dir)
+        # delete_text_wav_num, delete_emotion_dir_num = delete_inference_with_ref.sync_ref_audio(
+        # text_sync_ref_audio_dir, text_sync_inference_audio_dir)
+        text_sync_ref_audio_info = (f"耗时：{time_consuming:0.1f}秒；推理音频目录{text_sync_inference_audio_dir}下，"
+                                    f"text目录删除了{delete_text_wav_num}个参考音频，emotion目录下，删除了{delete_emotion_dir_num}个目录")
     except Exception as e:
         traceback.print_exc()
         text_sync_ref_audio_info = f"发生异常：{e}"
@@ -343,10 +380,17 @@ def create_config(text_work_space_dir, text_role, text_template, text_sync_ref_a
         if text_sync_ref_audio_dir2 is None or text_sync_ref_audio_dir2 == '':
             raise Exception("参考音频目录不能为空")
         config_file = os.path.join(base_role_dir, f'{params.reference_audio_config_filename}.json')
-        text_create_config_info = f"配置生成成功：生成文件{config_file}"
         ref_audio_manager = common.RefAudioListManager(text_sync_ref_audio_dir2)
-        audio_config.generate_audio_config(base_role_dir, text_template, ref_audio_manager.get_ref_audio_list(),
-                                           config_file)
+
+        time_consuming, _ = time_util.time_monitor(audio_config.generate_audio_config)(base_role_dir, text_template,
+                                                                                       ref_audio_manager.get_ref_audio_list(),
+                                                                                       config_file)
+
+        # audio_config.generate_audio_config(base_role_dir, text_template, ref_audio_manager.get_ref_audio_list(),
+        #                                    config_file)
+
+        text_create_config_info = f"耗时：{time_consuming:0.1f}秒；配置生成成功：生成文件{config_file}"
+
     except Exception as e:
         traceback.print_exc()
         text_create_config_info = f"发生异常：{e}"
@@ -514,7 +558,8 @@ with gr.Blocks() as app:
     button_model_inference.click(model_inference,
                                  [text_work_space_dir, text_role, text_model_inference_voice_dir, text_url,
                                   text_text, text_ref_path, text_ref_text, text_emotion,
-                                  text_test_content], [text_model_inference_info, text_asr_audio_dir, text_sync_inference_audio_dir])
+                                  text_test_content],
+                                 [text_model_inference_info, text_asr_audio_dir, text_sync_inference_audio_dir])
 
 app.launch(
     server_port=9423,
