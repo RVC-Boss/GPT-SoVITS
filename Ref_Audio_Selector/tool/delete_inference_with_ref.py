@@ -7,46 +7,40 @@ from Ref_Audio_Selector.config_param.log_config import logger
 
 def remove_matching_audio_files_in_text_dir(text_dir, emotions_list):
     count = 0
+    emotions = [item['emotion'] for item in emotions_list]
     for root, dirs, files in os.walk(text_dir):
-        for emotion_dict in emotions_list:
-            emotion_tag = emotion_dict['emotion']
-            wav_file_name = f"{emotion_tag}.wav"
-            file_path = os.path.join(root, wav_file_name)
-            if not os.path.exists(file_path):
-                logger.info(f"Deleting file: {file_path}")
-                try:
-                    os.remove(file_path)
-                    count += 1
-                except Exception as e:
-                    logger.error(f"Error deleting file {file_path}: {e}")
+        for file in files:
+            if file.endswith(".wav"):
+                emotion_tag = os.path.basename(file)[:-4]
+                if emotion_tag not in emotions:
+                    file_path = os.path.join(root, file)
+                    logger.info(f"Deleting file: {file_path}")
+                    try:
+                        os.remove(file_path)
+                        count += 1
+                    except Exception as e:
+                        logger.error(f"Error deleting file {file_path}: {e}")
+
     return count
 
 
 def delete_emotion_subdirectories(emotion_dir, emotions_list):
-    """
-    根据给定的情绪数组，删除emotion目录下对应情绪标签的子目录。
-
-    参数:
-    emotions_list (List[Dict]): 每个字典包含'emotion'字段。
-    base_dir (str): 子目录所在的基础目录，默认为'emotion')。
-
-    返回:
-    None
-    """
     count = 0
-    for emotion_dict in emotions_list:
-        emotion_folder = emotion_dict['emotion']
-        folder_path = os.path.join(emotion_dir, emotion_folder)
 
-        # 检查emotion子目录是否存在
-        if not os.path.isdir(folder_path):
-            logger.info(f"Deleting directory: {folder_path}")
-            try:
-                # 使用shutil.rmtree删除整个子目录及其内容
-                shutil.rmtree(folder_path)
-                count += 1
-            except Exception as e:
-                logger.error(f"Error deleting directory {folder_path}: {e}")
+    emotions = [item['emotion'] for item in emotions_list]
+
+    for entry in os.listdir(emotion_dir):
+        entry_path = os.path.join(emotion_dir, entry)
+        if os.path.isdir(entry_path):
+            if entry not in emotions:
+                logger.info(f"Deleting directory: {entry_path}")
+                try:
+                    # 使用shutil.rmtree删除整个子目录及其内容
+                    shutil.rmtree(entry_path)
+                    count += 1
+                except Exception as e:
+                    logger.error(f"Error deleting directory {entry_path}: {e}")
+
     return count
 
 

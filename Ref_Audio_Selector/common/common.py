@@ -1,5 +1,4 @@
 from tools import my_utils
-import Ref_Audio_Selector.config_param.log_config as log_config
 import os
 
 
@@ -102,9 +101,9 @@ def write_text_to_file(text, output_file_path):
         with open(output_file_path, 'w', encoding='utf-8') as file:
             file.write(text)
     except IOError as e:
-        log_config.logger.info(f"Error occurred while writing to the file: {e}")
+        print(f"Error occurred while writing to the file: {e}")
     else:
-        log_config.logger.info(f"Text successfully written to file: {output_file_path}")
+        print(f"Text successfully written to file: {output_file_path}")
 
 
 def check_path_existence_and_return(path):

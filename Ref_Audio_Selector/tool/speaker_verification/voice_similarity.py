@@ -4,8 +4,8 @@ import torchaudio
 import torchaudio.transforms as T
 import platform
 import Ref_Audio_Selector.config_param.config_params as params
+import Ref_Audio_Selector.config_param.log_config as log_config
 from Ref_Audio_Selector.common.time_util import timeit_decorator
-from Ref_Audio_Selector.config_param.log_config import logger
 
 from modelscope.pipelines import pipeline
 
@@ -46,7 +46,7 @@ def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path,
             'path': audio_path
         })
         has_processed_count += 1
-        logger.info(f'进度：{has_processed_count}/{all_count}')
+        log_config.logger.info(f'进度：{has_processed_count}/{all_count}')
 
     # Step 3: 根据相似度分数降序排列
     similarity_scores.sort(key=lambda x: x['score'], reverse=True)

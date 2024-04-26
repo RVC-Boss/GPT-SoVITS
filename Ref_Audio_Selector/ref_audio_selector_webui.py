@@ -90,8 +90,9 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
         p_similarity = Popen(cmd, shell=True)
         p_similarity.wait()
 
+        similarity_list = audio_similarity.parse_similarity_file(similarity_file)
+
         if need_similarity_output:
-            similarity_list = audio_similarity.parse_similarity_file(similarity_file)
             similarity_file_dir = os.path.join(similarity_dir, base_voice_file_name)
             audio_similarity.copy_and_move(similarity_file_dir, similarity_list)
 
@@ -122,11 +123,9 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
 
         ref_audio_dir = os.path.join(base_role_dir, params.reference_audio_dir)
 
-        time_consuming, similarity_list, _, _ = (
-            time_util.time_monitor(start_similarity_analysis)(base_role_dir,
-                                                              text_sample_dir,
-                                                              text_base_voice_path,
-                                                              checkbox_similarity_output))
+        time_consuming, (similarity_list, _, _) \
+            = time_util.time_monitor(start_similarity_analysis)(base_role_dir, text_sample_dir, text_base_voice_path,
+                                                                checkbox_similarity_output)
 
         text_sample_info = f"耗时：{time_consuming:0.1f}秒；抽样成功：生成目录{ref_audio_dir}"
 
@@ -197,7 +196,7 @@ def model_inference(text_work_space_dir, text_role, text_model_inference_voice_d
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_model_inference_info = f"发生异常：{e}"
         text_asr_audio_dir = ''
-    return i18n(text_model_inference_info), text_asr_audio_dir, text_asr_audio_dir
+    return i18n(text_model_inference_info), text_asr_audio_dir, inference_dir
 
 
 # 对推理生成音频执行asr
@@ -325,7 +324,7 @@ def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path
         if text_compare_audio_dir is None or text_compare_audio_dir == '':
             raise Exception("待分析的音频所在目录不能为空")
 
-        time_consuming, similarity_list, similarity_file, similarity_file_dir \
+        time_consuming, (similarity_list, similarity_file, similarity_file_dir) \
             = time_util.time_monitor(start_similarity_analysis)(base_role_dir,
                                                                 text_compare_audio_dir, text_base_audio_path, True)
 
@@ -356,13 +355,13 @@ def sync_ref_audio(text_work_space_dir, text_role, text_sync_ref_audio_dir,
             raise Exception("参考音频目录不能为空")
         if text_sync_inference_audio_dir is None or text_sync_inference_audio_dir == '':
             raise Exception("推理生成的音频目录不能为空")
-        time_consuming, delete_text_wav_num, delete_emotion_dir_num \
+        time_consuming, (delete_text_wav_num, delete_emotion_dir_num) \
             = time_util.time_monitor(delete_inference_with_ref.sync_ref_audio)(text_sync_ref_audio_dir,
                                                                                text_sync_inference_audio_dir)
         # delete_text_wav_num, delete_emotion_dir_num = delete_inference_with_ref.sync_ref_audio(
         # text_sync_ref_audio_dir, text_sync_inference_audio_dir)
         text_sync_ref_audio_info = (f"耗时：{time_consuming:0.1f}秒；推理音频目录{text_sync_inference_audio_dir}下，"
-                                    f"text目录删除了{delete_text_wav_num}个参考音频，emotion目录下，删除了{delete_emotion_dir_num}个目录")
+                                    f"text目录删除了{delete_text_wav_num}个推理音频，emotion目录下，删除了{delete_emotion_dir_num}个目录")
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_sync_ref_audio_info = f"发生异常：{e}"
@@ -462,7 +461,7 @@ with gr.Blocks() as app:
         text_role = gr.Text(label=i18n("角色名称"), value=default_role)
         text_work_space_dir.input(save_work_dir, [text_work_space_dir, text_role], [text_role])
         text_role.input(save_role, [text_role], [])
-    with gr.Accordion(label=i18n("第一步：基于训练素材，生成待选参考音频列表"), open=False):
+    with gr.Tab(label=i18n("第一步：基于训练素材，生成待选参考音频列表"), open=False):
         gr.Markdown(value=i18n("1.1：选择list文件，并提取3-10秒的素材作为参考候选"))
         text_list_input = gr.Text(label=i18n("请输入list文件路径"), value="")
         with gr.Row():
@@ -482,7 +481,7 @@ with gr.Blocks() as app:
         with gr.Row():
             button_sample = gr.Button(i18n("开始分段随机抽样"), variant="primary")
             text_sample_info = gr.Text(label=i18n("分段随机抽样结果"), value="", interactive=False)
-    with gr.Accordion(label=i18n("第二步：基于参考音频和测试文本，执行批量推理"), open=False):
+    with gr.Tab(label=i18n("第二步：基于参考音频和测试文本，执行批量推理"), open=False):
         gr.Markdown(value=i18n("2.1：配置推理服务参数信息，参考音频路径/文本和角色情绪二选一，如果是角色情绪，需要先执行第四步，"
                                "将参考音频打包配置到推理服务下，在推理前，请确认完整请求地址是否与正常使用时的一致，包括角色名称，尤其是文本分隔符是否正确"))
         default_model_inference_voice_dir = common.check_path_existence_and_return(
@@ -521,7 +520,7 @@ with gr.Blocks() as app:
         with gr.Row():
             button_model_inference = gr.Button(i18n("开启批量推理"), variant="primary")
             text_model_inference_info = gr.Text(label=i18n("批量推理结果"), value="", interactive=False)
-    with gr.Accordion(label=i18n("第三步：进行参考音频效果校验与筛选"), open=False):
+    with gr.Tab(label=i18n("第三步：进行参考音频效果校验与筛选"), open=False):
         gr.Markdown(value=i18n("3.1：启动asr，获取推理音频文本"))
         default_asr_audio_dir = common.check_path_existence_and_return(
             os.path.join(default_base_dir, params.inference_audio_dir, params.inference_audio_text_aggregation_dir))
@@ -587,7 +586,7 @@ with gr.Blocks() as app:
             text_sync_ref_info = gr.Text(label=i18n("同步结果"), value="", interactive=False)
             button_sync_ref_audio.click(sync_ref_audio, [text_work_space_dir, text_role, text_sync_ref_audio_dir,
                                                          text_sync_inference_audio_dir], [text_sync_ref_info])
-    with gr.Accordion("第四步：生成参考音频配置文本", open=False):
+    with gr.Tab("第四步：生成参考音频配置文本", open=False):
         gr.Markdown(value=i18n("4.1：编辑模板"))
         default_template_path = params.default_template_path
         default_template_content = common.read_file(default_template_path)
