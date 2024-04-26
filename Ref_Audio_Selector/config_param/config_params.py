@@ -9,6 +9,8 @@ time_log_print_type = config.get_base('time_log_print_type')
 time_log_print_dir = config.get_base('time_log_print_dir')
 # 参考音频目录
 reference_audio_dir = config.get_base('reference_audio_dir')
+# 临时文件目录
+temp_dir = config.get_base('temp_dir')
 
 # [AudioSample]
 # list转换待选参考音频目录
