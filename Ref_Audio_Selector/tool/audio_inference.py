@@ -12,9 +12,6 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 from Ref_Audio_Selector.config_param.log_config import logger, p_logger
 
 
-# 假设手动指定端口范围为9400-9500
-available_ports = list(range(9400, 9500))
-
 class URLComposer:
     def __init__(self, base_url, emotion_param_name, text_param_name, ref_path_param_name, ref_text_param_name):
         self.base_url = base_url
@@ -85,8 +82,6 @@ def safe_encode_query_params(original_url):
 def generate_audio_files_parallel(url_composer, text_list, emotion_list, output_dir_path, num_processes=None):
     if num_processes is None:
         num_processes = multiprocessing.cpu_count()
-
-    num_processes = min(num_processes, len(available_ports))  # 限制进程数不超过可用端口数
 
     # 将emotion_list均匀分成num_processes个子集
     emotion_groups = np.array_split(emotion_list, num_processes)
