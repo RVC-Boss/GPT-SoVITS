@@ -1,4 +1,5 @@
 import logging
+import os
 import datetime
 import Ref_Audio_Selector.config_param.config_params as params
 
@@ -14,6 +15,8 @@ def create_general_logger():
     console_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(console_formatter)
     console_handler.encoding = 'utf-8'  # 设置字符编码为utf-8
+
+    os.makedirs(params.log_dir, exist_ok=True)
 
     # 创建一个用于常规日志的处理器
     general_handler = logging.FileHandler(f"{params.log_dir}/{current_date}.log", mode='a', encoding='utf-8')
@@ -37,6 +40,9 @@ def create_general_logger():
 def create_performance_logger():
     # 获取当前日期，用于文件名和日志内容
     current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+
+    os.makedirs(params.time_log_print_dir, exist_ok=True)
+
     # 创建一个专用于性能监控日志的处理器
     performance_handler = logging.FileHandler(
         f"{params.time_log_print_dir}/{current_date}.log", mode='a', encoding='utf-8')
