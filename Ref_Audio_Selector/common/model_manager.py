@@ -19,16 +19,16 @@ def custom_sort_key(s):
 
 def get_gpt_model_names():
     gpt_names = [pretrained_gpt_name]
-    for name in os.listdir(SoVITS_weight_root):
-        if name.endswith(".ckpt"): gpt_names.append("%s/%s" % (SoVITS_weight_root, name))
+    for name in os.listdir(GPT_weight_root):
+        if name.endswith(".ckpt"): gpt_names.append("%s/%s" % (GPT_weight_root, name))
     sorted(gpt_names, key=custom_sort_key)
     return gpt_names
 
 
 def get_sovits_model_names():
     sovits_names = [pretrained_sovits_name]
-    for name in os.listdir(GPT_weight_root):
-        if name.endswith(".pth"): sovits_names.append("%s/%s" % (GPT_weight_root, name))
+    for name in os.listdir(SoVITS_weight_root):
+        if name.endswith(".pth"): sovits_names.append("%s/%s" % (SoVITS_weight_root, name))
     sorted(sovits_names, key=custom_sort_key)
     return sovits_names
 
