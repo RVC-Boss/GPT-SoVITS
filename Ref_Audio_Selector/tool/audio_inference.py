@@ -202,7 +202,7 @@ def inference_audio_from_api(url):
 
 
 def start_api_set_model(set_model_url_composer, gpt_models, sovits_models):
-    url, post_body = set_model_url_composer.build_post_url(gpt_models, sovits_models)
+    url, post_body = set_model_url_composer.build_post_url([gpt_models, sovits_models], True)
     logger.info(f'set_model_url_composer url: {set_model_url_composer}')
     logger.info(f'start_api_set_model url: {url}')
     logger.info(f'start_api_set_model post_body: {post_body}')
