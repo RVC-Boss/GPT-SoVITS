@@ -70,7 +70,7 @@ def remove_low_similarity_files(ref_audio_list, report_list, audio_text_similari
 
 def delete_ref_audio_below_boundary(ref_audio_path, text_similarity_result_path, sync_inference_audio_dir,
                                     audio_text_similarity_boundary):
-    ref_audio_list = common.RefAudioListManager(ref_audio_path)
+    ref_audio_list = common.RefAudioListManager(ref_audio_path).get_ref_audio_list()
     report_list = parse_text_similarity_result_txt(text_similarity_result_path)
     count = remove_low_similarity_files(ref_audio_list, report_list, audio_text_similarity_boundary)
     audio_check.sync_ref_audio(ref_audio_path, sync_inference_audio_dir)

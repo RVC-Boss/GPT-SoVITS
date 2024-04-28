@@ -180,7 +180,7 @@ def generate_audio_files_for_emotion_group(url_composer, text_list, emotion_list
             f.write(audio_bytes)
 
         has_generated_count += 1
-        logger.info(f"进度: {has_generated_count}/{all_count}")
+        logger.info(f"进程ID: {os.getpid()}, 进度: {has_generated_count}/{all_count}")
     end_time = time.perf_counter()  # 获取计时终点
     elapsed_time = end_time - start_time  # 计算执行耗时
     # 记录日志内容
