@@ -85,11 +85,14 @@ def sample(output_audio_dir, similarity_list, subsection_num, sample_num):
         end = (i + 1) * step
         end = min(end, len(similarity_list))  # 防止最后一段越界
 
-        num = min(sample_num, len(similarity_list[start:end]))
+        # 创建子列表
+        subsection = similarity_list[start:end]
+        # 在子列表上随机打乱
+        random.shuffle(subsection)
 
-        # 随机采样
-        random.shuffle(similarity_list[start:end])
-        sampled_subsection = similarity_list[start:start + num]
+        # 从打乱后的子列表中抽取相应数量的个体
+        num = min(sample_num, len(subsection))
+        sampled_subsection = subsection[:num]
 
         # 创建并进入子目录
         subdir_name = f'emotion_{i + 1}'
@@ -143,7 +146,7 @@ def copy_and_move(output_audio_directory, similarity_scores):
     for item in similarity_scores:
         # 构造新的文件名
         base_name = os.path.basename(item['wav_path'])[:-4]  # 去掉.wav扩展名
-        new_name = f"{item['score']*10000:04.0f}-{base_name}.wav"
+        new_name = f"{item['score'] * 10000:04.0f}-{base_name}.wav"
 
         # 新文件的完整路径
         new_path = os.path.join(output_audio_directory, new_name)

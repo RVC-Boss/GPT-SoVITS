@@ -6,8 +6,8 @@ import gradio as gr
 
 from Ref_Audio_Selector.config_param.log_config import logger
 
-import Ref_Audio_Selector.tool.model_manager as model_manager
-import Ref_Audio_Selector.tool.audio_similarity as audio_similarity
+import Ref_Audio_Selector.common.model_manager as model_manager
+import Ref_Audio_Selector.tool.audio_sample as audio_sample
 import Ref_Audio_Selector.tool.audio_inference as audio_inference
 import Ref_Audio_Selector.tool.audio_config as audio_config
 import Ref_Audio_Selector.tool.audio_check as audio_check
@@ -58,12 +58,12 @@ def convert_from_list(text_work_space_dir, text_role, text_list_input):
         ref_audio_all = os.path.join(base_role_dir,
                                      params.list_to_convert_reference_audio_dir)
 
-        time_consuming, _ = time_util.time_monitor(audio_similarity.convert_from_list)(text_list_input, ref_audio_all)
+        time_consuming, _ = time_util.time_monitor(audio_sample.convert_from_list)(text_list_input, ref_audio_all)
 
         text_convert_from_list_info = f"耗时：{time_consuming:0.1f}秒；转换成功：生成目录{ref_audio_all}"
         text_sample_dir = ref_audio_all
 
-        # audio_similarity.convert_from_list(text_list_input, ref_audio_all)
+        # audio_sample.convert_from_list(text_list_input, ref_audio_all)
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_convert_from_list_info = f"发生异常：{e}"
@@ -92,11 +92,11 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
         p_similarity = Popen(cmd, shell=True)
         p_similarity.wait()
 
-        similarity_list = audio_similarity.parse_similarity_file(similarity_file)
+        similarity_list = audio_sample.parse_similarity_file(similarity_file)
 
         if need_similarity_output:
             similarity_file_dir = os.path.join(similarity_dir, base_voice_file_name)
-            audio_similarity.copy_and_move(similarity_file_dir, similarity_list)
+            audio_sample.copy_and_move(similarity_file_dir, similarity_list)
 
         p_similarity = None
         return similarity_list, similarity_file, similarity_file_dir
@@ -137,7 +137,7 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
         if similarity_list is None:
             raise Exception("相似度分析失败")
 
-        audio_similarity.sample(ref_audio_dir, similarity_list, slider_subsection_num, slider_sample_num)
+        audio_sample.sample(ref_audio_dir, similarity_list, slider_subsection_num, slider_sample_num)
 
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
