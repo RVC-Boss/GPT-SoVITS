@@ -189,6 +189,7 @@ def generate_audio_files_for_emotion_group(url_composer, text_list, emotion_list
 
 
 def inference_audio_from_api(url):
+    logger.info(f'inference_audio_from_api url: {url}')
     # 发起GET请求
     response = requests.get(url, stream=True)
 
@@ -202,6 +203,8 @@ def inference_audio_from_api(url):
 
 def start_api_set_model(set_model_url_composer, gpt_models, sovits_models):
     url, post_body = set_model_url_composer.build_post_url(gpt_models, sovits_models)
+    logger.info(f'start_api_set_model url: {url}')
+    logger.info(f'start_api_set_model post_body: {post_body}')
     response = requests.post(url, json=post_body)
     if response.status_code == 200:
         result = response.text
@@ -212,6 +215,7 @@ def start_api_set_model(set_model_url_composer, gpt_models, sovits_models):
 
 def start_api_v2_set_gpt_model(set_model_url_composer, gpt_models):
     url = set_model_url_composer.build_get_url([gpt_models])
+    logger.info(f'start_api_v2_set_gpt_model url: {url}')
     response = requests.get(url)
     if response.status_code == 200:
         result = response.text
@@ -222,6 +226,7 @@ def start_api_v2_set_gpt_model(set_model_url_composer, gpt_models):
 
 def start_api_v2_set_sovits_model(set_model_url_composer, sovits_models):
     url = set_model_url_composer.build_get_url([sovits_models])
+    logger.info(f'start_api_v2_set_sovits_model url: {url}')
     response = requests.get(url)
     if response.status_code == 200:
         result = response.text
