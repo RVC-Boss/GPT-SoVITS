@@ -63,7 +63,6 @@ def convert_from_list(text_work_space_dir, text_role, text_list_input):
         text_convert_from_list_info = f"耗时：{time_consuming:0.1f}秒；转换成功：生成目录{ref_audio_all}"
         text_sample_dir = ref_audio_all
 
-        # audio_sample.convert_from_list(text_list_input, ref_audio_all)
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_convert_from_list_info = f"发生异常：{e}"
@@ -131,9 +130,6 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
 
         text_sample_info = f"耗时：{time_consuming:0.1f}秒；抽样成功：生成目录{ref_audio_dir}"
 
-        # similarity_list, _, _ = start_similarity_analysis(base_role_dir, text_sample_dir,
-        #                                                   text_base_voice_path, checkbox_similarity_output)
-
         if similarity_list is None:
             raise Exception("相似度分析失败")
 
@@ -143,25 +139,24 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_sample_info = f"发生异常：{e}"
         ref_audio_dir = ''
-    text_model_inference_voice_dir = ref_audio_dir
-    text_sync_ref_audio_dir = ref_audio_dir
-    text_sync_ref_audio_dir2 = ref_audio_dir
-    return i18n(text_sample_info), text_model_inference_voice_dir, text_sync_ref_audio_dir, text_sync_ref_audio_dir2
+    text_refer_audio_file_dir = ref_audio_dir
+    return i18n(text_sample_info), text_refer_audio_file_dir
 
 
 # 根据参考音频和测试文本，执行批量推理
-def model_inference(text_work_space_dir, text_role, slider_request_concurrency_num, text_model_inference_voice_dir, text_url,
+def model_inference(text_work_space_dir, text_role, slider_request_concurrency_num, text_refer_audio_file_dir,
+                    text_url,
                     text_text, text_ref_path, text_ref_text, text_emotion,
                     text_test_content_dir):
-    text_work_space_dir, text_model_inference_voice_dir, text_test_content_dir \
-        = common.batch_clean_paths([text_work_space_dir, text_model_inference_voice_dir, text_test_content_dir])
+    text_work_space_dir, text_refer_audio_file_dir, text_test_content_dir \
+        = common.batch_clean_paths([text_work_space_dir, text_refer_audio_file_dir, text_test_content_dir])
 
     inference_dir = None
     text_asr_audio_dir = None
     text_model_inference_info = None
     try:
         base_role_dir = check_base_info(text_work_space_dir, text_role)
-        if text_model_inference_voice_dir is None or text_model_inference_voice_dir == '':
+        if text_refer_audio_file_dir is None or text_refer_audio_file_dir == '':
             raise Exception("待推理的参考音频所在目录不能为空，请先完成上一步操作")
         if text_url is None or text_url == '':
             raise Exception("推理服务请求地址不能为空")
@@ -182,7 +177,7 @@ def model_inference(text_work_space_dir, text_role, slider_request_concurrency_n
         text_list = common.read_text_file_to_list(text_test_content_dir)
         if text_list is None or len(text_list) == 0:
             raise Exception("待推理文本内容不能为空")
-        ref_audio_manager = common.RefAudioListManager(text_model_inference_voice_dir)
+        ref_audio_manager = common.RefAudioListManager(text_refer_audio_file_dir)
         if len(ref_audio_manager.get_audio_list()) == 0:
             raise Exception("待推理的参考音频不能为空")
 
@@ -194,8 +189,6 @@ def model_inference(text_work_space_dir, text_role, slider_request_concurrency_n
 
         text_model_inference_info = f"耗时：{time_consuming:0.1f}秒；推理成功：生成目录{inference_dir}"
 
-        # audio_inference.generate_audio_files(url_composer, text_list, ref_audio_manager.get_ref_audio_list(),
-        #                                      inference_dir)
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_model_inference_info = f"发生异常：{e}"
@@ -227,8 +220,6 @@ def asr(text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
                                                                     dropdown_asr_model, dropdown_asr_size,
                                                                     dropdown_asr_lang)
 
-        # asr_file = open_asr(text_asr_audio_dir, base_role_dir, dropdown_asr_model, dropdown_asr_size,
-        #                     dropdown_asr_lang)
         text_text_similarity_analysis_path = asr_file
         text_asr_info = f"耗时：{time_consuming:0.1f}秒；asr成功：生成文件{asr_file}"
     except Exception as e:
@@ -270,7 +261,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
 
 
 # 对asr生成的文件，与原本的文本内容，进行相似度分析
-def text_similarity_analysis(text_work_space_dir, text_role, slider_text_similarity_amplification_boundary, 
+def text_similarity_analysis(text_work_space_dir, text_role, slider_text_similarity_amplification_boundary,
                              text_text_similarity_analysis_path):
     text_work_space_dir, text_text_similarity_analysis_path \
         = common.batch_clean_paths([text_work_space_dir, text_text_similarity_analysis_path])
@@ -284,11 +275,11 @@ def text_similarity_analysis(text_work_space_dir, text_role, slider_text_similar
         similarity_dir = os.path.join(base_role_dir, params.text_similarity_output_dir)
 
         time_consuming, _ = time_util.time_monitor(open_text_similarity_analysis)(text_text_similarity_analysis_path,
-                                                                                  similarity_dir, slider_text_similarity_amplification_boundary)
+                                                                                  similarity_dir,
+                                                                                  slider_text_similarity_amplification_boundary)
 
         text_text_similarity_analysis_info = f"耗时：{time_consuming:0.1f}秒；相似度分析成功：生成目录{similarity_dir}"
 
-        # open_text_similarity_analysis(text_text_similarity_analysis_path, similarity_dir)
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_text_similarity_analysis_info = f"发生异常：{e}"
@@ -332,9 +323,6 @@ def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path
             = time_util.time_monitor(start_similarity_analysis)(base_role_dir,
                                                                 text_compare_audio_dir, text_base_audio_path, True)
 
-        # similarity_list, similarity_file, similarity_file_dir = start_similarity_analysis(
-        #     base_role_dir, text_compare_audio_dir, text_base_audio_path, True)
-
         if similarity_list is None:
             raise Exception("相似度分析失败")
 
@@ -347,23 +335,23 @@ def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path
 
 
 # 根据参考音频目录的删除情况，将其同步到推理生成的音频目录中，即参考音频目录下，删除了几个参考音频，就在推理目录下，将这些参考音频生成的音频文件移除
-def sync_ref_audio(text_work_space_dir, text_role, text_sync_ref_audio_dir,
-                   text_sync_inference_audio_dir):
-    text_work_space_dir, text_sync_ref_audio_dir, text_sync_inference_audio_dir \
-        = common.batch_clean_paths([text_work_space_dir, text_sync_ref_audio_dir, text_sync_inference_audio_dir])
+def sync_ref_audio(text_work_space_dir, text_role, text_refer_audio_file_dir,
+                   text_inference_audio_file_dir):
+    text_work_space_dir, text_refer_audio_file_dir, text_inference_audio_file_dir \
+        = common.batch_clean_paths([text_work_space_dir, text_refer_audio_file_dir, text_inference_audio_file_dir])
 
     text_sync_ref_audio_info = None
     try:
         check_base_info(text_work_space_dir, text_role)
-        if text_sync_ref_audio_dir is None or text_sync_ref_audio_dir == '':
+        if text_refer_audio_file_dir is None or text_refer_audio_file_dir == '':
             raise Exception("参考音频目录不能为空")
-        if text_sync_inference_audio_dir is None or text_sync_inference_audio_dir == '':
+        if text_inference_audio_file_dir is None or text_inference_audio_file_dir == '':
             raise Exception("推理生成的音频目录不能为空")
         time_consuming, (delete_text_wav_num, delete_emotion_dir_num) \
-            = time_util.time_monitor(audio_check.sync_ref_audio)(text_sync_ref_audio_dir,
-                                                                               text_sync_inference_audio_dir)
+            = time_util.time_monitor(audio_check.sync_ref_audio)(text_refer_audio_file_dir,
+                                                                 text_inference_audio_file_dir)
 
-        text_sync_ref_audio_info = (f"耗时：{time_consuming:0.1f}秒；推理音频目录{text_sync_inference_audio_dir}下，"
+        text_sync_ref_audio_info = (f"耗时：{time_consuming:0.1f}秒；推理音频目录{text_inference_audio_file_dir}下，"
                                     f"text目录删除了{delete_text_wav_num}个推理音频，emotion目录下，删除了{delete_emotion_dir_num}个目录")
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
@@ -372,9 +360,9 @@ def sync_ref_audio(text_work_space_dir, text_role, text_sync_ref_audio_dir,
 
 
 # 根据模板和参考音频目录，生成参考音频配置内容
-def create_config(text_work_space_dir, text_role, text_template, text_sync_ref_audio_dir2):
-    text_work_space_dir, text_sync_ref_audio_dir2 \
-        = common.batch_clean_paths([text_work_space_dir, text_sync_ref_audio_dir2])
+def create_config(text_work_space_dir, text_role, text_template, text_refer_audio_file_dir):
+    text_work_space_dir, text_refer_audio_file_dir \
+        = common.batch_clean_paths([text_work_space_dir, text_refer_audio_file_dir])
 
     config_file = None
     text_create_config_info = None
@@ -382,17 +370,14 @@ def create_config(text_work_space_dir, text_role, text_template, text_sync_ref_a
         base_role_dir = check_base_info(text_work_space_dir, text_role)
         if text_template is None or text_template == '':
             raise Exception("参考音频抽样目录不能为空")
-        if text_sync_ref_audio_dir2 is None or text_sync_ref_audio_dir2 == '':
+        if text_refer_audio_file_dir is None or text_refer_audio_file_dir == '':
             raise Exception("参考音频目录不能为空")
         config_file = os.path.join(base_role_dir, f'{params.reference_audio_config_filename}.json')
-        ref_audio_manager = common.RefAudioListManager(text_sync_ref_audio_dir2)
+        ref_audio_manager = common.RefAudioListManager(text_refer_audio_file_dir)
 
         time_consuming, _ = time_util.time_monitor(audio_config.generate_audio_config)(base_role_dir, text_template,
                                                                                        ref_audio_manager.get_ref_audio_list(),
                                                                                        config_file)
-
-        # audio_config.generate_audio_config(base_role_dir, text_template, ref_audio_manager.get_ref_audio_list(),
-        #                                    config_file)
 
         text_create_config_info = f"耗时：{time_consuming:0.1f}秒；配置生成成功：生成文件{config_file}"
 
@@ -428,21 +413,27 @@ def refresh_api_model():
             {"choices": model_manager.get_sovits_model_names(), "__type__": "update"})
 
 
-def api_set_model_whole_url(text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param):
-    url = audio_inference.SetModelURLComposer("all", text_api_set_model_base_url, text_api_gpt_param, text_api_sovits_param)
+def api_set_model_whole_url(text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models,
+                            text_api_gpt_param, text_api_sovits_param):
+    url = audio_inference.SetModelURLComposer("all", text_api_set_model_base_url, text_api_gpt_param,
+                                              text_api_sovits_param)
     return url.build_get_url([dropdown_api_gpt_models, dropdown_api_sovits_models], False)
 
 
-def start_api_set_model(text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param):
+def start_api_set_model(text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models,
+                        text_api_gpt_param, text_api_sovits_param):
     text_api_start_set_model_request_info = None
     try:
         if dropdown_api_gpt_models is None or dropdown_api_gpt_models == '':
             raise Exception("GPT模型不能为空")
         if dropdown_api_sovits_models is None or dropdown_api_sovits_models == '':
             raise Exception("Sovits模型不能为空")
-        url = audio_inference.SetModelURLComposer("all", text_api_set_model_base_url, text_api_gpt_param, text_api_sovits_param)
+        url = audio_inference.SetModelURLComposer("all", text_api_set_model_base_url, text_api_gpt_param,
+                                                  text_api_sovits_param)
         url.is_valid()
-        time_consuming, result = time_util.time_monitor(audio_inference.start_api_set_model)(url, dropdown_api_gpt_models, dropdown_api_sovits_models)
+        time_consuming, result = time_util.time_monitor(audio_inference.start_api_set_model)(url,
+                                                                                             dropdown_api_gpt_models,
+                                                                                             dropdown_api_sovits_models)
         text_api_start_set_model_request_info = f"耗时：{time_consuming:0.1f}秒；请求结果：{result}"
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
@@ -454,18 +445,24 @@ def refresh_api_v2_gpt_model():
     return {"choices": model_manager.get_gpt_model_names(), "__type__": "update"}
 
 
-def api_v2_set_gpt_whole_url(text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param, dropdown_api_v2_gpt_models):
-    url = audio_inference.SetModelURLComposer("gpt", text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param, None)
+def api_v2_set_gpt_whole_url(text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param,
+                             dropdown_api_v2_gpt_models):
+    url = audio_inference.SetModelURLComposer("gpt", text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param,
+                                              None)
     return url.build_get_url([dropdown_api_v2_gpt_models], False)
 
-def start_api_v2_set_gpt_model(text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param, dropdown_api_v2_gpt_models):
+
+def start_api_v2_set_gpt_model(text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param,
+                               dropdown_api_v2_gpt_models):
     text_api_v2_start_set_gpt_model_request_info = None
     try:
         if dropdown_api_v2_gpt_models is None or dropdown_api_v2_gpt_models == '':
             raise Exception("GPT模型不能为空")
-        url = audio_inference.SetModelURLComposer("gpt", text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param, None)
+        url = audio_inference.SetModelURLComposer("gpt", text_api_v2_set_gpt_model_base_url,
+                                                  text_api_v2_gpt_model_param, None)
         url.is_valid()
-        time_consuming, result = time_util.time_monitor(audio_inference.start_api_v2_set_gpt_model)(url, dropdown_api_v2_gpt_models)
+        time_consuming, result = time_util.time_monitor(audio_inference.start_api_v2_set_gpt_model)(url,
+                                                                                                    dropdown_api_v2_gpt_models)
         text_api_v2_start_set_gpt_model_request_info = f"耗时：{time_consuming:0.1f}秒；请求结果：{result}"
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
@@ -476,19 +473,25 @@ def start_api_v2_set_gpt_model(text_api_v2_set_gpt_model_base_url, text_api_v2_g
 def refresh_api_v2_sovits_model():
     return {"choices": model_manager.get_sovits_model_names(), "__type__": "update"}
 
-def api_v2_set_sovits_whole_url(text_api_v2_set_sovits_model_base_url, text_api_v2_sovits_model_param, dropdown_api_v2_sovits_models):
-    url = audio_inference.SetModelURLComposer("sovits", text_api_v2_set_sovits_model_base_url, None, text_api_v2_sovits_model_param)
+
+def api_v2_set_sovits_whole_url(text_api_v2_set_sovits_model_base_url, text_api_v2_sovits_model_param,
+                                dropdown_api_v2_sovits_models):
+    url = audio_inference.SetModelURLComposer("sovits", text_api_v2_set_sovits_model_base_url, None,
+                                              text_api_v2_sovits_model_param)
     return url.build_get_url([dropdown_api_v2_sovits_models], False)
 
 
-def start_api_v2_set_sovits_model(text_api_v2_set_sovits_model_base_url, text_api_v2_sovits_model_param, dropdown_api_v2_sovits_models):
+def start_api_v2_set_sovits_model(text_api_v2_set_sovits_model_base_url, text_api_v2_sovits_model_param,
+                                  dropdown_api_v2_sovits_models):
     text_api_v2_start_set_sovits_model_request_info = None
     try:
         if dropdown_api_v2_sovits_models is None or dropdown_api_v2_sovits_models == '':
             raise Exception("Sovits模型不能为空")
-        url = audio_inference.SetModelURLComposer("sovits", text_api_v2_set_sovits_model_base_url, None, text_api_v2_sovits_model_param)
+        url = audio_inference.SetModelURLComposer("sovits", text_api_v2_set_sovits_model_base_url, None,
+                                                  text_api_v2_sovits_model_param)
         url.is_valid()
-        time_consuming, result = time_util.time_monitor(audio_inference.start_api_v2_set_sovits_model)(url, dropdown_api_v2_sovits_models)
+        time_consuming, result = time_util.time_monitor(audio_inference.start_api_v2_set_sovits_model)(url,
+                                                                                                       dropdown_api_v2_sovits_models)
         text_api_v2_start_set_sovits_model_request_info = f"耗时：{time_consuming:0.1f}秒；请求结果：{result}"
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
@@ -500,25 +503,33 @@ def open_file(file_path):
     common.open_file(my_utils.clean_path(file_path))
 
 
-def delete_ref_audio_below_boundary(ref_audio_path, text_text_similarity_result_path, text_sync_inference_audio_dir, slider_audio_text_similarity_boundary):
+def delete_ref_audio_below_boundary(ref_audio_path, text_text_similarity_result_path, text_inference_audio_file_dir,
+                                    slider_audio_text_similarity_boundary):
     text_delete_ref_audio_below_boundary_info = None
-    ref_audio_path, text_text_similarity_result_path, text_sync_inference_audio_dir = common.batch_clean_paths([ref_audio_path, text_text_similarity_result_path, text_sync_inference_audio_dir])
+    ref_audio_path, text_text_similarity_result_path, text_inference_audio_file_dir = common.batch_clean_paths(
+        [ref_audio_path, text_text_similarity_result_path, text_inference_audio_file_dir])
     try:
         if ref_audio_path is None or ref_audio_path == '':
             raise Exception("参考音频路径不能为空")
         if text_text_similarity_result_path is None or text_text_similarity_result_path == '':
             raise Exception("文本相似度结果路径不能为空")
-        time_consuming, count = time_util.time_monitor(text_check.delete_ref_audio_below_boundary)(ref_audio_path, text_text_similarity_result_path, text_sync_inference_audio_dir, slider_audio_text_similarity_boundary)
+        time_consuming, count = time_util.time_monitor(text_check.delete_ref_audio_below_boundary)(ref_audio_path,
+                                                                                                   text_text_similarity_result_path,
+                                                                                                   text_inference_audio_file_dir,
+                                                                                                   slider_audio_text_similarity_boundary)
         text_delete_ref_audio_below_boundary_info = f"耗时：{time_consuming:0.1f}秒；删除参考音频数量：{count}"
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_delete_ref_audio_below_boundary_info = f"发生异常：{e}"
     return text_delete_ref_audio_below_boundary_info
 
-def change_lang_choices(key): #根据选择的模型修改可选的语言
+
+def change_lang_choices(key):  # 根据选择的模型修改可选的语言
     # return gr.Dropdown(choices=asr_dict[key]['lang'])
-    return {"__type__": "update", "choices": asr_dict[key]['lang'],"value":asr_dict[key]['lang'][0]}
-def change_size_choices(key): # 根据选择的模型修改可选的模型尺寸
+    return {"__type__": "update", "choices": asr_dict[key]['lang'], "value": asr_dict[key]['lang'][0]}
+
+
+def change_size_choices(key):  # 根据选择的模型修改可选的模型尺寸
     # return gr.Dropdown(choices=asr_dict[key]['size'])
     return {"__type__": "update", "choices": asr_dict[key]['size']}
 
@@ -570,12 +581,17 @@ if __name__ == '__main__':
 
     with gr.Blocks() as app:
         gr.Markdown(value=i18n("基本介绍：这是一个从训练素材中，批量提取参考音频，并进行效果评估与配置生成的工具"))
-        with gr.Row():
-            text_work_space_dir = gr.Text(label=i18n("工作目录，后续操作所生成文件都会保存在此目录下"),
-                                          value=default_work_space_dir)
-            text_role = gr.Text(label=i18n("角色名称"), value=default_role)
-            text_work_space_dir.blur(save_work_dir, [text_work_space_dir, text_role], [text_role])
-            text_role.blur(save_role, [text_role], [])
+        with gr.Accordion(label=i18n("基本信息")):
+            with gr.Row():
+                text_work_space_dir = gr.Text(label=i18n("工作目录，后续操作所生成文件都会保存在此目录下"),
+                                              value=default_work_space_dir)
+                text_role = gr.Text(label=i18n("角色名称"), value=default_role)
+                button_switch_role_and_refresh = gr.Button(i18n("切换并刷新"), variant="primary")
+                text_work_space_dir.blur(save_work_dir, [text_work_space_dir, text_role], [text_role])
+                text_role.blur(save_role, [text_role], [])
+            with gr.Row():
+                text_refer_audio_file_dir = gr.Text(label=i18n("参考音频所在目录"), value="")
+                text_inference_audio_file_dir = gr.Text(label=i18n("推理音频所在目录"), value="")
         with gr.Tab(label=i18n("第一步：基于训练素材，生成待选参考音频列表")):
             gr.Markdown(value=i18n("1.1：选择list文件，并提取3-10秒的素材作为参考候选"))
             text_list_input = gr.Text(label=i18n("请输入list文件路径"), value="")
@@ -602,8 +618,6 @@ if __name__ == '__main__':
         with gr.Tab(label=i18n("第二步：基于参考音频和测试文本，执行批量推理")):
             default_model_inference_voice_dir = common.check_path_existence_and_return(
                 os.path.join(default_base_dir, params.reference_audio_dir))
-            text_model_inference_voice_dir = gr.Text(label=i18n("待推理的参考音频所在目录"),
-                                                     value=default_model_inference_voice_dir, interactive=True)
             gr.Markdown(value=i18n("2.1：启动推理服务，并配置模型参数"))
             with gr.Accordion(label=i18n("详情")):
                 with gr.Tab(label=i18n("主项目下api.py服务")):
@@ -613,55 +627,115 @@ if __name__ == '__main__':
                         text_start_api_info = gr.Text(label=i18n("api启动信息"), value="", interactive=False)
                         button_start_api.click(start_api, [], [text_start_api_info])
                     gr.Markdown(value=i18n("2.1.2：设置模型参数"))
-                    text_api_set_model_base_url = gr.Text(label=i18n("请输入api服务模型切换接口地址"), value="", interactive=True)
+                    text_api_set_model_base_url = gr.Text(label=i18n("请输入api服务模型切换接口地址"), value="",
+                                                          interactive=True)
                     with gr.Row():
-                        dropdown_api_gpt_models = gr.Dropdown(label=i18n("GPT模型列表"), choices=model_manager.get_gpt_model_names(), value="", interactive=True)
-                        dropdown_api_sovits_models = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=model_manager.get_sovits_model_names(), value="", interactive=True)
+                        dropdown_api_gpt_models = gr.Dropdown(label=i18n("GPT模型列表"),
+                                                              choices=model_manager.get_gpt_model_names(), value="",
+                                                              interactive=True)
+                        dropdown_api_sovits_models = gr.Dropdown(label=i18n("SoVITS模型列表"),
+                                                                 choices=model_manager.get_sovits_model_names(),
+                                                                 value="", interactive=True)
                         button_refresh_api_model = gr.Button(i18n("刷新模型路径"), variant="primary")
-                        button_refresh_api_model.click(refresh_api_model, [], [dropdown_api_gpt_models, dropdown_api_sovits_models])
+                        button_refresh_api_model.click(refresh_api_model, [],
+                                                       [dropdown_api_gpt_models, dropdown_api_sovits_models])
                     with gr.Row():
                         text_api_gpt_param = gr.Text(label=i18n("GPT模型参数名"), value="", interactive=True)
                         text_api_sovits_param = gr.Text(label=i18n("SoVITS模型参数名"), value="", interactive=True)
                     gr.Markdown(value=i18n("2.1.3：发起设置请求"))
-                    text_api_set_model_whole_url = gr.Text(label=i18n("完整的模型参数设置请求地址"), value="", interactive=False)
-                    dropdown_api_gpt_models.change(api_set_model_whole_url, [text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param], [text_api_set_model_whole_url])
-                    dropdown_api_sovits_models.change(api_set_model_whole_url, [text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param], [text_api_set_model_whole_url])
-                    text_api_gpt_param.input(api_set_model_whole_url, [text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param], [text_api_set_model_whole_url])
-                    text_api_sovits_param.input(api_set_model_whole_url, [text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param], [text_api_set_model_whole_url])
+                    text_api_set_model_whole_url = gr.Text(label=i18n("完整的模型参数设置请求地址"), value="",
+                                                           interactive=False)
+                    dropdown_api_gpt_models.change(api_set_model_whole_url,
+                                                   [text_api_set_model_base_url, dropdown_api_gpt_models,
+                                                    dropdown_api_sovits_models, text_api_gpt_param,
+                                                    text_api_sovits_param], [text_api_set_model_whole_url])
+                    dropdown_api_sovits_models.change(api_set_model_whole_url,
+                                                      [text_api_set_model_base_url, dropdown_api_gpt_models,
+                                                       dropdown_api_sovits_models, text_api_gpt_param,
+                                                       text_api_sovits_param], [text_api_set_model_whole_url])
+                    text_api_gpt_param.input(api_set_model_whole_url,
+                                             [text_api_set_model_base_url, dropdown_api_gpt_models,
+                                              dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param],
+                                             [text_api_set_model_whole_url])
+                    text_api_sovits_param.input(api_set_model_whole_url,
+                                                [text_api_set_model_base_url, dropdown_api_gpt_models,
+                                                 dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param],
+                                                [text_api_set_model_whole_url])
                     with gr.Row():
                         button_api_start_set_model_request = gr.Button(i18n("发起模型设置请求"), variant="primary")
-                        text_api_start_set_model_request_info = gr.Text(label=i18n("设置请求结果"), value="", interactive=False)
-                        button_api_start_set_model_request.click(start_api_set_model, [text_api_set_model_base_url, dropdown_api_gpt_models, dropdown_api_sovits_models, text_api_gpt_param, text_api_sovits_param], [text_api_start_set_model_request_info])
+                        text_api_start_set_model_request_info = gr.Text(label=i18n("设置请求结果"), value="",
+                                                                        interactive=False)
+                        button_api_start_set_model_request.click(start_api_set_model,
+                                                                 [text_api_set_model_base_url, dropdown_api_gpt_models,
+                                                                  dropdown_api_sovits_models, text_api_gpt_param,
+                                                                  text_api_sovits_param],
+                                                                 [text_api_start_set_model_request_info])
                 with gr.Tab(label=i18n("fast项目下api_v2.py服务")):
                     gr.Markdown(value=i18n("2.1.1：请到你的项目下，启动服务"))
                     gr.Markdown(value=i18n("2.1.2：设置GPT模型参数"))
-                    text_api_v2_set_gpt_model_base_url = gr.Text(label=i18n("请输入api服务GPT模型切换接口地址"), value="", interactive=True)
+                    text_api_v2_set_gpt_model_base_url = gr.Text(label=i18n("请输入api服务GPT模型切换接口地址"),
+                                                                 value="", interactive=True)
                     with gr.Row():
                         text_api_v2_gpt_model_param = gr.Text(label=i18n("GPT模型参数名"), value="", interactive=True)
-                        dropdown_api_v2_gpt_models = gr.Dropdown(label=i18n("GPT模型列表"), choices=model_manager.get_gpt_model_names(), value="", interactive=True)
+                        dropdown_api_v2_gpt_models = gr.Dropdown(label=i18n("GPT模型列表"),
+                                                                 choices=model_manager.get_gpt_model_names(), value="",
+                                                                 interactive=True)
                         button_api_v2_refresh_gpt = gr.Button(i18n("刷新模型路径"), variant="primary")
                         button_api_v2_refresh_gpt.click(refresh_api_v2_gpt_model, [], [dropdown_api_v2_gpt_models])
-                    text_api_v2_set_gpt_model_whole_url = gr.Text(label=i18n("完整的GPT模型参数设置请求地址"), value="", interactive=False)
-                    text_api_v2_gpt_model_param.input(api_v2_set_gpt_whole_url, [text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param, dropdown_api_v2_gpt_models], [text_api_v2_set_gpt_model_whole_url])
-                    dropdown_api_v2_gpt_models.change(api_v2_set_gpt_whole_url, [text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param, dropdown_api_v2_gpt_models], [text_api_v2_set_gpt_model_whole_url])
+                    text_api_v2_set_gpt_model_whole_url = gr.Text(label=i18n("完整的GPT模型参数设置请求地址"), value="",
+                                                                  interactive=False)
+                    text_api_v2_gpt_model_param.input(api_v2_set_gpt_whole_url,
+                                                      [text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param,
+                                                       dropdown_api_v2_gpt_models],
+                                                      [text_api_v2_set_gpt_model_whole_url])
+                    dropdown_api_v2_gpt_models.change(api_v2_set_gpt_whole_url,
+                                                      [text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param,
+                                                       dropdown_api_v2_gpt_models],
+                                                      [text_api_v2_set_gpt_model_whole_url])
                     with gr.Row():
-                        button_api_v2_start_set_gpt_model_request = gr.Button(i18n("发起GPT模型设置请求"), variant="primary")
-                        text_api_v2_start_set_gpt_model_request_info = gr.Text(label=i18n("设置请求结果"), value="", interactive=False)
-                        button_api_v2_start_set_gpt_model_request.click(start_api_v2_set_gpt_model, [text_api_v2_set_gpt_model_base_url, text_api_v2_gpt_model_param, dropdown_api_v2_gpt_models], [text_api_v2_start_set_gpt_model_request_info])
+                        button_api_v2_start_set_gpt_model_request = gr.Button(i18n("发起GPT模型设置请求"),
+                                                                              variant="primary")
+                        text_api_v2_start_set_gpt_model_request_info = gr.Text(label=i18n("设置请求结果"), value="",
+                                                                               interactive=False)
+                        button_api_v2_start_set_gpt_model_request.click(start_api_v2_set_gpt_model,
+                                                                        [text_api_v2_set_gpt_model_base_url,
+                                                                         text_api_v2_gpt_model_param,
+                                                                         dropdown_api_v2_gpt_models],
+                                                                        [text_api_v2_start_set_gpt_model_request_info])
                     gr.Markdown(value=i18n("2.1.3：设置SoVITS模型参数"))
-                    text_api_v2_set_sovits_model_base_url = gr.Text(label=i18n("请输入api服务SoVITS模型切换接口地址"), value="", interactive=True)
+                    text_api_v2_set_sovits_model_base_url = gr.Text(label=i18n("请输入api服务SoVITS模型切换接口地址"),
+                                                                    value="", interactive=True)
                     with gr.Row():
-                        text_api_v2_sovits_model_param = gr.Text(label=i18n("SoVITS模型参数名"), value="", interactive=True)
-                        dropdown_api_v2_sovits_models = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=model_manager.get_sovits_model_names(), value="", interactive=True)
+                        text_api_v2_sovits_model_param = gr.Text(label=i18n("SoVITS模型参数名"), value="",
+                                                                 interactive=True)
+                        dropdown_api_v2_sovits_models = gr.Dropdown(label=i18n("SoVITS模型列表"),
+                                                                    choices=model_manager.get_sovits_model_names(),
+                                                                    value="", interactive=True)
                         button_api_v2_refresh_sovits = gr.Button(i18n("刷新模型路径"), variant="primary")
-                        button_api_v2_refresh_sovits.click(refresh_api_v2_sovits_model, [], [dropdown_api_v2_sovits_models])
-                    text_api_v2_set_sovits_model_whole_url = gr.Text(label=i18n("完整的SoVITS模型参数设置请求地址"), value="", interactive=False)
-                    text_api_v2_sovits_model_param.input(api_v2_set_sovits_whole_url, [text_api_v2_set_sovits_model_base_url, text_api_v2_sovits_model_param, dropdown_api_v2_sovits_models], [text_api_v2_set_sovits_model_whole_url])
-                    dropdown_api_v2_sovits_models.change(api_v2_set_sovits_whole_url, [text_api_v2_set_sovits_model_base_url, text_api_v2_sovits_model_param, dropdown_api_v2_sovits_models], [text_api_v2_set_sovits_model_whole_url])
+                        button_api_v2_refresh_sovits.click(refresh_api_v2_sovits_model, [],
+                                                           [dropdown_api_v2_sovits_models])
+                    text_api_v2_set_sovits_model_whole_url = gr.Text(label=i18n("完整的SoVITS模型参数设置请求地址"),
+                                                                     value="", interactive=False)
+                    text_api_v2_sovits_model_param.input(api_v2_set_sovits_whole_url,
+                                                         [text_api_v2_set_sovits_model_base_url,
+                                                          text_api_v2_sovits_model_param,
+                                                          dropdown_api_v2_sovits_models],
+                                                         [text_api_v2_set_sovits_model_whole_url])
+                    dropdown_api_v2_sovits_models.change(api_v2_set_sovits_whole_url,
+                                                         [text_api_v2_set_sovits_model_base_url,
+                                                          text_api_v2_sovits_model_param,
+                                                          dropdown_api_v2_sovits_models],
+                                                         [text_api_v2_set_sovits_model_whole_url])
                     with gr.Row():
-                        button_api_v2_start_set_sovits_model_request = gr.Button(i18n("发起SoVITS模型设置请求"), variant="primary")
-                        text_api_v2_start_set_sovits_model_request_info = gr.Text(label=i18n("设置请求结果"), value="", interactive=False)
-                        button_api_v2_start_set_sovits_model_request.click(start_api_v2_set_sovits_model, [text_api_v2_set_sovits_model_base_url, text_api_v2_sovits_model_param, dropdown_api_v2_sovits_models], [text_api_v2_start_set_sovits_model_request_info])
+                        button_api_v2_start_set_sovits_model_request = gr.Button(i18n("发起SoVITS模型设置请求"),
+                                                                                 variant="primary")
+                        text_api_v2_start_set_sovits_model_request_info = gr.Text(label=i18n("设置请求结果"), value="",
+                                                                                  interactive=False)
+                        button_api_v2_start_set_sovits_model_request.click(start_api_v2_set_sovits_model,
+                                                                           [text_api_v2_set_sovits_model_base_url,
+                                                                            text_api_v2_sovits_model_param,
+                                                                            dropdown_api_v2_sovits_models], [
+                                                                               text_api_v2_start_set_sovits_model_request_info])
                 with gr.Tab(label=i18n("第三方推理服务")):
                     gr.Markdown(value=i18n("启动第三方推理服务，并完成参考音频打包，模型参数设置等操作"))
             gr.Markdown(value=i18n("2.2：配置推理服务参数信息，参考音频路径/文本和角色情绪二选一，如果是角色情绪，需要先执行第四步，"
@@ -698,8 +772,9 @@ if __name__ == '__main__':
                 button_open_test_content_file = gr.Button(i18n("打开待推理文本文件"), variant="primary")
                 button_open_test_content_file.click(open_file, [text_test_content], [])
             gr.Markdown(value=i18n("2.4：开始批量推理，这个过程比较耗时，可以去干点别的"))
-            slider_request_concurrency_num = gr.Slider(minimum=1, maximum=10, step=1, label=i18n("请输入请求并发数，会根据此数创建对应数量的子进程并行发起推理请求"), value=3,
-                      interactive=True)
+            slider_request_concurrency_num = gr.Slider(minimum=1, maximum=10, step=1, label=i18n(
+                "请输入请求并发数，会根据此数创建对应数量的子进程并行发起推理请求"), value=3,
+                                                       interactive=True)
             with gr.Row():
                 button_model_inference = gr.Button(i18n("开启批量推理"), variant="primary")
                 text_model_inference_info = gr.Text(label=i18n("批量推理结果"), value="", interactive=False)
@@ -738,9 +813,11 @@ if __name__ == '__main__':
                 os.path.join(default_base_dir, params.asr_filename + '.list'))
             with gr.Row():
                 text_text_similarity_analysis_path = gr.Text(label=i18n("待分析的文件路径"),
-                                                             value=default_text_similarity_analysis_path, interactive=True)
-                slider_text_similarity_amplification_boundary = gr.Slider(minimum=0, maximum=1, step=0.01, label=i18n("文本相似度放大边界"), value=0.90,
-                          interactive=True)
+                                                             value=default_text_similarity_analysis_path,
+                                                             interactive=True)
+                slider_text_similarity_amplification_boundary = gr.Slider(minimum=0, maximum=1, step=0.01,
+                                                                          label=i18n("文本相似度放大边界"), value=0.90,
+                                                                          interactive=True)
             button_asr.click(asr, [text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
                                    dropdown_asr_size, dropdown_asr_lang],
                              [text_asr_info, text_text_similarity_analysis_path])
@@ -748,22 +825,31 @@ if __name__ == '__main__':
                 button_text_similarity_analysis = gr.Button(i18n("启动文本相似度分析"), variant="primary")
                 text_text_similarity_analysis_info = gr.Text(label=i18n("文本相似度分析结果"), value="",
                                                              interactive=False)
-                button_text_similarity_analysis.click(text_similarity_analysis, [text_work_space_dir, text_role, slider_text_similarity_amplification_boundary, 
+                button_text_similarity_analysis.click(text_similarity_analysis, [text_work_space_dir, text_role,
+                                                                                 slider_text_similarity_amplification_boundary,
                                                                                  text_text_similarity_analysis_path],
                                                       [text_text_similarity_analysis_info])
             gr.Markdown(value=i18n("3.3：根据相似度分析结果，重点检查最后几条是否存在复读等问题"))
             with gr.Row():
-                text_text_similarity_result_path = gr.Text(label=i18n("文本相似度分析结果文件所在路径"), value="", interactive=True)
+                text_text_similarity_result_path = gr.Text(label=i18n("文本相似度分析结果文件所在路径"), value="",
+                                                           interactive=True)
                 button_open_text_similarity_result = gr.Button(i18n("打开文本相似度分析结果文件"), variant="primary")
+                button_open_inference_dir = gr.Button(i18n("打开推理音频所在目录"), variant="primary")
                 button_open_text_similarity_result.click(open_file, [text_text_similarity_result_path], [])
-            slider_audio_text_similarity_boundary = gr.Slider(minimum=0, maximum=1, step=0.01, label=i18n("音频文本相似度边界值"), value=0.80,
-                      interactive=True)
-            text_sync_inference_audio_dir2 = gr.Text(label=i18n("被同步的推理音频路径"),
-                                                    value="", interactive=True)
+                button_open_inference_dir.click(open_file, [text_inference_audio_file_dir], [])
+            slider_audio_text_similarity_boundary = gr.Slider(minimum=0, maximum=1, step=0.01,
+                                                              label=i18n("音频文本相似度边界值"), value=0.80,
+                                                              interactive=True)
             with gr.Row():
-                button_delete_ref_audio_below_boundary = gr.Button(i18n("删除音频文本相似度边界值以下的参考音频"), variant="primary")
+                button_delete_ref_audio_below_boundary = gr.Button(i18n("删除音频文本相似度边界值以下的参考音频"),
+                                                                   variant="primary")
                 text_delete_ref_audio_below_boundary_info = gr.Text(label=i18n("删除结果"), value="", interactive=True)
-                button_delete_ref_audio_below_boundary.click(delete_ref_audio_below_boundary, [text_model_inference_voice_dir, text_text_similarity_result_path, text_sync_inference_audio_dir2, slider_audio_text_similarity_boundary], [text_delete_ref_audio_below_boundary_info])
+                button_delete_ref_audio_below_boundary.click(delete_ref_audio_below_boundary,
+                                                             [text_refer_audio_file_dir,
+                                                              text_text_similarity_result_path,
+                                                              text_inference_audio_file_dir,
+                                                              slider_audio_text_similarity_boundary],
+                                                             [text_delete_ref_audio_below_boundary_info])
         with gr.Tab(label=i18n("第四步：校验参考音频音质")):
             gr.Markdown(value=i18n("4.1：对结果按音频相似度排序，或许有用吧，主要还是耳朵听"))
             with gr.Row():
@@ -778,19 +864,10 @@ if __name__ == '__main__':
             gr.Markdown(value=i18n("4.2：如果发现存在低音质的推理音频，那么就去参考音频目录下，把原参考音频删了"))
             gr.Markdown(value=i18n("4.3：删除参考音频之后，按下面的操作，会将推理音频目录下对应的音频也删掉"))
             with gr.Row():
-                default_sync_ref_audio_dir = common.check_path_existence_and_return(
-                    os.path.join(default_base_dir, params.reference_audio_dir))
-                text_sync_ref_audio_dir = gr.Text(label=i18n("参考音频路径"), value=default_sync_ref_audio_dir,
-                                                  interactive=True)
-                default_sync_inference_audio_dir = common.check_path_existence_and_return(
-                    os.path.join(default_base_dir, params.inference_audio_dir))
-                text_sync_inference_audio_dir = gr.Text(label=i18n("被同步的推理音频路径"),
-                                                        value=default_sync_inference_audio_dir, interactive=True)
-            with gr.Row():
                 button_sync_ref_audio = gr.Button(i18n("将参考音频的删除情况，同步到推理音频目录"), variant="primary")
                 text_sync_ref_info = gr.Text(label=i18n("同步结果"), value="", interactive=False)
-                button_sync_ref_audio.click(sync_ref_audio, [text_work_space_dir, text_role, text_sync_ref_audio_dir,
-                                                             text_sync_inference_audio_dir], [text_sync_ref_info])
+                button_sync_ref_audio.click(sync_ref_audio, [text_work_space_dir, text_role, text_refer_audio_file_dir,
+                                                             text_inference_audio_file_dir], [text_sync_ref_info])
         with gr.Tab("第五步：生成参考音频配置文本"):
             gr.Markdown(value=i18n("5.1：编辑模板"))
             default_template_path = params.default_template_path
@@ -800,23 +877,21 @@ if __name__ == '__main__':
             gr.Markdown(value=i18n("5.2：生成配置"))
             default_sync_ref_audio_dir2 = common.check_path_existence_and_return(
                 os.path.join(default_base_dir, params.reference_audio_dir))
-            text_sync_ref_audio_dir2 = gr.Text(label=i18n("参考音频路径"), value=default_sync_ref_audio_dir2,
-                                               interactive=True)
             with gr.Row():
                 button_create_config = gr.Button(i18n("生成配置"), variant="primary")
                 text_create_config_info = gr.Text(label=i18n("生成结果"), value="", interactive=False)
                 button_create_config.click(create_config,
-                                           [text_work_space_dir, text_role, text_template, text_sync_ref_audio_dir2],
+                                           [text_work_space_dir, text_role, text_template, text_refer_audio_file_dir],
                                            [text_create_config_info])
         button_sample.click(sample, [text_work_space_dir, text_role, text_sample_dir, text_base_voice_path,
                                      slider_subsection_num, slider_sample_num, checkbox_similarity_output],
-                            [text_sample_info, text_model_inference_voice_dir, text_sync_ref_audio_dir,
-                             text_sync_ref_audio_dir2])
+                            [text_sample_info, text_refer_audio_file_dir])
         button_model_inference.click(model_inference,
-                                     [text_work_space_dir, text_role, slider_request_concurrency_num, text_model_inference_voice_dir, text_url,
+                                     [text_work_space_dir, text_role, slider_request_concurrency_num,
+                                      text_refer_audio_file_dir, text_url,
                                       text_text, text_ref_path, text_ref_text, text_emotion,
                                       text_test_content],
-                                     [text_model_inference_info, text_asr_audio_dir, text_sync_inference_audio_dir])
+                                     [text_model_inference_info, text_asr_audio_dir, text_inference_audio_file_dir])
 
     app.launch(
         server_port=9423,
