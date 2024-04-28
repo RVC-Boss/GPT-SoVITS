@@ -15,6 +15,7 @@ import Ref_Audio_Selector.tool.text_check as text_check
 import Ref_Audio_Selector.common.common as common
 import Ref_Audio_Selector.config_param.config_params as params
 import Ref_Audio_Selector.common.time_util as time_util
+import Ref_Audio_Selector.ui_init.init_ui_param as init
 
 from tools.i18n.i18n import I18nAuto
 from config import python_exec, is_half
@@ -534,8 +535,8 @@ def change_size_choices(key):  # 根据选择的模型修改可选的模型尺�
     return {"__type__": "update", "choices": asr_dict[key]['size']}
 
 
-def save_generate_audio_url(generate_audio_url):
-    rw_param.write(rw_param.generate_audio_url, generate_audio_url)
+def save_generate_audio_url(text_url):
+    rw_param.write(rw_param.text_url, text_url)
 
 
 def save_text_param(text_text):
@@ -574,24 +575,23 @@ def save_role(text_role):
     rw_param.write(rw_param.role, text_role)
 
 
-if __name__ == '__main__':
-    default_work_space_dir = rw_param.read(rw_param.work_dir)
-    default_role = rw_param.read(rw_param.role)
-    default_base_dir = os.path.join(default_work_space_dir, default_role)
+def init_ui():
+
+    init.init_all()
 
     with gr.Blocks() as app:
         gr.Markdown(value=i18n("基本介绍：这是一个从训练素材中，批量提取参考音频，并进行效果评估与配置生成的工具"))
         with gr.Accordion(label=i18n("基本信息")):
             with gr.Row():
                 text_work_space_dir = gr.Text(label=i18n("工作目录，后续操作所生成文件都会保存在此目录下"),
-                                              value=default_work_space_dir)
-                text_role = gr.Text(label=i18n("角色名称"), value=default_role)
+                                              value=init.text_work_space_dir_default)
+                text_role = gr.Text(label=i18n("角色名称"), value=init.text_role_default)
                 button_switch_role_and_refresh = gr.Button(i18n("切换并刷新"), variant="primary")
                 text_work_space_dir.blur(save_work_dir, [text_work_space_dir, text_role], [text_role])
                 text_role.blur(save_role, [text_role], [])
             with gr.Row():
-                text_refer_audio_file_dir = gr.Text(label=i18n("参考音频所在目录"), value="")
-                text_inference_audio_file_dir = gr.Text(label=i18n("推理音频所在目录"), value="")
+                text_refer_audio_file_dir = gr.Text(label=i18n("参考音频所在目录"), value=init.text_refer_audio_file_dir_default)
+                text_inference_audio_file_dir = gr.Text(label=i18n("推理音频所在目录"), value=init.text_inference_audio_file_dir_default)
         with gr.Tab(label=i18n("第一步：基于训练素材，生成待选参考音频列表")):
             gr.Markdown(value=i18n("1.1：选择list文件，并提取3-10秒的素材作为参考候选"))
             text_list_input = gr.Text(label=i18n("请输入list文件路径"), value="")
@@ -599,25 +599,21 @@ if __name__ == '__main__':
                 button_convert_from_list = gr.Button(i18n("开始生成待参考列表"), variant="primary")
                 text_convert_from_list_info = gr.Text(label=i18n("参考列表生成结果"), value="", interactive=False)
             gr.Markdown(value=i18n("1.2：选择基准音频，执行相似度匹配，并分段随机抽样"))
-            default_sample_dir = common.check_path_existence_and_return(
-                os.path.join(default_base_dir, params.list_to_convert_reference_audio_dir))
-            text_sample_dir = gr.Text(label=i18n("参考音频抽样目录"), value=default_sample_dir, interactive=True)
+            text_sample_dir = gr.Text(label=i18n("参考音频抽样目录"), value=init.text_sample_dir_default, interactive=True)
             button_convert_from_list.click(convert_from_list, [text_work_space_dir, text_role, text_list_input],
                                            [text_convert_from_list_info, text_sample_dir])
             with gr.Row():
                 text_base_voice_path = gr.Text(label=i18n("请输入基准音频路径"), value="")
-                slider_subsection_num = gr.Slider(minimum=1, maximum=10, step=1, label=i18n("请输入分段数"), value=5,
+                slider_subsection_num = gr.Slider(minimum=1, maximum=10, step=1, label=i18n("请输入分段数"), value=init.slider_subsection_num_default,
                                                   interactive=True)
                 slider_sample_num = gr.Slider(minimum=1, maximum=10, step=1, label=i18n("请输入每段随机抽样个数"),
-                                              value=4, interactive=True)
+                                              value=init.slider_sample_num_default, interactive=True)
                 checkbox_similarity_output = gr.Checkbox(label=i18n("是否将相似度匹配结果输出到临时目录？"),
                                                          show_label=True)
             with gr.Row():
                 button_sample = gr.Button(i18n("开始分段随机抽样"), variant="primary")
                 text_sample_info = gr.Text(label=i18n("分段随机抽样结果"), value="", interactive=False)
         with gr.Tab(label=i18n("第二步：基于参考音频和测试文本，执行批量推理")):
-            default_model_inference_voice_dir = common.check_path_existence_and_return(
-                os.path.join(default_base_dir, params.reference_audio_dir))
             gr.Markdown(value=i18n("2.1：启动推理服务，并配置模型参数"))
             with gr.Accordion(label=i18n("详情")):
                 with gr.Tab(label=i18n("主项目下api.py服务")):
@@ -627,7 +623,7 @@ if __name__ == '__main__':
                         text_start_api_info = gr.Text(label=i18n("api启动信息"), value="", interactive=False)
                         button_start_api.click(start_api, [], [text_start_api_info])
                     gr.Markdown(value=i18n("2.1.2：设置模型参数"))
-                    text_api_set_model_base_url = gr.Text(label=i18n("请输入api服务模型切换接口地址"), value="",
+                    text_api_set_model_base_url = gr.Text(label=i18n("请输入api服务模型切换接口地址"), value=init.text_api_set_model_base_url_default,
                                                           interactive=True)
                     with gr.Row():
                         dropdown_api_gpt_models = gr.Dropdown(label=i18n("GPT模型列表"),
@@ -640,8 +636,8 @@ if __name__ == '__main__':
                         button_refresh_api_model.click(refresh_api_model, [],
                                                        [dropdown_api_gpt_models, dropdown_api_sovits_models])
                     with gr.Row():
-                        text_api_gpt_param = gr.Text(label=i18n("GPT模型参数名"), value="", interactive=True)
-                        text_api_sovits_param = gr.Text(label=i18n("SoVITS模型参数名"), value="", interactive=True)
+                        text_api_gpt_param = gr.Text(label=i18n("GPT模型参数名"), value=init.text_api_gpt_param_default, interactive=True)
+                        text_api_sovits_param = gr.Text(label=i18n("SoVITS模型参数名"), value=init.text_api_sovits_param_default, interactive=True)
                     gr.Markdown(value=i18n("2.1.3：发起设置请求"))
                     text_api_set_model_whole_url = gr.Text(label=i18n("完整的模型参数设置请求地址"), value="",
                                                            interactive=False)
@@ -674,9 +670,9 @@ if __name__ == '__main__':
                     gr.Markdown(value=i18n("2.1.1：请到你的项目下，启动服务"))
                     gr.Markdown(value=i18n("2.1.2：设置GPT模型参数"))
                     text_api_v2_set_gpt_model_base_url = gr.Text(label=i18n("请输入api服务GPT模型切换接口地址"),
-                                                                 value="", interactive=True)
+                                                                 value=init.text_api_v2_set_gpt_model_base_url_default, interactive=True)
                     with gr.Row():
-                        text_api_v2_gpt_model_param = gr.Text(label=i18n("GPT模型参数名"), value="", interactive=True)
+                        text_api_v2_gpt_model_param = gr.Text(label=i18n("GPT模型参数名"), value=init.text_api_v2_gpt_model_param_default, interactive=True)
                         dropdown_api_v2_gpt_models = gr.Dropdown(label=i18n("GPT模型列表"),
                                                                  choices=model_manager.get_gpt_model_names(), value="",
                                                                  interactive=True)
@@ -704,9 +700,9 @@ if __name__ == '__main__':
                                                                         [text_api_v2_start_set_gpt_model_request_info])
                     gr.Markdown(value=i18n("2.1.3：设置SoVITS模型参数"))
                     text_api_v2_set_sovits_model_base_url = gr.Text(label=i18n("请输入api服务SoVITS模型切换接口地址"),
-                                                                    value="", interactive=True)
+                                                                    value=init.text_api_v2_set_sovits_model_base_url_default, interactive=True)
                     with gr.Row():
-                        text_api_v2_sovits_model_param = gr.Text(label=i18n("SoVITS模型参数名"), value="",
+                        text_api_v2_sovits_model_param = gr.Text(label=i18n("SoVITS模型参数名"), value=init.text_api_v2_sovits_model_param_default,
                                                                  interactive=True)
                         dropdown_api_v2_sovits_models = gr.Dropdown(label=i18n("SoVITS模型列表"),
                                                                     choices=model_manager.get_sovits_model_names(),
@@ -741,14 +737,14 @@ if __name__ == '__main__':
             gr.Markdown(value=i18n("2.2：配置推理服务参数信息，参考音频路径/文本和角色情绪二选一，如果是角色情绪，需要先执行第四步，"
                                    "将参考音频打包配置到推理服务下，在推理前，请确认完整请求地址是否与正常使用时的一致，包括角色名称，尤其是文本分隔符是否正确"))
             text_url = gr.Text(label=i18n("请输入推理服务请求地址与参数"),
-                               value=rw_param.read(rw_param.generate_audio_url))
+                               value=init.text_url_default)
             with gr.Row():
-                text_text = gr.Text(label=i18n("请输入文本参数名"), value=rw_param.read(rw_param.text_param))
+                text_text = gr.Text(label=i18n("请输入文本参数名"), value=init.text_text_default)
                 text_ref_path = gr.Text(label=i18n("请输入参考音频路径参数名"),
-                                        value=rw_param.read(rw_param.ref_path_param))
+                                        value=init.text_ref_path_default)
                 text_ref_text = gr.Text(label=i18n("请输入参考音频文本参数名"),
-                                        value=rw_param.read(rw_param.ref_text_param))
-                text_emotion = gr.Text(label=i18n("请输入角色情绪参数名"), value=rw_param.read(rw_param.emotion_param))
+                                        value=init.text_ref_text_default)
+                text_emotion = gr.Text(label=i18n("请输入角色情绪参数名"), value=init.text_emotion_default)
             text_whole_url = gr.Text(label=i18n("完整地址"), value="", interactive=False)
             text_url.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
                            [text_whole_url])
@@ -766,9 +762,8 @@ if __name__ == '__main__':
                                [text_whole_url])
             text_emotion.blur(save_emotion_param, [text_emotion], [])
             gr.Markdown(value=i18n("2.3：配置待推理文本，一句一行，不要太多，10条即可"))
-            default_test_content_path = params.default_test_text_path
             with gr.Row():
-                text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value=default_test_content_path)
+                text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value=init.text_test_content_default)
                 button_open_test_content_file = gr.Button(i18n("打开待推理文本文件"), variant="primary")
                 button_open_test_content_file.click(open_file, [text_test_content], [])
             gr.Markdown(value=i18n("2.4：开始批量推理，这个过程比较耗时，可以去干点别的"))
@@ -780,9 +775,7 @@ if __name__ == '__main__':
                 text_model_inference_info = gr.Text(label=i18n("批量推理结果"), value="", interactive=False)
         with gr.Tab(label=i18n("第三步：进行参考音频效果校验与筛选")):
             gr.Markdown(value=i18n("3.1：启动asr，获取推理音频文本"))
-            default_asr_audio_dir = common.check_path_existence_and_return(
-                os.path.join(default_base_dir, params.inference_audio_dir, params.inference_audio_text_aggregation_dir))
-            text_asr_audio_dir = gr.Text(label=i18n("待asr的音频所在目录"), value=default_asr_audio_dir,
+            text_asr_audio_dir = gr.Text(label=i18n("待asr的音频所在目录"), value=init.text_asr_audio_dir_default,
                                          interactive=True)
             with gr.Row():
                 dropdown_asr_model = gr.Dropdown(
@@ -809,14 +802,13 @@ if __name__ == '__main__':
                 button_asr = gr.Button(i18n("启动asr"), variant="primary")
                 text_asr_info = gr.Text(label=i18n("asr结果"), value="", interactive=False)
             gr.Markdown(value=i18n("3.2：启动文本相似度分析"))
-            default_text_similarity_analysis_path = common.check_path_existence_and_return(
-                os.path.join(default_base_dir, params.asr_filename + '.list'))
             with gr.Row():
                 text_text_similarity_analysis_path = gr.Text(label=i18n("待分析的文件路径"),
-                                                             value=default_text_similarity_analysis_path,
+                                                             value=init.text_text_similarity_analysis_path_default,
                                                              interactive=True)
                 slider_text_similarity_amplification_boundary = gr.Slider(minimum=0, maximum=1, step=0.01,
-                                                                          label=i18n("文本相似度放大边界"), value=0.90,
+                                                                          label=i18n("文本相似度放大边界"),
+                                                                          value=init.slider_text_similarity_amplification_boundary_default,
                                                                           interactive=True)
             button_asr.click(asr, [text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
                                    dropdown_asr_size, dropdown_asr_lang],
@@ -831,7 +823,7 @@ if __name__ == '__main__':
                                                       [text_text_similarity_analysis_info])
             gr.Markdown(value=i18n("3.3：根据相似度分析结果，重点检查最后几条是否存在复读等问题"))
             with gr.Row():
-                text_text_similarity_result_path = gr.Text(label=i18n("文本相似度分析结果文件所在路径"), value="",
+                text_text_similarity_result_path = gr.Text(label=i18n("文本相似度分析结果文件所在路径"), value=init.text_text_similarity_result_path_default,
                                                            interactive=True)
                 button_open_text_similarity_result = gr.Button(i18n("打开文本相似度分析结果文件"), variant="primary")
                 button_open_inference_dir = gr.Button(i18n("打开推理音频所在目录"), variant="primary")
@@ -870,13 +862,8 @@ if __name__ == '__main__':
                                                              text_inference_audio_file_dir], [text_sync_ref_info])
         with gr.Tab("第五步：生成参考音频配置文本"):
             gr.Markdown(value=i18n("5.1：编辑模板"))
-            default_template_path = params.default_template_path
-            default_template_content = common.read_file(default_template_path)
-            text_template_path = gr.Text(label=i18n("模板文件路径"), value=default_template_path, interactive=True)
-            text_template = gr.Text(label=i18n("模板内容"), value=default_template_content, lines=10)
+            text_template = gr.Text(label=i18n("模板内容"), value=init.text_template_default, lines=10)
             gr.Markdown(value=i18n("5.2：生成配置"))
-            default_sync_ref_audio_dir2 = common.check_path_existence_and_return(
-                os.path.join(default_base_dir, params.reference_audio_dir))
             with gr.Row():
                 button_create_config = gr.Button(i18n("生成配置"), variant="primary")
                 text_create_config_info = gr.Text(label=i18n("生成结果"), value="", interactive=False)
@@ -897,3 +884,7 @@ if __name__ == '__main__':
         server_port=9423,
         quiet=True,
     )
+
+
+if __name__ == "__main__":
+    init_ui()

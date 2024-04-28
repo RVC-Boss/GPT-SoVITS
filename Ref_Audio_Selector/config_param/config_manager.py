@@ -6,13 +6,37 @@ import Ref_Audio_Selector.common.common as common
 class ParamReadWriteManager:
     def __init__(self):
         self.base_dir = 'Ref_Audio_Selector/file/base_info'
+        os.makedirs(self.base_dir, exist_ok=True)
+        # 基础信息
         self.work_dir = 'work_dir'
         self.role = 'role'
-        self.generate_audio_url = 'generate_audio_url'
+        # 第一步
+        self.subsection_num = 'subsection_num'
+        self.sample_num = 'sample_num'
+        # 第二步
+        self.api_set_model_base_url = 'api_set_model_base_url'
+        self.api_gpt_param = 'api_gpt_param'
+        self.api_sovits_param = 'api_sovits_param'
+
+        self.api_v2_set_gpt_model_base_url = 'api_v2_set_gpt_model_base_url'
+        self.api_v2_gpt_model_param = 'api_v2_gpt_model_param'
+        self.api_v2_set_sovits_model_base_url = 'api_v2_set_sovits_model_base_url'
+        self.api_v2_sovits_model_param = 'api_v2_sovits_model_param'
+
+        self.text_url = 'text_url'
         self.text_param = 'text_param'
         self.ref_path_param = 'ref_path_param'
         self.ref_text_param = 'ref_text_param'
         self.emotion_param = 'emotion_param'
+
+        self.test_content_path = 'test_content_path'
+        self.request_concurrency_num = 'request_concurrency_num'
+
+        # 第三步
+        self.text_similarity_amplification_boundary = 'text_similarity_amplification_boundary'
+        # 第四步
+        # 第五步
+        self.text_template = 'text_template'
 
     def read(self, key):
         file_path = os.path.join(self.base_dir, key + '.txt')
