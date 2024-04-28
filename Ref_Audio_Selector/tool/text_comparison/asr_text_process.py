@@ -56,7 +56,7 @@ def calculate_average_similarity_by_emotion(data_list):
         similarity_score = item['similarity_score']
         result_dict[emotion].append(similarity_score)
 
-    average_scores = [{'emotion': emotion, 'average_similarity_score': sum(scores) / len(scores)}
+    average_scores = [{'emotion': emotion, 'average_similarity_score': sum(scores) / len(scores), 'count': len(scores)}
                       for emotion, scores in result_dict.items()]
 
     average_scores.sort(key=lambda x: x['average_similarity_score'], reverse=True)
@@ -123,7 +123,7 @@ def process(asr_file_path, output_dir, similarity_enlarge_boundary):
     average_similarity_file = os.path.join(output_dir,
                                            f'{params.text_emotion_average_similarity_report_filename}.txt')
     average_similarity_content = \
-        '\n'.join([f"{item['average_similarity_score']}|{item['emotion']}" for item in average_similarity_list])
+        '\n'.join([f"{item['average_similarity_score']}|{item['count']}|{item['emotion']}" for item in average_similarity_list])
     common.write_text_to_file(average_similarity_content, average_similarity_file)
 
     emotion_detail_list = group_and_sort_by_field(records, 'emotion')

@@ -3,16 +3,55 @@ import os
 import requests
 import itertools
 import multiprocessing
-from multiprocessing import Pool
 from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import Ref_Audio_Selector.config_param.config_params as params
-from Ref_Audio_Selector.common.time_util import timeit_decorator
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 from Ref_Audio_Selector.config_param.log_config import logger, p_logger
 
 
-class URLComposer:
+class SetModelURLComposer:
+    def __init__(self, type, base_url, gpt_param_name, sovits_param_name):
+        self.type = type
+        self.base_url = base_url
+        self.gpt_param_name = gpt_param_name
+        self.sovits_param_name = sovits_param_name
+
+    def is_valid(self):
+        if self.base_url is None or self.base_url == '':
+            raise Exception("请求地址不能为空")
+        if self.type in ['gpt', 'all']:
+            if self.gpt_param_name is None or self.gpt_param_name == '':
+                raise Exception("GPT参数名不能为空")
+        if self.type in ['sovits', 'all']:
+            if self.sovits_param_name is None or self.sovits_param_name == '':
+                raise Exception("Sovits参数名不能为空")
+
+    def build_get_url(self, value_array, need_url_encode=True):
+        params = {}
+        if self.type == 'gpt':
+            params[self.gpt_param_name] = value_array[0]
+        if self.type == 'sovits':
+            params[self.sovits_param_name] = value_array[0]
+        if self.type == 'all':
+            params[self.gpt_param_name] = value_array[0]
+            params[self.sovits_param_name] = value_array[1]
+        return append_params_to_url(self.base_url, params, need_url_encode)
+
+    def build_post_url(self, value_array, need_url_encode=True):
+        url = append_params_to_url(self.base_url, {}, need_url_encode)
+        params = {}
+        if self.type == 'gpt':
+            params[self.gpt_param_name] = value_array[0]
+        if self.type == 'sovits':
+            params[self.sovits_param_name] = value_array[0]
+        if self.type == 'all':
+            params[self.gpt_param_name] = value_array[0]
+            params[self.sovits_param_name] = value_array[1]
+        return url, params
+
+
+class TTSURLComposer:
     def __init__(self, base_url, emotion_param_name, text_param_name, ref_path_param_name, ref_text_param_name):
         self.base_url = base_url
         self.emotion_param_name = emotion_param_name
@@ -34,30 +73,26 @@ class URLComposer:
         return self.emotion_param_name is not None and self.emotion_param_name != ''
 
     def build_url_with_emotion(self, text_value, emotion_value, need_url_encode=True):
-        if not self.emotion_param_name:
-            raise ValueError("Emotion parameter name is not set.")
         params = {
             self.text_param_name: text_value,
             self.emotion_param_name: emotion_value,
         }
-        return self._append_params_to_url(params, need_url_encode)
+        return append_params_to_url(self.base_url, params, need_url_encode)
 
     def build_url_with_ref(self, text_value, ref_path_value, ref_text_value, need_url_encode=True):
-        if self.emotion_param_name:
-            raise ValueError("Cannot use reference parameters when emotion parameter is set.")
         params = {
             self.text_param_name: text_value,
             self.ref_path_param_name: ref_path_value,
             self.ref_text_param_name: ref_text_value,
         }
-        return self._append_params_to_url(params, need_url_encode)
+        return append_params_to_url(self.base_url, params, need_url_encode)
 
-    def _append_params_to_url(self, params, need_url_encode):
-        url_with_params = self.base_url
-        if params:
-            query_params = '&'.join([f"{k}={v}" for k, v in params.items()])
-            url_with_params += '?' + query_params if '?' not in self.base_url else '&' + query_params
-        return url_with_params if not need_url_encode else safe_encode_query_params(url_with_params)
+
+def append_params_to_url(url_with_params, params, need_url_encode):
+    if params:
+        query_params = '&'.join([f"{k}={v}" for k, v in params.items()])
+        url_with_params += '?' + query_params if '?' not in url_with_params else '&' + query_params
+    return url_with_params if not need_url_encode else safe_encode_query_params(url_with_params)
 
 
 def safe_encode_query_params(original_url):
@@ -87,8 +122,9 @@ def generate_audio_files_parallel(url_composer, text_list, emotion_list, output_
     emotion_groups = np.array_split(emotion_list, num_processes)
 
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
-        futures = [executor.submit(generate_audio_files_for_emotion_group, url_composer, text_list, group, output_dir_path)
-                   for group in emotion_groups]
+        futures = [
+            executor.submit(generate_audio_files_for_emotion_group, url_composer, text_list, group, output_dir_path)
+            for group in emotion_groups]
         for future in futures:
             future.result()  # 等待所有进程完成
 
@@ -162,3 +198,33 @@ def inference_audio_from_api(url):
         return response.content
     else:
         raise Exception(f"Failed to fetch audio from API. Server responded with status code {response.status_code}.")
+
+
+def start_api_set_model(set_model_url_composer, gpt_models, sovits_models):
+    url, post_body = set_model_url_composer.build_post_url(gpt_models, sovits_models)
+    response = requests.post(url, json=post_body)
+    if response.status_code == 200:
+        result = response.text
+        return result
+    else:
+        return f'请求失败，状态码：{response.status_code}'
+
+
+def start_api_v2_set_gpt_model(set_model_url_composer, gpt_models):
+    url = set_model_url_composer.build_get_url([gpt_models])
+    response = requests.get(url)
+    if response.status_code == 200:
+        result = response.text
+        return result
+    else:
+        return f'请求失败，状态码：{response.status_code}'
+
+
+def start_api_v2_set_sovits_model(set_model_url_composer, sovits_models):
+    url = set_model_url_composer.build_get_url([sovits_models])
+    response = requests.get(url)
+    if response.status_code == 200:
+        result = response.text
+        return result
+    else:
+        return f'请求失败，状态码：{response.status_code}'

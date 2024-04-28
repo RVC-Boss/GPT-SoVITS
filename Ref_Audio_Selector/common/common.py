@@ -1,4 +1,7 @@
 from tools import my_utils
+from config import python_exec, is_half
+import subprocess
+import sys
 import os
 
 
@@ -116,6 +119,34 @@ def check_path_existence_and_return(path):
         return path
     else:
         return ""
+
+
+def open_file(filepath):
+    if sys.platform.startswith('darwin'):
+        subprocess.run(['open', filepath])  # macOS
+    elif os.name == 'nt':  # For Windows
+        os.startfile(filepath)
+    elif os.name == 'posix':  # For Linux, Unix, etc.
+        subprocess.run(['xdg-open', filepath])
+
+
+def start_new_service(script_path):
+    # 对于Windows系统
+    if sys.platform.startswith('win'):
+        cmd = f'start cmd /k {python_exec} {script_path}'
+    # 对于Mac或者Linux系统
+    else:
+        cmd = f'xterm -e {python_exec} {script_path}'
+
+    proc = subprocess.Popen(cmd, shell=True)
+
+    # 关闭之前启动的子进程
+    # proc.terminate()
+
+    # 或者如果需要强制关闭可以使用
+    # proc.kill()
+
+    return proc
 
 
 if __name__ == '__main__':
