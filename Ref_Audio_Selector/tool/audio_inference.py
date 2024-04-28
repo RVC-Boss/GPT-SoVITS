@@ -167,9 +167,9 @@ def generate_audio_files_for_emotion_group(url_composer, text_list, emotion_list
             continue
 
         if url_composer.is_emotion():
-            real_url = url_composer.build_url_with_emotion(text, emotion['emotion'])
+            real_url = url_composer.build_url_with_emotion(text, emotion['emotion'], False)
         else:
-            real_url = url_composer.build_url_with_ref(text, emotion['ref_path'], emotion['ref_text'])
+            real_url = url_composer.build_url_with_ref(text, emotion['ref_path'], emotion['ref_text'], False)
 
         audio_bytes = inference_audio_from_api(real_url)
 
