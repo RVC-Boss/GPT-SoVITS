@@ -39,7 +39,6 @@ def only_asr(input_file):
 @timeit_decorator
 def execute_asr_multi_level_dir(input_folder, output_folder, model_size, language):
     output = []
-    output_file_name = os.path.basename(input_folder)
     # 递归遍历输入目录及所有子目录
     for root, dirs, files in os.walk(input_folder):
         for name in sorted(files):
@@ -58,7 +57,7 @@ def execute_asr_multi_level_dir(input_folder, output_folder, model_size, languag
                     logger.error(traceback.format_exc())
 
     # 创建或打开指定的输出目录
-    output_folder = output_folder or "output/asr_opt"
+    output_folder = output_folder
     output_dir_abs = os.path.abspath(output_folder)
     os.makedirs(output_dir_abs, exist_ok=True)
 

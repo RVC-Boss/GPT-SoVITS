@@ -515,6 +515,12 @@ def delete_ref_audio_below_boundary(ref_audio_path, text_text_similarity_result_
         text_delete_ref_audio_below_boundary_info = f"发生异常：{e}"
     return text_delete_ref_audio_below_boundary_info
 
+def change_lang_choices(key): #根据选择的模型修改可选的语言
+    # return gr.Dropdown(choices=asr_dict[key]['lang'])
+    return {"__type__": "update", "choices": asr_dict[key]['lang'],"value":asr_dict[key]['lang'][0]}
+def change_size_choices(key): # 根据选择的模型修改可选的模型尺寸
+    # return gr.Dropdown(choices=asr_dict[key]['size'])
+    return {"__type__": "update", "choices": asr_dict[key]['size']}
 
 
 def save_generate_audio_url(generate_audio_url):
@@ -687,7 +693,10 @@ if __name__ == '__main__':
             text_emotion.blur(save_emotion_param, [text_emotion], [])
             gr.Markdown(value=i18n("2.3：配置待推理文本，一句一行，不要太多，10条即可"))
             default_test_content_path = params.default_test_text_path
-            text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value=default_test_content_path)
+            with gr.Row():
+                text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value=default_test_content_path)
+                button_open_test_content_file = gr.Button(i18n("打开待推理文本文件"), variant="primary")
+                button_open_test_content_file.click(open_file, [text_test_content], [])
             gr.Markdown(value=i18n("2.4：开始批量推理，这个过程比较耗时，可以去干点别的"))
             slider_request_concurrency_num = gr.Slider(minimum=1, maximum=10, step=1, label=i18n("请输入请求并发数，会根据此数创建对应数量的子进程并行发起推理请求"), value=3,
                       interactive=True)
@@ -703,7 +712,7 @@ if __name__ == '__main__':
             with gr.Row():
                 dropdown_asr_model = gr.Dropdown(
                     label=i18n("ASR 模型"),
-                    choices=[],
+                    choices=list(asr_dict.keys()),
                     interactive=True,
                     value="达摩 ASR (中文)"
                 )
@@ -719,6 +728,8 @@ if __name__ == '__main__':
                     interactive=True,
                     value="zh"
                 )
+                dropdown_asr_model.change(change_lang_choices, [dropdown_asr_model], [dropdown_asr_lang])
+                dropdown_asr_model.change(change_size_choices, [dropdown_asr_model], [dropdown_asr_size])
             with gr.Row():
                 button_asr = gr.Button(i18n("启动asr"), variant="primary")
                 text_asr_info = gr.Text(label=i18n("asr结果"), value="", interactive=False)
