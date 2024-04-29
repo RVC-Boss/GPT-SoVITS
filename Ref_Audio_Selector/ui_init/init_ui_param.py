@@ -129,7 +129,7 @@ def init_second():
     text_api_v2_sovits_model_param_default = empty_default(rw_param.read(rw_param.api_v2_sovits_model_param), 'weights_path')
 
     text_url_default = empty_default(rw_param.read(rw_param.text_url),
-                                     'http://localhost:9880?prompt_language=中文&text_language=中文&cut_punc=')
+                                     'http://localhost:9880?prompt_language=中文&text_language=中文&cut_punc=,.;?!、，。？！;：…')
     text_text_default = empty_default(rw_param.read(rw_param.text_param), 'text')
     dropdown_refer_type_param_default = empty_default(rw_param.read(rw_param.refer_type_param), '参考音频')
 
