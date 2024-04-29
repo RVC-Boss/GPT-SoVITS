@@ -157,5 +157,5 @@ def parse_arguments():
 
 if __name__ == '__main__':
     cmd = parse_arguments()
-    print(cmd)
+    # print(cmd)
     process(cmd.asr_file_path, cmd.output_dir, cmd.similarity_enlarge_boundary)

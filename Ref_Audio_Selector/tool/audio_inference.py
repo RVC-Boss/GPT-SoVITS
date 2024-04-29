@@ -114,9 +114,7 @@ def safe_encode_query_params(original_url):
     return encoded_url
 
 
-def generate_audio_files_parallel(url_composer, text_list, emotion_list, output_dir_path, num_processes=None):
-    if num_processes is None:
-        num_processes = multiprocessing.cpu_count()
+def generate_audio_files_parallel(url_composer, text_list, emotion_list, output_dir_path, num_processes=1):
 
     # 将emotion_list均匀分成num_processes个子集
     emotion_groups = np.array_split(emotion_list, num_processes)

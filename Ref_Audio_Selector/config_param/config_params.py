@@ -3,6 +3,8 @@ import Ref_Audio_Selector.config_param.config_manager as config_manager
 config = config_manager.get_config()
 
 # [Base]
+# 服务端口号
+server_port = int(config.get_base('server_port'))
 # 参考音频目录
 reference_audio_dir = config.get_base('reference_audio_dir')
 # 临时文件目录

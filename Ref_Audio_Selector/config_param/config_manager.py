@@ -48,7 +48,13 @@ class ParamReadWriteManager:
 
     def write(self, key, content):
         file_path = os.path.join(self.base_dir, key + '.txt')
-        clean_content = content.strip()
+
+        # 确保内容是字符串类型，如果不是，转换为字符串
+        if not isinstance(content, str):
+            clean_content = str(content).strip()  # 转换为字符串并移除首尾空白
+        else:
+            clean_content = content.strip()
+
         common.write_text_to_file(clean_content, file_path)
 
 

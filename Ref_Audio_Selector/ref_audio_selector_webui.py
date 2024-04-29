@@ -279,12 +279,15 @@ def text_similarity_analysis(text_work_space_dir, text_role, slider_text_similar
                                                                                   similarity_dir,
                                                                                   slider_text_similarity_amplification_boundary)
 
+        average_similarity_file = os.path.join(similarity_dir,
+                                               f'{params.text_emotion_average_similarity_report_filename}.txt')
+
         text_text_similarity_analysis_info = f"耗时：{time_consuming:0.1f}秒；相似度分析成功：生成目录{similarity_dir}"
 
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
         text_text_similarity_analysis_info = f"发生异常：{e}"
-    return i18n(text_text_similarity_analysis_info)
+    return i18n(text_text_similarity_analysis_info), average_similarity_file
 
 
 def open_text_similarity_analysis(asr_file_path, output_dir, similarity_enlarge_boundary=0.9):
@@ -579,11 +582,12 @@ def init_ui():
         with gr.Accordion(label=i18n("基本信息")):
             with gr.Row():
                 text_work_space_dir = gr.Text(label=i18n("工作目录，后续操作所生成文件都会保存在此目录下"),
-                                              value=init.text_work_space_dir_default)
-                text_role = gr.Text(label=i18n("角色名称"), value=init.text_role_default)
-                button_switch_role_and_refresh = gr.Button(i18n("切换并刷新"), variant="primary")
+                                              value=init.text_work_space_dir_default, scale=2)
+                text_role = gr.Text(label=i18n("角色名称"), value=init.text_role_default, scale=2)
+                button_switch_role_and_refresh = gr.Button(i18n("切换并刷新"), variant="primary", scale=1)
                 text_work_space_dir.blur(save_work_dir, [text_work_space_dir, text_role], [text_role])
                 text_role.blur(lambda value: rw_param.write(rw_param.role, value), [text_role], [])
+            gr.Markdown(value=i18n("下方为公共参数，会随着进度自动填充，无需填写"))
             with gr.Row():
                 text_refer_audio_file_dir = gr.Text(label=i18n("参考音频所在目录"),
                                                     value=init.text_refer_audio_file_dir_default)
@@ -797,17 +801,21 @@ def init_ui():
             text_emotion.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
                                [text_whole_url])
             text_emotion.blur(save_emotion_param, [text_emotion], [])
-            gr.Markdown(value=i18n("2.3：配置待推理文本，一句一行，不要太多，10条即可"))
+            gr.Markdown(value=i18n("2.3：配置待推理文本，一句一行，尽量保证文本多样性，不同情绪、不同类型的都来一点"))
             with gr.Row():
                 text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value=init.text_test_content_default)
                 button_open_test_content_file = gr.Button(i18n("打开待推理文本文件"), variant="primary")
                 button_open_test_content_file.click(open_file, [text_test_content], [])
-                text_test_content.blur(lambda value: rw_param.write(rw_param.test_content_path, value), [text_test_content], [])
+                text_test_content.blur(lambda value: rw_param.write(rw_param.test_content_path, value),
+                                       [text_test_content], [])
             gr.Markdown(value=i18n("2.4：开始批量推理，这个过程比较耗时，可以去干点别的"))
-            slider_request_concurrency_num = gr.Slider(minimum=1, maximum=10, step=1, label=i18n(
-                "请输入请求并发数，会根据此数创建对应数量的子进程并行发起推理请求"), value=init.slider_request_concurrency_num_default,
+            slider_request_concurrency_num = gr.Slider(minimum=1, maximum=init.slider_request_concurrency_max_num,
+                                                       step=1, label=i18n(
+                    "请输入请求并发数，会根据此数创建对应数量的子进程并行发起推理请求"),
+                                                       value=init.slider_request_concurrency_num_default,
                                                        interactive=True)
-            slider_request_concurrency_num.change(lambda value: rw_param.write(rw_param.request_concurrency_num, value), [slider_request_concurrency_num], [])
+            slider_request_concurrency_num.change(lambda value: rw_param.write(rw_param.request_concurrency_num, value),
+                                                  [slider_request_concurrency_num], [])
             with gr.Row():
                 button_model_inference = gr.Button(i18n("开启批量推理"), variant="primary")
                 text_model_inference_info = gr.Text(label=i18n("批量推理结果"), value="", interactive=False)
@@ -848,7 +856,9 @@ def init_ui():
                                                                           label=i18n("文本相似度放大边界"),
                                                                           value=init.slider_text_similarity_amplification_boundary_default,
                                                                           interactive=True)
-                slider_text_similarity_amplification_boundary.change(lambda value: rw_param.write(rw_param.text_similarity_amplification_boundary, value), [slider_text_similarity_amplification_boundary], [])
+                slider_text_similarity_amplification_boundary.change(
+                    lambda value: rw_param.write(rw_param.text_similarity_amplification_boundary, value),
+                    [slider_text_similarity_amplification_boundary], [])
             button_asr.click(asr, [text_work_space_dir, text_role, text_asr_audio_dir, dropdown_asr_model,
                                    dropdown_asr_size, dropdown_asr_lang],
                              [text_asr_info, text_text_similarity_analysis_path])
@@ -856,10 +866,6 @@ def init_ui():
                 button_text_similarity_analysis = gr.Button(i18n("启动文本相似度分析"), variant="primary")
                 text_text_similarity_analysis_info = gr.Text(label=i18n("文本相似度分析结果"), value="",
                                                              interactive=False)
-                button_text_similarity_analysis.click(text_similarity_analysis, [text_work_space_dir, text_role,
-                                                                                 slider_text_similarity_amplification_boundary,
-                                                                                 text_text_similarity_analysis_path],
-                                                      [text_text_similarity_analysis_info])
             gr.Markdown(value=i18n("3.3：根据相似度分析结果，重点检查最后几条是否存在复读等问题"))
             with gr.Row():
                 text_text_similarity_result_path = gr.Text(label=i18n("文本相似度分析结果文件所在路径"),
@@ -867,10 +873,17 @@ def init_ui():
                                                            interactive=True)
                 button_open_text_similarity_result = gr.Button(i18n("打开文本相似度分析结果文件"), variant="primary")
                 button_open_inference_dir = gr.Button(i18n("打开推理音频所在目录"), variant="primary")
+
+                button_text_similarity_analysis.click(text_similarity_analysis, [text_work_space_dir, text_role,
+                                                                                 slider_text_similarity_amplification_boundary,
+                                                                                 text_text_similarity_analysis_path],
+                                                      [text_text_similarity_analysis_info,
+                                                       text_text_similarity_result_path])
+
                 button_open_text_similarity_result.click(open_file, [text_text_similarity_result_path], [])
                 button_open_inference_dir.click(open_file, [text_inference_audio_file_dir], [])
-            slider_audio_text_similarity_boundary = gr.Slider(minimum=0, maximum=1, step=0.01,
-                                                              label=i18n("音频文本相似度边界值"), value=0.80,
+            slider_audio_text_similarity_boundary = gr.Slider(minimum=0, maximum=1, step=0.001,
+                                                              label=i18n("音频文本相似度边界值"), value=0.800,
                                                               interactive=True)
             with gr.Row():
                 button_delete_ref_audio_below_boundary = gr.Button(i18n("删除音频文本相似度边界值以下的参考音频"),
@@ -922,7 +935,8 @@ def init_ui():
                                      [text_model_inference_info, text_asr_audio_dir, text_inference_audio_file_dir])
 
     app.launch(
-        server_port=9423,
+        server_port=params.server_port,
+        inbrowser=True,
         quiet=True,
     )
 

@@ -1,4 +1,5 @@
 import os
+import multiprocessing
 import Ref_Audio_Selector.config_param.config_params as params
 import Ref_Audio_Selector.common.common as common
 
@@ -55,6 +56,8 @@ text_emotion_default = None
 text_test_content_default = None
 # 请求并发数
 slider_request_concurrency_num_default = 3
+# 最大并发数
+slider_request_concurrency_max_num = None
 
 # -------------------第三步------------------------------
 
@@ -108,7 +111,7 @@ def init_first():
 def init_second():
     global text_api_set_model_base_url_default, text_api_gpt_param_default, text_api_sovits_param_default, text_api_v2_set_gpt_model_base_url_default, text_api_v2_gpt_model_param_default
     global text_api_v2_set_sovits_model_base_url_default, text_api_v2_sovits_model_param_default, text_url_default, text_text_default, text_ref_path_default
-    global text_ref_text_default, text_emotion_default, text_test_content_default, slider_request_concurrency_num_default
+    global text_ref_text_default, text_emotion_default, text_test_content_default, slider_request_concurrency_num_default, slider_request_concurrency_max_num
 
     text_api_set_model_base_url_default = empty_default(rw_param.read(rw_param.api_set_model_base_url),
                                                         'http://localhost:9880/set_model')
@@ -133,7 +136,11 @@ def init_second():
 
     text_test_content_default = empty_default(rw_param.read(rw_param.test_content_path), params.default_test_text_path)
 
+    slider_request_concurrency_max_num = multiprocessing.cpu_count()
+
     slider_request_concurrency_num_default = empty_default(rw_param.read(rw_param.request_concurrency_num), 3)
+
+    slider_request_concurrency_num_default = min(int(slider_request_concurrency_num_default), slider_request_concurrency_max_num)
 
 
 def init_third():
