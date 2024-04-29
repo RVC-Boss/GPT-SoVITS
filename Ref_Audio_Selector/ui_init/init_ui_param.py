@@ -46,6 +46,8 @@ text_api_v2_sovits_model_param_default = None
 text_url_default = None
 # 文本参数名
 text_text_default = None
+# 参考参数类型
+dropdown_refer_type_param_default = None
 # 参考音频路径参数名
 text_ref_path_default = None
 # 参考音频文本参数名
@@ -110,7 +112,7 @@ def init_first():
 
 def init_second():
     global text_api_set_model_base_url_default, text_api_gpt_param_default, text_api_sovits_param_default, text_api_v2_set_gpt_model_base_url_default, text_api_v2_gpt_model_param_default
-    global text_api_v2_set_sovits_model_base_url_default, text_api_v2_sovits_model_param_default, text_url_default, text_text_default, text_ref_path_default
+    global text_api_v2_set_sovits_model_base_url_default, text_api_v2_sovits_model_param_default, text_url_default, text_text_default, dropdown_refer_type_param_default, text_ref_path_default
     global text_ref_text_default, text_emotion_default, text_test_content_default, slider_request_concurrency_num_default, slider_request_concurrency_max_num
 
     text_api_set_model_base_url_default = empty_default(rw_param.read(rw_param.api_set_model_base_url),
@@ -129,6 +131,7 @@ def init_second():
     text_url_default = empty_default(rw_param.read(rw_param.text_url),
                                      'http://localhost:9880?prompt_language=中文&text_language=中文&cut_punc=')
     text_text_default = empty_default(rw_param.read(rw_param.text_param), 'text')
+    dropdown_refer_type_param_default = empty_default(rw_param.read(rw_param.refer_type_param), '参考音频')
 
     text_ref_path_default = empty_default(rw_param.read(rw_param.ref_path_param), 'refer_wav_path')
     text_ref_text_default = empty_default(rw_param.read(rw_param.ref_text_param), 'prompt_text')

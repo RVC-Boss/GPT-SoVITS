@@ -146,7 +146,7 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
 
 # 根据参考音频和测试文本，执行批量推理
 def model_inference(text_work_space_dir, text_role, slider_request_concurrency_num, text_refer_audio_file_dir,
-                    text_url,
+                    text_url, dropdown_refer_type_param,
                     text_text, text_ref_path, text_ref_text, text_emotion,
                     text_test_content_dir):
     text_work_space_dir, text_refer_audio_file_dir, text_test_content_dir \
@@ -173,7 +173,8 @@ def model_inference(text_work_space_dir, text_role, slider_request_concurrency_n
         text_asr_audio_dir = os.path.join(inference_dir,
                                           params.inference_audio_text_aggregation_dir)
 
-        url_composer = audio_inference.TTSURLComposer(text_url, text_emotion, text_text, text_ref_path, text_ref_text)
+        url_composer = audio_inference.TTSURLComposer(text_url, dropdown_refer_type_param, text_emotion, text_text,
+                                                      text_ref_path, text_ref_text)
         url_composer.is_valid()
         text_list = common.read_text_file_to_list(text_test_content_dir)
         if text_list is None or len(text_list) == 0:
@@ -403,8 +404,9 @@ def create_config(text_work_space_dir, text_role, text_template, text_refer_audi
 
 
 # 基于请求路径和参数，合成完整的请求路径
-def whole_url(text_url, text_text, text_ref_path, text_ref_text, text_emotion):
-    url_composer = audio_inference.TTSURLComposer(text_url, text_emotion, text_text, text_ref_path, text_ref_text)
+def whole_url(text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text, text_emotion):
+    url_composer = audio_inference.TTSURLComposer(text_url, dropdown_refer_type_param, text_emotion, text_text,
+                                                  text_ref_path, text_ref_text)
     if url_composer.is_emotion():
         text_whole_url = url_composer.build_url_with_emotion('测试内容', '情绪类型', False)
     else:
@@ -583,6 +585,16 @@ def save_work_dir(text_work_space_dir, text_role):
                 break
         rw_param.write(rw_param.role, role_dir)
         return role_dir
+
+
+def chang_refer_type_param(selected_value):
+    rw_param.write(rw_param.refer_type_param, selected_value)
+    if selected_value == "参考音频":
+        return {"visible": True, "__type__": "update"}, {"visible": True, "__type__": "update"}, {"visible": False,
+                                                                                                  "__type__": "update"}
+    else:
+        return {"visible": False, "__type__": "update"}, {"visible": False, "__type__": "update"}, {"visible": True,
+                                                                                                    "__type__": "update"}
 
 
 def init_ui():
@@ -789,11 +801,16 @@ def init_ui():
                                value=init.text_url_default)
             with gr.Row():
                 text_text = gr.Text(label=i18n("请输入文本参数名"), value=init.text_text_default)
+                dropdown_refer_type_param = gr.Dropdown(label=i18n("类型"), choices=["参考音频", "角色情绪"],
+                                                        value=init.dropdown_refer_type_param_default, interactive=True)
                 text_ref_path = gr.Text(label=i18n("请输入参考音频路径参数名"),
-                                        value=init.text_ref_path_default)
+                                        value=init.text_ref_path_default, visible=True)
                 text_ref_text = gr.Text(label=i18n("请输入参考音频文本参数名"),
-                                        value=init.text_ref_text_default)
-                text_emotion = gr.Text(label=i18n("请输入角色情绪参数名"), value=init.text_emotion_default)
+                                        value=init.text_ref_text_default, visible=True)
+                text_emotion = gr.Text(label=i18n("请输入角色情绪参数名"), value=init.text_emotion_default,
+                                       visible=False)
+                dropdown_refer_type_param.change(chang_refer_type_param, [dropdown_refer_type_param],
+                                                 [text_ref_path, text_ref_text, text_emotion])
             text_whole_url = gr.Text(label=i18n("完整地址"), value="", interactive=False)
 
             text_text.blur(lambda value: rw_param.write(rw_param.text_param, value), [text_text], [])
@@ -801,19 +818,26 @@ def init_ui():
             text_ref_text.blur(lambda value: rw_param.write(rw_param.ref_text_param, value), [text_ref_text], [])
             text_emotion.blur(lambda value: rw_param.write(rw_param.emotion_param, value), [text_emotion], [])
 
-            text_url.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
+            text_url.input(whole_url,
+                           [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text, text_emotion],
                            [text_whole_url])
             text_url.blur(save_generate_audio_url, [text_url], [])
-            text_text.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
+            text_text.input(whole_url, [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text,
+                                        text_emotion],
                             [text_whole_url])
             text_text.blur(save_text_param, [text_text], [])
-            text_ref_path.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
+            text_ref_path.input(whole_url,
+                                [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text,
+                                 text_emotion],
                                 [text_whole_url])
             text_ref_path.blur(save_ref_path_param, [text_ref_path], [])
-            text_ref_text.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
+            text_ref_text.input(whole_url,
+                                [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text,
+                                 text_emotion],
                                 [text_whole_url])
             text_ref_text.blur(save_ref_text_param, [text_ref_text], [])
-            text_emotion.input(whole_url, [text_url, text_text, text_ref_path, text_ref_text, text_emotion],
+            text_emotion.input(whole_url, [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text,
+                                           text_emotion],
                                [text_whole_url])
             text_emotion.blur(save_emotion_param, [text_emotion], [])
             gr.Markdown(value=i18n("2.3：配置待推理文本，一句一行，尽量保证文本多样性，不同情绪、不同类型的都来一点"))
@@ -955,7 +979,7 @@ def init_ui():
         button_sample_result_open.click(open_file, [text_refer_audio_file_dir], [])
         button_model_inference.click(model_inference,
                                      [text_work_space_dir, text_role, slider_request_concurrency_num,
-                                      text_refer_audio_file_dir, text_url,
+                                      text_refer_audio_file_dir, text_url, dropdown_refer_type_param,
                                       text_text, text_ref_path, text_ref_text, text_emotion,
                                       text_test_content],
                                      [text_model_inference_info, text_asr_audio_dir, text_inference_audio_file_dir])

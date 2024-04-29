@@ -52,8 +52,10 @@ class SetModelURLComposer:
 
 
 class TTSURLComposer:
-    def __init__(self, base_url, emotion_param_name, text_param_name, ref_path_param_name, ref_text_param_name):
+    def __init__(self, base_url, refer_type_param, emotion_param_name, text_param_name, ref_path_param_name, ref_text_param_name):
         self.base_url = base_url
+        # 角色情绪 or 参考音频
+        self.refer_type_param = refer_type_param 
         self.emotion_param_name = emotion_param_name
         self.text_param_name = text_param_name
         self.ref_path_param_name = ref_path_param_name
@@ -70,7 +72,7 @@ class TTSURLComposer:
             raise ValueError("请输入至少一个参考or情绪的参数")
 
     def is_emotion(self):
-        return self.emotion_param_name is not None and self.emotion_param_name != ''
+        return self.refer_type_param == '角色情绪'
 
     def build_url_with_emotion(self, text_value, emotion_value, need_url_encode=True):
         params = {

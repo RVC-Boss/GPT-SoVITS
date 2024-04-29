@@ -25,6 +25,7 @@ class ParamReadWriteManager:
 
         self.text_url = 'text_url'
         self.text_param = 'text_param'
+        self.refer_type_param = 'refer_type_param'
         self.ref_path_param = 'ref_path_param'
         self.ref_text_param = 'ref_text_param'
         self.emotion_param = 'emotion_param'
