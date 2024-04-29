@@ -597,6 +597,38 @@ def chang_refer_type_param(selected_value):
                                                                                                     "__type__": "update"}
 
 
+def switch_role_and_refresh():
+    global hide_voice_similarity_dir, hide_config_file
+    init.init_all()
+    reset_list = []
+    # 基础
+    reset_list.extend([
+        init.text_refer_audio_file_dir_default,
+        init.text_inference_audio_file_dir_default
+    ])
+    # 第一步
+    reset_list.extend([
+        init.text_sample_dir_default,
+        '',  # text_list_input
+        '',  # text_base_voice_path
+    ])
+    # 第二步
+    # 第三步
+    reset_list.extend([
+        init.text_asr_audio_dir_default,
+        init.text_text_similarity_analysis_path_default
+    ])
+    # 第四步
+    reset_list.extend([
+        '',  # text_base_audio_path
+        '',  # text_compare_audio_dir
+    ])
+    hide_voice_similarity_dir = ''
+    hide_config_file = ''
+    # 第五步
+    return reset_list
+
+
 def init_ui():
     init.init_all()
 
@@ -984,6 +1016,34 @@ def init_ui():
                                       text_test_content],
                                      [text_model_inference_info, text_asr_audio_dir, text_inference_audio_file_dir])
         button_model_inference_result_open.click(open_file, [text_inference_audio_file_dir], [])
+
+        # 设置重置刷新事件
+        refresh_list = []
+        # 基础
+        refresh_list.extend([
+            text_refer_audio_file_dir,
+            text_inference_audio_file_dir
+        ])
+        # 第一步
+        refresh_list.extend([
+            text_sample_dir,
+            text_list_input,
+            text_base_voice_path
+        ])
+        # 第二步
+        # 第三步
+        refresh_list.extend([
+            text_asr_audio_dir,
+            text_text_similarity_analysis_path
+        ])
+        # 第四步
+        refresh_list.extend([
+            text_base_audio_path,
+            text_compare_audio_dir
+        ])
+        # 第五步
+
+        button_switch_role_and_refresh.click(switch_role_and_refresh, [], refresh_list)
 
     app.launch(
         server_port=params.server_port,
