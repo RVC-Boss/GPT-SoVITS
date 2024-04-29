@@ -556,26 +556,6 @@ def change_size_choices(key):  # 根据选择的模型修改可选的模型尺�
     return {"__type__": "update", "choices": asr_dict[key]['size']}
 
 
-def save_generate_audio_url(text_url):
-    rw_param.write(rw_param.text_url, text_url)
-
-
-def save_text_param(text_text):
-    rw_param.write(rw_param.text_param, text_text)
-
-
-def save_ref_path_param(text_ref_path):
-    rw_param.write(rw_param.ref_path_param, text_ref_path)
-
-
-def save_ref_text_param(text_ref_text):
-    rw_param.write(rw_param.ref_text_param, text_ref_text)
-
-
-def save_emotion_param(text_emotion):
-    rw_param.write(rw_param.emotion_param, text_emotion)
-
-
 def save_work_dir(text_work_space_dir, text_role):
     text_work_space_dir = my_utils.clean_path(text_work_space_dir)
     rw_param.write(rw_param.work_dir, text_work_space_dir)
@@ -864,25 +844,25 @@ def init_ui():
             text_url.input(whole_url,
                            [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text, text_emotion],
                            [text_whole_url])
-            text_url.blur(save_generate_audio_url, [text_url], [])
+            text_url.blur(lambda value: rw_param.write(rw_param.text_url, value), [text_url], [])
             text_text.input(whole_url, [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text,
                                         text_emotion],
                             [text_whole_url])
-            text_text.blur(save_text_param, [text_text], [])
+            text_text.blur(lambda value: rw_param.write(rw_param.text_param, value), [text_text], [])
             text_ref_path.input(whole_url,
                                 [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text,
                                  text_emotion],
                                 [text_whole_url])
-            text_ref_path.blur(save_ref_path_param, [text_ref_path], [])
+            text_ref_path.blur(lambda value: rw_param.write(rw_param.ref_path_param, value), [text_ref_path], [])
             text_ref_text.input(whole_url,
                                 [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text,
                                  text_emotion],
                                 [text_whole_url])
-            text_ref_text.blur(save_ref_text_param, [text_ref_text], [])
+            text_ref_text.blur(lambda value: rw_param.write(rw_param.ref_text_param, value), [text_ref_text], [])
             text_emotion.input(whole_url, [text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text,
                                            text_emotion],
                                [text_whole_url])
-            text_emotion.blur(save_emotion_param, [text_emotion], [])
+            text_emotion.blur(lambda value: rw_param.write(rw_param.emotion_param, value), [text_emotion], [])
             gr.Markdown(value=i18n("2.3：配置待推理文本，一句一行，尽量保证文本多样性，不同情绪、不同类型的都来一点"))
             with gr.Row():
                 text_test_content = gr.Text(label=i18n("请输入待推理文本路径"), value=init.text_test_content_default,
