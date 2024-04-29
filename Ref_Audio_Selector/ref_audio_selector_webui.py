@@ -71,7 +71,7 @@ def convert_from_list(text_work_space_dir, text_role, text_list_input):
     return i18n(text_convert_from_list_info), text_sample_dir
 
 
-def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_similarity_output):
+def start_similarity_analysis(work_space_dir, sample_dir, speaker_verification, base_voice_path, need_similarity_output):
     similarity_list = None
     similarity_file_dir = None
 
@@ -87,6 +87,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
         cmd += f' -r "{base_voice_path}"'
         cmd += f' -c "{sample_dir}"'
         cmd += f' -o {similarity_file}'
+        cmd += f' -m {speaker_verification}'
 
         logger.info(cmd)
         p_similarity = Popen(cmd, shell=True)
@@ -105,7 +106,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, base_voice_path, need_
 
 
 # 基于一个基准音频，从参考音频目录中进行分段抽样
-def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path,
+def sample(text_work_space_dir, text_role, text_sample_dir, dropdown_speaker_verification, text_base_voice_path,
            slider_subsection_num, slider_sample_num, checkbox_similarity_output):
     text_work_space_dir, text_sample_dir, text_base_voice_path \
         = common.batch_clean_paths([text_work_space_dir, text_sample_dir, text_base_voice_path])
@@ -122,11 +123,13 @@ def sample(text_work_space_dir, text_role, text_sample_dir, text_base_voice_path
             raise Exception("分段数不能为空")
         if slider_sample_num is None or slider_sample_num == '':
             raise Exception("每段随机抽样个数不能为空")
+        if dropdown_speaker_verification is None or dropdown_speaker_verification == '':
+            raise Exception("说话人确认算法不能为空")
 
         ref_audio_dir = os.path.join(base_role_dir, params.reference_audio_dir)
 
         time_consuming, (similarity_list, _, _) \
-            = time_util.time_monitor(start_similarity_analysis)(base_role_dir, text_sample_dir, text_base_voice_path,
+            = time_util.time_monitor(start_similarity_analysis)(base_role_dir, text_sample_dir, dropdown_speaker_verification, text_base_voice_path,
                                                                 checkbox_similarity_output)
 
         text_sample_info = f"耗时：{time_consuming:0.1f}秒；抽样成功：生成目录{ref_audio_dir}"
@@ -315,7 +318,7 @@ hide_voice_similarity_dir = ''
 
 # 根据一个参考音频，对指定目录下的音频进行相似度分析，并输出到另一个目录
 def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path,
-                            text_compare_audio_dir):
+                            text_compare_audio_dir, dropdown_speaker_verification):
     global hide_voice_similarity_dir
     text_work_space_dir, text_base_audio_path, text_compare_audio_dir \
         = common.batch_clean_paths([text_work_space_dir, text_base_audio_path, text_compare_audio_dir])
@@ -327,10 +330,12 @@ def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path
             raise Exception("基准音频路径不能为空")
         if text_compare_audio_dir is None or text_compare_audio_dir == '':
             raise Exception("待分析的音频所在目录不能为空")
+        if dropdown_speaker_verification is None or dropdown_speaker_verification == '':
+            raise Exception("说话人验证模型不能为空")
 
         time_consuming, (similarity_list, similarity_file, similarity_file_dir) \
-            = time_util.time_monitor(start_similarity_analysis)(base_role_dir,
-                                                                text_compare_audio_dir, text_base_audio_path, True)
+            = time_util.time_monitor(start_similarity_analysis)(base_role_dir,text_compare_audio_dir,
+                                                                dropdown_speaker_verification, text_base_audio_path, True)
 
         if similarity_list is None:
             raise Exception("相似度分析失败")
@@ -657,8 +662,14 @@ def init_ui():
                                                       scale=4)
                 button_convert_from_list_result_dir = gr.Button(i18n("打开目录"), variant="primary", scale=1)
             gr.Markdown(value=i18n("1.2：选择基准音频，执行相似度匹配，并分段随机抽样"))
-            text_sample_dir = gr.Text(label=i18n("参考音频抽样目录"), value=init.text_sample_dir_default,
-                                      interactive=True)
+            with gr.Row():
+                text_sample_dir = gr.Text(label=i18n("参考音频抽样目录"), value=init.text_sample_dir_default,
+                                          interactive=True)
+                dropdown_speaker_verification_1 = gr.Dropdown(label=i18n("说话人确认算法"),
+                                                              choices=list(
+                                                                  model_manager.speaker_verification_models.keys()),
+                                                              value='speech_campplus_sv_zh-cn_16k-common',
+                                                              interactive=True)
             button_convert_from_list_result_dir.click(open_file, [text_sample_dir], [])
             button_convert_from_list.click(convert_from_list, [text_work_space_dir, text_role, text_list_input],
                                            [text_convert_from_list_info, text_sample_dir])
@@ -975,6 +986,11 @@ def init_ui():
             with gr.Row():
                 text_base_audio_path = gr.Text(label=i18n("请输入基准音频"), value="")
                 text_compare_audio_dir = gr.Text(label=i18n("请输入待比较的音频文件目录"), value="")
+                dropdown_speaker_verification_2 = gr.Dropdown(label=i18n("说话人确认算法"),
+                                                              choices=list(
+                                                                  model_manager.speaker_verification_models.keys()),
+                                                              value='speech_campplus_sv_zh-cn_16k-common',
+                                                              interactive=True)
             with gr.Row():
                 button_similarity_audio_output = gr.Button(i18n("输出相似度-参考音频到临时目录"), variant="primary",
                                                            scale=4)
@@ -983,7 +999,7 @@ def init_ui():
                 button_similarity_audio_output_result_open = gr.Button(i18n("打开目录"), variant="primary", scale=1)
                 button_similarity_audio_output.click(similarity_audio_output,
                                                      [text_work_space_dir, text_role, text_base_audio_path,
-                                                      text_compare_audio_dir], [text_similarity_audio_output_info])
+                                                      text_compare_audio_dir, dropdown_speaker_verification_2], [text_similarity_audio_output_info])
                 button_similarity_audio_output_result_open.click(lambda: open_file(hide_voice_similarity_dir), [], [])
             gr.Markdown(value=i18n("4.2：如果发现存在低音质的推理音频，那么就去参考音频目录下，把原参考音频删了"))
             gr.Markdown(value=i18n("4.3：删除参考音频之后，按下面的操作，会将推理音频目录下对应的音频也删掉"))
@@ -1005,7 +1021,7 @@ def init_ui():
                                            [text_work_space_dir, text_role, text_template, text_refer_audio_file_dir],
                                            [text_create_config_info])
                 button_create_config_result_open.click(lambda: open_file(hide_config_file), [], [])
-        button_sample.click(sample, [text_work_space_dir, text_role, text_sample_dir, text_base_voice_path,
+        button_sample.click(sample, [text_work_space_dir, text_role, text_sample_dir, dropdown_speaker_verification_1, text_base_voice_path,
                                      slider_subsection_num, slider_sample_num, checkbox_similarity_output],
                             [text_sample_info, text_refer_audio_file_dir])
         button_sample_result_open.click(open_file, [text_refer_audio_file_dir], [])

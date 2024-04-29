@@ -6,18 +6,24 @@ import platform
 import Ref_Audio_Selector.config_param.config_params as params
 import Ref_Audio_Selector.config_param.log_config as log_config
 from Ref_Audio_Selector.common.time_util import timeit_decorator
+from Ref_Audio_Selector.common.model_manager import speaker_verification_models as models
 
 from modelscope.pipelines import pipeline
 
-sv_pipeline = pipeline(
-    task='speaker-verification',
-    model='Ref_Audio_Selector/tool/speaker_verification/models/speech_campplus_sv_zh-cn_16k-common',
-    model_revision='v1.0.0'
-)
+
+def init_model(model_type='speech_campplus_sv_zh-cn_16k-common'):
+    log_config.logger.info(f'人声识别模型类型：{model_type}')
+    return pipeline(
+        task=models[model_type]['task'],
+        model=models[model_type]['model'],
+        model_revision=models[model_type]['model_revision']
+    )
 
 
 @timeit_decorator
-def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path, output_file_path):
+def compare_audio_and_generate_report(reference_audio_path, comparison_dir_path, output_file_path, model_type):
+    sv_pipeline = init_model(model_type)
+
     # Step 1: 获取比较音频目录下所有音频文件的路径
     comparison_audio_paths = [os.path.join(comparison_dir_path, f) for f in os.listdir(comparison_dir_path) if
                               f.endswith('.wav')]
@@ -113,6 +119,10 @@ def parse_arguments():
     parser.add_argument("-o", "--output_file", type=str, required=True,
                         help="Path to the output file where results will be written.")
 
+    # Model Type
+    parser.add_argument("-m", "--model_type", type=str, required=True,
+                        help="Path to the model type.")
+
     return parser.parse_args()
 
 
@@ -122,6 +132,7 @@ if __name__ == '__main__':
         reference_audio_path=cmd.reference_audio,
         comparison_dir_path=cmd.comparison_dir,
         output_file_path=cmd.output_file,
+        model_type=cmd.model_type,
     )
 
     # compare_audio_and_generate_report(

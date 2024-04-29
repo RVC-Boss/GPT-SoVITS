@@ -8,6 +8,18 @@ GPT_weight_root = "GPT_weights"
 os.makedirs(SoVITS_weight_root, exist_ok=True)
 os.makedirs(GPT_weight_root, exist_ok=True)
 
+speaker_verification_models = {
+    'speech_campplus_sv_zh-cn_16k-common': {
+        'task': 'speaker-verification',
+        'model': 'Ref_Audio_Selector/tool/speaker_verification/models/speech_campplus_sv_zh-cn_16k-common',
+        'model_revision': 'v1.0.0'
+    },
+    'speech_eres2net_sv_zh-cn_16k-common': {
+        'task': 'speaker-verification',
+        'model': 'Ref_Audio_Selector/tool/speaker_verification/models/speech_eres2net_sv_zh-cn_16k-common',
+        'model_revision': 'v1.0.5'
+    }
+}
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
