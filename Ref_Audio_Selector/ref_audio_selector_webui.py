@@ -918,7 +918,7 @@ def init_ui():
                                                              value=init.text_text_similarity_analysis_path_default,
                                                              interactive=True)
                 slider_text_similarity_amplification_boundary = gr.Slider(minimum=0, maximum=1, step=0.01,
-                                                                          label=i18n("文本相似度放大边界"),
+                                                                          label=i18n("文本相似度放大边界，因为原始模型输出的相似度差异太小，所以进行了一次放大，放大逻辑为，边界值以下归0，边界值到1的区间重新映射到0-1"),
                                                                           value=init.slider_text_similarity_amplification_boundary_default,
                                                                           interactive=True)
                 slider_text_similarity_amplification_boundary.change(
@@ -989,7 +989,7 @@ def init_ui():
                 button_sync_ref_audio.click(sync_ref_audio, [text_work_space_dir, text_role, text_refer_audio_file_dir,
                                                              text_inference_audio_file_dir], [text_sync_ref_info])
         with gr.Tab("第五步：生成参考音频配置文本"):
-            gr.Markdown(value=i18n("5.1：编辑模板"))
+            gr.Markdown(value=i18n("5.1：编辑模板，占位符说明：\${emotion}表示相对路径加音频文件名；\${ref_path}表示音频相对角色目录的文件路径；\${ref_text}：表示音频文本"))
             text_template = gr.Text(label=i18n("模板内容"), value=init.text_template_default, lines=10)
             text_template.blur(lambda value: rw_param.write(rw_param.text_template, value), [text_template], [])
             gr.Markdown(value=i18n("5.2：生成配置"))
