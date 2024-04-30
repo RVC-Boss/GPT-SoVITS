@@ -216,7 +216,7 @@ def start_api_set_model(set_model_url_composer, gpt_models, sovits_models):
 
 
 def start_api_v2_set_gpt_model(set_model_url_composer, gpt_models):
-    url = set_model_url_composer.build_get_url([gpt_models])
+    url = set_model_url_composer.build_get_url([gpt_models], False)
     logger.info(f'start_api_v2_set_gpt_model url: {url}')
     response = requests.get(url)
     if response.status_code == 200:
@@ -227,7 +227,7 @@ def start_api_v2_set_gpt_model(set_model_url_composer, gpt_models):
 
 
 def start_api_v2_set_sovits_model(set_model_url_composer, sovits_models):
-    url = set_model_url_composer.build_get_url([sovits_models])
+    url = set_model_url_composer.build_get_url([sovits_models], False)
     logger.info(f'start_api_v2_set_sovits_model url: {url}')
     response = requests.get(url)
     if response.status_code == 200:
