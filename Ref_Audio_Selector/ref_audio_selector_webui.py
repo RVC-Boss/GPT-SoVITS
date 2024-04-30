@@ -345,7 +345,7 @@ def similarity_audio_output(text_work_space_dir, text_role, text_base_audio_path
 
         text_similarity_audio_output_info = f'耗时：{time_consuming:0.1f}秒；相似度分析成功：生成目录{similarity_file_dir}，文件{similarity_file}'
 
-        hide_voice_similarity_dir = os.path.join(text_work_space_dir, params.audio_similarity_dir)
+        hide_voice_similarity_dir = os.path.join(base_role_dir, params.audio_similarity_dir)
 
     except Exception as e:
         logger.error("发生异常: \n%s", traceback.format_exc())
@@ -739,7 +739,7 @@ def init_ui():
                                                                   text_api_sovits_param],
                                                                  [text_api_start_set_model_request_info])
                 with gr.Tab(label=i18n("fast项目下api_v2.py服务")):
-                    gr.Markdown(value=i18n("2.1.1：请到你的项目下，启动服务"))
+                    gr.Markdown(value=i18n("2.1.1：请将训练完毕得模型，复制到你的项目文件下，启动服务"))
                     gr.Markdown(value=i18n("2.1.2：设置GPT模型参数"))
                     text_api_v2_set_gpt_model_base_url = gr.Text(label=i18n("请输入api服务GPT模型切换接口地址"),
                                                                  value=init.text_api_v2_set_gpt_model_base_url_default,
