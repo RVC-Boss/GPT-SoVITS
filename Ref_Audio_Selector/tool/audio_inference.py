@@ -199,7 +199,7 @@ def inference_audio_from_api(url):
         # 返回音频数据的字节流
         return response.content
     else:
-        raise Exception(f"Failed to fetch audio from API. Server responded with status code {response.status_code}.")
+        raise Exception(f"Failed to fetch audio from API. Server responded with status code {response.status_code}.message: {response.json()}")
 
 
 def start_api_set_model(set_model_url_composer, gpt_models, sovits_models):
