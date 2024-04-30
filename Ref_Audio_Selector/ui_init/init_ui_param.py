@@ -1,6 +1,7 @@
 import os
 import multiprocessing
 import Ref_Audio_Selector.config_param.config_params as params
+import Ref_Audio_Selector.tool.audio_inference as audio_inference
 import Ref_Audio_Selector.common.common as common
 
 rw_param = params.config_manager.get_rw_param()
@@ -44,6 +45,8 @@ text_api_v2_set_sovits_model_base_url_default = None
 text_api_v2_sovits_model_param_default = None
 # 推理服务请求地址与参数
 text_url_default = None
+# 推理服务请求完整地址
+text_whole_url_default = None
 # 文本参数名
 text_text_default = None
 # 参考参数类型
@@ -112,7 +115,7 @@ def init_first():
 
 def init_second():
     global text_api_set_model_base_url_default, text_api_gpt_param_default, text_api_sovits_param_default, text_api_v2_set_gpt_model_base_url_default, text_api_v2_gpt_model_param_default
-    global text_api_v2_set_sovits_model_base_url_default, text_api_v2_sovits_model_param_default, text_url_default, text_text_default, dropdown_refer_type_param_default, text_ref_path_default
+    global text_api_v2_set_sovits_model_base_url_default, text_api_v2_sovits_model_param_default, text_url_default, text_whole_url_default, text_text_default, dropdown_refer_type_param_default, text_ref_path_default
     global text_ref_text_default, text_emotion_default, text_test_content_default, slider_request_concurrency_num_default, slider_request_concurrency_max_num
 
     text_api_set_model_base_url_default = empty_default(rw_param.read(rw_param.api_set_model_base_url),
@@ -137,6 +140,9 @@ def init_second():
     text_ref_text_default = empty_default(rw_param.read(rw_param.ref_text_param), 'prompt_text')
     text_emotion_default = empty_default(rw_param.read(rw_param.emotion_param), 'emotion')
 
+    text_whole_url_default = whole_url(text_url_default, dropdown_refer_type_param_default, text_text_default,
+                                       text_ref_path_default, text_ref_text_default, text_emotion_default)
+
     text_test_content_default = empty_default(rw_param.read(rw_param.test_content_path), params.default_test_text_path)
 
     slider_request_concurrency_max_num = multiprocessing.cpu_count()
@@ -144,6 +150,17 @@ def init_second():
     slider_request_concurrency_num_default = empty_default(rw_param.read(rw_param.request_concurrency_num), 3)
 
     slider_request_concurrency_num_default = min(int(slider_request_concurrency_num_default), slider_request_concurrency_max_num)
+
+
+# 基于请求路径和参数，合成完整的请求路径
+def whole_url(text_url, dropdown_refer_type_param, text_text, text_ref_path, text_ref_text, text_emotion):
+    url_composer = audio_inference.TTSURLComposer(text_url, dropdown_refer_type_param, text_emotion, text_text,
+                                                  text_ref_path, text_ref_text)
+    if url_composer.is_emotion():
+        text_whole_url = url_composer.build_url_with_emotion('测试内容', '情绪类型', False)
+    else:
+        text_whole_url = url_composer.build_url_with_ref('测试内容', '参考路径', '参考文本', False)
+    return text_whole_url
 
 
 def init_third():

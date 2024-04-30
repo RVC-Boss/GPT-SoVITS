@@ -184,7 +184,7 @@ def generate_audio_files_for_emotion_group(url_composer, text_list, emotion_list
     end_time = time.perf_counter()  # 获取计时终点
     elapsed_time = end_time - start_time  # 计算执行耗时
     # 记录日志内容
-    log_message = f"进程ID: {os.getpid()}, generate_audio_files_for_emotion_group 执行耗时: {elapsed_time:.6f} 秒"
+    log_message = f"进程ID: {os.getpid()}, generate_audio_files_for_emotion_group 执行耗时: {elapsed_time:.6f} 秒；推理数量: {has_generated_count}"
     p_logger.info(log_message)
 
 
