@@ -143,6 +143,7 @@ def generate_audio_files_for_emotion_group(url_composer, text_list, emotion_list
 
     all_count = len(text_list) * len(emotion_list)
     has_generated_count = 0
+    all_text_count = sum(len(item) for item in text_list)
 
     # 计算笛卡尔积
     cartesian_product = list(itertools.product(text_list, emotion_list))
@@ -184,7 +185,7 @@ def generate_audio_files_for_emotion_group(url_composer, text_list, emotion_list
     end_time = time.perf_counter()  # 获取计时终点
     elapsed_time = end_time - start_time  # 计算执行耗时
     # 记录日志内容
-    log_message = f"进程ID: {os.getpid()}, generate_audio_files_for_emotion_group 执行耗时: {elapsed_time:.6f} 秒；推理数量: {has_generated_count}"
+    log_message = f"进程ID: {os.getpid()}, generate_audio_files_for_emotion_group 执行耗时: {elapsed_time:.6f} 秒；推理数量: {has_generated_count}； 字符总数：{all_text_count}；每秒推理字符数：{all_text_count / elapsed_time:.3f}；"
     p_logger.info(log_message)
 
 
