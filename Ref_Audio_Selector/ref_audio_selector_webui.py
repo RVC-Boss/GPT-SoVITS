@@ -87,7 +87,7 @@ def start_similarity_analysis(work_space_dir, sample_dir, speaker_verification, 
         cmd = f'"{python_exec}" Ref_Audio_Selector/tool/speaker_verification/voice_similarity.py '
         cmd += f' -r "{base_voice_path}"'
         cmd += f' -c "{sample_dir}"'
-        cmd += f' -o {similarity_file}'
+        cmd += f' -o "{similarity_file}"'
         cmd += f' -m {speaker_verification}'
 
         logger.info(cmd)
