@@ -40,7 +40,7 @@ def convert_from_list(list_file, output_dir):
         audio_path, _, _, transcription = parts
 
         # 构建新的文件名和路径
-        new_filename = transcription + '.wav'
+        new_filename = transcription.strip() + '.wav'
         # new_filename = new_filename.replace(' ', '_')  # 移除空格
         # new_filename = ''.join(e for e in new_filename if e.isalnum() or e in ['_', '.'])  # 移除非法字符
         new_path = os.path.join(output_dir, new_filename)
