@@ -823,7 +823,7 @@ def init_ui():
                                                                                text_api_v2_start_set_sovits_model_request_info])
                 with gr.Tab(label=i18n("第三方推理服务")):
                     gr.Markdown(value=i18n("启动第三方推理服务，并完成参考音频打包，模型参数设置等操作"))
-            gr.Markdown(value=i18n("2.2：配置推理服务参数信息，参考音和角色情绪二选一，如果是角色情绪（第三方推理包），需要先执行第五步，"
+            gr.Markdown(value=i18n("2.2：配置推理服务参数信息，除api服务外，其他需要修改参数内容，参考音和角色情绪二选一，如果是角色情绪（第三方推理包），需要先执行第五步，"
                                    "将参考音频打包配置到推理服务下，在推理前，请确认完整请求地址是否与正常使用时的一致，包括角色名称，尤其是文本分隔符是否正确"))
             text_url = gr.Text(label=i18n("请输入推理服务请求地址与参数"),
                                value=init.text_url_default)
