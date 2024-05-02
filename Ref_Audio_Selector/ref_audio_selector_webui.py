@@ -243,7 +243,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
         asr_py_path = asr_dict[asr_model]["path"]
         if asr_py_path == 'funasr_asr.py':
             asr_py_path = 'funasr_asr_multi_level_dir.py'
-        if asr_py_path == 'fasterwhisper.py':
+        if asr_py_path == 'fasterwhisper_asr.py':
             asr_py_path = 'fasterwhisper_asr_multi_level_dir.py'
         cmd = f'"{python_exec}" Ref_Audio_Selector/tool/asr/{asr_py_path} '
         cmd += f' -i "{asr_inp_dir}"'
