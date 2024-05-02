@@ -16,6 +16,7 @@ from module.mrte_model import MRTE
 from module.quantize import ResidualVectorQuantizer
 from text import symbols
 from torch.cuda.amp import autocast
+import contextlib
 
 
 class StochasticDurationPredictor(nn.Module):
@@ -891,9 +892,10 @@ class SynthesizerTrn(nn.Module):
             self.ssl_proj = nn.Conv1d(ssl_dim, ssl_dim, 1, stride=1)
 
         self.quantizer = ResidualVectorQuantizer(dimension=ssl_dim, n_q=1, bins=1024)
-        if freeze_quantizer:
-            self.ssl_proj.requires_grad_(False)
-            self.quantizer.requires_grad_(False)
+        self.freeze_quantizer = freeze_quantizer
+        # if freeze_quantizer:
+        #     self.ssl_proj.requires_grad_(False)
+        #     self.quantizer.requires_grad_(False)
             #self.quantizer.eval()
             # self.enc_p.text_embedding.requires_grad_(False)
             # self.enc_p.encoder_text.requires_grad_(False)
