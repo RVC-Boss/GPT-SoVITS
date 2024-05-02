@@ -214,7 +214,7 @@ def make_reject_y(y_o, y_lens):
             new_y = repeat_P(y_o[b])
             reject_y.append(new_y)
             reject_y_lens.append(len(new_y))
-        elif process_item_idx== False:
+        elif process_item_idx == False:
             new_y = lost_P(y_o[b])
             reject_y.append(new_y)
             reject_y_lens.append(len(new_y))
