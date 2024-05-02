@@ -60,7 +60,7 @@ def execute_asr_multi_level_dir(input_folder, output_folder, model_size, languag
             # 只处理wav文件（假设是wav文件）
             if file_name.endswith(".wav"):
                 try:
-                    file_path = os.path.join(input_folder, file_name)
+                    file_path = os.path.join(root, file_name)
                     original_text = os.path.basename(root)
                     segments, info = model.transcribe(
                         audio=file_path,
