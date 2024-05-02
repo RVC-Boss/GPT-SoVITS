@@ -120,6 +120,11 @@ RESP: 无
 import argparse
 import os,re
 import sys
+
+now_dir = os.getcwd()
+sys.path.append(now_dir)
+sys.path.append("%s/GPT_SoVITS" % (now_dir))
+
 import signal
 import LangSegment
 from time import time as ttime
@@ -382,7 +387,7 @@ def read_clean_buffer(audio_bytes):
 
 
 def cut_text(text, punc):
-    punc_list = [p for p in punc if p in {",", ".", ";", "?", "!", "、", "，", "。", "？", "！", ";", "：", "…"}]
+    punc_list = [p for p in punc if p in {",", ".", ";", "?", "!", "、", "，", "。", "？", "！", "；", "：", "…"}]
     if len(punc_list) > 0:
         punds = r"[" + "".join(punc_list) + r"]"
         text = text.strip("\n")
@@ -537,10 +542,6 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cu
 # --------------------------------
 # 初始化部分
 # --------------------------------
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
-
 dict_language = {
     "中文": "all_zh",
     "英文": "en",
@@ -580,7 +581,7 @@ parser.add_argument("-hp", "--half_precision", action="store_true", default=Fals
 # 此时 full_precision==True, half_precision==False
 parser.add_argument("-sm", "--stream_mode", type=str, default="close", help="流式返回模式, close / normal / keepalive")
 parser.add_argument("-mt", "--media_type", type=str, default="wav", help="音频编码格式, wav / ogg / aac")
-parser.add_argument("-cp", "--cut_punc", type=str, default="", help="文本切分符号设定, 符号范围,.;?!、，。？！;：…")
+parser.add_argument("-cp", "--cut_punc", type=str, default="", help="文本切分符号设定, 符号范围,.;?!、，。？！；：…")
 # 切割常用分句符为 `python ./api.py -cp ".?!。？！"`
 parser.add_argument("-hb", "--hubert_path", type=str, default=g_config.cnhubert_path, help="覆盖config.cnhubert_path")
 parser.add_argument("-b", "--bert_path", type=str, default=g_config.bert_path, help="覆盖config.bert_path")
