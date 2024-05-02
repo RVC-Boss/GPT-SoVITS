@@ -208,7 +208,7 @@ def make_reject_y(y_o, y_lens):
     bs = len(y_lens)
     reject_y = []
     reject_y_lens = []
-    proportion=0.5 # repeat/total
+    proportion=0.9 # repeat/total
     for b in range(bs):
         process_item_idx = torch.rand(1)
         if process_item_idx < proportion:
