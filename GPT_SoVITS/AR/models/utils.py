@@ -208,16 +208,17 @@ def make_reject_y(y_o, y_lens):
     bs = len(y_lens)
     reject_y = []
     reject_y_lens = []
+    process_item_idx = True
     for b in range(bs):
-        process_item_idx = torch.randint(0, 2, size=(1, ))[0]
-        if process_item_idx == 0:
+        if process_item_idx == True:
             new_y = repeat_P(y_o[b])
             reject_y.append(new_y)
             reject_y_lens.append(len(new_y))
-        elif process_item_idx==1:
+        elif process_item_idx== False:
             new_y = lost_P(y_o[b])
             reject_y.append(new_y)
             reject_y_lens.append(len(new_y))
+        process_item_idx = not process_item_idx
     max_length = max(reject_y_lens)
     for b in range(bs):
         pad_length = max_length - reject_y_lens[b]
