@@ -81,6 +81,7 @@ def execute_asr_multi_level_dir(input_folder, output_folder, model_size, languag
                         for segment in segments:
                             text += segment.text
                     output.append(f"{file_path}|{original_text}|{info.language.upper()}|{text}")
+                    print(f"{file_path}|{original_text}|{info.language.upper()}|{text}")
                 except:
                     return logger.error(traceback.format_exc())
 
