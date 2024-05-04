@@ -6,6 +6,19 @@ from scipy.io import wavfile
 from my_utils import load_audio
 from slicer2 import Slicer
 
+AUDIO_EXTENSIONS = [
+    "mp3",
+    "wav",
+    "flac",
+    "ogg",
+    "m4a",
+    "wma",
+    "aac",
+    "aiff",
+    "aif",
+    "aifc",
+]
+
 def slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,i_part,all_part):
     os.makedirs(opt_root,exist_ok=True)
     if os.path.isfile(inp):
@@ -28,6 +41,8 @@ def slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_
         # print(inp_path)
         try:
             name = os.path.basename(inp_path)
+            if name.split(".")[-1] not in AUDIO_EXTENSIONS:
+                continue
             audio = load_audio(inp_path, 32000)
             # print(audio.shape)
             for chunk, start, end in slicer.slice(audio):  # start和end是帧数

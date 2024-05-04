@@ -23,15 +23,28 @@ is_half=eval(sys.argv[2])
 webui_port_uvr5=int(sys.argv[3])
 is_share=eval(sys.argv[4])
 
+AUDIO_EXTENSIONS = [
+    "mp3",
+    "wav",
+    "flac",
+    "ogg",
+    "m4a",
+    "wma",
+    "aac",
+    "aiff",
+    "aif",
+    "aifc",
+]
+
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []
     try:
-        inp_root = inp_root.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
+        inp_root = inp_root.strip(" ").strip('"').strip("\n").strip('"').strip(" ").strip("\u202a")
         save_root_vocal = (
-            save_root_vocal.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
+            save_root_vocal.strip(" ").strip('"').strip("\n").strip('"').strip(" ").strip("\u202a")
         )
         save_root_ins = (
-            save_root_ins.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
+            save_root_ins.strip(" ").strip('"').strip("\n").strip('"').strip(" ").strip("\u202a")
         )
         is_hp3 = "HP3" in model_name
         if model_name == "onnx_dereverb_By_FoxJoy":
@@ -49,6 +62,8 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         else:
             paths = [path.name for path in paths]
         for path in paths:
+            if path.split(".")[-1] not in AUDIO_EXTENSIONS:
+                continue
             inp_path = os.path.join(inp_root, path)
             if(os.path.isfile(inp_path)==False):continue
             need_reformat = 1

@@ -4,6 +4,19 @@ from modelscope.pipelines import pipeline
 from modelscope.utils.constant import Tasks
 from tqdm import tqdm
 
+AUDIO_EXTENSIONS = [
+    "mp3",
+    "wav",
+    "flac",
+    "ogg",
+    "m4a",
+    "wma",
+    "aac",
+    "aiff",
+    "aif",
+    "aifc",
+]
+
 path_denoise  = 'tools/denoise-model/speech_frcrn_ans_cirm_16k'
 path_denoise  = path_denoise  if os.path.exists(path_denoise)  else "damo/speech_frcrn_ans_cirm_16k"
 ans = pipeline(Tasks.acoustic_noise_suppression,model=path_denoise)
@@ -12,6 +25,8 @@ def execute_denoise(input_folder,output_folder):
     # print(input_folder)
     # print(list(os.listdir(input_folder).sort()))
     for name in tqdm(os.listdir(input_folder)):
+        if name.split(".")[-1] not in AUDIO_EXTENSIONS:
+            continue
         ans("%s/%s"%(input_folder,name),output_path='%s/%s'%(output_folder,name))
 
 if __name__ == '__main__':

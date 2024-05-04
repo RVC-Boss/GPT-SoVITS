@@ -23,6 +23,19 @@ model = AutoModel(
     punc_model_revision = "v2.0.4",
 )
 
+AUDIO_EXTENSIONS = [
+    "mp3",
+    "wav",
+    "flac",
+    "ogg",
+    "m4a",
+    "wma",
+    "aac",
+    "aiff",
+    "aif",
+    "aifc",
+]
+
 def only_asr(input_file):
     try:
         text = model.generate(input=input_file)[0]["text"]
@@ -40,6 +53,8 @@ def execute_asr(input_folder, output_folder, model_size, language):
 
     for file_name in tqdm(input_file_names):
         try:
+            if file_name.split(".")[-1] not in AUDIO_EXTENSIONS:
+                continue
             file_path = os.path.join(input_folder, file_name)
             text = model.generate(input=file_path)[0]["text"]
             output.append(f"{file_path}|{output_file_name}|{language.upper()}|{text}")
