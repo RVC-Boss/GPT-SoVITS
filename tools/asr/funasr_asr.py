@@ -4,6 +4,7 @@ import argparse
 import os
 import traceback
 from tqdm import tqdm
+from config import AUDIO_EXTENSIONS
 
 from funasr import AutoModel
 
@@ -22,19 +23,6 @@ model = AutoModel(
     punc_model          = path_punc,
     punc_model_revision = "v2.0.4",
 )
-
-AUDIO_EXTENSIONS = [
-    "mp3",
-    "wav",
-    "flac",
-    "ogg",
-    "m4a",
-    "wma",
-    "aac",
-    "aiff",
-    "aif",
-    "aifc",
-]
 
 def only_asr(input_file):
     try:

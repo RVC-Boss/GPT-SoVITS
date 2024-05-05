@@ -2,6 +2,7 @@ import os
 import traceback,gradio as gr
 import logging
 from tools.i18n.i18n import I18nAuto
+from config import AUDIO_EXTENSIONS
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
@@ -22,19 +23,6 @@ device=sys.argv[1]
 is_half=eval(sys.argv[2])
 webui_port_uvr5=int(sys.argv[3])
 is_share=eval(sys.argv[4])
-
-AUDIO_EXTENSIONS = [
-    "mp3",
-    "wav",
-    "flac",
-    "ogg",
-    "m4a",
-    "wma",
-    "aac",
-    "aiff",
-    "aif",
-    "aifc",
-]
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []

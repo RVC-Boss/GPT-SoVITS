@@ -3,19 +3,7 @@ import os,argparse
 from modelscope.pipelines import pipeline
 from modelscope.utils.constant import Tasks
 from tqdm import tqdm
-
-AUDIO_EXTENSIONS = [
-    "mp3",
-    "wav",
-    "flac",
-    "ogg",
-    "m4a",
-    "wma",
-    "aac",
-    "aiff",
-    "aif",
-    "aifc",
-]
+from config import AUDIO_EXTENSIONS
 
 path_denoise  = 'tools/denoise-model/speech_frcrn_ans_cirm_16k'
 path_denoise  = path_denoise  if os.path.exists(path_denoise)  else "damo/speech_frcrn_ans_cirm_16k"

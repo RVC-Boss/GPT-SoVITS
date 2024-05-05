@@ -10,6 +10,7 @@ from faster_whisper import WhisperModel
 from tqdm import tqdm
 
 from tools.asr.config import check_fw_local_models
+from config import AUDIO_EXTENSIONS
 
 language_code_list = [
     "af", "am", "ar", "as", "az", 
@@ -33,19 +34,6 @@ language_code_list = [
     "tr", "tt", "uk", "ur", "uz", 
     "vi", "yi", "yo", "zh", "yue",
     "auto"]
-
-AUDIO_EXTENSIONS = [
-    "mp3",
-    "wav",
-    "flac",
-    "ogg",
-    "m4a",
-    "wma",
-    "aac",
-    "aiff",
-    "aif",
-    "aifc",
-]
 
 def execute_asr(input_folder, output_folder, model_size, language, precision):
     if '-local' in model_size:

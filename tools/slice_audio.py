@@ -5,19 +5,7 @@ from scipy.io import wavfile
 # sys.path.append(parent_directory)
 from my_utils import load_audio
 from slicer2 import Slicer
-
-AUDIO_EXTENSIONS = [
-    "mp3",
-    "wav",
-    "flac",
-    "ogg",
-    "m4a",
-    "wma",
-    "aac",
-    "aiff",
-    "aif",
-    "aifc",
-]
+from config import AUDIO_EXTENSIONS
 
 def slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,i_part,all_part):
     os.makedirs(opt_root,exist_ok=True)
