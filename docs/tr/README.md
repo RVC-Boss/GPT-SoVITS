@@ -70,16 +70,14 @@ bash install.sh
 
 **Not: Mac'lerde GPU'larla eğitilen modeller, diğer cihazlarda eğitilenlere göre önemli ölçüde daha düşük kalitede sonuç verir, bu nedenle geçici olarak CPU'lar kullanıyoruz.**
 
-1. `xcode-select --install` komutunu çalıştırarak Xcode komut satırı araçlarını yükleyin
-2. `brew install ffmpeg` veya `conda install ffmpeg` komutunu çalıştırarak FFmpeg'i yükleyin.
-3. Aşağıdaki komutları çalıştırarak programı yükleyin:
+
+1. Bu projeyi yüklemek için aşağıdaki komutları çalıştırın:
 
 ```bash
-conda create -n GPTSoVits python=3.9
-conda activate GPTSoVits
-
-pip install -r requirements.txt
+bash install.sh
 ```
+
+2. Başlamak için `go-webui.command` dosyasına çift tıklayın
 
 ### El ile Yükleme
 

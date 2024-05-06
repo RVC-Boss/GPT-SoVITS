@@ -68,16 +68,14 @@ bash install.sh
 
 **注：在 Mac 上使用 GPU 训练的模型效果显著低于其他设备训练的模型，所以我们暂时使用CPU进行训练。**
 
-1. 运行 `xcode-select --install` 安装 Xcode command-line tools。
-2. 运行 `brew install ffmpeg` 或 `conda install ffmpeg` 安装 FFmpeg。
-3. 完成上述步骤后，运行以下的命令来安装本项目：
+
+1. 运行以下的命令来安装本项目：
 
 ```bash
-conda create -n GPTSoVits python=3.9
-conda activate GPTSoVits
-
-pip install -r requirements.txt
+bash install.sh
 ```
+
+2. 双击 `go-webui.command` 以开始
 
 ### 手动安装
 
