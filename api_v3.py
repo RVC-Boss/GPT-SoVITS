@@ -101,6 +101,11 @@ import os
 import sys
 import traceback
 from typing import Generator
+
+now_dir = os.getcwd()
+sys.path.append(now_dir)
+sys.path.append("%s/GPT_SoVITS" % (now_dir))
+
 import argparse
 import subprocess
 import wave
@@ -117,10 +122,6 @@ from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names 
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from functools import lru_cache
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
 
 cut_method_names = get_cut_method_names()
 
