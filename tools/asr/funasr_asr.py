@@ -38,10 +38,11 @@ def execute_asr(input_folder, output_folder, model_size, language):
     output = []
     output_file_name = os.path.basename(input_folder)
 
-    for name in tqdm(input_file_names):
+    for file_name in tqdm(input_file_names):
         try:
-            text = model.generate(input="%s/%s"%(input_folder, name))[0]["text"]
-            output.append(f"{input_folder}/{name}|{output_file_name}|{language.upper()}|{text}")
+            file_path = os.path.join(input_folder, file_name)
+            text = model.generate(input=file_path)[0]["text"]
+            output.append(f"{file_path}|{output_file_name}|{language.upper()}|{text}")
         except:
             print(traceback.format_exc())
 
