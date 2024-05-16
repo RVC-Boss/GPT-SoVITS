@@ -3,6 +3,7 @@ custom:
   cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
   device: cpu
   is_half: false
+  load_base: false
   t2s_weights_path: GPT_weights/morgan-e15.ckpt
   vits_weights_path: SoVITS_weights/morgan_e8_s120.pth
 default:

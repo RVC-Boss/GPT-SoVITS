@@ -135,6 +135,9 @@ port = args.port
 host = args.bind_addr
 argv = sys.argv
 
+default_tts_config = TTS_Config()
+TTS.init_base_models(default_tts_config)
+
 APP = FastAPI()
 
 
