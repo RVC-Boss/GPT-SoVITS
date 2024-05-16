@@ -421,7 +421,8 @@ async def tts_post_endpoint(request: TTS_Request):
 @APP.get("/set_refer_audio")
 async def set_refer_audio(refer_audio_path: str = None, tts_infer_yaml_path: str = "GPT_SoVITS/configs/tts_infer.yaml"):
     try:
-        tts_instance = get_tts_instance(tts_infer_yaml_path)
+        tts_config = TTS_Config(tts_infer_yaml_path)
+        tts_instance = get_tts_instance(tts_config)
         tts_instance.set_ref_audio(refer_audio_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"set refer audio failed", "Exception": str(e)})
@@ -434,7 +435,8 @@ async def set_gpt_weights(weights_path: str = None, tts_infer_yaml_path: str = "
         if weights_path in ["", None]:
             return JSONResponse(status_code=400, content={"message": "gpt weight path is required"})
 
-        tts_instance = get_tts_instance(tts_infer_yaml_path)
+        tts_config = TTS_Config(tts_infer_yaml_path)
+        tts_instance = get_tts_instance(tts_config)
         tts_instance.init_t2s_weights(weights_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"change gpt weight failed", "Exception": str(e)})
@@ -448,7 +450,8 @@ async def set_sovits_weights(weights_path: str = None, tts_infer_yaml_path: str 
         if weights_path in ["", None]:
             return JSONResponse(status_code=400, content={"message": "sovits weight path is required"})
 
-        tts_instance = get_tts_instance(tts_infer_yaml_path)
+        tts_config = TTS_Config(tts_infer_yaml_path)
+        tts_instance = get_tts_instance(tts_config)
         tts_instance.init_vits_weights(weights_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"change sovits weight failed", "Exception": str(e)})
