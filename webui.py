@@ -411,15 +411,14 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
         opt = []
         for i_part in range(all_parts):
             txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
-            if os.path.exists(txt_path):
-                with open(txt_path, "r", encoding="utf8") as f:
-                    opt += f.read().strip("\n").split("\n")
-                os.remove(txt_path)
+            with open(txt_path, "r", encoding="utf8") as f:
+                opt += f.read().strip("\n").split("\n")
+            os.remove(txt_path)
         path_text = "%s/2-name2text.txt" % opt_dir
         with open(path_text, "w", encoding="utf8") as f:
             f.write("\n".join(opt) + "\n")
         ps1a=[]
-        if len(opt) > 0:
+        if len("".join(opt)) > 0:
             yield "文本进程成功", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
         else:
             yield "文本进程失败", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
@@ -582,13 +581,12 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                 opt = []
                 for i_part in range(all_parts):#txt_path="%s/2-name2text-%s.txt"%(opt_dir,i_part)
                     txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
-                    if os.path.exists(txt_path):
-                        with open(txt_path, "r",encoding="utf8") as f:
-                            opt += f.read().strip("\n").split("\n")
-                        os.remove(txt_path)
+                    with open(txt_path, "r",encoding="utf8") as f:
+                        opt += f.read().strip("\n").split("\n")
+                    os.remove(txt_path)
                 with open(path_text, "w",encoding="utf8") as f:
                     f.write("\n".join(opt) + "\n")
-            assert len(opt) > 0, "1Aa-文本获取进程失败"
+            assert len("".join(opt)) > 0, "1Aa-文本获取进程失败"
             yield "进度：1a-done", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc=[]
             #############################1b
