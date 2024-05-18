@@ -411,9 +411,10 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
         opt = []
         for i_part in range(all_parts):
             txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
-            with open(txt_path, "r", encoding="utf8") as f:
-                opt += f.read().strip("\n").split("\n")
-            os.remove(txt_path)
+            if os.path.exists(txt_path):
+                with open(txt_path, "r", encoding="utf8") as f:
+                    opt += f.read().strip("\n").split("\n")
+                os.remove(txt_path)
         path_text = "%s/2-name2text.txt" % opt_dir
         with open(path_text, "w", encoding="utf8") as f:
             f.write("\n".join(opt) + "\n")

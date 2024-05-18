@@ -117,12 +117,15 @@ if os.path.exists(txt_path) == False:
         try:
             wav_name, spk_name, language, text = line.split("|")
             # todo.append([name,text,"zh"])
-            todo.append(
-                [wav_name, text, language_v1_to_language_v2.get(language, language)]
-            )
+            if language in language_v1_to_language_v2.keys():
+                todo.append(
+                    [wav_name, text, language_v1_to_language_v2.get(language, language)]
+                )
+            else:
+                print(f"\033[33m[Waring] The {language = } of {wav_name} is not supported for training.\033[0m")
         except:
             print(line, traceback.format_exc())
-
+    assert len(todo) > 0, f"\033[31m[Error] Part {i_part}: No data loaded from {inp_text}.\033[0m"
     process(todo, res)
     opt = []
     for name, phones, word2ph, norm_text in res:
