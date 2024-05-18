@@ -125,6 +125,7 @@ if os.path.exists(txt_path) == False:
                 print(f"\033[33m[Waring] The {language = } of {wav_name} is not supported for training.\033[0m")
         except:
             print(line, traceback.format_exc())
+
     process(todo, res)
     opt = []
     for name, phones, word2ph, norm_text in res:

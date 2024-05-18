@@ -586,7 +586,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     os.remove(txt_path)
                 with open(path_text, "w",encoding="utf8") as f:
                     f.write("\n".join(opt) + "\n")
-            assert len("".join(opt)) > 0, "1Aa-文本获取进程失败"
+                assert len("".join(opt)) > 0, "1Aa-文本获取进程失败"
             yield "进度：1a-done", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc=[]
             #############################1b
