@@ -9,7 +9,7 @@ now_dir = os.getcwd()
 sys.path.append(now_dir)
 import ffmpeg
 import os
-from typing import Generator, List, Union
+from typing import Generator, List, Tuple, Union
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -591,7 +591,7 @@ class TTS:
                     "repetition_penalty": 1.35    # float. repetition penalty for T2S model.
                 }
         returns:
-            tuple[int, np.ndarray]: sampling rate and audio data.
+            Tuple[int, np.ndarray]: sampling rate and audio data.
         """
         ########## variables initialization ###########
         self.stop_flag:bool = False
@@ -874,7 +874,7 @@ class TTS:
                           speed_factor:float=1.0, 
                           split_bucket:bool=True,
                           fragment_interval:float=0.3
-                          )->tuple[int, np.ndarray]:
+                          )->Tuple[int, np.ndarray]:
         zero_wav = torch.zeros(
                         int(self.configs.sampling_rate * fragment_interval),
                         dtype=self.precision,
