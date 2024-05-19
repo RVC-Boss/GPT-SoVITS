@@ -446,7 +446,7 @@ async def set_sovits_weights(weights_path: str = None):
 
 if __name__ == "__main__":
     try:
-        uvicorn.run(APP, host=host, port=port, workers=1)
+        uvicorn.run(app="api_v2:APP", host=host, port=port, workers=1)
     except Exception as e:
         traceback.print_exc()
         os.kill(os.getpid(), signal.SIGTERM)
