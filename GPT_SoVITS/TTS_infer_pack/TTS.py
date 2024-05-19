@@ -182,6 +182,12 @@ class TTS_Config:
     def __repr__(self):
         return self.__str__()
 
+    def __hash__(self):
+        return hash(self.configs_path)
+
+    def __eq__(self, other):
+        return isinstance(other, TTS_Config) and self.configs_path == other.configs_path
+
 
 class TTS:
     def __init__(self, configs: Union[dict, str, TTS_Config]):
