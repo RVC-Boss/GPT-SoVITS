@@ -1,1 +1,0 @@
-GPT_weights/him-merged-v0.1.4-e20.ckpt
