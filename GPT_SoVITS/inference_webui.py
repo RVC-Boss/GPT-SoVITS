@@ -8,6 +8,8 @@
 '''
 import os, re, logging
 import LangSegment
+from pyutils.logs import llog
+
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("httpcore").setLevel(logging.ERROR)
@@ -530,19 +532,47 @@ def change_choices():
 
 pretrained_sovits_name = "GPT_SoVITS/pretrained_models/s2G488k.pth"
 pretrained_gpt_name = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
-SoVITS_weight_root = "SoVITS_weights"
-GPT_weight_root = "GPT_weights"
-os.makedirs(SoVITS_weight_root, exist_ok=True)
-os.makedirs(GPT_weight_root, exist_ok=True)
+SoVITS_weight_root = ["SoVITS_weights","trained"]
+GPT_weight_root = ["GPT_weights","trained"]
+
+for path in SoVITS_weight_root:
+    os.makedirs(path, exist_ok=True)
+
+for path in GPT_weight_root:
+    os.makedirs(path, exist_ok=True)
 
 
 def get_weights_names():
     SoVITS_names = [pretrained_sovits_name]
-    for name in os.listdir(SoVITS_weight_root):
-        if name.endswith(".pth"): SoVITS_names.append("%s/%s" % (SoVITS_weight_root, name))
+    for path in SoVITS_weight_root:
+        llog.info(f"scan model path:{path}")
+        for name in os.listdir(path):
+            llog.info(f"scan sub model path:{name}")
+            #if os.path.isdir(name): no working
+            if os.path.isfile(name):
+                if name.endswith(".pth"): SoVITS_names.append("%s/%s" % (path, name))
+            else:
+                subPath = os.path.join(path, name)
+                for modelName in os.listdir(subPath):
+                    if modelName.endswith(".pth"):
+                        modelPath = os.path.join(subPath,modelName)
+                        llog.info(f"add model path:{modelPath}")
+                        SoVITS_names.append(modelPath)
+
+
     GPT_names = [pretrained_gpt_name]
-    for name in os.listdir(GPT_weight_root):
-        if name.endswith(".ckpt"): GPT_names.append("%s/%s" % (GPT_weight_root, name))
+    for path in GPT_weight_root:
+        for name in os.listdir(path):
+            if os.path.isfile(name):
+                if name.endswith(".ckpt"): GPT_names.append("%s/%s" % (path, name))
+            else:
+                subPath = os.path.join(path, name)
+                for modelName in os.listdir(subPath):
+                    if modelName.endswith(".pth"):
+                        modelPath = os.path.join(subPath, modelName)
+                        llog.info(f"add model path:{modelPath}")
+                        GPT_names.append(modelPath)
+
     return SoVITS_names, GPT_names
 
 
