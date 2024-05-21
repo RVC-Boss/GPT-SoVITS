@@ -320,7 +320,7 @@ class en_G2p(G2p):
 
         # 尝试分离所有格
         if re.match(r"^([a-z]+)('s)$", word):
-            phones = self.qryword(word[:-2])
+            phones = self.qryword(word[:-2])[:]
             # P T K F TH HH 无声辅音结尾 's 发 ['S']
             if phones[-1] in ['P', 'T', 'K', 'F', 'TH', 'HH']:
                 phones.extend(['S'])
