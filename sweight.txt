@@ -1,0 +1,1 @@
+SoVITS_weights/him-merged-v0.1.4_e20_s2140.pth
