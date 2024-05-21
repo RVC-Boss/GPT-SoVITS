@@ -1,129 +1,10 @@
-"""
-# api.py usage
-
-` python api.py -dr "123.wav" -dt "一二三。" -dl "zh" `
-
-## 执行参数:
-
-`-s` - `SoVITS模型路径, 可在 config.py 中指定`
-`-g` - `GPT模型路径, 可在 config.py 中指定`
-
-调用请求缺少参考音频时使用
-`-dr` - `默认参考音频路径`
-`-dt` - `默认参考音频文本`
-`-dl` - `默认参考音频语种, "中文","英文","日文","zh","en","ja"`
-
-`-d` - `推理设备, "cuda","cpu"`
-`-a` - `绑定地址, 默认"127.0.0.1"`
-`-p` - `绑定端口, 默认9880, 可在 config.py 中指定`
-`-fp` - `覆盖 config.py 使用全精度`
-`-hp` - `覆盖 config.py 使用半精度`
-`-sm` - `流式返回模式, 默认不启用, "close","c", "normal","n", "keepalive","k"`
-·-mt` - `返回的音频编码格式, 流式默认ogg, 非流式默认wav, "wav", "ogg", "aac"`
-·-cp` - `文本切分符号设定, 默认为空, 以",.，。"字符串的方式传入`
-
-`-hb` - `cnhubert路径`
-`-b` - `bert路径`
-
-## 调用:
-
-### 推理
-
-endpoint: `/`
-
-使用执行参数指定的参考音频:
-GET:
-    `http://127.0.0.1:9880?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh`
-POST:
-```json
-{
-    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
-    "text_language": "zh"
-}
-```
-
-使用执行参数指定的参考音频并设定分割符号:
-GET:
-    `http://127.0.0.1:9880?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh&cut_punc=，。`
-POST:
-```json
-{
-    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
-    "text_language": "zh",
-    "cut_punc": "，。",
-}
-```
-
-手动指定当次推理所使用的参考音频:
-GET:
-    `http://127.0.0.1:9880?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh&text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh`
-POST:
-```json
-{
-    "refer_wav_path": "123.wav",
-    "prompt_text": "一二三。",
-    "prompt_language": "zh",
-    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
-    "text_language": "zh"
-}
-```
-
-RESP:
-成功: 直接返回 wav 音频流， http code 200
-失败: 返回包含错误信息的 json, http code 400
-
-
-### 更换默认参考音频
-
-endpoint: `/change_refer`
-
-key与推理端一样
-
-GET:
-    `http://127.0.0.1:9880/change_refer?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh`
-POST:
-```json
-{
-    "refer_wav_path": "123.wav",
-    "prompt_text": "一二三。",
-    "prompt_language": "zh"
-}
-```
-
-RESP:
-成功: json, http code 200
-失败: json, 400
-
-
-### 命令控制
-
-endpoint: `/control`
-
-command:
-"restart": 重新运行
-"exit": 结束运行
-
-GET:
-    `http://127.0.0.1:9880/control?command=restart`
-POST:
-```json
-{
-    "command": "restart"
-}
-```
-
-RESP: 无
-
-"""
-
-
 import argparse
 import os,re
 import sys
 
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
+current_project_dir = os.getcwd()
+sys.path.append(current_project_dir)
+sys.path.append("%s/GPT_SoVITS" % (current_project_dir))
 
 import signal
 import LangSegment
@@ -131,7 +12,7 @@ from time import time as ttime
 import torch
 import librosa
 import soundfile as sf
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -143,7 +24,7 @@ from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from module.mel_processing import spectrogram_torch
-from my_utils import load_audio
+from pyutils.np_utils import load_audio
 import config as global_config
 import logging
 import subprocess
@@ -159,7 +40,7 @@ class DefaultRefer:
         return is_full(self.path, self.text, self.language)
 
 
-def is_empty(*items):  # 任意一项不为空返回False
+def is_not_empty(*items):  # 任意一项不为空返回False
     for item in items:
         if item is not None and item != "":
             return False
@@ -496,7 +377,7 @@ def handle_control(command):
 
 
 def handle_change(path, text, language):
-    if is_empty(path, text, language):
+    if is_not_empty(path, text, language):
         return JSONResponse({"code": 400, "message": '缺少任意一项以下参数: "path", "text", "language"'}, status_code=400)
 
     if path != "" or path is not None:

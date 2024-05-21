@@ -17,7 +17,6 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
-import pdb
 import torch
 
 if os.path.exists("./gweight.txt"):
@@ -66,7 +65,7 @@ from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from time import time as ttime
 from module.mel_processing import spectrogram_torch
-from my_utils import load_audio
+from pyutils.np_utils import load_audio
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
