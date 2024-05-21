@@ -36,8 +36,7 @@ huggingface-cli download --resume-download lj1995/GPT-SoVITS --local-dir GPT_SoV
 ```
 
 #### 添加微调模型(可选)  
-笔者是将微调添加到了GPT-SoVITS/trained目录,内容如下,正常情况下包含 openai_alloy-e15.ckpt 和openai_alloy_e8_s112.pth 即可  
-如果仅仅测试合成效果,不添加微调模型 使用预训练模型作为微调模型也可以
+笔者是将微调添加到了GPT-SoVITS/trained 内容如下,正常情况下包含 openai_alloy-e15.ckpt 和openai_alloy_e8_s112.pth 即可
 ```
 ├── .gitignore
 ├── openai_alloy
@@ -56,8 +55,14 @@ python.exe GPT_SoVITS/inference_webui.py
 ![](inference_cpu_files/1.jpg)
 
 ### 使用gpu推理
+请根据你的操作系统选择合适的cuda版本
 ```
-pip uninstall torch torchaudio -y
+pip uninstall torch torchaudio torchvision -y
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
 ```
-请根据你的环境选择合适的cuda版本
+检查 torch和cuda是否可用
+```
+>>> import torch
+>>> torch.cuda.is_available()
+True
+```
