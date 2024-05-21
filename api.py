@@ -37,17 +37,17 @@ class DefaultRefer:
         self.language = args.default_refer_language
 
     def is_ready(self) -> bool:
-        return is_full(self.path, self.text, self.language)
+        return is_not_empty(self.path, self.text, self.language)
 
 
-def is_not_empty(*items):  # 任意一项不为空返回False
+def is_empty(*items):  # 任意一项不为空返回False
     for item in items:
         if item is not None and item != "":
             return False
     return True
 
 
-def is_full(*items):  # 任意一项为空返回False
+def is_not_empty(*items):  # 任意一项为空返回False
     for item in items:
         if item is None or item == "":
             return False
@@ -377,7 +377,7 @@ def handle_control(command):
 
 
 def handle_change(path, text, language):
-    if is_not_empty(path, text, language):
+    if is_empty(path, text, language):
         return JSONResponse({"code": 400, "message": '缺少任意一项以下参数: "path", "text", "language"'}, status_code=400)
 
     if path != "" or path is not None:
