@@ -329,7 +329,7 @@ class Text2SemanticDecoder(nn.Module):
         bert_feature,
         top_k: int = -100,
         top_p: int = 100,
-        min_p: int = 80,
+        min_p: float = 0.0,
         early_stop_num: int = -1,
         temperature: float = 1.0,
     ):
