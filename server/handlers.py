@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Request
+
+from memory_service import get_memory_usage, get_gpu_memory_usage
 from pyutils.logs import llog
 from tts_service import change_sovits_weights, change_gpt_weights, handle_control, handle_change, handle
 
@@ -70,3 +72,13 @@ async def tts_endpoint(
   cut_punc: str = None,
 ):
   return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc)
+
+@index_router.get("/memory-usage")
+def read_memory_usage():
+    memory_usage = get_memory_usage()
+    return {"memory_usage": memory_usage}
+
+@index_router.get("/gpu-memory-usage")
+def read_gpu_memory_usage():
+    gpu_memory_usage = get_gpu_memory_usage()
+    return {"gpu_memory_usage": gpu_memory_usage}
