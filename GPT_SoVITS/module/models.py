@@ -907,7 +907,7 @@ class SynthesizerTrn(nn.Module):
         ge = self.ref_enc(y * y_mask, y_mask)
 
         with autocast(enabled=False):
-            maybe_no_grad = torch.no_grad() if self.freeze_quantizer else contextlib.nullcontext
+            maybe_no_grad = torch.no_grad() if self.freeze_quantizer else contextlib.nullcontext()
             with maybe_no_grad:
                 if self.freeze_quantizer:
                     self.ssl_proj.eval()
