@@ -104,6 +104,8 @@ from typing import Generator
 
 import torch
 
+from TTS_infer_pack.tts_instance_pool import TTSInstancePool, TTSWrapper
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
@@ -119,11 +121,10 @@ from fastapi.responses import JSONResponse
 from fastapi import FastAPI
 import uvicorn
 from io import BytesIO
-from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
+from GPT_SoVITS.TTS_infer_pack.TTS import TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from functools import lru_cache
 
 cut_method_names = get_cut_method_names()
 
@@ -136,6 +137,9 @@ host = args.bind_addr
 argv = sys.argv
 
 APP = FastAPI()
+
+max_size = 10
+tts_instance_pool = TTSInstancePool(max_size)
 
 
 class TTS_Request(BaseModel):
@@ -160,12 +164,6 @@ class TTS_Request(BaseModel):
     repetition_penalty: float = 1.35
     tts_infer_yaml_path: str = None
     """推理时需要加载的声音模型的yaml配置文件路径，如：GPT_SoVITS/configs/tts_infer.yaml"""
-
-
-@lru_cache(maxsize=10)
-def get_tts_instance(tts_config: TTS_Config) -> TTS:
-    print(f"load tts config from {tts_config.configs_path}")
-    return TTS(tts_config)
 
 
 def pack_ogg(io_buffer: BytesIO, data: np.ndarray, rate: int):
@@ -318,7 +316,7 @@ async def tts_handle(req: dict):
         req["return_fragment"] = True
 
     try:
-        tts_instance = get_tts_instance(tts_config)
+        tts_instance = tts_instance_pool.acquire(tts_config)
 
         move_to_gpu(tts_instance, tts_config)
 
@@ -332,27 +330,30 @@ async def tts_handle(req: dict):
                 for sr, chunk in tts_generator:
                     yield pack_audio(BytesIO(), chunk, sr, media_type).getvalue()
                 move_to_cpu(tts_instance)
+                tts_instance_pool.release(tts_instance)
 
-            # _media_type = f"audio/{media_type}" if not (streaming_mode and media_type in ["wav", "raw"]) else f"audio/x-{media_type}"
+            # _media_type = f"audio/{media_type}" if not (streaming_mode and media_type in ["wav", "raw"]) else
+            # f"audio/x-{media_type}"
             return StreamingResponse(streaming_generator(tts_generator, media_type, ), media_type=f"audio/{media_type}")
 
         else:
             sr, audio_data = next(tts_generator)
             audio_data = pack_audio(BytesIO(), audio_data, sr, media_type).getvalue()
             move_to_cpu(tts_instance)
+            tts_instance_pool.release(tts_instance)
             return Response(audio_data, media_type=f"audio/{media_type}")
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"tts failed", "Exception": str(e)})
 
 
-def move_to_cpu(tts):
+def move_to_cpu(tts: TTSWrapper):
     cpu_device = torch.device('cpu')
-    tts.set_device(cpu_device)
+    tts.set_device(cpu_device, False)
     print("Moved TTS models to CPU to save GPU memory.")
 
 
-def move_to_gpu(tts: TTS, tts_config: TTS_Config):
-    tts.set_device(tts_config.device)
+def move_to_gpu(tts: TTSWrapper, tts_config: TTS_Config):
+    tts.set_device(tts_config.device, False)
     print("Moved TTS models back to GPU for performance.")
 
 
@@ -422,7 +423,7 @@ async def tts_post_endpoint(request: TTS_Request):
 async def set_refer_audio(refer_audio_path: str = None, tts_infer_yaml_path: str = "GPT_SoVITS/configs/tts_infer.yaml"):
     try:
         tts_config = TTS_Config(tts_infer_yaml_path)
-        tts_instance = get_tts_instance(tts_config)
+        tts_instance = tts_instance_pool.acquire(tts_config)
         tts_instance.set_ref_audio(refer_audio_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"set refer audio failed", "Exception": str(e)})
@@ -436,7 +437,7 @@ async def set_gpt_weights(weights_path: str = None, tts_infer_yaml_path: str = "
             return JSONResponse(status_code=400, content={"message": "gpt weight path is required"})
 
         tts_config = TTS_Config(tts_infer_yaml_path)
-        tts_instance = get_tts_instance(tts_config)
+        tts_instance = tts_instance_pool.acquire(tts_config)
         tts_instance.init_t2s_weights(weights_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"change gpt weight failed", "Exception": str(e)})
@@ -451,7 +452,7 @@ async def set_sovits_weights(weights_path: str = None, tts_infer_yaml_path: str 
             return JSONResponse(status_code=400, content={"message": "sovits weight path is required"})
 
         tts_config = TTS_Config(tts_infer_yaml_path)
-        tts_instance = get_tts_instance(tts_config)
+        tts_instance = tts_instance_pool.acquire(tts_config)
         tts_instance.init_vits_weights(weights_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"change sovits weight failed", "Exception": str(e)})
