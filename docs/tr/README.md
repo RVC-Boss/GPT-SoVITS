@@ -193,7 +193,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] daha iyi sovits temel modeli (geliştirilmiş ses kalitesi)
   - [ ] model karışımı
 
-## (İsteğe Bağlı) Komut satırından çalıştırma yöntemi
+## (Ekstra) Komut satırından çalıştırma yöntemi
 UVR5 için Web Arayüzünü açmak için komut satırını kullanın
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>

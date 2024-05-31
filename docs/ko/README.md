@@ -183,7 +183,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] 더 나은 sovits 기본 모델 (향상된 오디오 품질).
   - [ ] 모델 블렌딩.
 
-## (선택 사항) 명령줄에서 실행하는 방법
+## (추가적인) 명령줄에서 실행하는 방법
 명령줄을 사용하여 UVR5용 WebUI 열기
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
