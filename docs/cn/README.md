@@ -53,7 +53,7 @@ _注: numba==0.56.4 需要 python<3.11_
 
 如果你是 Windows 用户（已在 win>=10 上测试），可以下载[0206fix3 整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true)或[0217fix2 整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
 
-中国地区用户可以通过点击链接并选择“下载副本”来下载[0206fix3 整合包](https://www.icloud.com.cn/iclouddrive/075NNKIRC2zqnWn-9rhD63WGA#GPT-SoVITS-beta0206fix3)或[0217fix2 整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true)。(如果下载时遇到错误，请退出登录)
+中国地区用户可以通过点击链接并选择“下载副本”来下载[0206fix3 整合包](https://www.icloud.com.cn/iclouddrive/075NNKIRC2zqnWn-9rhD63WGA#GPT-SoVITS-beta0206fix3)或[0217fix2 整合包](https://www.icloud.com.cn/iclouddrive/091QHaIbZMDZYQg7IX3g2kCqg#GPT-SoVITS-beta0217fix2)。(如果下载时遇到错误，请退出登录)
 
 _注：0206版本的推理速度更快，0217新版的推理效果更好，可按需选择_
 
