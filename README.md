@@ -53,7 +53,7 @@ _Note: numba==0.56.4 requires py<3.11_
 
 If you are a Windows user (tested with win>=10), you can download [the 0206fix3 packedge](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true) or [the 0217fix2 packedge](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
 
-Users in China region can download [the 0206fix3 package](https://www.icloud.com.cn/iclouddrive/075NNKIRC2zqnWn-9rhD63WGA#GPT-SoVITS-beta0206fix3) or [the 0217fix2 package](https://www.icloud.com.cn/iclouddrive/091QHaIbZMDZYQg7IX3g2kCqg#GPT-SoVITS-beta0217fix2) by clicking the links and then selecting "Download a copy."
+Users in China region can download [the 0206fix3 package](https://www.icloud.com.cn/iclouddrive/075NNKIRC2zqnWn-9rhD63WGA#GPT-SoVITS-beta0206fix3) or [the 0217fix2 package](https://www.icloud.com.cn/iclouddrive/091QHaIbZMDZYQg7IX3g2kCqg#GPT-SoVITS-beta0217fix2) by clicking the links and then selecting "Download a copy." (Log out if you encounter errors while downloading.)
 
 _Note: The inference speed of version 0206 is faster, while the inference quality of the new 0217 version is better. You can choose according to your needs._
 
