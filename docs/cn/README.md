@@ -10,8 +10,9 @@
 [![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
+[![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
 
-[**English**](../../README.md) | [**中文简体**](./README.md) | [**日本語**](../ja/README.md) | [**한국어**](../ko/README.md)
+[**English**](../../README.md) | **中文简体** | [**日本語**](../ja/README.md) | [**한국어**](../ko/README.md) | [**Türkçe**](../tr/README.md)
 
 </div>
 
@@ -50,11 +51,11 @@ _注: numba==0.56.4 需要 python<3.11_
 
 ### Windows
 
-如果你是 Windows 用户（已在 win>=10 上测试），可以直接下载[预打包文件](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
+如果你是 Windows 用户（已在 win>=10 上测试），可以下载[0206fix3 整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true)或[0217fix2 整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
 
-中国地区用户可以通过点击链接并选择“下载副本”来下载[0217版本包](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217)或[0306fix2版本包](https://www.icloud.com.cn/iclouddrive/09aaTLf96aa92dbLe0fPNM5CQ#GPT-SoVITS-beta0306fix2)。
+中国地区用户可以通过点击链接并选择“下载副本”来下载[0206fix3 整合包](https://www.icloud.com.cn/iclouddrive/075NNKIRC2zqnWn-9rhD63WGA#GPT-SoVITS-beta0206fix3)或[0217fix2 整合包](https://www.icloud.com.cn/iclouddrive/091QHaIbZMDZYQg7IX3g2kCqg#GPT-SoVITS-beta0217fix2)。(如果下载时遇到错误，请退出登录)
 
-_注：0306fix2版本推理速度翻倍，节约生命。修复了无参考文本模式的所有问题。_
+_注：0206版本的推理速度更快，0217新版的推理效果更好，可按需选择_
 
 ### Linux
 
@@ -148,7 +149,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 对于中文自动语音识别（附加），从 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), 和 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 下载模型，并将它们放置在 `tools/asr/models` 中。
 
-对于英语与日语自动语音识别（附加),从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将它们放置在 `tools/asr/models` 中。 此外，[其他模型](https://huggingface.co/Systran)可能具有类似效果，但占用更小的磁盘空间。
+对于英语与日语自动语音识别（附加）,从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将它们放置在 `tools/asr/models` 中。 此外，[其他模型](https://huggingface.co/Systran)可能具有类似效果，但占用更小的磁盘空间。
 
 中国地区用户可以通过以下链接下载：
 - [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)(点击“下载副本”)
@@ -184,7 +185,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] 用户指南。
   - [x] 日语和英语数据集微调训练。
 
-- [ ] **Features:**
+- [ ] **功能:**
   - [ ] 零样本声音转换（5 秒）/ 少样本声音转换（1 分钟）。
   - [ ] TTS 语速控制。
   - [ ] 增强的 TTS 情感控制。
@@ -196,7 +197,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] 更好的 sovits 基础模型（增强的音频质量）。
   - [ ] 模型混合。
 
-## （可选）命令行的操作方式
+## （附加）命令行运行方式
 使用命令行打开UVR5的WebUI
 ````
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
@@ -226,24 +227,33 @@ python tools/asr/funasr_asr.py -i <input> -o <output>
 python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 ````
 启用自定义列表保存路径
+
 ## 致谢
 
 特别感谢以下项目和贡献者：
 
+### 理论研究
 - [ar-vits](https://github.com/innnky/ar-vits)
 - [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
 - [vits](https://github.com/jaywalnut310/vits)
 - [TransferTTS](https://github.com/hcy71o/TransferTTS/blob/master/models.py#L556)
-- [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [contentvec](https://github.com/auspicious3000/contentvec/)
 - [hifi-gan](https://github.com/jik876/hifi-gan)
-- [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
 - [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
+### 预训练模型
+- [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
+- [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
+### 推理用文本前端
+- [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
+- [LangSegment](https://github.com/juntaosun/LangSegment)
+### WebUI 工具
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)
 - [SubFix](https://github.com/cronrpc/SubFix)
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - [gradio](https://github.com/gradio-app/gradio)
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
+- [FunASR](https://github.com/alibaba-damo-academy/FunASR)
 
 ## 感谢所有贡献者的努力
 

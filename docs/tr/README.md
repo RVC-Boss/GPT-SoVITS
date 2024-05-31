@@ -12,8 +12,7 @@ Güçlü Birkaç Örnekli Ses Dönüştürme ve Metinden Konuşmaya Web Arayüz�
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 [![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
 
-
-[**İngilizce**](./README.md) | [**Çince (Basitleştirilmiş)**](./docs/cn/README.md) | [**Japonca**](./docs/ja/README.md) | [**Korece**](./docs/ko/README.md)
+[**English**](../../README.md) | [**中文简体**](../cn/README.md) | [**日本語**](../ja/README.md) | [**한국어**](../ko/README.md) | **Türkçe**
 
 </div>
 
@@ -35,11 +34,9 @@ Görünmeyen konuşmacılar birkaç örnekli ince ayar demosu:
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
-**Kullanıcı kılavuzu: [Basitleştirilmiş Çince](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [İngilizce](https://rentry.co/GPT-SoVITS-guide#/)**
+**Kullanıcı Kılavuzu: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
 ## Kurulum
-
-Çin bölgesindeki kullanıcılar için, tam işlevselliği çevrimiçi olarak deneyimlemek üzere AutoDL Bulut Docker'ı kullanmak için [buraya tıklayabilirsiniz](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official).
 
 ### Test Edilmiş Ortamlar
 
@@ -52,11 +49,9 @@ _Not: numba==0.56.4, py<3.11 gerektirir_
 
 ### Windows
 
-Bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [önceden paketlenmiş dağıtımı](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) indirebilir ve GPT-SoVITS-WebUI'yi başlatmak için _go-webui.bat_ dosyasını çift tıklayabilirsiniz.
+Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [0206fix3 paketini](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true) veya [0217fix2 paketini](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true) indirip _go-webui.bat_ dosyasına çift tıklayarak GPT-SoVITS-WebUI'yi başlatabilirsiniz.
 
-Çin bölgesindeki kullanıcılar, aşağıdaki bağlantılara tıklayıp "Bir kopya indir"i seçerek [0217 paketini](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217) veya [0306fix2 paketini](https://www.icloud.com.cn/iclouddrive/09aaTLf96aa92dbLe0fPNM5CQ#GPT-SoVITS-beta0306fix2) indirebilirler.
-
-_Not: 0306fix2 sürümü çıkarım hızını iki katına çıkarır ve referans metni olmayan moddaki tüm sorunları giderir._
+_Not: 0206 sürümünün çıkarım hızı daha hızlıdır, 0217 yeni sürümünün çıkarım kalitesi ise daha iyidir. İhtiyacınıza göre seçim yapabilirsiniz._
 
 ### Linux
 
@@ -198,7 +193,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] daha iyi sovits temel modeli (geliştirilmiş ses kalitesi)
   - [ ] model karışımı
 
-## (İsteğe Bağlı) İhtiyacınız varsa, burada komut satırı işlem modu sağlanacaktır
+## (Ekstra) Komut satırından çalıştırma yöntemi
 UVR5 için Web Arayüzünü açmak için komut satırını kullanın
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
@@ -229,11 +224,11 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 ```
 Özel bir liste kaydetme yolu etkinleştirildi
 
-## Teşekkürler
+## Katkı Verenler
 
-Aşağıdaki projeler ve katkıda bulunanlara özel teşekkürler:
+Özellikle aşağıdaki projelere ve katkıda bulunanlara teşekkür ederiz:
 
-### Teorik
+### Teorik Araştırma
 - [ar-vits](https://github.com/innnky/ar-vits)
 - [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
 - [vits](https://github.com/jaywalnut310/vits)
@@ -242,12 +237,12 @@ Aşağıdaki projeler ve katkıda bulunanlara özel teşekkürler:
 - [hifi-gan](https://github.com/jik876/hifi-gan)
 - [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
 ### Önceden Eğitilmiş Modeller
-- [Çince Konuşma Ön Eğitimi](https://github.com/TencentGameMate/chinese_speech_pretrain)
-- [Çince-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
-### Çıkarım için Metin Ön Ucu
+- [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
+- [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
+### Tahmin İçin Metin Ön Ucu
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
 - [LangSegment](https://github.com/juntaosun/LangSegment)
-### Web Arayüzü Araçları
+### WebUI Araçları
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)
 - [SubFix](https://github.com/cronrpc/SubFix)
