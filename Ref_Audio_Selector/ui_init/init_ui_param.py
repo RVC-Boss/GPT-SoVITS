@@ -108,9 +108,9 @@ def init_first():
     text_sample_dir_default = common.check_path_existence_and_return(
         os.path.join(base_dir_default, params.list_to_convert_reference_audio_dir))
 
-    slider_subsection_num_default = empty_default(rw_param.read(rw_param.subsection_num), 5)
+    slider_subsection_num_default = int(empty_default(rw_param.read(rw_param.subsection_num), 10))
 
-    slider_sample_num_default = empty_default(rw_param.read(rw_param.sample_num), 4)
+    slider_sample_num_default = (empty_default(rw_param.read(rw_param.sample_num), 4))
 
 
 def init_second():
