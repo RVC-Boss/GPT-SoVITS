@@ -40,6 +40,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 中国地区用户可[点击此处](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official)使用 AutoDL 云端镜像进行体验。
 
+如果您会点儿魔法，可以使用[Kaggle](https://www.kaggle.com/code/luogin/the-best-gpt-sovits)来帮助您进行快速高效训练~~(GPU 30h/week)~~
+
 ### 测试通过的环境
 
 - Python 3.9，PyTorch 2.0.1，CUDA 11
