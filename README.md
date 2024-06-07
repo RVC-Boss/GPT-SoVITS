@@ -39,7 +39,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 ## Installation
 
 For users in China region, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
-For Kaggle User, We provide [THIS](https://www.kaggle.com/code/luogin/the-best-gpt-sovits) for faster and free training on the *Cloud* , please check it out.
+
+For **Kaggle User**, We provide [THIS](https://www.kaggle.com/code/luogin/the-best-gpt-sovits) for faster and free training on the *Cloud* , please check it out.
 
 ### Tested Environments
 
