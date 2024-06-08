@@ -8,7 +8,7 @@ sys.path.append(now_dir)
 import re
 import torch
 import LangSegment
-import warnings
+
 from typing import Dict, List, Tuple
 from text.cleaner import clean_text
 from text import cleaned_text_to_sequence
