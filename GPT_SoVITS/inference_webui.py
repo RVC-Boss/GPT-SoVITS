@@ -323,6 +323,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
         print(i18n("实际输入的参考文本:"), prompt_text)
     text = text.strip("\n")
+    text = replace_consecutive_punctuation(text)
     if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
     
     print(i18n("实际输入的目标文本:"), text)
@@ -534,7 +535,6 @@ def process_text(texts):
     if all(text in [None, " ", "\n",""] for text in texts):
         raise ValueError(i18n("请输入有效文本"))
     for text in texts:
-        text = replace_consecutive_punctuation(text)
         if text in  [None, " ", ""]:
             pass
         else:
@@ -544,8 +544,8 @@ def process_text(texts):
 
 def replace_consecutive_punctuation(text):
     punctuations = ''.join(re.escape(p) for p in punctuation)
-    pattern = f'[{punctuations}]{{2,}}'
-    result = re.sub(pattern, '.', text)
+    pattern = f'([{punctuations}])([{punctuations}])+'
+    result = re.sub(pattern, r'\1', text)
     return result
 
 
