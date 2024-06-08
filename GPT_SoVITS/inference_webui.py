@@ -367,7 +367,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         text = text.replace("\n\n", "\n")
     print(i18n("实际输入的目标文本(切句后):"), text)
     texts = text.split("\n")
-    text = process_text(text)
+    texts = process_text(texts)
     texts = merge_short_text_in_array(texts, 5)
     audio_opt = []
     if not ref_free:
@@ -533,13 +533,20 @@ def process_text(texts):
     _text=[]
     if all(text in [None, " ", "\n",""] for text in texts):
         raise ValueError(i18n("请输入有效文本"))
-
     for text in texts:
-        if text in  [None, " ", "\n"]:
-            warnings.warn(i18n("文本中包含连续标点"))
+        text = replace_consecutive_punctuation(text)
+        if text in  [None, " ", ""]:
+            pass
         else:
             _text.append(text)
     return _text
+
+
+def replace_consecutive_punctuation(text):
+    punctuations = ''.join(re.escape(p) for p in punctuation)
+    pattern = f'[{punctuations}]{{2,}}'
+    result = re.sub(pattern, '.', text)
+    return result
 
 
 def change_choices():
