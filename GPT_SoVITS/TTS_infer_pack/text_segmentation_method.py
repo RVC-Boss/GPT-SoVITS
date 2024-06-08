@@ -7,7 +7,7 @@ from typing import Callable
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
-
+punctuation = set(['!', '?', '…', ',', '.', '-'," "])
 METHODS = dict()
 
 def get_method(name:str)->Callable:
@@ -76,7 +76,10 @@ def split(todo_text):
 # 不切
 @register_method("cut0")
 def cut0(inp):
-    return inp
+    if not set(inp).issubset(punctuation):
+        return inp
+    else:
+        return "/n"
 
 
 # 凑四句一切
@@ -93,6 +96,7 @@ def cut1(inp):
             opts.append("".join(inps[split_idx[idx]: split_idx[idx + 1]]))
     else:
         opts = [inp]
+    opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
 # 凑50字一切
@@ -118,19 +122,24 @@ def cut2(inp):
     if len(opts) > 1 and len(opts[-1]) < 50:  ##如果最后一个太短了，和前一个合一起
         opts[-2] = opts[-2] + opts[-1]
         opts = opts[:-1]
+    opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
 # 按中文句号。切
 @register_method("cut3")
 def cut3(inp):
     inp = inp.strip("\n")
-    return "\n".join(["%s" % item for item in inp.strip("。").split("。")])
+    opts = ["%s" % item for item in inp.strip("。").split("。")]
+    opts = [item for item in opts if not set(item).issubset(punctuation)]
+    return "\n".join(opts)
 
 #按英文句号.切
 @register_method("cut4")
 def cut4(inp):
     inp = inp.strip("\n")
-    return "\n".join(["%s" % item for item in inp.strip(".").split(".")])
+    opts = ["%s" % item for item in inp.strip(".").split(".")]
+    opts = [item for item in opts if not set(item).issubset(punctuation)]
+    return "\n".join(opts)
 
 # 按标点符号切
 # contributed by https://github.com/AI-Hobbyist/GPT-SoVITS/blob/main/GPT_SoVITS/inference_webui.py
@@ -146,8 +155,9 @@ def cut5(inp):
     # 在句子不存在符号或句尾无符号的时候保证文本完整
     if len(items)%2 == 1:
         mergeitems.append(items[-1])
-    opt = "\n".join(mergeitems)
-    return opt
+    opts = [item for item in mergeitems if not set(item).issubset(punctuation)]
+    opts = "\n".join(opts)
+    return opts
 
 
 
