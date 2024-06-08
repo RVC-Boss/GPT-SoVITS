@@ -56,6 +56,7 @@ class TextPreprocessor:
         
     def preprocess(self, text:str, lang:str, text_split_method:str)->List[Dict]:
         print(i18n("############ 切分文本 ############"))
+        texts = self.replace_consecutive_punctuation(texts)
         texts = self.pre_seg_text(text, lang, text_split_method)
         result = []
         print(i18n("############ 提取文本Bert特征 ############"))
@@ -213,7 +214,6 @@ class TextPreprocessor:
         if all(text in [None, " ", "\n",""] for text in texts):
             raise ValueError(i18n("请输入有效文本"))
         for text in texts:
-            text = self.replace_consecutive_punctuation(text)
             if text in  [None, " ", ""]:
                 pass
             else:
@@ -223,8 +223,8 @@ class TextPreprocessor:
 
     def replace_consecutive_punctuation(self,text):
         punctuations = ''.join(re.escape(p) for p in punctuation)
-        pattern = f'[{punctuations}]{{2,}}'
-        result = re.sub(pattern, '.', text)
+        pattern = f'([{punctuations}])([{punctuations}])+'
+        result = re.sub(pattern, r'\1', text)
         return result
 
 
