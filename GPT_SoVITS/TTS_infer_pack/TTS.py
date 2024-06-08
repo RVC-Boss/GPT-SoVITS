@@ -752,6 +752,10 @@ class TTS:
                 max_len = item["max_len"]
 
                 print(i18n("前端处理后的文本(每句):"), norm_text)
+                if norm_text[0] == ".":
+                    yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
+                                                               dtype=np.int16)
+                    return
                 if no_prompt_text :
                     prompt = None
                 else:
