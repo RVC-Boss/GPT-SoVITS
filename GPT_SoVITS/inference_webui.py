@@ -50,7 +50,7 @@ is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
-punctuation = set(['!', '?', '…', ',', '.', '-'," "]);print(punctuation)
+punctuation = set(['!', '?', '…', ',', '.', '-'," "])
 import gradio as gr
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import numpy as np
