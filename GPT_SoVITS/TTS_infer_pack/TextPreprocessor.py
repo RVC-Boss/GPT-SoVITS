@@ -56,11 +56,14 @@ class TextPreprocessor:
         
     def preprocess(self, text:str, lang:str, text_split_method:str)->List[Dict]:
         print(i18n("############ 切分文本 ############"))
-        text = self.replace_consecutive_punctuation(text)
+        text = self.replace_consecutive_punctuation(text) # 变量命名应该是写错了
         texts = self.pre_seg_text(text, lang, text_split_method)
         result = []
         print(i18n("############ 提取文本Bert特征 ############"))
         for text in tqdm(texts):
+            if not re.sub("\W+", "", text):       
+                # 检测一下，如果是纯符号，就跳过。
+                continue
             phones, bert_features, norm_text = self.segment_and_extract_feature_for_text(text, lang)
             if phones is None:
                 continue
