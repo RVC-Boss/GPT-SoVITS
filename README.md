@@ -12,8 +12,7 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 [![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
 [![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
 
-
-[**English**](./README.md) | [**中文简体**](./docs/cn/README.md) | [**日本語**](./docs/ja/README.md) | [**한국어**](./docs/ko/README.md)
+**English** | [**中文简体**](./docs/cn/README.md) | [**日本語**](./docs/ja/README.md) | [**한국어**](./docs/ko/README.md) | [**Türkçe**](./docs/tr/README.md)
 
 </div>
 
@@ -52,11 +51,11 @@ _Note: numba==0.56.4 requires py<3.11_
 
 ### Windows
 
-If you are a Windows user (tested with win>=10), you can directly download the [pre-packaged distribution](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
+If you are a Windows user (tested with win>=10), you can download [the 0206fix3 packedge](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true) or [the 0217fix2 packedge](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
 
-Users in China region can download [the 0217 package](https://www.icloud.com.cn/iclouddrive/061bfkcVJcBfsMfLF5R2XKdTQ#GPT-SoVITS-beta0217) or [the 0306fix2 package](https://www.icloud.com.cn/iclouddrive/09aaTLf96aa92dbLe0fPNM5CQ#GPT-SoVITS-beta0306fix2) by clicking the links and then selecting "Download a copy."
+Users in China region can download [the 0206fix3 package](https://www.icloud.com.cn/iclouddrive/075NNKIRC2zqnWn-9rhD63WGA#GPT-SoVITS-beta0206fix3) or [the 0217fix2 package](https://www.icloud.com.cn/iclouddrive/091QHaIbZMDZYQg7IX3g2kCqg#GPT-SoVITS-beta0217fix2) by clicking the links and then selecting "Download a copy." (Log out if you encounter errors while downloading.)
 
-_Note: The 0306fix2 version doubles the inference speed and fixes all issues with the no reference text mode._
+_Note: The inference speed of version 0206 is faster, while the inference quality of the new 0217 version is better. You can choose according to your needs._
 
 ### Linux
 
@@ -198,7 +197,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [ ] better sovits base model (enhanced audio quality)
   - [ ] model mix
 
-## (Optional) If you need, here will provide the command line operation mode
+## (Additional) Method for running from the command line
 Use the command line to open the WebUI for UVR5
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
@@ -233,7 +232,7 @@ A custom list save path is enabled
 
 Special thanks to the following projects and contributors:
 
-### Theoretical
+### Theoretical Research
 - [ar-vits](https://github.com/innnky/ar-vits)
 - [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
 - [vits](https://github.com/jaywalnut310/vits)
