@@ -8,6 +8,7 @@ sys.path.append(now_dir)
 import re
 import torch
 import LangSegment
+
 from typing import Dict, List, Tuple
 from text.cleaner import clean_text
 from text import cleaned_text_to_sequence
@@ -17,6 +18,7 @@ from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
+punctuation = set(['!', '?', '…', ',', '.', '-'," "])
 
 def get_first(text:str) -> str:
     pattern = "[" + "".join(re.escape(sep) for sep in splits) + "]"
@@ -54,6 +56,7 @@ class TextPreprocessor:
         
     def preprocess(self, text:str, lang:str, text_split_method:str)->List[Dict]:
         print(i18n("############ 切分文本 ############"))
+        texts = self.replace_consecutive_punctuation(texts)
         texts = self.pre_seg_text(text, lang, text_split_method)
         result = []
         print(i18n("############ 提取文本Bert特征 ############"))
@@ -83,6 +86,7 @@ class TextPreprocessor:
             text = text.replace("\n\n", "\n")
 
         _texts = text.split("\n")
+        _texts = self.process_text(_texts)
         _texts = merge_short_text_in_array(_texts, 5)
         texts = []
 
@@ -205,6 +209,23 @@ class TextPreprocessor:
 
         return feature
     
+    def process_text(self,texts):
+        _text=[]
+        if all(text in [None, " ", "\n",""] for text in texts):
+            raise ValueError(i18n("请输入有效文本"))
+        for text in texts:
+            if text in  [None, " ", ""]:
+                pass
+            else:
+                _text.append(text)
+        return _text
+    
+
+    def replace_consecutive_punctuation(self,text):
+        punctuations = ''.join(re.escape(p) for p in punctuation)
+        pattern = f'([{punctuations}])([{punctuations}])+'
+        result = re.sub(pattern, r'\1', text)
+        return result
 
 
 
