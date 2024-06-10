@@ -900,10 +900,53 @@ class TTS:
         else:
             # audio = [item for batch in audio for item in batch]
             audio = sum(audio, [])
+
+        def ms_to_srt_time(ms):
+            N = int(ms)
+            hours, remainder = divmod(N, 3600000)
+            minutes, remainder = divmod(remainder, 60000)
+            seconds, milliseconds = divmod(remainder, 1000)
+            timesrt = f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
+            # print(timesrt)
+            return timesrt
+
+        import soundfile as sf
+        print("打印")
+        text = ""
+        with open(r'./srt/tts-out.txt', 'r',encoding='utf-8') as f:
+            text = f.read()
+        text_list = eval(text)
+
+        audio_samples = 0
+        srtlines = []
+        audio_opt = []
+        try:
+            num = 0
+            for x in audio:
+                ad = (np.concatenate([x], 0) * 32768).astype(np.int16)
+
+                srtline_begin=ms_to_srt_time(audio_samples*1000.0 / int(sr))
+                audio_samples += ad.size
+                srtline_end=ms_to_srt_time(audio_samples*1000.0 / int(sr))
+
+                audio_opt.append(ad)
+
+                srtlines.append(f"{len(audio_opt):02d}\n")
+                srtlines.append(srtline_begin+' --> '+srtline_end+"\n")
+
+
+                srtlines.append(text_list[num]+"\n\n")
+
+                num += 1
+        except Exception as e:
+            print(e)
             
             
         audio = np.concatenate(audio, 0)
         audio = (audio * 32768).astype(np.int16) 
+
+        with open('./srt/tts-out.srt', 'w', encoding='utf-8') as f:
+            f.writelines(srtlines)
         
         try:
             if speed_factor != 1.0:
@@ -912,6 +955,8 @@ class TTS:
             print(f"Failed to change speed of audio: \n{e}")
         
         return sr, audio
+
+        
             
         
         
