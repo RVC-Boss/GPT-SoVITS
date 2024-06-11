@@ -56,7 +56,7 @@ class TextPreprocessor:
         
     def preprocess(self, text:str, lang:str, text_split_method:str)->List[Dict]:
         print(i18n("############ 切分文本 ############"))
-        texts = self.replace_consecutive_punctuation(texts)
+        text = self.replace_consecutive_punctuation(text) # 变量命名应该是写错了
         texts = self.pre_seg_text(text, lang, text_split_method)
         result = []
         print(i18n("############ 提取文本Bert特征 ############"))
@@ -94,6 +94,9 @@ class TextPreprocessor:
         for text in _texts:
             # 解决输入目标文本的空行导致报错的问题
             if (len(text.strip()) == 0):
+               continue
+            if not re.sub("\W+", "", text):       
+                # 检测一下，如果是纯符号，就跳过。
                 continue
             if (text[-1] not in splits): text += "。" if lang != "en" else "."
             
