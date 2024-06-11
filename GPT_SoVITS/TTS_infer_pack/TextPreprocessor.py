@@ -61,9 +61,6 @@ class TextPreprocessor:
         result = []
         print(i18n("############ 提取文本Bert特征 ############"))
         for text in tqdm(texts):
-            if not re.sub("\W+", "", text):       
-                # 检测一下，如果是纯符号，就跳过。
-                continue
             phones, bert_features, norm_text = self.segment_and_extract_feature_for_text(text, lang)
             if phones is None:
                 continue
@@ -97,6 +94,9 @@ class TextPreprocessor:
         for text in _texts:
             # 解决输入目标文本的空行导致报错的问题
             if (len(text.strip()) == 0):
+               continue
+            if not re.sub("\W+", "", text):       
+                # 检测一下，如果是纯符号，就跳过。
                 continue
             if (text[-1] not in splits): text += "。" if lang != "en" else "."
             
