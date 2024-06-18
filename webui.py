@@ -185,7 +185,7 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         os.environ["is_half"]=str(is_half)
         os.environ["infer_ttswebui"]=str(webui_port_infer_tts)
         os.environ["is_share"]=str(is_share)
-        cmd = '"%s" GPT_SoVITS/inference_webui.py'%(python_exec)
+        cmd = '"%s" GPT_SoVITS/inference.py'%(python_exec)
         yield i18n("TTS推理进程已开启")
         print(cmd)
         p_tts_inference = Popen(cmd, shell=True)
