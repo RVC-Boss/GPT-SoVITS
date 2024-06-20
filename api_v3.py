@@ -158,7 +158,7 @@ class TTS_Request(BaseModel):
     streaming_mode: bool = False
     parallel_infer: bool = True
     repetition_penalty: float = 1.35
-    tts_infer_yaml_path: str = None
+    tts_infer_yaml_path: str = "GPT_SoVITS/configs/tts_infer.yaml"
     """推理时需要加载的声音模型的yaml配置文件路径，如：GPT_SoVITS/configs/tts_infer.yaml"""
 
 
@@ -373,7 +373,7 @@ async def tts_get_endpoint(
         top_k: int = 5,
         top_p: float = 1,
         temperature: float = 1,
-        text_split_method: str = "cut0",
+        text_split_method: str = "cut5",
         batch_size: int = 1,
         batch_threshold: float = 0.75,
         split_bucket: bool = True,
