@@ -305,7 +305,7 @@ def train_and_evaluate(
         y_lengths,
         text,
         text_lengths,
-    ) in tqdm(enumerate(train_loader)):
+    ) in enumerate(tqdm(train_loader)):
         if torch.cuda.is_available():
             spec, spec_lengths = spec.cuda(rank, non_blocking=True), spec_lengths.cuda(
                 rank, non_blocking=True
