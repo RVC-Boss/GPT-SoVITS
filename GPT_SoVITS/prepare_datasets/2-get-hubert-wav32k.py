@@ -12,12 +12,12 @@ opt_dir=                            os.environ.get("opt_dir")
 cnhubert.cnhubert_base_path=                os.environ.get("cnhubert_base_dir")
 is_half=eval(os.environ.get("is_half","True"))
 
-import pdb,traceback,numpy as np,logging
+import traceback,numpy as np
 from scipy.io import wavfile
 import librosa,torch
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-from my_utils import load_audio
+from pyutils.np_utils import load_audio
 
 # from config import cnhubert_base_path
 # cnhubert.cnhubert_base_path=cnhubert_base_path
