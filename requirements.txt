@@ -1,6 +1,8 @@
 numpy==1.23.4
-scipy
-tensorboard
+nltk==3.8.1
+PyYAML==6.0.1
+scipy==1.11.4
+tensorboard==2.16.2
 librosa==0.9.2
 numba==0.56.4
 pytorch-lightning
@@ -9,7 +11,9 @@ gradio_client==0.8.1
 ffmpeg-python
 onnxruntime
 tqdm
-funasr==1.0.0
+funasr==1.0.11
+hdbscan==0.8.37
+setuptools==69.1.1
 cn2an
 pypinyin
 pyopenjtalk
@@ -19,7 +23,6 @@ modelscope==1.10.0
 sentencepiece
 transformers
 chardet
-PyYAML
 psutil
 jieba_fast
 jieba
