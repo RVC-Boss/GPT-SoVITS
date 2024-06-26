@@ -16,6 +16,7 @@ logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 import pdb
+import torch
 
 if os.path.exists("./gweight.txt"):
     with open("./gweight.txt", 'r', encoding="utf-8") as file:
@@ -48,11 +49,12 @@ is_share = os.environ.get("is_share", "False")
 is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
-is_half = eval(os.environ.get("is_half", "True"))
+is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+punctuation = set(['!', '?', '…', ',', '.', '-'," "])
 import gradio as gr
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import numpy as np
-import librosa, torch
+import librosa
 from feature_extractor import cnhubert
 
 cnhubert.cnhubert_base_path = cnhubert_base_path
@@ -68,7 +70,7 @@ from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
 
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
+# os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -257,11 +259,15 @@ def get_phones_and_bert(text,language):
     elif language in {"zh", "ja","auto"}:
         textlist=[]
         langlist=[]
-        LangSegment.setfilters(["zh","ja","en"])
+        LangSegment.setfilters(["zh","ja","en","ko"])
         if language == "auto":
             for tmp in LangSegment.getTexts(text):
-                langlist.append(tmp["lang"])
-                textlist.append(tmp["text"])
+                if tmp["lang"] == "ko":
+                    langlist.append("zh")
+                    textlist.append(tmp["text"])
+                else:
+                    langlist.append(tmp["lang"])
+                    textlist.append(tmp["text"])
         else:
             for tmp in LangSegment.getTexts(text):
                 if tmp["lang"] == "en":
@@ -317,6 +323,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
         print(i18n("实际输入的参考文本:"), prompt_text)
     text = text.strip("\n")
+    text = replace_consecutive_punctuation(text)
     if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
     
     print(i18n("实际输入的目标文本:"), text)
@@ -361,6 +368,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         text = text.replace("\n\n", "\n")
     print(i18n("实际输入的目标文本(切句后):"), text)
     texts = text.split("\n")
+    texts = process_text(texts)
     texts = merge_short_text_in_array(texts, 5)
     audio_opt = []
     if not ref_free:
@@ -458,6 +466,7 @@ def cut1(inp):
             opts.append("".join(inps[split_idx[idx]: split_idx[idx + 1]]))
     else:
         opts = [inp]
+    opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
 
@@ -482,17 +491,21 @@ def cut2(inp):
     if len(opts) > 1 and len(opts[-1]) < 50:  ##如果最后一个太短了，和前一个合一起
         opts[-2] = opts[-2] + opts[-1]
         opts = opts[:-1]
+    opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
 
 def cut3(inp):
     inp = inp.strip("\n")
-    return "\n".join(["%s" % item for item in inp.strip("。").split("。")])
-
+    opts = ["%s" % item for item in inp.strip("。").split("。")]
+    opts = [item for item in opts if not set(item).issubset(punctuation)]
+    return  "\n".join(opts)
 
 def cut4(inp):
     inp = inp.strip("\n")
-    return "\n".join(["%s" % item for item in inp.strip(".").split(".")])
+    opts = ["%s" % item for item in inp.strip(".").split(".")]
+    opts = [item for item in opts if not set(item).issubset(punctuation)]
+    return "\n".join(opts)
 
 
 # contributed by https://github.com/AI-Hobbyist/GPT-SoVITS/blob/main/GPT_SoVITS/inference_webui.py
@@ -506,8 +519,8 @@ def cut5(inp):
     # 在句子不存在符号或句尾无符号的时候保证文本完整
     if len(items)%2 == 1:
         mergeitems.append(items[-1])
-    opt = "\n".join(mergeitems)
-    return opt
+    opt = [item for item in mergeitems if not set(item).issubset(punctuation)]
+    return "\n".join(opt)
 
 
 def custom_sort_key(s):
@@ -516,6 +529,24 @@ def custom_sort_key(s):
     # 将数字部分转换为整数，非数字部分保持不变
     parts = [int(part) if part.isdigit() else part for part in parts]
     return parts
+
+def process_text(texts):
+    _text=[]
+    if all(text in [None, " ", "\n",""] for text in texts):
+        raise ValueError(i18n("请输入有效文本"))
+    for text in texts:
+        if text in  [None, " ", ""]:
+            pass
+        else:
+            _text.append(text)
+    return _text
+
+
+def replace_consecutive_punctuation(text):
+    punctuations = ''.join(re.escape(p) for p in punctuation)
+    pattern = f'([{punctuations}])([{punctuations}])+'
+    result = re.sub(pattern, r'\1', text)
+    return result
 
 
 def change_choices():
@@ -579,7 +610,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 interactive=True,
             )
             with gr.Row():
-                gr.Markdown("gpt采样参数(无参考文本时不要太低)：")
+                gr.Markdown(value=i18n("gpt采样参数(无参考文本时不要太低)："))
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
                 temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True)
@@ -608,10 +639,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             button5.click(cut5, [text_inp], [text_opt])
         gr.Markdown(value=i18n("后续将支持转音素、手工修改音素、语音合成分步执行。"))
 
-app.queue(concurrency_count=511, max_size=1022).launch(
-    server_name="0.0.0.0",
-    inbrowser=True,
-    share=is_share,
-    server_port=infer_ttswebui,
-    quiet=True,
-)
+if __name__ == '__main__':
+    app.queue(concurrency_count=511, max_size=1022).launch(
+        server_name="0.0.0.0",
+        inbrowser=True,
+        share=is_share,
+        server_port=infer_ttswebui,
+        quiet=True,
+    )

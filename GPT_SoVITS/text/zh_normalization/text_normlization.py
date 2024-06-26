@@ -34,6 +34,7 @@ from .num import RE_PERCENTAGE
 from .num import RE_POSITIVE_QUANTIFIERS
 from .num import RE_RANGE
 from .num import RE_TO_RANGE
+from .num import RE_ASMD
 from .num import replace_default_num
 from .num import replace_frac
 from .num import replace_negative_num
@@ -42,6 +43,7 @@ from .num import replace_percentage
 from .num import replace_positive_quantifier
 from .num import replace_range
 from .num import replace_to_range
+from .num import replace_asmd
 from .phonecode import RE_MOBILE_PHONE
 from .phonecode import RE_NATIONAL_UNIFORM_NUMBER
 from .phonecode import RE_TELEPHONE
@@ -67,7 +69,7 @@ class TextNormalizer():
         if lang == "zh":
             text = text.replace(" ", "")
             # 过滤掉特殊字符
-            text = re.sub(r'[——《》【】<=>{}()（）#&@“”^_|\\]', '', text)
+            text = re.sub(r'[——《》【】<>{}()（）#&@“”^_|\\]', '', text)
         text = self.SENTENCE_SPLITOR.sub(r'\1\n', text)
         text = text.strip()
         sentences = [sentence.strip() for sentence in re.split(r'\n+', text)]
@@ -113,7 +115,7 @@ class TextNormalizer():
         sentence = sentence.replace('ψ', '普赛').replace('Ψ', '普赛')
         sentence = sentence.replace('ω', '欧米伽').replace('Ω', '欧米伽')
         # re filter special characters, have one more character "-" than line 68
-        sentence = re.sub(r'[-——《》【】<=>{}()（）#&@“”^_|…\\]', '', sentence)
+        sentence = re.sub(r'[-——《》【】<=>{}()（）#&@“”^_|\\]', '', sentence)
         return sentence
 
     def normalize_sentence(self, sentence: str) -> str:
@@ -142,6 +144,11 @@ class TextNormalizer():
         sentence = RE_NATIONAL_UNIFORM_NUMBER.sub(replace_phone, sentence)
 
         sentence = RE_RANGE.sub(replace_range, sentence)
+
+        # 处理加减乘除
+        while RE_ASMD.search(sentence):
+            sentence = RE_ASMD.sub(replace_asmd, sentence)
+
         sentence = RE_INTEGER.sub(replace_negative_num, sentence)
         sentence = RE_DECIMAL_NUM.sub(replace_number, sentence)
         sentence = RE_POSITIVE_QUANTIFIERS.sub(replace_positive_quantifier,

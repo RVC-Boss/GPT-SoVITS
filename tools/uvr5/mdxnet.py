@@ -220,7 +220,7 @@ class Predictor:
             opt_path_other = path_other[:-4] + ".%s" % format
             if os.path.exists(path_vocal):
                 os.system(
-                    "ffmpeg -i %s -vn %s -q:a 2 -y" % (path_vocal, opt_path_vocal)
+                    "ffmpeg -i '%s' -vn '%s' -q:a 2 -y" % (path_vocal, opt_path_vocal)
                 )
                 if os.path.exists(opt_path_vocal):
                     try:
@@ -229,7 +229,7 @@ class Predictor:
                         pass
             if os.path.exists(path_other):
                 os.system(
-                    "ffmpeg -i %s -vn %s -q:a 2 -y" % (path_other, opt_path_other)
+                    "ffmpeg -i '%s' -vn '%s' -q:a 2 -y" % (path_other, opt_path_other)
                 )
                 if os.path.exists(opt_path_other):
                     try:
@@ -252,5 +252,5 @@ class MDXNetDereverb:
         self.pred = Predictor(self)
         self.device = cpu
 
-    def _path_audio_(self, input, vocal_root, others_root, format, is_hp3=False):
+    def _path_audio_(self, input, others_root, vocal_root, format, is_hp3=False):
         self.pred.prediction(input, vocal_root, others_root, format)

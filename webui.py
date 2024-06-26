@@ -1,6 +1,6 @@
 import os,shutil,sys,pdb,re
 now_dir = os.getcwd()
-sys.path.append(now_dir)
+sys.path.insert(0, now_dir)
 import json,yaml,warnings,torch
 import platform
 import psutil
@@ -55,7 +55,7 @@ from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
 
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
+# os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
 
 n_cpu=cpu_count()
            
@@ -73,18 +73,19 @@ if torch.cuda.is_available() or ngpu != 0:
             if_gpu_ok = True  # 至少有一张能用的N卡
             gpu_infos.append("%s\t%s" % (i, gpu_name))
             mem.append(int(torch.cuda.get_device_properties(i).total_memory/ 1024/ 1024/ 1024+ 0.4))
-# 判断是否支持mps加速
-if torch.backends.mps.is_available():
-    if_gpu_ok = True
-    gpu_infos.append("%s\t%s" % ("0", "Apple GPU"))
-    mem.append(psutil.virtual_memory().total/ 1024 / 1024 / 1024) # 实测使用系统内存作为显存不会爆显存
+# # 判断是否支持mps加速
+# if torch.backends.mps.is_available():
+#     if_gpu_ok = True
+#     gpu_infos.append("%s\t%s" % ("0", "Apple GPU"))
+#     mem.append(psutil.virtual_memory().total/ 1024 / 1024 / 1024) # 实测使用系统内存作为显存不会爆显存
 
 if if_gpu_ok and len(gpu_infos) > 0:
     gpu_info = "\n".join(gpu_infos)
     default_batch_size = min(mem) // 2
 else:
-    gpu_info = i18n("很遗憾您这没有能用的显卡来支持您训练")
-    default_batch_size = 1
+    gpu_info = ("%s\t%s" % ("0", "CPU"))
+    gpu_infos.append("%s\t%s" % ("0", "CPU"))
+    default_batch_size = int(psutil.virtual_memory().total/ 1024 / 1024 / 1024 / 2)
 gpus = "-".join([i[0] for i in gpu_infos])
 
 pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"
@@ -417,7 +418,10 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
         with open(path_text, "w", encoding="utf8") as f:
             f.write("\n".join(opt) + "\n")
         ps1a=[]
-        yield "文本进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        if len("".join(opt)) > 0:
+            yield "文本进程成功", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
+        else:
+            yield "文本进程失败", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
     else:
         yield "已有正在进行的文本任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
@@ -582,7 +586,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     os.remove(txt_path)
                 with open(path_text, "w",encoding="utf8") as f:
                     f.write("\n".join(opt) + "\n")
-
+                assert len("".join(opt)) > 0, "1Aa-文本获取进程失败"
             yield "进度：1a-done", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
             ps1abc=[]
             #############################1b

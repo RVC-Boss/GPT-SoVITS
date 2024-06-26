@@ -1,4 +1,5 @@
-# modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/t2s_dataset.py
+# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/data/dataset.py
+# reference: https://github.com/lifeiteng/vall-e
 import pdb
 import sys
 
@@ -63,7 +64,7 @@ class Text2SemanticDataset(Dataset):
         # get dict
         self.path2 = phoneme_path  # "%s/2-name2text.txt"%exp_dir#phoneme_path
         self.path3 = "%s/3-bert" % (
-            os.path.basename(phoneme_path)
+            os.path.dirname(phoneme_path)
         )  # "%s/3-bert"%exp_dir#bert_dir
         self.path6 = semantic_path  # "%s/6-name2semantic.tsv"%exp_dir#semantic_path
         assert os.path.exists(self.path2)
