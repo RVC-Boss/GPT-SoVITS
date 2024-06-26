@@ -1,6 +1,6 @@
 from copy import deepcopy
 import math
-import os, sys
+import os, sys, gc
 import random
 import traceback
 
@@ -869,7 +869,8 @@ class TTS:
             self.empty_cache()
     
     def empty_cache(self):
-        try:    
+        try:
+            gc.collect() # 触发gc的垃圾回收。避免内存一直增长。
             if "cuda" in str(self.configs.device):
                 torch.cuda.empty_cache()
             elif str(self.configs.device) == "mps":
