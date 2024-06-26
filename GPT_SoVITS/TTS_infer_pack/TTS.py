@@ -360,7 +360,11 @@ class TTS:
         '''
         self._set_prompt_semantic(ref_audio_path)
         self._set_ref_spec(ref_audio_path)
+        self._set_ref_audio_path(ref_audio_path)
         
+    def _set_ref_audio_path(self, ref_audio_path):
+        self.prompt_cache["ref_audio_path"] = ref_audio_path 
+
     def _set_ref_spec(self, ref_audio_path):
         audio = load_audio(ref_audio_path, int(self.configs.sampling_rate))
         audio = torch.FloatTensor(audio)
