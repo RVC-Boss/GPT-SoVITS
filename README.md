@@ -184,6 +184,11 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [x] Localization in Japanese and English.
   - [x] User guide.
   - [x] Japanese and English dataset fine tune training.
+  - [ ] Appending other languages
+    - [ ] 'fa': Persian
+    - [ ] 'pt': Pashto
+    - [ ] 'tr': Turkish
+    - [ ] 'ar': Arebic
 
 - [ ] **Features:**
   - [ ] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
