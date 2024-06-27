@@ -143,7 +143,7 @@ from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from module.mel_processing import spectrogram_torch
-from my_utils import load_audio
+from tools.my_utils import load_audio
 import config as global_config
 import logging
 import subprocess
