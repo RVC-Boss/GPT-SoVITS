@@ -1,4 +1,5 @@
 import os,argparse
+import traceback
 
 from modelscope.pipelines import pipeline
 from modelscope.utils.constant import Tasks
@@ -12,7 +13,10 @@ def execute_denoise(input_folder,output_folder):
     # print(input_folder)
     # print(list(os.listdir(input_folder).sort()))
     for name in tqdm(os.listdir(input_folder)):
-        ans("%s/%s"%(input_folder,name),output_path='%s/%s'%(output_folder,name))
+        try:
+            ans("%s/%s"%(input_folder,name),output_path='%s/%s'%(output_folder,name))
+        except:
+            traceback.print_exc()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
