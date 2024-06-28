@@ -4,6 +4,7 @@ import argparse
 import os
 import traceback
 from tqdm import tqdm
+from config import AUDIO_EXTENSIONS
 
 from funasr import AutoModel
 
@@ -40,6 +41,8 @@ def execute_asr(input_folder, output_folder, model_size, language):
 
     for file_name in tqdm(input_file_names):
         try:
+            if file_name.split(".")[-1] not in AUDIO_EXTENSIONS:
+                continue
             file_path = os.path.join(input_folder, file_name)
             text = model.generate(input=file_path)[0]["text"]
             output.append(f"{file_path}|{output_file_name}|{language.upper()}|{text}")

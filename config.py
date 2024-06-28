@@ -15,6 +15,33 @@ bert_path = "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
 pretrained_sovits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
 pretrained_gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
 
+AUDIO_EXTENSIONS = {
+    "mp3",
+    "wav",
+    "aac",
+    "flac",
+    "ogg",
+    "wma",
+    "aiff",
+    "alac",
+    "m4a",
+    "opus",
+    "ra",
+    "amr",
+    "dts"
+    "mpc",
+    "tta",
+    "aiff",
+    "au",
+    "3gp",
+    "mka",
+    "voc",
+    "ape",
+    "caf",
+    "m3u",
+    "pls",
+}
+
 exp_root = "logs"
 python_exec = sys.executable or "python"
 if torch.cuda.is_available():
