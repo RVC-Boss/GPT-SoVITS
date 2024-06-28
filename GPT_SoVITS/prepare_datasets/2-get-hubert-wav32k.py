@@ -10,7 +10,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
 from feature_extractor import cnhubert
 opt_dir=                            os.environ.get("opt_dir")
 cnhubert.cnhubert_base_path=                os.environ.get("cnhubert_base_dir")
-is_half=eval(os.environ.get("is_half","True"))
+from config import is_half
 
 import pdb,traceback,numpy as np,logging
 from scipy.io import wavfile

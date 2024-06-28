@@ -42,6 +42,7 @@ if infer_device == "cuda":
         is_half=False
 
 if(infer_device=="cpu"):is_half=False
+if(torch.backends.mps.is_available()):is_half=False
 
 class Config:
     def __init__(self):
