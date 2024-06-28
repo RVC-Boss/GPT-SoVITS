@@ -1,11 +1,13 @@
 import os
 import sys
+
+import soundfile as sf
 from PyQt5.QtCore import QEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QTextEdit
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QWidget, QFileDialog, QStatusBar, QComboBox
-import soundfile as sf
 
 from tools.i18n.i18n import I18nAuto
+
 i18n = I18nAuto()
 
 from inference_webui import gpt_path, sovits_path, change_gpt_weights, change_sovits_weights, get_tts_wav
@@ -61,11 +63,11 @@ class GPTSoVITSGUI(QMainWindow):
                 border: 1px solid #45a049;
                 box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.1);
             }
-        """)    
+        """)
 
         license_text = (
-        "本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. "
-        "如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
+            "本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. "
+            "如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
         license_label = QLabel(license_text)
         license_label.setWordWrap(True)
 
@@ -284,17 +286,17 @@ class GPTSoVITSGUI(QMainWindow):
             change_sovits_weights(sovits_path=SoVITS_model_path)
             self.SoVITS_Path = SoVITS_model_path
 
-        synthesis_result = get_tts_wav(ref_wav_path=ref_audio_path, 
-                                       prompt_text=ref_text, 
-                                       prompt_language=language_combobox, 
-                                       text=target_text, 
+        synthesis_result = get_tts_wav(ref_wav_path=ref_audio_path,
+                                       prompt_text=ref_text,
+                                       prompt_language=language_combobox,
+                                       text=target_text,
                                        text_language=target_language_combobox)
 
         result_list = list(synthesis_result)
 
         if result_list:
             last_sampling_rate, last_audio_data = result_list[-1]
-            output_wav_path = os.path.join(output_path, "output.wav") 
+            output_wav_path = os.path.join(output_path, "output.wav")
             sf.write(output_wav_path, last_audio_data, last_sampling_rate)
 
             result = "Audio saved to " + output_wav_path
