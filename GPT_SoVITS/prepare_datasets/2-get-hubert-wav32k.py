@@ -17,7 +17,7 @@ from scipy.io import wavfile
 import librosa,torch
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-from my_utils import load_audio
+from tools.my_utils import load_audio
 
 # from config import cnhubert_base_path
 # cnhubert.cnhubert_base_path=cnhubert_base_path
