@@ -69,7 +69,8 @@ def logits_to_probs(
 def multinomial_sample_one_no_sync(
     probs_sort
 ):  # Does multinomial sampling without a cuda synchronization
-    q = torch.randn_like(probs_sort)
+    lambda_ = 1.0
+    q = -torch.log(torch.rand_like(probs_sort)) / lambda_
     return torch.argmax(probs_sort / q, dim=-1, keepdim=True).to(dtype=torch.int)
 
 
@@ -152,6 +153,7 @@ class T2SFirstStageDecoder(nn.Module):
 
         xy_dec = self.h(xy_pos, mask=xy_attn_mask, cache=cache)
         logits = self.ar_predict_layer(xy_dec[:, -1])
+        logits = logits[:, :-1]  ###刨除1024终止符号的概率
         samples = sample(logits[0], y, top_k=self.top_k, top_p=1.0, repetition_penalty=1.35)[0].unsqueeze(0)
 
         y = torch.concat([y, samples], dim=1)
