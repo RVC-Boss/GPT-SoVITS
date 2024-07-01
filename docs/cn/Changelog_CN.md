@@ -169,11 +169,28 @@
 
 6-nan自动转fp32阶段的hubert提取bug修复
 
+### 20240610
+
+小问题修复：
+
+1-完善纯标点、多标点文本输入的判断逻辑 https://github.com/RVC-Boss/GPT-SoVITS/pull/1168 https://github.com/RVC-Boss/GPT-SoVITS/pull/1169
+
+2-uvr5中的mdxnet去混响cmd格式修复，兼容路径带空格  [#501a74a](https://github.com/RVC-Boss/GPT-SoVITS/commit/501a74ae96789a26b48932babed5eb4e9483a232)
+
+3-s2训练进度条逻辑修复 https://github.com/RVC-Boss/GPT-SoVITS/pull/1159
+
+大问题修复：
+
+4-修复了webui的GPT中文微调没读到bert导致和推理不一致，训练太多可能效果还会变差的问题。如果大量数据微调的建议重新微调模型得到质量优化 [#99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a)
+
+
 todolist：
 
 1-中文多音字推理优化(有没有人来测试的，欢迎把测试结果写在pr评论区里) https://github.com/RVC-Boss/GPT-SoVITS/pull/488
 （v2底模训练已经合了，下个版本发布就要合了）
 
 2-正在尝试解决低音质参考音频导致音质较差的问题，v2再试试如果能解决就发了，节点暂定高考后吧
+
+
 
 
