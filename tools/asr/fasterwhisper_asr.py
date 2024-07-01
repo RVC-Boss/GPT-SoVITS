@@ -78,7 +78,7 @@ def execute_asr(input_folder, output_folder, model_size, language, precision):
                     text += segment.text
             output.append(f"{file_path}|{output_file_name}|{info.language.upper()}|{text}")
         except:
-            return print(traceback.format_exc())
+            print(traceback.format_exc())
     
     output_folder = output_folder or "output/asr_opt"
     os.makedirs(output_folder, exist_ok=True)
