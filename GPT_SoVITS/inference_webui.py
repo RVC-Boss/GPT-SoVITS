@@ -510,16 +510,15 @@ def cut4(inp):
 
 # contributed by https://github.com/AI-Hobbyist/GPT-SoVITS/blob/main/GPT_SoVITS/inference_webui.py
 def cut5(inp):
-    # if not re.search(r'[^\w\s]', inp[-1]):
-    # inp += '。'
     inp = inp.strip("\n")
     punds = r'[,.;?!、，。？！;：…]'
-    items = re.split(f'({punds})', inp)
+    # 在标点符号前面添加了两个负向断言 (?!\d)，分别表示标点符号前面不是小数点后面的数字和标点符号前面不是数字，这样可以避免小数被错误切分
+    items = re.split(f'({punds})(?<!\d\.\d)(?<!\d)', inp)
     mergeitems = ["".join(group) for group in zip(items[::2], items[1::2])]
     # 在句子不存在符号或句尾无符号的时候保证文本完整
-    if len(items)%2 == 1:
+    if len(items) % 2 == 1:
         mergeitems.append(items[-1])
-    opt = [item for item in mergeitems if not set(item).issubset(punctuation)]
+    opt = [item for item in mergeitems if not set(item).issubset(punds)]
     return "\n".join(opt)
 
 
