@@ -16,7 +16,7 @@ def execute_denoise(input_folder,output_folder):
         try:
             ans("%s/%s"%(input_folder,name),output_path='%s/%s'%(output_folder,name))
         except:
-            traceback.print_exc()
+            print(traceback.print_exc())
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
