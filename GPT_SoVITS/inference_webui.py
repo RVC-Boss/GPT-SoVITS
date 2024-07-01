@@ -312,7 +312,7 @@ def merge_short_text_in_array(texts, threshold):
             result[len(result) - 1] += text
     return result
 
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False):
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, min_p=0.0, top_p=0.6, temperature=0.6, ref_free = False):
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
     t0 = ttime()
@@ -402,6 +402,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 bert,
                 # prompt_phone_len=ph_offset,
                 top_k=top_k,
+                min_p=min_p,
                 top_p=top_p,
                 temperature=temperature,
                 early_stop_num=hz * max_sec,
@@ -612,6 +613,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 gr.Markdown(value=i18n("gpt采样参数(无参考文本时不要太低)："))
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
+                min_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("min_p"),value=0.0,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
                 temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True)
             inference_button = gr.Button(i18n("合成语音"), variant="primary")
@@ -619,7 +621,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
 
         inference_button.click(
             get_tts_wav,
-            [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free],
+            [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, min_p, top_p, temperature, ref_text_free],
             [output],
         )
 

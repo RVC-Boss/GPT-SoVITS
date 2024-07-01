@@ -112,6 +112,7 @@ def logits_to_probs(
     previous_tokens: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
+    min_p: Optional[float] = None,
     top_p: Optional[int] = None,
     repetition_penalty: float = 1.0,
 ):
@@ -127,6 +128,12 @@ def logits_to_probs(
         )
         logits.scatter_(dim=0, index=previous_tokens, src=score)
 
+    # Min-p sampling, we sample tokens with a probability above the min_p * max_prob where max_prob is the maximum probability in the distribution
+    if min_p is not None and min_p < 1.0 and min_p > 0.0:
+        max_prob = torch.max(logits)
+        logits = torch.where(logits < min_p * max_prob, -float("Inf"), logits)
+
+    # Top-p sampling, we sample from the smallest set of tokens whose cumulative probability mass exceeds the threshold `p`
     if top_p is not None and top_p < 1.0:
         sorted_logits, sorted_indices = torch.sort(logits, descending=True)
         cum_probs = torch.cumsum(
@@ -139,8 +146,10 @@ def logits_to_probs(
         )
         logits = logits.masked_fill(indices_to_remove, -float("Inf"))
 
+    # Use temperature to smooth the distribution
     logits = logits / max(temperature, 1e-5)
 
+    # Top-k sampling, we sample only from the top k most likely tokens
     if top_k is not None:
         v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
         pivot = v.select(-1, -1).unsqueeze(-1)
