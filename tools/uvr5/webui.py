@@ -19,9 +19,9 @@ for name in os.listdir(weight_uvr5_root):
         uvr5_names.append(name.replace(".pth", ""))
 
 device=sys.argv[1]
-is_half=eval(sys.argv[2])
+is_half=sys.argv[2].lower() == "true"
 webui_port_uvr5=int(sys.argv[3])
-is_share=eval(sys.argv[4])
+is_share=sys.argv[4].lower() == "true"
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []
