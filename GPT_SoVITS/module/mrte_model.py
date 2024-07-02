@@ -1,6 +1,10 @@
 # This is Multi-reference timbre encoder
 
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 from torch import nn
 from torch.nn.utils import remove_weight_norm, weight_norm
 from module.attentions import MultiHeadAttention

@@ -18,6 +18,19 @@ logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 import pdb
 import torch
 
+device = "cpu"
+
+try:
+    import torch_musa
+    use_torch_musa = True
+except ImportError:
+    use_torch_musa = False
+if use_torch_musa:
+    if "_MUSA_VISIBLE_DEVICES" in os.environ:
+        os.environ["MUSA_VISIBLE_DEVICES"] = os.environ["_MUSA_VISIBLE_DEVICES"]
+    if torch.musa.is_available():
+        device = "musa"
+
 if os.path.exists("./gweight.txt"):
     with open("./gweight.txt", 'r', encoding="utf-8") as file:
         gweight_data = file.read()
@@ -74,8 +87,6 @@ i18n = I18nAuto()
 
 if torch.cuda.is_available():
     device = "cuda"
-else:
-    device = "cpu"
 
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)

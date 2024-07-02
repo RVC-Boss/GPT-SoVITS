@@ -21,6 +21,10 @@ from typing import Tuple
 from typing import Union
 
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 import torch.nn as nn
 from torch import Tensor
 

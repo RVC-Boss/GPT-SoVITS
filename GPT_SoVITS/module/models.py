@@ -1,6 +1,10 @@
 import copy
 import math
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 from torch import nn
 from torch.nn import functional as F
 

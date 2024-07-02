@@ -2,6 +2,10 @@
 from typing import Optional
 from typing import Tuple
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 from torch import Tensor
 from torch.nn import Linear
 from torch.nn import Module

@@ -2,6 +2,10 @@ import time
 
 import librosa
 import torch
+try:
+    import torch_musa
+except ImportError:
+    pass
 import torch.nn.functional as F
 import soundfile as sf
 import logging
