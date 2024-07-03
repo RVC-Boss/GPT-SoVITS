@@ -511,13 +511,24 @@ def cut4(inp):
 # contributed by https://github.com/AI-Hobbyist/GPT-SoVITS/blob/main/GPT_SoVITS/inference_webui.py
 def cut5(inp):
     inp = inp.strip("\n")
-    punds = r'[,.;?!、，。？！;：…]'
-    # 在标点符号前面添加了两个负向断言 (?!\d)，分别表示标点符号前面不是小数点后面的数字和标点符号前面不是数字，这样可以避免小数被错误切分
-    items = re.split(f'({punds})(?<!\d\.\d)(?<!\d)', inp)
-    mergeitems = ["".join(group) for group in zip(items[::2], items[1::2])]
-    # 在句子不存在符号或句尾无符号的时候保证文本完整
-    if len(items) % 2 == 1:
-        mergeitems.append(items[-1])
+    punds = {',', '.', ';', '?', '!', '、', '，', '。', '？', '！', ';', '：', '…'}
+    mergeitems = []
+    items = []
+
+    for i, char in enumerate(inp):
+        if char in punds:
+            if char == '.' and i > 0 and i < len(inp) - 1 and inp[i - 1].isdigit() and inp[i + 1].isdigit():
+                items.append(char)
+            else:
+                items.append(char)
+                mergeitems.append("".join(items))
+                items = []
+        else:
+            items.append(char)
+
+    if items:
+        mergeitems.append("".join(items))
+
     opt = [item for item in mergeitems if not set(item).issubset(punds)]
     return "\n".join(opt)
 
