@@ -378,7 +378,6 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
 
     for text in texts:
         # 解决输入目标文本的空行导致报错的问题
-        t1 = ttime()
         if (len(text.strip()) == 0):
             continue
         if (text[-1] not in splits): text += "。" if text_language != "en" else "."
@@ -434,6 +433,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         audio_opt.append(zero_wav)
         t4 = ttime()
         t.extend([t2 - t1,t3 - t2, t4 - t3])
+        t1 = ttime()
     print("%.3f\t%.3f\t%.3f\t%.3f" % 
           (t[0], sum(t[1::3]), sum(t[2::3]), sum(t[3::3]))
           )
