@@ -313,6 +313,7 @@ def merge_short_text_in_array(texts, threshold):
     return result
 
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False):
+    t=[]
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
     t0 = ttime()
@@ -353,6 +354,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
    
         prompt_semantic = codes[0, 0]
     t1 = ttime()
+    t.append(t1-t0)
 
     if (how_to_cut == i18n("凑四句一切")):
         text = cut1(text)
@@ -376,6 +378,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
 
     for text in texts:
         # 解决输入目标文本的空行导致报错的问题
+        t1 = ttime()
         if (len(text.strip()) == 0):
             continue
         if (text[-1] not in splits): text += "。" if text_language != "en" else "."
@@ -430,7 +433,10 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         audio_opt.append(audio)
         audio_opt.append(zero_wav)
         t4 = ttime()
-    print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t3 - t2, t4 - t3))
+        t.extend([t2 - t1,t3 - t2, t4 - t3])
+    print("%.3f\t%.3f\t%.3f\t%.3f" % 
+          (t[0], sum(t[1::3]), sum(t[2::3]), sum(t[3::3]))
+          )
     yield hps.data.sampling_rate, (np.concatenate(audio_opt, 0) * 32768).astype(
         np.int16
     )
