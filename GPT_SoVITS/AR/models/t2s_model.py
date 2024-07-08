@@ -528,6 +528,7 @@ class Text2SemanticDecoder(nn.Module):
             y_pos = None
             xy_pos = x
             y = torch.zeros(x.shape[0], 0, dtype=torch.int, device=x.device)
+            prompts = y
             ref_free = True
 
         x_attn_mask_pad = F.pad(
