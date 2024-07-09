@@ -194,17 +194,15 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         p_tts_inference=None
         yield i18n("TTS推理进程已关闭")
 
-from tools.asr.config import asr_dict
 def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
     global p_asr
     if(p_asr==None):
         asr_inp_dir=my_utils.clean_path(asr_inp_dir)
-        cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
+        cmd = f'"{python_exec}" tools/asr/sensevoice.py'
         cmd += f' -i "{asr_inp_dir}"'
         cmd += f' -o "{asr_opt_dir}"'
-        cmd += f' -s {asr_model_size}'
         cmd += f' -l {asr_lang}'
-        cmd += " -p %s"%("float16"if is_half==True else "float32")
+  
 
         yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
         print(cmd)
@@ -732,33 +730,25 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     with gr.Row():
                         asr_model = gr.Dropdown(
                             label       = i18n("ASR 模型"),
-                            choices     = list(asr_dict.keys()),
+                            choices     = ['SenseVoice'],
                             interactive = True,
-                            value="达摩 ASR (中文)"
+                            value="enseVoice"
                         )
                         asr_size = gr.Dropdown(
                             label       = i18n("ASR 模型尺寸"),
-                            choices     = ["large"],
+                            choices     = ["small"],
                             interactive = True,
-                            value="large"
+                            value="small"
                         )
                         asr_lang = gr.Dropdown(
                             label       = i18n("ASR 语言设置"),
-                            choices     = ["zh"],
+                            choices     = ["auto","zh","en","ja"],
                             interactive = True,
-                            value="zh"
+                            value="auto"
                         )
                     with gr.Row():
                         asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
 
-                def change_lang_choices(key): #根据选择的模型修改可选的语言
-                    # return gr.Dropdown(choices=asr_dict[key]['lang'])
-                    return {"__type__": "update", "choices": asr_dict[key]['lang'],"value":asr_dict[key]['lang'][0]}
-                def change_size_choices(key): # 根据选择的模型修改可选的模型尺寸
-                    # return gr.Dropdown(choices=asr_dict[key]['size'])
-                    return {"__type__": "update", "choices": asr_dict[key]['size']}
-                asr_model.change(change_lang_choices, [asr_model], [asr_lang])
-                asr_model.change(change_size_choices, [asr_model], [asr_size])
                 
             gr.Markdown(value=i18n("0d-语音文本校对标注工具"))
             with gr.Row():
