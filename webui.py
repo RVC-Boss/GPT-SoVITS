@@ -202,16 +202,17 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
         cmd += f' -i "{asr_inp_dir}"'
         cmd += f' -o "{asr_opt_dir}"'
         cmd += f' -l {asr_lang}'
-  
-
-        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        output_file_name = os.path.basename(asr_inp_dir)
+        output_folder = asr_opt_dir or "output/asr_opt"
+        output_file_path = os.path.abspath(f'{output_folder}/{output_file_name}.list')
+        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True},{"__type__":"update"}
         print(cmd)
         p_asr = Popen(cmd, shell=True)
         p_asr.wait()
         p_asr=None
-        yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False},{"__type__":"update","value":output_file_path}
     else:
-        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True},{"__type__":"update"}
         # return None
 
 def close_asr():
@@ -732,7 +733,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             label       = i18n("ASR 模型"),
                             choices     = ['SenseVoice'],
                             interactive = True,
-                            value="enseVoice"
+                            value="SenseVoice"
                         )
                         asr_size = gr.Dropdown(
                             label       = i18n("ASR 模型尺寸"),
@@ -761,7 +762,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 label_info = gr.Textbox(label=i18n("打标工具进程输出信息"))
             if_label.change(change_label, [if_label,path_list], [label_info])
             if_uvr5.change(change_uvr5, [if_uvr5], [uvr5_info])
-            open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang], [asr_info,open_asr_button,close_asr_button])
+            open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang], [asr_info,open_asr_button,close_asr_button,path_list])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
             open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button])
             close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
@@ -869,3 +870,26 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         server_port=webui_port_main,
         quiet=True,
     )
+
+
+
+def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_precision):
+    global p_asr
+    if(p_asr==None):
+        asr_inp_dir=my_utils.clean_path(asr_inp_dir)
+        cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
+        cmd += f' -i "{asr_inp_dir}"'
+        cmd += f' -o "{asr_opt_dir}"'
+        cmd += f' -s {asr_model_size}'
+        cmd += f' -l {asr_lang}'
+        cmd += f" -p {asr_precision}"
+
+        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True},{"__type__":"update"}
+        print(cmd)
+        p_asr = Popen(cmd, shell=True)
+        p_asr.wait()
+        p_asr=None
+        yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False},
+    else:
+        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True},{"__type__":"update"}
+        # return None
