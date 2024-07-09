@@ -870,26 +870,3 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         server_port=webui_port_main,
         quiet=True,
     )
-
-
-
-def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_precision):
-    global p_asr
-    if(p_asr==None):
-        asr_inp_dir=my_utils.clean_path(asr_inp_dir)
-        cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
-        cmd += f' -i "{asr_inp_dir}"'
-        cmd += f' -o "{asr_opt_dir}"'
-        cmd += f' -s {asr_model_size}'
-        cmd += f' -l {asr_lang}'
-        cmd += f" -p {asr_precision}"
-
-        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True},{"__type__":"update"}
-        print(cmd)
-        p_asr = Popen(cmd, shell=True)
-        p_asr.wait()
-        p_asr=None
-        yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False},
-    else:
-        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True},{"__type__":"update"}
-        # return None
