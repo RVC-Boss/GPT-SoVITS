@@ -36,7 +36,9 @@ def execute_asr(input_folder, output_folder, language, device):
                 device = device
             )[0]['text']
             text_language = re.search(r'<([^<>]+)>', res).group(1)[1:-1].upper() if language == 'auto' else language.upper()
-            text = re.sub(r'<[^<>]*>', '', res).replace(' ', '')
+            text = re.sub(r'<[^<>]*>', '', res).replace('  ', '')
+            if text_language != "EN":
+                text = text.replace(' ', '')
             output.append(f"{file_path}|{output_file_name}|{text_language}|{text}")
         except:
             print(traceback.format_exc())
