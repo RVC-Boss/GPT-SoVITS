@@ -24,4 +24,5 @@ psutil
 jieba_fast
 jieba
 LangSegment>=0.2.0
+faster_whisper
 wordsegment

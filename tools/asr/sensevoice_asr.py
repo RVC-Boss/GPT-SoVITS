@@ -63,6 +63,11 @@ if __name__ == '__main__':
                         help="Language of the audio files.")
     parser.add_argument("-d", "--device", type=str, default=None, choices=['cpu','cuda'],
                         help="CPU or CUDA")
+    parser.add_argument("-p", "--precision", type=str, default='float32', choices=['float32'],
+                        help="fp16 or fp32")
+    parser.add_argument("-s", "--model_size", type=str, default='small', 
+                        choices=['small'],
+                        help="Model Size of Faster Whisper")
 
     cmd = parser.parse_args()
     output_file_path = execute_asr(

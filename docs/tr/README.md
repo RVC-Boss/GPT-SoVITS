@@ -250,6 +250,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+- [SenseVoice](https://github.com/FunAudioLLM/SenseVoice)
   
 ## Tüm katkıda bulunanlara çabaları için teşekkürler
 

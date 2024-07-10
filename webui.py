@@ -194,25 +194,28 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         p_tts_inference=None
         yield i18n("TTS推理进程已关闭")
 
-def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
+from tools.asr.config import asr_dict
+def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_precision):
     global p_asr
     if(p_asr==None):
         asr_inp_dir=my_utils.clean_path(asr_inp_dir)
-        cmd = f'"{python_exec}" tools/asr/sensevoice.py'
+        cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
         cmd += f' -i "{asr_inp_dir}"'
         cmd += f' -o "{asr_opt_dir}"'
+        cmd += f' -s {asr_model_size}'
         cmd += f' -l {asr_lang}'
+        cmd += f" -p {asr_precision}"
         output_file_name = os.path.basename(asr_inp_dir)
         output_folder = asr_opt_dir or "output/asr_opt"
         output_file_path = os.path.abspath(f'{output_folder}/{output_file_name}.list')
-        yield "ASR任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True},{"__type__":"update"}
+        yield "ASR任务开启：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}
         print(cmd)
         p_asr = Popen(cmd, shell=True)
         p_asr.wait()
         p_asr=None
-        yield f"ASR任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False},{"__type__":"update","value":output_file_path}
+        yield f"ASR任务完成, 查看终端进行下一步", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__":"update","value":output_file_path}
     else:
-        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True},{"__type__":"update"}
+        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务", {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}
         # return None
 
 def close_asr():
@@ -220,7 +223,7 @@ def close_asr():
     if(p_asr!=None):
         kill_process(p_asr.pid)
         p_asr=None
-    return "已终止ASR进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    return "已终止ASR进程", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
 def open_denoise(denoise_inp_dir, denoise_opt_dir):
     global p_denoise
     if(p_denoise==None):
@@ -228,14 +231,14 @@ def open_denoise(denoise_inp_dir, denoise_opt_dir):
         denoise_opt_dir=my_utils.clean_path(denoise_opt_dir)
         cmd = '"%s" tools/cmd-denoise.py -i "%s" -o "%s" -p %s'%(python_exec,denoise_inp_dir,denoise_opt_dir,"float16"if is_half==True else "float32")
 
-        yield "语音降噪任务开启：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield "语音降噪任务开启：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}
         print(cmd)
         p_denoise = Popen(cmd, shell=True)
         p_denoise.wait()
         p_denoise=None
-        yield f"语音降噪任务完成, 查看终端进行下一步",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield f"语音降噪任务完成, 查看终端进行下一步", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__":"update","value":denoise_opt_dir}
     else:
-        yield "已有正在进行的语音降噪任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield "已有正在进行的语音降噪任务，需先终止才能开启下一次任务", {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}
         # return None
 
 def close_denoise():
@@ -243,7 +246,7 @@ def close_denoise():
     if(p_denoise!=None):
         kill_process(p_denoise.pid)
         p_denoise=None
-    return "已终止语音降噪进程",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    return "已终止语音降噪进程", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
 
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
@@ -273,21 +276,21 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         with open(tmp_config_path,"w")as f:f.write(json.dumps(data))
 
         cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
-        yield "SoVITS训练开始：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield "SoVITS训练开始：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
         p_train_SoVITS.wait()
         p_train_SoVITS=None
-        yield "SoVITS训练完成",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield "SoVITS训练完成", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的SoVITS训练任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield "已有正在进行的SoVITS训练任务，需先终止才能开启下一次任务", {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
 
 def close1Ba():
     global p_train_SoVITS
     if(p_train_SoVITS!=None):
         kill_process(p_train_SoVITS.pid)
         p_train_SoVITS=None
-    return "已终止SoVITS训练",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    return "已终止SoVITS训练", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
 
 p_train_GPT=None
 def open1Bb(batch_size,total_epoch,exp_name,if_dpo,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers,pretrained_s1):
@@ -320,21 +323,21 @@ def open1Bb(batch_size,total_epoch,exp_name,if_dpo,if_save_latest,if_save_every_
         with open(tmp_config_path, "w") as f:f.write(yaml.dump(data, default_flow_style=False))
         # cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" --train_semantic_path "%s/6-name2semantic.tsv" --train_phoneme_path "%s/2-name2text.txt" --output_dir "%s/logs_s1"'%(python_exec,tmp_config_path,s1_dir,s1_dir,s1_dir)
         cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" '%(python_exec,tmp_config_path)
-        yield "GPT训练开始：%s"%cmd,{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield "GPT训练开始：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
         print(cmd)
         p_train_GPT = Popen(cmd, shell=True)
         p_train_GPT.wait()
         p_train_GPT=None
-        yield "GPT训练完成",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield "GPT训练完成", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
     else:
-        yield "已有正在进行的GPT训练任务，需先终止才能开启下一次任务",{"__type__":"update","visible":False},{"__type__":"update","visible":True}
+        yield "已有正在进行的GPT训练任务，需先终止才能开启下一次任务", {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
 
 def close1Bb():
     global p_train_GPT
     if(p_train_GPT!=None):
         kill_process(p_train_GPT.pid)
         p_train_GPT=None
-    return "已终止GPT训练",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+    return "已终止GPT训练", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
 
 ps_slice=[]
 def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_parts):
@@ -342,12 +345,12 @@ def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_k
     inp = my_utils.clean_path(inp)
     opt_root = my_utils.clean_path(opt_root)
     if(os.path.exists(inp)==False):
-        yield "输入路径不存在",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield "输入路径不存在", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__": "update"}, {"__type__": "update"}
         return
     if os.path.isfile(inp):n_parts=1
     elif os.path.isdir(inp):pass
     else:
-        yield "输入路径存在但既不是文件也不是文件夹",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield "输入路径存在但既不是文件也不是文件夹", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__": "update"}, {"__type__": "update"}
         return
     if (ps_slice == []):
         for i_part in range(n_parts):
@@ -355,13 +358,13 @@ def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_k
             print(cmd)
             p = Popen(cmd, shell=True)
             ps_slice.append(p)
-        yield "切割执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield "切割执行中", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}, {"__type__": "update"}, {"__type__": "update"}
         for p in ps_slice:
             p.wait()
         ps_slice=[]
-        yield "切割结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield "切割结束", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__": "update", "value":opt_root}, {"__type__": "update", "value":opt_root}
     else:
-        yield "已有正在进行的切割任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
+        yield "已有正在进行的切割任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}, {"__type__": "update"}, {"__type__": "update"}
 
 def close_slice():
     global ps_slice
@@ -468,7 +471,7 @@ def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
         for p in ps1b:
             p.wait()
         ps1b=[]
-        yield "SSL提取进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield "SSL提取进程结束", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
     else:
         yield "已有正在进行的SSL提取任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
@@ -525,7 +528,7 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
         with open(path_semantic, "w", encoding="utf8") as f:
             f.write("\n".join(opt) + "\n")
         ps1c=[]
-        yield "语义token提取进程结束",{"__type__":"update","visible":True},{"__type__":"update","visible":False}
+        yield "语义token提取进程结束", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
     else:
         yield "已有正在进行的语义token提取任务，需先终止才能开启下一次任务", {"__type__": "update", "visible": False}, {"__type__": "update", "visible": True}
 
@@ -731,24 +734,52 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     with gr.Row():
                         asr_model = gr.Dropdown(
                             label       = i18n("ASR 模型"),
-                            choices     = ['SenseVoice'],
+                            choices     = list(asr_dict.keys()),
                             interactive = True,
-                            value="SenseVoice"
+                            value="达摩 ASR (中文)"
                         )
                         asr_size = gr.Dropdown(
                             label       = i18n("ASR 模型尺寸"),
-                            choices     = ["small"],
+                            choices     = ["large"],
                             interactive = True,
-                            value="small"
+                            value="large"
                         )
                         asr_lang = gr.Dropdown(
                             label       = i18n("ASR 语言设置"),
-                            choices     = ["auto","zh","en","ja"],
+                            choices     = ["zh"],
                             interactive = True,
-                            value="auto"
+                            value="zh"
+                        )
+                        asr_precision = gr.Dropdown(
+                            label       = i18n("ASR 语言设置"),
+                            choices     = ["zh"],
+                            interactive = True,
+                            value="zh"
                         )
                     with gr.Row():
                         asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
+
+                def change_lang_choices(key): #根据选择的模型修改可选的语言
+                    # return gr.Dropdown(choices=asr_dict[key]['lang'])
+                    return {"__type__": "update", "choices": asr_dict[key]['lang'],"value":asr_dict[key]['lang'][0]}
+                def change_size_choices(key): # 根据选择的模型修改可选的模型尺寸
+                    # return gr.Dropdown(choices=asr_dict[key]['size'])
+                    return {"__type__": "update", "choices": asr_dict[key]['size'],"value":asr_dict[key]['size'][-1]}
+                def change_precision_choices(key): #根据选择的模型修改可选的语言
+                    if key =="Faster Whisper (多语种)":
+                        if default_batch_size <= 4:
+                            precision = 'int8'
+                        elif is_half:
+                            precision = 'float16'
+                        else:
+                            precision = 'float32'
+                    else:
+                        precision = 'float32'
+                    # return gr.Dropdown(choices=asr_dict[key]['lang'])
+                    return {"__type__": "update", "choices": asr_dict[key]['precision'],"value":precision}
+                asr_model.change(change_lang_choices, [asr_model], [asr_lang])
+                asr_model.change(change_size_choices, [asr_model], [asr_size])
+                asr_model.change(change_size_choices, [asr_model], [asr_precision])
 
                 
             gr.Markdown(value=i18n("0d-语音文本校对标注工具"))
@@ -762,11 +793,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 label_info = gr.Textbox(label=i18n("打标工具进程输出信息"))
             if_label.change(change_label, [if_label,path_list], [label_info])
             if_uvr5.change(change_uvr5, [if_uvr5], [uvr5_info])
-            open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang], [asr_info,open_asr_button,close_asr_button,path_list])
+            open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang, asr_precision], [asr_info,open_asr_button,close_asr_button,path_list])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
-            open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button])
+            open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button,asr_inp_dir,denoise_input_dir])
             close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
-            open_denoise_button.click(open_denoise, [denoise_input_dir,denoise_output_dir], [denoise_info,open_denoise_button,close_denoise_button])
+            open_denoise_button.click(open_denoise, [denoise_input_dir,denoise_output_dir], [denoise_info,open_denoise_button,close_denoise_button,asr_inp_dir])
             close_denoise_button.click(close_denoise, [], [denoise_info,open_denoise_button,close_denoise_button])
 
         with gr.TabItem(i18n("1-GPT-SoVITS-TTS")):

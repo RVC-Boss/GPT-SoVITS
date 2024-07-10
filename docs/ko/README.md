@@ -210,7 +210,7 @@ ASR 처리는 Faster_Whisper(중국어를 제외한 ASR 마킹)를 통해 수행
 
 (진행률 표시줄 없음, GPU 성능으로 인해 시간 지연이 발생할 수 있음)
 ```
-python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
 사용자 정의 목록 저장 경로가 활성화되었습니다.
 
@@ -240,7 +240,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
-
+- [SenseVoice](https://github.com/FunAudioLLM/SenseVoice)
 
 ## 모든 기여자들에게 감사드립니다 ;)
 

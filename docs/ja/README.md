@@ -206,7 +206,7 @@ ASR処理はFaster_Whisperを通じて実行されます(中国語を除くASR�
 
 (進行状況バーは表示されません。GPU のパフォーマンスにより時間遅延が発生する可能性があります)
 ```
-python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
 カスタムリストの保存パスが有効になっています
 
@@ -236,6 +236,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+- [SenseVoice](https://github.com/FunAudioLLM/SenseVoice)
 
 ## すべてのコントリビューターに感謝します
 
