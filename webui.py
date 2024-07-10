@@ -754,7 +754,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             label       = i18n("ASR 精度设置"),
                             choices     = ["float32"],
                             interactive = True,
-                            value="zh"
+                            value="float32"
                         )
                     with gr.Row():
                         asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
