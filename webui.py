@@ -779,7 +779,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     return {"__type__": "update", "choices": asr_dict[key]['precision'],"value":precision}
                 asr_model.change(change_lang_choices, [asr_model], [asr_lang])
                 asr_model.change(change_size_choices, [asr_model], [asr_size])
-                asr_model.change(change_size_choices, [asr_model], [asr_precision])
+                asr_model.change(change_precision_choices, [asr_model], [asr_precision])
 
                 
             gr.Markdown(value=i18n("0d-语音文本校对标注工具"))
