@@ -693,8 +693,6 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 uvr5_info = gr.Textbox(label=i18n("UVR5进程输出信息"))
             gr.Markdown(value=i18n("0b-语音切分工具"))
             with gr.Row():
-                open_slicer_button=gr.Button(i18n("开启语音切割"), variant="primary",visible=True)
-                close_slicer_button=gr.Button(i18n("终止语音切割"), variant="primary",visible=False)
                 with gr.Column(scale=3):
                     with gr.Row():
                         slice_inp_path=gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"),value="")
@@ -711,20 +709,20 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
                     with gr.Row():
                         slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
+                open_slicer_button=gr.Button(i18n("开启语音切割"), variant="primary",visible=True)
+                close_slicer_button=gr.Button(i18n("终止语音切割"), variant="primary",visible=False)
             gr.Markdown(value=i18n("0bb-语音降噪工具"))
             with gr.Row():
-                open_denoise_button = gr.Button(i18n("开启语音降噪"), variant="primary",visible=True)
-                close_denoise_button = gr.Button(i18n("终止语音降噪进程"), variant="primary",visible=False)
                 with gr.Column(scale=3):
                     with gr.Row():
                         denoise_input_dir=gr.Textbox(label=i18n("降噪音频文件输入文件夹"),value="")
                         denoise_output_dir=gr.Textbox(label=i18n("降噪结果输出文件夹"),value="output/denoise_opt")
                     with gr.Row():
                         denoise_info = gr.Textbox(label=i18n("语音降噪进程输出信息"))
+                open_denoise_button = gr.Button(i18n("开启语音降噪"), variant="primary",visible=True)
+                close_denoise_button = gr.Button(i18n("终止语音降噪进程"), variant="primary",visible=False)
             gr.Markdown(value=i18n("0c-中文批量离线ASR工具"))
             with gr.Row():
-                open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
-                close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)
                 with gr.Column(scale=3):
                     with gr.Row():
                         asr_inp_dir = gr.Textbox(
@@ -763,7 +761,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             value="float32"
                         ) 
                     with gr.Row():
-                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))                       
+                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))     
+                open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
+                close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)                  
 
                 def change_lang_choices(key): #根据选择的模型修改可选的语言
                     # return gr.Dropdown(choices=asr_dict[key]['lang'])
