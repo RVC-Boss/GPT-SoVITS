@@ -7,6 +7,7 @@
   "ASR 模型": "ASR model",
   "ASR 模型尺寸": "ASR model size",
   "ASR 语言设置": "ASR language",
+  "ASR 精度设置": "ASR precision",
   "模型切换": "Model switch",
   "是否开启dpo训练选项(实验性)": "Enable DPO training (experimental feature)",
   "开启无参考文本模式。不填参考文本亦相当于开启。": "Enable no reference mode. If you don't fill 'Text for reference audio', no reference mode will be enabled.",

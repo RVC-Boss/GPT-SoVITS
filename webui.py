@@ -755,9 +755,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             choices     = ["float32"],
                             interactive = True,
                             value="float32"
-                        )
+                        ) 
                     with gr.Row():
-                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
+                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))                       
 
                 def change_lang_choices(key): #根据选择的模型修改可选的语言
                     # return gr.Dropdown(choices=asr_dict[key]['lang'])
