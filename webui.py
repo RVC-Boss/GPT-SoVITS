@@ -693,28 +693,34 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 uvr5_info = gr.Textbox(label=i18n("UVR5进程输出信息"))
             gr.Markdown(value=i18n("0b-语音切分工具"))
             with gr.Row():
-                with gr.Row():
-                    slice_inp_path=gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"),value="")
-                    slice_opt_root=gr.Textbox(label=i18n("切分后的子音频的输出根目录"),value="output/slicer_opt")
-                    threshold=gr.Textbox(label=i18n("threshold:音量小于这个值视作静音的备选切割点"),value="-34")
-                    min_length=gr.Textbox(label=i18n("min_length:每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值"),value="4000")
-                    min_interval=gr.Textbox(label=i18n("min_interval:最短切割间隔"),value="300")
-                    hop_size=gr.Textbox(label=i18n("hop_size:怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）"),value="10")
-                    max_sil_kept=gr.Textbox(label=i18n("max_sil_kept:切完后静音最多留多长"),value="500")
-                with gr.Row():
-                    open_slicer_button=gr.Button(i18n("开启语音切割"), variant="primary",visible=True)
-                    close_slicer_button=gr.Button(i18n("终止语音切割"), variant="primary",visible=False)
-                    _max=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("max:归一化后最大值多少"),value=0.9,interactive=True)
-                    alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)
-                    n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
-                    slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
+                open_slicer_button=gr.Button(i18n("开启语音切割"), variant="primary",visible=True)
+                close_slicer_button=gr.Button(i18n("终止语音切割"), variant="primary",visible=False)
+                with gr.Column(scale=3):
+                    with gr.Row():
+                        slice_inp_path=gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"),value="")
+                        slice_opt_root=gr.Textbox(label=i18n("切分后的子音频的输出根目录"),value="output/slicer_opt")
+                    with gr.Row():
+                        threshold=gr.Textbox(label=i18n("threshold:音量小于这个值视作静音的备选切割点"),value="-34")
+                        min_length=gr.Textbox(label=i18n("min_length:每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值"),value="4000")
+                        min_interval=gr.Textbox(label=i18n("min_interval:最短切割间隔"),value="300")
+                        hop_size=gr.Textbox(label=i18n("hop_size:怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）"),value="10")
+                        max_sil_kept=gr.Textbox(label=i18n("max_sil_kept:切完后静音最多留多长"),value="500")
+                    with gr.Row():
+                        _max=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("max:归一化后最大值多少"),value=0.9,interactive=True)
+                        alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)
+                        n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
+                    with gr.Row():
+                        slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
             gr.Markdown(value=i18n("0bb-语音降噪工具"))
             with gr.Row():
                 open_denoise_button = gr.Button(i18n("开启语音降噪"), variant="primary",visible=True)
                 close_denoise_button = gr.Button(i18n("终止语音降噪进程"), variant="primary",visible=False)
-                denoise_input_dir=gr.Textbox(label=i18n("降噪音频文件输入文件夹"),value="")
-                denoise_output_dir=gr.Textbox(label=i18n("降噪结果输出文件夹"),value="output/denoise_opt")
-                denoise_info = gr.Textbox(label=i18n("语音降噪进程输出信息"))
+                with gr.Column(scale=3):
+                    with gr.Row():
+                        denoise_input_dir=gr.Textbox(label=i18n("降噪音频文件输入文件夹"),value="")
+                        denoise_output_dir=gr.Textbox(label=i18n("降噪结果输出文件夹"),value="output/denoise_opt")
+                    with gr.Row():
+                        denoise_info = gr.Textbox(label=i18n("语音降噪进程输出信息"))
             gr.Markdown(value=i18n("0c-中文批量离线ASR工具"))
             with gr.Row():
                 open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
