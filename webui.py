@@ -719,7 +719,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
                 close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)
-                with gr.Column():
+                with gr.Column(scale=3):
                     with gr.Row():
                         asr_inp_dir = gr.Textbox(
                             label=i18n("输入文件夹路径"),
