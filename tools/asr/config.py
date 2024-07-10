@@ -21,7 +21,7 @@ asr_dict = {
         'lang': ['zh'],
         'size': ['large'],
         'path': 'funasr_asr.py',
-        'precision': 'float32'
+        'precision': ['float32']
     },
     "Faster Whisper (多语种)": {
         'lang': ['auto', 'zh', 'en', 'ja'],
@@ -33,7 +33,7 @@ asr_dict = {
         'lang': ['auto', 'zh', 'en', 'ja'],
         'size': ['small'],
         'path': 'sensevoice_asr.py',
-        'precision': 'float32'
+        'precision': ['float32']
     }
 }
 

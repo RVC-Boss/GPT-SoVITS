@@ -775,7 +775,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             precision = 'float32'
                     else:
                         precision = 'float32'
-                    # return gr.Dropdown(choices=asr_dict[key]['lang'])
+                    # return gr.Dropdown(choices=asr_dict[key]['precision'])
                     return {"__type__": "update", "choices": asr_dict[key]['precision'],"value":precision}
                 asr_model.change(change_lang_choices, [asr_model], [asr_lang])
                 asr_model.change(change_size_choices, [asr_model], [asr_size])
