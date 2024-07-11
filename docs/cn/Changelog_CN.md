@@ -183,13 +183,36 @@
 
 4-修复了webui的GPT中文微调没读到bert导致和推理不一致，训练太多可能效果还会变差的问题。如果大量数据微调的建议重新微调模型得到质量优化 [#99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a)
 
+### 20240706
+
+小问题修复：
+
+1-修正CPU推理默认bs小数 https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041
+
+2-修复降噪、asr中途遇到异常跳出所有需处理的音频文件的问题 https://github.com/RVC-Boss/GPT-SoVITS/pull/1258 https://github.com/RVC-Boss/GPT-SoVITS/pull/1265 https://github.com/RVC-Boss/GPT-SoVITS/pull/1267
+
+3-修复按标点符号切分时小数会被切分 https://github.com/RVC-Boss/GPT-SoVITS/pull/1253
+
+4-多卡训练多进程保存逻辑修复
+
+https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca
+
+5-移除冗余my_utils https://github.com/RVC-Boss/GPT-SoVITS/pull/1251
+
+重点：
+
+6-倍速推理代码经过验证后推理效果和base完全一致，合并进main。使用的代码：https://github.com/RVC-Boss/GPT-SoVITS/pull/672。支持无参考文本模式也倍速。
+
+后面会逐渐验证快速推理分支的推理改动的一致性
+
+
 
 todolist：
 
 1-中文多音字推理优化(有没有人来测试的，欢迎把测试结果写在pr评论区里) https://github.com/RVC-Boss/GPT-SoVITS/pull/488
 （v2底模训练已经合了，下个版本发布就要合了）
 
-2-正在尝试解决低音质参考音频导致音质较差的问题，v2再试试如果能解决就发了，节点暂定高考后吧
+2-正在尝试解决低音质参考音频导致音质较差的问题，v2再试试如果能解决就发了，节点暂定7月吧
 
 
 

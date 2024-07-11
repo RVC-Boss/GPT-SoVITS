@@ -65,7 +65,7 @@ from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from time import time as ttime
 from module.mel_processing import spectrogram_torch
-from my_utils import load_audio
+from tools.my_utils import load_audio
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
@@ -331,27 +331,29 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         int(hps.data.sampling_rate * 0.3),
         dtype=np.float16 if is_half == True else np.float32,
     )
-    with torch.no_grad():
-        wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-        if (wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000):
-            raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
-        wav16k = torch.from_numpy(wav16k)
-        zero_wav_torch = torch.from_numpy(zero_wav)
-        if is_half == True:
-            wav16k = wav16k.half().to(device)
-            zero_wav_torch = zero_wav_torch.half().to(device)
-        else:
-            wav16k = wav16k.to(device)
-            zero_wav_torch = zero_wav_torch.to(device)
-        wav16k = torch.cat([wav16k, zero_wav_torch])
-        ssl_content = ssl_model.model(wav16k.unsqueeze(0))[
-            "last_hidden_state"
-        ].transpose(
-            1, 2
-        )  # .float()
-        codes = vq_model.extract_latent(ssl_content)
-   
-        prompt_semantic = codes[0, 0]
+    if not ref_free:
+        with torch.no_grad():
+            wav16k, sr = librosa.load(ref_wav_path, sr=16000)
+            if (wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000):
+                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
+            wav16k = torch.from_numpy(wav16k)
+            zero_wav_torch = torch.from_numpy(zero_wav)
+            if is_half == True:
+                wav16k = wav16k.half().to(device)
+                zero_wav_torch = zero_wav_torch.half().to(device)
+            else:
+                wav16k = wav16k.to(device)
+                zero_wav_torch = zero_wav_torch.to(device)
+            wav16k = torch.cat([wav16k, zero_wav_torch])
+            ssl_content = ssl_model.model(wav16k.unsqueeze(0))[
+                "last_hidden_state"
+            ].transpose(
+                1, 2
+            )  # .float()
+            codes = vq_model.extract_latent(ssl_content)
+            prompt_semantic = codes[0, 0]
+            prompt = prompt_semantic.unsqueeze(0).to(device)
+
     t1 = ttime()
 
     if (how_to_cut == i18n("凑四句一切")):
@@ -391,7 +393,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
 
         bert = bert.to(device).unsqueeze(0)
         all_phoneme_len = torch.tensor([all_phoneme_ids.shape[-1]]).to(device)
-        prompt = prompt_semantic.unsqueeze(0).to(device)
+
         t2 = ttime()
         with torch.no_grad():
             # pred_semantic = t2s_model.model.infer(
@@ -510,16 +512,26 @@ def cut4(inp):
 
 # contributed by https://github.com/AI-Hobbyist/GPT-SoVITS/blob/main/GPT_SoVITS/inference_webui.py
 def cut5(inp):
-    # if not re.search(r'[^\w\s]', inp[-1]):
-    # inp += '。'
     inp = inp.strip("\n")
-    punds = r'[,.;?!、，。？！;：…]'
-    items = re.split(f'({punds})', inp)
-    mergeitems = ["".join(group) for group in zip(items[::2], items[1::2])]
-    # 在句子不存在符号或句尾无符号的时候保证文本完整
-    if len(items)%2 == 1:
-        mergeitems.append(items[-1])
-    opt = [item for item in mergeitems if not set(item).issubset(punctuation)]
+    punds = {',', '.', ';', '?', '!', '、', '，', '。', '？', '！', ';', '：', '…'}
+    mergeitems = []
+    items = []
+
+    for i, char in enumerate(inp):
+        if char in punds:
+            if char == '.' and i > 0 and i < len(inp) - 1 and inp[i - 1].isdigit() and inp[i + 1].isdigit():
+                items.append(char)
+            else:
+                items.append(char)
+                mergeitems.append("".join(items))
+                items = []
+        else:
+            items.append(char)
+
+    if items:
+        mergeitems.append("".join(items))
+
+    opt = [item for item in mergeitems if not set(item).issubset(punds)]
     return "\n".join(opt)
 
 
