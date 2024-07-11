@@ -38,7 +38,7 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ## Installation
 
-For users in China region, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
+For users in the China region, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
 
 ### Tested Environments
 
@@ -51,11 +51,9 @@ _Note: numba==0.56.4 requires py<3.11_
 
 ### Windows
 
-If you are a Windows user (tested with win>=10), you can download [the 0206fix3 packedge](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true) or [the 0217fix2 packedge](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
+If you are a Windows user (tested with win>=10), you can [download the integrated package](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
 
-Users in China region can download [the 0206fix3 package](https://www.icloud.com.cn/iclouddrive/075NNKIRC2zqnWn-9rhD63WGA#GPT-SoVITS-beta0206fix3) or [the 0217fix2 package](https://www.icloud.com.cn/iclouddrive/091QHaIbZMDZYQg7IX3g2kCqg#GPT-SoVITS-beta0217fix2) by clicking the links and then selecting "Download a copy." (Log out if you encounter errors while downloading.)
-
-_Note: The inference speed of version 0206 is faster, while the inference quality of the new 0217 version is better. You can choose according to your needs._
+Users in the China region can [download the package](https://www.icloud.com.cn/iclouddrive/030K8WjGJ9xMXhpzJVIMEWPzQ#GPT-SoVITS-beta0706fix1) by clicking the link and then selecting "Download a copy." (Log out if you encounter errors while downloading.)
 
 ### Linux
 
@@ -69,8 +67,8 @@ bash install.sh
 
 **Note: The models trained with GPUs on Macs result in significantly lower quality compared to those trained on other devices, so we are temporarily using CPUs instead.**
 
-1. Install Xcode command-line tools by running `xcode-select --install`
-2. Install FFmpeg by running `brew install ffmpeg` or `conda install ffmpeg`.
+1. Install Xcode command-line tools by running `xcode-select --install`.
+2. Install FFmpeg by running `brew install ffmpeg`.
 3. Install the program by running the following commands:
 
 ```bash
@@ -108,6 +106,11 @@ conda install -c conda-forge 'ffmpeg<7'
 
 Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
 
+##### Mac Users
+```bash
+brew install ffmpeg
+```
+
 ### Using Docker
 
 #### docker-compose.yaml configuration
@@ -141,7 +144,7 @@ Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj199
 
 For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal, additionally), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
 
-Users in China region can download these two models by entering the links below and clicking "Download a copy"
+Users in the China region can download these two models by entering the links below and clicking "Download a copy"(Log out if you encounter errors while downloading.)
 
 - [GPT-SoVITS Models](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
 
@@ -151,9 +154,9 @@ For Chinese ASR (additionally), download models from [Damo ASR Model](https://mo
 
 For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint. 
 
-Users in China region can download this model by entering the links below
+Users in the China region can download this model by entering the links below
 
-- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3) (clicking "Download a copy")
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3) (Click "Download a copy", log out if you encounter errors while downloading.)
 
 - [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3) (HuggingFace mirror site)
 
