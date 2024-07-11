@@ -49,9 +49,7 @@ _Not: numba==0.56.4, py<3.11 gerektirir_
 
 ### Windows
 
-Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [0206fix3 paketini](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true) veya [0217fix2 paketini](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true) indirip _go-webui.bat_ dosyasına çift tıklayarak GPT-SoVITS-WebUI'yi başlatabilirsiniz.
-
-_Not: 0206 sürümünün çıkarım hızı daha hızlıdır, 0217 yeni sürümünün çıkarım kalitesi ise daha iyidir. İhtiyacınıza göre seçim yapabilirsiniz._
+Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [entegre paketi indirin](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) ve _go-webui.bat_ dosyasına çift tıklayarak GPT-SoVITS-WebUI'yi başlatın.
 
 ### Linux
 
@@ -65,8 +63,8 @@ bash install.sh
 
 **Not: Mac'lerde GPU'larla eğitilen modeller, diğer cihazlarda eğitilenlere göre önemli ölçüde daha düşük kalitede sonuç verir, bu nedenle geçici olarak CPU'lar kullanıyoruz.**
 
-1. `xcode-select --install` komutunu çalıştırarak Xcode komut satırı araçlarını yükleyin
-2. `brew install ffmpeg` veya `conda install ffmpeg` komutunu çalıştırarak FFmpeg'i yükleyin.
+1. `xcode-select --install` komutunu çalıştırarak Xcode komut satırı araçlarını yükleyin.
+2. FFmpeg'i yüklemek için `brew install ffmpeg` komutunu çalıştırın.
 3. Aşağıdaki komutları çalıştırarak programı yükleyin:
 
 ```bash
@@ -104,6 +102,11 @@ conda install -c conda-forge 'ffmpeg<7'
 
 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) ve [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) dosyalarını indirin ve GPT-SoVITS kök dizinine yerleştirin.
 
+##### Mac Kullanıcıları
+```bash
+brew install ffmpeg
+```
+
 ### Docker Kullanarak
 
 #### docker-compose.yaml yapılandırması
@@ -137,21 +140,9 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 UVR5 (Vokal/Eşlik Ayırma ve Yankı Giderme, ayrıca) için, modelleri [UVR5 Ağırlıkları](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) adresinden indirin ve `tools/uvr5/uvr5_weights` dizinine yerleştirin.
 
-Çin bölgesindeki kullanıcılar, aşağıdaki bağlantıları girerek ve "Bir kopya indir"i tıklayarak bu iki modeli indirebilirler
-
-- [GPT-SoVITS Modelleri](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
-
-- [UVR5 Ağırlıkları](https://www.icloud.com.cn/iclouddrive/0bekRKDiJXboFhbfm3lM2fVbA#UVR5_Weights)
-
 Çince ASR (ayrıca) için, modelleri [Damo ASR Modeli](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Modeli](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), ve [Damo Punc Modeli](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) adreslerinden indirin ve `tools/asr/models` dizinine yerleştirin.
 
-İngilizce veya Japonca ASR (ayrıca) için, modelleri [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) adresinden indirin ve `tools/asr/models` dizinine yerleştirin. Ayrıca, [diğer modeller](https://huggingface.co/Systran) daha küçük disk alanı kaplamasıyla benzer etkiye sahip olabilir. 
-
-Çin bölgesindeki kullanıcılar, aşağıdaki bağlantıları girerek bu modeli indirebilirler
-
-- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3) ("Bir kopya indir"i tıklayarak)
-
-- [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3) (HuggingFace ayna sitesi)
+İngilizce veya Japonca ASR (ayrıca) için, modelleri [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) adresinden indirin ve `tools/asr/models` dizinine yerleştirin. Ayrıca, [diğer modeller](https://huggingface.co/Systran) daha küçük disk alanı kaplamasıyla benzer etkiye sahip olabilir.
 
 ## Veri Seti Formatı
 
