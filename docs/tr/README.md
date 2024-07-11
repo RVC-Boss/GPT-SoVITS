@@ -49,7 +49,7 @@ _Not: numba==0.56.4, py<3.11 gerektirir_
 
 ### Windows
 
-Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [entegre paketi indirin](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0706fix1.7z?download=true) ve _go-webui.bat_ dosyasına çift tıklayarak GPT-SoVITS-WebUI'yi başlatın.
+Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [entegre paketi indirin](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) ve _go-webui.bat_ dosyasına çift tıklayarak GPT-SoVITS-WebUI'yi başlatın.
 
 ### Linux
 

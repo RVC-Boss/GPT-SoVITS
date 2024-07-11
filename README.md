@@ -51,7 +51,7 @@ _Note: numba==0.56.4 requires py<3.11_
 
 ### Windows
 
-If you are a Windows user (tested with win>=10), you can [download the integrated package](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0706fix1.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
+If you are a Windows user (tested with win>=10), you can [download the integrated package](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true) and double-click on _go-webui.bat_ to start GPT-SoVITS-WebUI.
 
 Users in the China region can [download the package](https://www.icloud.com.cn/iclouddrive/030K8WjGJ9xMXhpzJVIMEWPzQ#GPT-SoVITS-beta0706fix1) by clicking the link and then selecting "Download a copy." (Log out if you encounter errors while downloading.)
 
