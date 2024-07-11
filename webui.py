@@ -872,7 +872,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     tts_info = gr.Textbox(label=i18n("TTS推理WebUI进程输出信息"))
                     if_tts.change(change_tts_inference, [if_tts,bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown], [tts_info])
         with gr.TabItem(i18n("2-GPT-SoVITS-变声")):gr.Markdown(value=i18n("施工中，请静候佳音"))
-    app.queue(concurrency_count=511, max_size=1022).launch(
+    app.queue(max_size=1022).launch(
         server_name="0.0.0.0",
         inbrowser=True,
         share=is_share,
