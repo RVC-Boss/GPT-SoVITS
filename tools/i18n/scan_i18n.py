@@ -1,14 +1,14 @@
 import ast
-import code
 import glob
 import json
 import os
 from collections import OrderedDict
 
-I18N_JSON_DIR    = os.path.join(os.path.dirname(os.path.relpath(__file__)), 'locale')
-DEFAULT_LANGUAGE = "zh_CN"
-TITLE_LEN        = 100
-SHOW_KEYS        = False # 是否显示键信息
+I18N_JSON_DIR   : os.PathLike = os.path.join(os.path.dirname(os.path.relpath(__file__)), 'locale')
+DEFAULT_LANGUAGE: str         = "zh_CN" # 默认语言
+TITLE_LEN       : int         = 60      # 标题显示长度
+KEY_LEN         : int         = 30      # 键名显示长度
+SHOW_KEYS       : bool        = False   # 是否显示键信息
 
 def extract_i18n_strings(node):
     i18n_strings = []
@@ -27,11 +27,12 @@ def extract_i18n_strings(node):
 
     return i18n_strings
 
-# scan the directory for all .py files (recursively)
-# for each file, parse the code into an AST
-# for each AST, extract the i18n strings
-
 def scan_i18n_strings():
+    """
+    scan the directory for all .py files (recursively)
+    for each file, parse the code into an AST
+    for each AST, extract the i18n strings
+    """
     strings = []
     print(" Scanning Files and Extracting i18n Strings ".center(TITLE_LEN, "="))
     for filename in glob.iglob("**/*.py", recursive=True):
@@ -53,11 +54,12 @@ def update_i18n_json(json_file, standard_keys):
     with open(json_file, "r", encoding="utf-8") as f:
         json_data = json.load(f, object_pairs_hook=OrderedDict)
     # 打印处理前的 JSON 条目数
-    print(f"{'Total Keys (Before)'.ljust(20)}: {len(json_data)}")
+    len_before = len(json_data)
+    print(f"{'Total Keys'.ljust(KEY_LEN)}: {len_before}")
     # 识别缺失的键并补全
     miss_keys = set(standard_keys) - set(json_data.keys())
     if len(miss_keys) > 0:
-        print(f"{'Missing Keys (+)'.ljust(20)}: {len(miss_keys)}")
+        print(f"{'Missing Keys (+)'.ljust(KEY_LEN)}: {len(miss_keys)}")
         for key in miss_keys:
             if DEFAULT_LANGUAGE in json_file:
                 # 默认语言的键值相同.
@@ -66,30 +68,33 @@ def update_i18n_json(json_file, standard_keys):
                 # 其他语言的值设置为 #! + 键名以标注未被翻译.
                 json_data[key] = "#!" + key
             if SHOW_KEYS:
-                print(f"{'Added Missing Key'.ljust(20)}: {key}")
+                print(f"{'Added Missing Key'.ljust(KEY_LEN)}: {key}")
     # 识别多余的键并删除
     diff_keys = set(json_data.keys()) - set(standard_keys)
     if len(diff_keys) > 0:
-        print(f"{'Unused Keys  (-)'.ljust(20)}: {len(diff_keys)}")    
+        print(f"{'Unused Keys  (-)'.ljust(KEY_LEN)}: {len(diff_keys)}")    
         for key in diff_keys:
             del json_data[key]
             if SHOW_KEYS:
-                print(f"{'Removed Unused Key'.ljust(20)}: {key}")
+                print(f"{'Removed Unused Key'.ljust(KEY_LEN)}: {key}")
     # 按键顺序排序
     json_data = OrderedDict(
         sorted(json_data.items(), 
         key=lambda x: list(standard_keys).index(x[0])))
     # 打印处理后的 JSON 条目数
-    print(f"{'Total Keys (After)'.ljust(20)}: {len(json_data)}")
+    if len(miss_keys) != 0 or len(diff_keys) != 0:
+        print(f"{'Total Keys (After)'.ljust(KEY_LEN)}: {len(json_data)}")
     # 识别有待翻译的键
     num_miss_translation = 0
     for key, value in json_data.items():
         if value.startswith("#!"):
             num_miss_translation += 1
             if SHOW_KEYS:
-                print(f"{'Missing Translation'.ljust(20)}: {key}")
+                print(f"{'Missing Translation'.ljust(KEY_LEN)}: {key}")
     if num_miss_translation > 0:
-        print(f"{'Missing Translation'.ljust(20)}: {num_miss_translation}")
+        print(f"\033[31m{'[Failed] Missing Translation'.ljust(KEY_LEN)}: {num_miss_translation}\033[0m")
+    else:
+        print(f"\033[32m[Passed] All Keys Translated\033[0m")
     # 将处理后的结果写入 JSON 文件
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(json_data, f, ensure_ascii=False, indent=4, sort_keys=True)
@@ -102,5 +107,3 @@ if __name__ == "__main__":
         if json_file.endswith(r".json"):
             json_file = os.path.join(I18N_JSON_DIR, json_file)
             update_i18n_json(json_file, code_keys)
-        else:
-            pass
