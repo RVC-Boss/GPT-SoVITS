@@ -6,14 +6,19 @@ import torch
 from tqdm import tqdm
 from funasr import AutoModel
 
-model_dir = "tools/asr/models/SenseVoiceSmall"
-model_dir  = model_dir if os.path.exists(model_dir)  else "iic/SenseVoiceSmall"
+path_asr = "tools/asr/models/SenseVoiceSmall"
+path_vad  = 'tools/asr/models/speech_fsmn_vad_zh-cn-16k-common-pytorch'
+path_punc = 'tools/asr/models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch'
+path_asr  = path_asr if os.path.exists(path_asr)  else "iic/SenseVoiceSmall"
+path_vad  = path_vad  if os.path.exists(path_vad)  else "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch"
+path_punc = path_punc if os.path.exists(path_punc) else "iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch"
 
 def execute_asr(input_folder, output_folder, language, device):
     try:
-        model = AutoModel(model=model_dir,
-                  vad_model="fsmn-vad",
-                  vad_kwargs={"max_single_segment_time": 30000},
+        model = AutoModel(model=path_asr,
+                  vad_model=path_vad,
+                  vad_kwargs={"max_single_segment_time": 2000},
+                  punc_model=path_punc
                 )
     except:
         return print(traceback.format_exc())
@@ -31,7 +36,7 @@ def execute_asr(input_folder, output_folder, language, device):
                 input=file_path,
                 cache={},
                 language=language.lower(), # "zn", "en", "yue", "ja", "ko", "nospeech"
-                use_itn=True,
+                use_itn=False,
                 batch_size_s=0, 
                 device = device
             )[0]['text']
