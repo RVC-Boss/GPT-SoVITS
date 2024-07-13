@@ -2,6 +2,10 @@ import json
 import locale
 import os
 
+# Get the directory where the script file is located
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Change the current working directory to the directory where the script is located
+os.chdir(os.path.join(script_dir,'../../'))
 
 def load_language_list(language):
     with open(f"./i18n/locale/{language}.json", "r", encoding="utf-8") as f:
