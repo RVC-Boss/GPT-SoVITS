@@ -4,6 +4,7 @@ import re
 import traceback
 import torch
 from tqdm import tqdm
+from funasr.utils import version_checker
 from funasr import AutoModel
 
 path_asr = "tools/asr/models/SenseVoiceSmall"
@@ -12,6 +13,8 @@ path_punc = 'tools/asr/models/punc_ct-transformer_zh-cn-common-vocab272727-pytor
 path_asr  = path_asr if os.path.exists(path_asr)  else "iic/SenseVoiceSmall"
 path_vad  = path_vad  if os.path.exists(path_vad)  else "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch"
 path_punc = path_punc if os.path.exists(path_punc) else "iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch"
+
+version_checker.check_for_update = lambda: None
 
 def execute_asr(input_folder, output_folder, language, device):
     try:
