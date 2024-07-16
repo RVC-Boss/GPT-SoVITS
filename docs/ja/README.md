@@ -102,7 +102,7 @@ conda install -c conda-forge 'ffmpeg<7'
 
 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートディレクトリに置きます。
 
-##### Mac ユーザー
+##### MacOS ユーザー
 ```bash
 brew install ffmpeg
 ```
