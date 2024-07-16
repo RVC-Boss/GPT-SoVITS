@@ -197,13 +197,11 @@
 
 https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca
 
-https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca
-
 5-移除冗余my_utils https://github.com/RVC-Boss/GPT-SoVITS/pull/1251
 
 重点：
 
-6-倍速推理代码经过验证后推理效果和base完全一致，合并进main。使用的代码：https://github.com/RVC-Boss/GPT-SoVITS/pull/672
+6-倍速推理代码经过验证后推理效果和base完全一致，合并进main。使用的代码：https://github.com/RVC-Boss/GPT-SoVITS/pull/672。支持无参考文本模式也倍速。
 
 后面会逐渐验证快速推理分支的推理改动的一致性
 
