@@ -27,6 +27,7 @@
     "ASR 模型": "ASR model",
     "ASR 模型尺寸": "ASR model size",
     "ASR 语言设置": "ASR language",
+    "ASR 精度设置": "ASR precision",
     "ASR进程输出信息": "ASR output log",
     "GPT模型列表": "GPT weight list",
     "GPT训练进程输出信息": "GPT training output log",
