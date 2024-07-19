@@ -2,6 +2,7 @@ import os
 import traceback,gradio as gr
 import logging
 from tools.i18n.i18n import I18nAuto
+from tools.my_utils import clean_path
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
@@ -26,13 +27,9 @@ is_share=eval(sys.argv[4])
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []
     try:
-        inp_root = inp_root.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-        save_root_vocal = (
-            save_root_vocal.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-        )
-        save_root_ins = (
-            save_root_ins.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-        )
+        inp_root = clean_path(inp_root)
+        save_root_vocal = clean_path(save_root_vocal)
+        save_root_ins = clean_path(save_root_ins)
         is_hp3 = "HP3" in model_name
         if model_name == "onnx_dereverb_By_FoxJoy":
             pre_fun = MDXNetDereverb(15)

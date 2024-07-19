@@ -49,9 +49,7 @@ _참고: numba==0.56.4 는 python<3.11 을 필요로 합니다._
 
 ### Windows
 
-Windows 사용자라면 (win>=10에서 테스트됨), [0206fix3 패키지](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true) 또는 [0217fix2 패키지](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true)를 다운로드하고 압축을 풀어 _go-webui.bat_ 파일을 더블 클릭하면 GPT-SoVITS-WebUI를 시작할 수 있습니다.
-
-_참고: 0206 버전은 추론 속도가 더 빠르지만, 0217 새 버전은 추론 품질이 더 좋습니다. 필요에 따라 선택할 수 있습니다._
+Windows 사용자라면 (win>=10에서 테스트됨), [통합 패키지를 다운로드](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)한 후 압축을 풀고 _go-webui.bat_ 파일을 더블 클릭하면 GPT-SoVITS-WebUI를 시작할 수 있습니다.
 
 ### Linux
 
@@ -66,7 +64,7 @@ bash install.sh
 **주의: Mac에서 GPU로 훈련된 모델은 다른 OS에서 훈련된 모델에 비해 품질이 낮습니다. 해당 문제를 해결하기 전까지 MacOS에선 CPU를 사용하여 훈련을 진행합니다.**
 
 1. `xcode-select --install`을 실행하여 Xcode 커맨드라인 도구를 설치하세요.
-2. `brew install ffmpeg` 또는 `conda install ffmpeg`을 실행하여 FFmpeg를 설치하세요.
+2. `brew install ffmpeg` 명령어를 실행하여 FFmpeg를 설치합니다.
 3. 위의 단계를 완료한 후, 다음 명령어를 실행하여 이 프로젝트를 설치하세요.
 
 ```bash
@@ -103,6 +101,11 @@ conda install -c conda-forge 'ffmpeg<7'
 ##### Windows 사용자
 
 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe)와 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe)를 GPT-SoVITS root 디렉토리에 넣습니다.
+
+##### Mac 사용자
+```bash
+brew install ffmpeg
+```
 
 ### Docker에서 사용
 

@@ -51,11 +51,9 @@ _注: numba==0.56.4 需要 python<3.11_
 
 ### Windows
 
-如果你是 Windows 用户（已在 win>=10 上测试），可以下载[0206fix3 整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta-fast-inference-branch.7z?download=true)或[0217fix2 整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta0217fix2.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
+如果你是 Windows 用户（已在 win>=10 上测试），可以下载[下载整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
 
-中国地区用户可以通过点击链接并选择“下载副本”来下载[0206fix3 整合包](https://www.icloud.com.cn/iclouddrive/075NNKIRC2zqnWn-9rhD63WGA#GPT-SoVITS-beta0206fix3)或[0217fix2 整合包](https://www.icloud.com.cn/iclouddrive/091QHaIbZMDZYQg7IX3g2kCqg#GPT-SoVITS-beta0217fix2)。(如果下载时遇到错误，请退出登录)
-
-_注：0206版本的推理速度更快，0217新版的推理效果更好，可按需选择_
+中国地区用户可以通过点击链接并选择“下载副本”[下载整合包](https://www.icloud.com.cn/iclouddrive/030K8WjGJ9xMXhpzJVIMEWPzQ#GPT-SoVITS-beta0706fix1)。（如果下载时遇到错误，请退出登录）
 
 ### Linux
 
@@ -67,10 +65,10 @@ bash install.sh
 
 ### macOS
 
-**注：在 Mac 上使用 GPU 训练的模型效果显著低于其他设备训练的模型，所以我们暂时使用CPU进行训练。**
+**注：在 Mac 上使用 GPU 训练的模型效果显著低于其他设备训练的模型，所以我们暂时使用 CPU 进行训练。**
 
 1. 运行 `xcode-select --install` 安装 Xcode command-line tools。
-2. 运行 `brew install ffmpeg` 或 `conda install ffmpeg` 安装 FFmpeg。
+2. 运行 `brew install ffmpeg` 安装 FFmpeg。
 3. 完成上述步骤后，运行以下的命令来安装本项目：
 
 ```bash
@@ -90,13 +88,13 @@ pip install -r requirements.txt
 
 #### 安装 FFmpeg
 
-##### Conda 使用者
+##### Conda 用户
 
 ```bash
 conda install ffmpeg
 ```
 
-##### Ubuntu/Debian 使用者
+##### Ubuntu/Debian 用户
 
 ```bash
 sudo apt install ffmpeg
@@ -104,9 +102,14 @@ sudo apt install libsox-dev
 conda install -c conda-forge 'ffmpeg<7'
 ```
 
-##### Windows 使用者
+##### Windows 用户
 
 下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下。
+
+##### Mac 用户
+```bash
+brew install ffmpeg
+```
 
 ### 在 Docker 中使用
 
@@ -141,7 +144,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 对于 UVR5（人声/伴奏分离和混响移除，附加），从 [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 下载模型，并将它们放置在 `tools/uvr5/uvr5_weights` 中。
 
-中国地区用户可以进入以下链接并点击“下载副本”下载以上两个模型：
+中国地区用户可以进入以下链接并点击“下载副本”下载以上两个模型（如果下载时遇到错误，请退出登录）：
 
 - [GPT-SoVITS Models](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
 
@@ -152,7 +155,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 对于英语与日语自动语音识别（附加）,从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将它们放置在 `tools/asr/models` 中。 此外，[其他模型](https://huggingface.co/Systran)可能具有类似效果，但占用更小的磁盘空间。
 
 中国地区用户可以通过以下链接下载：
-- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)(点击“下载副本”)
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)（点击“下载副本”，如果下载时遇到错误，请退出登录）
   
 - [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3)(Hugging Face镜像站)
 

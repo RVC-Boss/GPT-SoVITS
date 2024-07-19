@@ -199,6 +199,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang):
     global p_asr
     if(p_asr==None):
         asr_inp_dir=my_utils.clean_path(asr_inp_dir)
+        asr_opt_dir=my_utils.clean_path(asr_opt_dir)
         cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
         cmd += f' -i "{asr_inp_dir}"'
         cmd += f' -o "{asr_opt_dir}"'
