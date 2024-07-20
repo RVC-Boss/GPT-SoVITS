@@ -433,7 +433,8 @@ class FFN(nn.Module):
 
 
 import torch.nn as nn
-from torch.nn.utils import remove_weight_norm, weight_norm
+from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations as remove_weight_norm
 
 
 class Depthwise_Separable_Conv1D(nn.Module):
