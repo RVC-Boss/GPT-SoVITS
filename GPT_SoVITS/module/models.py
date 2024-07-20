@@ -9,7 +9,8 @@ from module import modules
 from module import attentions
 
 from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
-from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
+from torch.nn.utils.parametrize import remove_parametrizations as remove_weight_norm
+from torch.nn.utils.parametrizations import weight_norm, spectral_norm
 from module.commons import init_weights, get_padding
 from module.mrte_model import MRTE
 from module.quantize import ResidualVectorQuantizer

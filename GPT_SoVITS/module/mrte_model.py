@@ -2,7 +2,8 @@
 
 import torch
 from torch import nn
-from torch.nn.utils import remove_weight_norm, weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations as remove_weight_norm
+from torch.nn.utils.parametrizations import weight_norm
 from module.attentions import MultiHeadAttention
 
 
