@@ -17,6 +17,8 @@ logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 import pdb
 import torch
+import shutil
+from scipy.io import wavfile
 
 if os.path.exists("./gweight.txt"):
     with open("./gweight.txt", 'r', encoding="utf-8") as file:
@@ -312,7 +314,7 @@ def merge_short_text_in_array(texts, threshold):
             result[len(result) - 1] += text
     return result
 
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False):
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, interval=0.3, ref_free = False):
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
     t0 = ttime()
@@ -328,7 +330,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     
     print(i18n("实际输入的目标文本:"), text)
     zero_wav = np.zeros(
-        int(hps.data.sampling_rate * 0.3),
+        int(hps.data.sampling_rate * interval),
         dtype=np.float16 if is_half == True else np.float32,
     )
     if not ref_free:
@@ -436,7 +438,17 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     yield hps.data.sampling_rate, (np.concatenate(audio_opt, 0) * 32768).astype(
         np.int16
     )
+    # 指定保存音频的文件路径
+    file_path = 'moys/temp/audio.wav'
 
+    # 调用保存音频的函数
+    save_audio(hps.data.sampling_rate, np.concatenate(audio_opt, 0), file_path)
+
+# 保存音频数据到文件
+def save_audio(sampling_rate, audio_data, file_path):
+    # 确保音频数据是16位PCM格式
+    audio_data = np.int16(audio_data / np.max(np.abs(audio_data)) * 32767)
+    wavfile.write(file_path, sampling_rate, audio_data)
 
 def split(todo_text):
     todo_text = todo_text.replace("……", "。").replace("——", "，")
@@ -584,6 +596,135 @@ def get_weights_names():
     return SoVITS_names, GPT_names
 
 
+def save_model_config(GPT_dropdown, SoVITS_dropdown, inp_ref, prompt_text, prompt_language):
+    config_dir = "moys"
+    config_dir1 = r"moys\audio"
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir)
+    
+    # 复制参考音频文件到配置目录
+    copy_ref_audio_path = os.path.join(config_dir1, os.path.basename(inp_ref))
+    shutil.copy(inp_ref, copy_ref_audio_path)
+    
+    gpt_model_name = os.path.basename(GPT_dropdown).split('-')[0]
+    config_file_path = os.path.join(config_dir, f"{gpt_model_name}.txt")
+    
+    with open(config_file_path, 'w', encoding='utf-8') as f:
+        f.write(f"GPT_model_path={GPT_dropdown}\n")
+        f.write(f"SoVITS_model_path={SoVITS_dropdown}\n")
+        f.write(f"ref_audio_path={copy_ref_audio_path}\n")  # 修改写入的路径为复制文件的路径
+        f.write(f"ref_text={prompt_text}\n")
+        f.write(f"ref_audio_language={prompt_language}\n")
+    
+    return f"Configuration saved to {config_file_path}"
+
+def load_model_config(config_file_name):
+    config_dir = "moys"
+    # 因为 config_file_name 现在是字符串，我们直接使用它来构造文件路径
+    config_file_path = os.path.join(config_dir, config_file_name)
+    
+    with open(config_file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    
+    config = {}
+    for line in lines:
+        key, value = line.strip().split('=')
+        config[key] = value
+    
+    # 返回一个包含所有组件期望值的字典
+    return (
+        config["GPT_model_path"],
+        config["SoVITS_model_path"],
+        config["ref_audio_path"],
+        config["ref_text"],
+        config["ref_audio_language"]
+    )
+def refresh_config_files():
+    # 获取最新的配置文件列表
+    config_files = get_config_files()
+    # 创建一个新的文件名列表，只包含文件名
+    config_file_names = [os.path.basename(path) for path in config_files]
+    
+    # 返回一个更新的配置，告诉 Gradio 更新下拉菜单的选项
+    return {"choices": config_file_names, "__type__": "update"}
+
+
+
+    # 辅助函数，用于处理 load_model_config 函数的输出
+def handle_load_model_config(config_file_name, GPT_dropdown, SoVITS_dropdown, inp_ref, prompt_text, prompt_language):
+    # 调用原始函数获取配置
+    config = load_model_config(config_file_name)
+    
+    # 更新组件的值
+    GPT_dropdown.update(value=config.get("GPT_model_path"))
+    SoVITS_dropdown.update(value=config.get("SoVITS_model_path"))
+    inp_ref.update(value=config.get("ref_audio_path"))
+    prompt_text.update(value=config.get("ref_text"))
+    prompt_language.update(value=config.get("ref_audio_language"))
+
+def get_config_files():
+    config_dir = "moys"
+    if not os.path.exists(config_dir):
+        return []
+    
+    return [os.path.join(config_dir, f) for f in os.listdir(config_dir) if f.endswith('.txt')]
+
+def echo(input_text):
+    # 直接返回输入的文本
+    return input_text
+
+
+def find_latest_wav(source_dir, dest_dir):
+    # 确保目标文件夹存在
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+
+    # 初始化找到的wav文件路径
+    wav_file_path = None
+
+    # 遍历源文件夹
+    for root, dirs, files in os.walk(source_dir):
+        for file in files:
+            if file.lower().endswith('.wav'):
+                wav_file_path = os.path.join(root, file)
+                # 找到第一个wav文件就退出循环
+                break
+        if wav_file_path:
+            break  # 确保找到文件后不再继续遍历
+
+    # 如果找到了wav文件，复制到目标文件夹
+    if wav_file_path:
+        base_name = os.path.basename(wav_file_path)
+        file_name, file_ext = os.path.splitext(base_name)
+        dest_file_path = os.path.join(dest_dir, base_name)
+        
+       # 检查目标文件夹中是否存在同名文件，并添加后缀以避免覆盖
+        counter = 1
+        while os.path.exists(dest_file_path):
+            new_name = f"{file_name}({counter}){file_ext}"
+            dest_file_path = os.path.join(dest_dir, new_name)
+            counter += 1
+        # 复制文件
+        shutil.copy2(wav_file_path, dest_file_path)
+        print(f"Copied WAV file to {dest_file_path}")
+        return dest_file_path  # 返回复制的文件路径
+    else:
+        print("No WAV files found.")
+        return None  # 没有找到 WAV 文件时返回 None
+
+
+
+
+def on_download_click(textq_value):
+    source_directory = r'moys/temp'  # 源文件夹路径
+    destination_directory = textq_value
+   # outputs.update_value(f"开始查找最新的WAV文件...")
+
+    result = find_latest_wav(source_directory, destination_directory)  # 调用函数
+  #  outputs.update_value(f"已保存到: {destination_directory}")
+    return f"{result}已保存到: {destination_directory}"
+
+
 SoVITS_names, GPT_names = get_weights_names()
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
@@ -626,15 +767,69 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True)
                 temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True)
+                interval = gr.Slider(minimum=0,maximum=5,step=0.02,label=i18n("interval"),value=0.3,interactive=True)                
             inference_button = gr.Button(i18n("合成语音"), variant="primary")
             output = gr.Audio(label=i18n("输出的语音"))
 
+            with gr.Row():
+                # 创建文本框和下载按钮
+                download_button = gr.Button("下载语音", variant="primary")
+                textq = gr.Textbox(label="保存的语音路径", value="")
+                outputs0 = gr.Textbox(label=i18n("保存状态"), value="", interactive=False)
+                # 将事件处理函数绑定到按钮的点击事件
+                download_button.click(
+                    on_download_click, 
+                    inputs=[textq],  # 这里确保 textq 是正确的组件引用
+                    outputs=[outputs0]  # 这里确保 outputs 是正确的组件引用
+                )
+
         inference_button.click(
             get_tts_wav,
-            [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free],
+            [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, interval, ref_text_free],
             [output],
         )
+        # Add new UI elements for saving and loading configurations
+        with gr.Row():
 
+
+            # 初始加载配置文件列表
+            config_files = get_config_files()
+            # 创建一个新的列表，只包含文件名
+            config_file_names = [os.path.basename(path) for path in config_files]
+
+            # 使用文件名列表作为 Dropdown 组件的选项
+            config_dropdown = gr.Dropdown(
+                label=i18n("加载模型配置"),
+                choices=config_file_names,
+                value=config_file_names[0] if config_file_names else None
+            )
+
+            # Output textbox for displaying save confirmation
+            save_output = gr.Textbox(label=i18n("保存配置状态"), value="", interactive=False)
+
+            # 绑定刷新按钮的点击事件
+            refresh_button = gr.Button(i18n("刷新配置文件列表"), variant="primary")
+            refresh_button.click(
+                fn=refresh_config_files,  # 使用新创建的 refresh_config_files 函数
+                inputs=[],  # 刷新按钮不需要输入
+                outputs=[config_dropdown]  # 指定输出为 config_dropdown 组件，以更新其选项
+            )
+
+            # 绑定保存按钮的点击事件
+            save_button = gr.Button(i18n("保存模型配置"), variant="primary")
+            save_button.click(
+                fn=save_model_config,
+                inputs=[GPT_dropdown, SoVITS_dropdown, inp_ref, prompt_text, prompt_language],
+                outputs=[save_output]
+            )
+
+            # 绑定加载按钮的点击事件
+            load_button = gr.Button(i18n("加载模型配置"), variant="primary")
+            load_button.click(
+                fn=load_model_config,  # 直接使用 load_model_config 函数
+                inputs=[config_dropdown],  # config_dropdown 组件本身作为输入
+                outputs=[GPT_dropdown, SoVITS_dropdown, inp_ref, prompt_text, prompt_language]  # 期望更新的组件列表
+            )
         gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         with gr.Row():
             text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"), value="")
@@ -643,12 +838,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             button3 = gr.Button(i18n("按中文句号。切"), variant="primary")
             button4 = gr.Button(i18n("按英文句号.切"), variant="primary")
             button5 = gr.Button(i18n("按标点符号切"), variant="primary")
+            button6 = gr.Button(i18n("推送"), variant="primary")            
             text_opt = gr.Textbox(label=i18n("切分后文本"), value="")
             button1.click(cut1, [text_inp], [text_opt])
             button2.click(cut2, [text_inp], [text_opt])
             button3.click(cut3, [text_inp], [text_opt])
             button4.click(cut4, [text_inp], [text_opt])
             button5.click(cut5, [text_inp], [text_opt])
+            button6.click(echo, [text_opt], [text])             
         gr.Markdown(value=i18n("后续将支持转音素、手工修改音素、语音合成分步执行。"))
 
 if __name__ == '__main__':
