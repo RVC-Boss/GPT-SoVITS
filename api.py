@@ -780,8 +780,8 @@ async def tts_endpoint(request: Request):
         json_post_raw.get("text_language"),
         json_post_raw.get("cut_punc"),
         json_post_raw.get("top_k", 10),
-        json_post_raw.get("top_p" 1.0),
-        json_post_raw.get("temperature" 1.0),
+        json_post_raw.get("top_p", 1.0),
+        json_post_raw.get("temperature", 1.0),
         json_post_raw.get("speed", 1.0)
     )
 
