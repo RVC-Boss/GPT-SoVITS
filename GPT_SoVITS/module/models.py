@@ -242,7 +242,7 @@ class TextEncoder(nn.Module):
         y = self.mrte(y, y_mask, text, text_mask, ge)
         y = self.encoder2(y * y_mask, y_mask)
         if(speed!=1):
-            y = F.interpolate(y, size=int(y.shape[-1] * speed)+1, mode="linear")
+            y = F.interpolate(y, size=int(y.shape[-1] / speed)+1, mode="linear")
             y_mask = F.interpolate(y_mask, size=y.shape[-1], mode="nearest")
         stats = self.proj(y) * y_mask
         m, logs = torch.split(stats, self.out_channels, dim=1)
