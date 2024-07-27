@@ -148,7 +148,7 @@
 6. The accelerated inference code from [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) has been validated and merged into the main branch, ensuring consistent inference effects with the base. 
    It also supports accelerated inference in no-reference text mode. 
 
-Future updates will continue to verify the consistency of changes in the `fast_inference` branch.
+**Future updates will continue to verify the consistency of changes in the `fast_inference` branch**.
 
 ### 20240727 Update
 
@@ -167,6 +167,6 @@ Future updates will continue to verify the consistency of changes in the `fast_i
 
 1. Optimize inference for Chinese polyphonic characters. 
    (Seeking testers, feel free to comment your results in the [PR 488](https://github.com/RVC-Boss/GPT-SoVITS/pull/488))
-   Caution: This PR have been merged in v2 base model and will be included in the next release.
+   **Caution: This PR have been merged in v2 base model and will be included in the next release**.
 2. Working on solving the issue of low-quality reference audio causing poor audio quality.
-   Caution: Resolved in July 2024, scheduled for August 2024 release.
+   **Caution: Resolved in July 2024, scheduled for August 2024 release**.
