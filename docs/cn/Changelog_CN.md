@@ -93,7 +93,7 @@
 
 2-uvr5适配高版本librosa https://github.com/RVC-Boss/GPT-SoVITS/pull/403
 
-3-修复uvr5 inf everywhere报错的问题(is_half传参未转换bool导致恒定半精度推理，16系显卡会inf) https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8
+3-[修复uvr5 inf everywhere报错的问题(is_half传参未转换bool导致恒定半精度推理，16系显卡会inf)](https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8)
 
 4-优化英文文本前端
 
@@ -187,24 +187,33 @@
 
 小问题修复：
 
-1-修正CPU推理默认bs小数 https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041
+1-[修正CPU推理默认bs小数](https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041)
 
 2-修复降噪、asr中途遇到异常跳出所有需处理的音频文件的问题 https://github.com/RVC-Boss/GPT-SoVITS/pull/1258 https://github.com/RVC-Boss/GPT-SoVITS/pull/1265 https://github.com/RVC-Boss/GPT-SoVITS/pull/1267
 
 3-修复按标点符号切分时小数会被切分 https://github.com/RVC-Boss/GPT-SoVITS/pull/1253
 
-4-多卡训练多进程保存逻辑修复
-
-https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca
+4-[多卡训练多进程保存逻辑修复](https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca)
 
 5-移除冗余my_utils https://github.com/RVC-Boss/GPT-SoVITS/pull/1251
 
 重点：
 
-6-倍速推理代码经过验证后推理效果和base完全一致，合并进main。使用的代码：https://github.com/RVC-Boss/GPT-SoVITS/pull/672。支持无参考文本模式也倍速。
+6-倍速推理代码经过验证后推理效果和base完全一致，合并进main。使用的代码：https://github.com/RVC-Boss/GPT-SoVITS/pull/672 。支持无参考文本模式也倍速。
 
 后面会逐渐验证快速推理分支的推理改动的一致性
 
+### 20240727
+
+1-清理冗余i18n代码 https://github.com/RVC-Boss/GPT-SoVITS/pull/1298
+
+2-修复用户打文件及路径在结尾添加/会导致命令行报错的问题 https://github.com/RVC-Boss/GPT-SoVITS/pull/1299
+
+3-修复GPT训练的step计算逻辑 https://github.com/RVC-Boss/GPT-SoVITS/pull/756
+
+重点：
+
+4-[支持合成语速调节。支持冻结随机性只调节语速。](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2)
 
 
 todolist：
@@ -212,7 +221,7 @@ todolist：
 1-中文多音字推理优化(有没有人来测试的，欢迎把测试结果写在pr评论区里) https://github.com/RVC-Boss/GPT-SoVITS/pull/488
 （v2底模训练已经合了，下个版本发布就要合了）
 
-2-正在尝试解决低音质参考音频导致音质较差的问题，v2再试试如果能解决就发了，节点暂定7月吧
+2-正在尝试解决低音质参考音频导致音质较差的问题(202407:已经解决了)，节点暂定8月吧
 
 
 
