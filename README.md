@@ -106,7 +106,7 @@ conda install -c conda-forge 'ffmpeg<7'
 
 Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
 
-##### Mac Users
+##### MacOS Users
 ```bash
 brew install ffmpeg
 ```
@@ -227,7 +227,7 @@ ASR processing is performed through Faster_Whisper(ASR marking except Chinese)
 
 (No progress bars, GPU performance may cause time delays)
 ```
-python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
 A custom list save path is enabled
 
