@@ -12,6 +12,7 @@ import torch
 import sys
 from mdxnet import MDXNetDereverb
 from vr import AudioPre, AudioPreDeEcho
+from bsroformer import BsRoformer_Loader
 
 weight_uvr5_root = "tools/uvr5/uvr5_weights"
 uvr5_names = []
@@ -33,6 +34,12 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         is_hp3 = "HP3" in model_name
         if model_name == "onnx_dereverb_By_FoxJoy":
             pre_fun = MDXNetDereverb(15)
+        elif model_name == "Bs_Roformer" or "bs_roformer" in model_name.lower():
+            func = BsRoformer_Loader
+            pre_fun = func(
+                model_path = os.path.join(weight_uvr5_root, model_name + ".pth"),
+                device = device,
+            )
         else:
             func = AudioPre if "DeEcho" not in model_name else AudioPreDeEcho
             pre_fun = func(
