@@ -48,10 +48,17 @@ def replace_punctuation(text):
     replaced_text = pattern.sub(lambda x: rep_map[x.group()], text)
 
     replaced_text = re.sub(
-        r"[^\u4e00-\u9fa5" + "".join(punctuation) + r"]+", "", replaced_text
+        r"[^\u4e00-\u9fa5A-Za-z" + "".join(punctuation) + r"]+", "", replaced_text
     )
 
     return replaced_text
+
+
+def replace_consecutive_punctuation(text):
+    punctuations = ''.join(re.escape(p) for p in punctuation)
+    pattern = f'([{punctuations}])([{punctuations}])+'
+    result = re.sub(pattern, r'\1', text)
+    return result
 
 
 def g2p(text):
@@ -158,6 +165,9 @@ def text_normalize(text):
     dest_text = ""
     for sentence in sentences:
         dest_text += replace_punctuation(sentence)
+
+    # 避免重复标点引起的参考泄露
+    dest_text = replace_consecutive_punctuation(dest_text)
     return dest_text
 
 

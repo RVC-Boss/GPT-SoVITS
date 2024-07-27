@@ -107,8 +107,11 @@ def replace_default_num(match):
 
 
 # 加减乘除
+# RE_ASMD = re.compile(
+#     r'((-?)((\d+)(\.\d+)?)|(\.(\d+)))([\+\-\×÷=])((-?)((\d+)(\.\d+)?)|(\.(\d+)))')
 RE_ASMD = re.compile(
-    r'((-?)((\d+)(\.\d+)?)|(\.(\d+)))([\+\-\×÷=])((-?)((\d+)(\.\d+)?)|(\.(\d+)))')
+    r'((-?)((\d+)(\.\d+)?[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|(\.\d+[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|([A-Za-z][⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*))([\+\-\×÷=])((-?)((\d+)(\.\d+)?[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|(\.\d+[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|([A-Za-z][⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*))')
+
 asmd_map = {
     '+': '加',
     '-': '减',
@@ -116,7 +119,6 @@ asmd_map = {
     '÷': '除',
     '=': '等于'
 }
-
 
 def replace_asmd(match) -> str:
     """
@@ -126,6 +128,39 @@ def replace_asmd(match) -> str:
         str
     """
     result = match.group(1) + asmd_map[match.group(8)] + match.group(9)
+    return result
+
+
+# 次方专项
+RE_POWER = re.compile(r'[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]+')
+
+power_map = {
+    '⁰': '0',
+    '¹': '1',
+    '²': '2',
+    '³': '3',
+    '⁴': '4',
+    '⁵': '5',
+    '⁶': '6',
+    '⁷': '7',
+    '⁸': '8',
+    '⁹': '9',
+    'ˣ': 'x',
+    'ʸ': 'y',
+    'ⁿ': 'n'
+}
+
+def replace_power(match) -> str:
+    """
+    Args:
+        match (re.Match)
+    Returns:
+        str
+    """
+    power_num = ""
+    for m in match.group(0):
+        power_num += power_map[m]
+    result = "的" + power_num + "次方"
     return result
 
 

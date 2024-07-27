@@ -4,7 +4,7 @@ import re
 import wordsegment
 from g2p_en import G2p
 
-from string import punctuation
+from text.symbols import punctuation
 
 from text import symbols
 
@@ -108,6 +108,13 @@ def replace_phs(phs):
         else:
             print("ph not in symbols: ", ph)
     return phs_new
+
+
+def replace_consecutive_punctuation(text):
+    punctuations = ''.join(re.escape(p) for p in punctuation)
+    pattern = f'([{punctuations}])([{punctuations}])+'
+    result = re.sub(pattern, r'\1', text)
+    return result
 
 
 def read_dict():
@@ -233,6 +240,9 @@ def text_normalize(text):
     text = re.sub("[^ A-Za-z'.,?!\-]", "", text)
     text = re.sub(r"(?i)i\.e\.", "that is", text)
     text = re.sub(r"(?i)e\.g\.", "for example", text)
+
+    # 避免重复标点引起的参考泄露
+    text = replace_consecutive_punctuation(text)
 
     return text
 
