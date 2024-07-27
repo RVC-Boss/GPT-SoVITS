@@ -236,7 +236,7 @@ def get_first(text):
     text = re.split(pattern, text)[0].strip()
     return text
 
-
+from text import chinese
 def get_phones_and_bert(text,language):
     if language in {"en","all_zh","all_ja"}:
         language = language.replace("all_","")
@@ -248,10 +248,17 @@ def get_phones_and_bert(text,language):
             formattext = text
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
-        phones, word2ph, norm_text = clean_text_inf(formattext, language)
         if language == "zh":
+            if re.search(r'[A-Za-z]', formattext):
+                formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
+                formattext = chinese.text_normalize(formattext)
+                return get_phones_and_bert(formattext,"zh")
+            else:
+                phones, word2ph, norm_text = clean_text_inf(formattext, language)
+
             bert = get_bert_feature(norm_text, word2ph).to(device)
         else:
+            phones, word2ph, norm_text = clean_text_inf(formattext, language)
             bert = torch.zeros(
                 (1024, len(phones)),
                 dtype=torch.float16 if is_half == True else torch.float32,
@@ -327,7 +334,6 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
         print(i18n("实际输入的参考文本:"), prompt_text)
     text = text.strip("\n")
-    text = replace_consecutive_punctuation(text)
     if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
     
     print(i18n("实际输入的目标文本:"), text)
@@ -549,13 +555,6 @@ def process_text(texts):
         else:
             _text.append(text)
     return _text
-
-
-def replace_consecutive_punctuation(text):
-    punctuations = ''.join(re.escape(p) for p in punctuation)
-    pattern = f'([{punctuations}])([{punctuations}])+'
-    result = re.sub(pattern, r'\1', text)
-    return result
 
 
 def change_choices():
