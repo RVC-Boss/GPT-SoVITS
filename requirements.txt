@@ -26,3 +26,4 @@ jieba
 LangSegment>=0.2.0
 Faster_Whisper
 wordsegment
+rotary_embedding_torch
