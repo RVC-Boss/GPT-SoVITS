@@ -4,7 +4,8 @@ import argparse
 import os
 import traceback
 from tqdm import tqdm
-from funasr.utils import version_checker
+# from funasr.utils import version_checker
+# version_checker.check_for_update = lambda: None
 from funasr import AutoModel
 
 path_asr  = 'tools/asr/models/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch'
@@ -14,7 +15,6 @@ path_asr  = path_asr  if os.path.exists(path_asr)  else "iic/speech_paraformer-l
 path_vad  = path_vad  if os.path.exists(path_vad)  else "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch"
 path_punc = path_punc if os.path.exists(path_punc) else "iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch"
 
-version_checker.check_for_update = lambda: None
 
 model = AutoModel(
     model               = path_asr,
