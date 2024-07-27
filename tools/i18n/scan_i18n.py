@@ -86,11 +86,21 @@ def update_i18n_json(json_file, standard_keys):
         print(f"{'Total Keys (After)'.ljust(KEY_LEN)}: {len(json_data)}")
     # 识别有待翻译的键
     num_miss_translation = 0
+    duplicate_items = {}
     for key, value in json_data.items():
         if value.startswith("#!"):
             num_miss_translation += 1
             if SHOW_KEYS:
                 print(f"{'Missing Translation'.ljust(KEY_LEN)}: {key}")
+        if value in duplicate_items:
+            duplicate_items[value].append(key)
+        else:
+            duplicate_items[value] = [key]
+    # 打印是否有重复的值
+    for value, keys in duplicate_items.items():
+        if len(keys) > 1:
+            print("\n".join([f"\033[31m{'[Failed] Duplicate Value'.ljust(KEY_LEN)}: {key} -> {value}\033[0m" for key in keys]))
+    
     if num_miss_translation > 0:
         print(f"\033[31m{'[Failed] Missing Translation'.ljust(KEY_LEN)}: {num_miss_translation}\033[0m")
     else:
