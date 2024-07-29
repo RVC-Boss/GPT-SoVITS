@@ -6,6 +6,7 @@ import pyopenjtalk
 
 
 from text import symbols
+from text.symbols import punctuation
 # Regular expression matching Japanese without punctuation marks:
 _japanese_characters = re.compile(
     r"[A-Za-z\d\u3005\u3040-\u30ff\u4e00-\u9fff\uff11-\uff19\uff21-\uff3a\uff41-\uff5a\uff66-\uff9d]"
@@ -65,6 +66,13 @@ def post_replace_ph(ph):
     return ph
 
 
+def replace_consecutive_punctuation(text):
+    punctuations = ''.join(re.escape(p) for p in punctuation)
+    pattern = f'([{punctuations}])([{punctuations}])+'
+    result = re.sub(pattern, r'\1', text)
+    return result
+
+
 def symbols_to_japanese(text):
     for regex, replacement in _symbols_to_japanese:
         text = re.sub(regex, replacement, text)
@@ -94,6 +102,9 @@ def preprocess_jap(text, with_prosody=False):
 
 def text_normalize(text):
     # todo: jap text normalize
+
+    # 避免重复标点引起的参考泄露
+    text = replace_consecutive_punctuation(text)
     return text
 
 # Copied from espnet https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py
