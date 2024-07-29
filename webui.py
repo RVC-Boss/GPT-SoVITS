@@ -756,7 +756,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             value="zh"
                         )
                         asr_precision = gr.Dropdown(
-                            label       = i18n("ASR 精度设置"),
+                            label       = i18n("数据类型精度"),
                             choices     = ["float32"],
                             interactive = True,
                             value="float32"

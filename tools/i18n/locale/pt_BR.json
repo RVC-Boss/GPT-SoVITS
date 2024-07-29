@@ -34,6 +34,7 @@
     "3、去混响、去延迟模型（by FoxJoy）：": "3. Modelo de remoção de reverberação e atraso (por FoxJoy):",
     "ASR 模型": "Modelo ASR",
     "ASR 模型尺寸": "Tamanho do modelo ASR",
+    "数据类型精度": "precisão do tipo de dado",
     "ASR 语言设置": "Configurações de idioma do ASR",
     "ASR进程输出信息": "Informações de saída do processo ASR",
     "GPT模型列表": "Lista de modelos GPT",
