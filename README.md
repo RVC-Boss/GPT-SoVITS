@@ -156,7 +156,7 @@ For English or Japanese ASR (additionally), download models from [Faster Whisper
 
 Users in the China region can download this model by entering the links below
 
-- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3) (Click "Download a copy", log out if you encounter errors while downloading.)
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/00bUEp9_mcjMq_dhHu_vrAFDQ#faster-whisper-large-v3) (Click "Download a copy", log out if you encounter errors while downloading.)
 
 - [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3) (HuggingFace mirror site)
 

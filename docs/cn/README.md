@@ -155,7 +155,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 对于英语与日语自动语音识别（附加）,从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将它们放置在 `tools/asr/models` 中。 此外，[其他模型](https://huggingface.co/Systran)可能具有类似效果，但占用更小的磁盘空间。
 
 中国地区用户可以通过以下链接下载：
-- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)(点击“下载副本”，如果下载时遇到错误，请退出登录）
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/00bUEp9_mcjMq_dhHu_vrAFDQ#faster-whisper-large-v3)(点击“下载副本”，如果下载时遇到错误，请退出登录）
   
 - [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3)(Hugging Face镜像站)
 
