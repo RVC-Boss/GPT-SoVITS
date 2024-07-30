@@ -1,10 +1,8 @@
 # This code is modified from https://github.com/ZFTurbo/
 
-import time
 import librosa
 from tqdm import tqdm
 import os
-import glob
 import torch
 import numpy as np
 import soundfile as sf
@@ -52,7 +50,8 @@ class BsRoformer_Loader:
 
     def demix_track(self, model, mix, device):
         C = 352800
-        N = 2
+        # num_overlap
+        N = 1
         fade_size = C // 10
         step = int(C // N)
         border = C - step
@@ -60,7 +59,7 @@ class BsRoformer_Loader:
 
         length_init = mix.shape[-1]
 
-        progress_bar = tqdm(total=(length_init//step)+3)
+        progress_bar = tqdm(total=length_init // step + 1)
         progress_bar.set_description("Processing")
 
         # Do pad from the beginning and end to account floating window results better
@@ -79,7 +78,7 @@ class BsRoformer_Loader:
         window_middle[-fade_size:] *= fadeout
         window_middle[:fade_size] *= fadein
 
-        with torch.cuda.amp.autocast():
+        with torch.amp.autocast('cuda'):
             with torch.inference_mode():
                 req_shape = (1, ) + tuple(mix.shape)
 
@@ -160,7 +159,6 @@ class BsRoformer_Loader:
         res = self.demix_track(self.model, mixture, self.device)
 
         estimates = res['vocals'].T
-        print("{}/{}_{}.{}".format(vocal_root, os.path.basename(path)[:-4], 'vocals', format))
         
         if format in ["wav", "flac"]:
             sf.write("{}/{}_{}.{}".format(vocal_root, os.path.basename(path)[:-4], 'vocals', format), estimates, sr)
