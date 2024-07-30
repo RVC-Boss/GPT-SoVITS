@@ -506,7 +506,7 @@ class TTS:
                     # norm_text = item["norm_text"]
 
                 bert_max_len = max(bert_max_len, all_bert_features.shape[-1])
-                phones_max_len = max(phones_max_len, phones.shape[-1])
+                phones_max_len = max(phones_max_len, all_phones.shape[-1])
                 
                 phones_list.append(phones)
                 phones_len_list.append(phones.shape[-1])
