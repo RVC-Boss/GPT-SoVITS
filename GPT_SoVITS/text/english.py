@@ -237,7 +237,7 @@ def text_normalize(text):
     text = normalize_numbers(text)
     text = ''.join(char for char in unicodedata.normalize('NFD', text)
                     if unicodedata.category(char) != 'Mn')  # Strip accents
-    text = re.sub("[^ A-Za-z'.,?!\-]", "", text)
+    text = re.sub(r"[^ A-Za-z'.,?!\-]", "", text)
     text = re.sub(r"(?i)i\.e\.", "that is", text)
     text = re.sub(r"(?i)e\.g\.", "for example", text)
 
