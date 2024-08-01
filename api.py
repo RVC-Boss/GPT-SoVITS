@@ -163,7 +163,7 @@ from io import BytesIO
 from module.models import SynthesizerTrn
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from text import cleaned_text_to_sequence
-from text.cleaner import clean_text
+from text.cleaner import clean_text, language_module_map
 from module.mel_processing import spectrogram_torch
 from tools.my_utils import load_audio
 import config as global_config
@@ -290,6 +290,8 @@ def get_phones_and_bert(text,language):
                 dtype=torch.float16 if is_half == True else torch.float32,
             ).to(device)
     elif language in {"zh", "ja","auto"}:
+        if language in ["zh"]:
+            text = language_module_map[language].text_normalize(text)
         textlist=[]
         langlist=[]
         LangSegment.setfilters(["zh","ja","en","ko"])
