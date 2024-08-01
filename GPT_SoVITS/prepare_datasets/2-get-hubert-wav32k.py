@@ -10,11 +10,12 @@ os.environ["CUDA_VISIBLE_DEVICES"]= os.environ.get("_CUDA_VISIBLE_DEVICES")
 from feature_extractor import cnhubert
 opt_dir=                            os.environ.get("opt_dir")
 cnhubert.cnhubert_base_path=                os.environ.get("cnhubert_base_dir")
-is_half=eval(os.environ.get("is_half","True"))
+import torch
+is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 
 import pdb,traceback,numpy as np,logging
 from scipy.io import wavfile
-import librosa,torch
+import librosa
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 from tools.my_utils import load_audio

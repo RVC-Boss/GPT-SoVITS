@@ -106,7 +106,7 @@ conda install -c conda-forge 'ffmpeg<7'
 
 下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下。
 
-##### Mac 用户
+##### MacOS 用户
 ```bash
 brew install ffmpeg
 ```
@@ -155,7 +155,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 对于英语与日语自动语音识别（附加）,从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将它们放置在 `tools/asr/models` 中。 此外，[其他模型](https://huggingface.co/Systran)可能具有类似效果，但占用更小的磁盘空间。
 
 中国地区用户可以通过以下链接下载：
-- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)（点击“下载副本”，如果下载时遇到错误，请退出登录）
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/00bUEp9_mcjMq_dhHu_vrAFDQ#faster-whisper-large-v3)(点击“下载副本”，如果下载时遇到错误，请退出登录）
   
 - [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3)(Hugging Face镜像站)
 
@@ -185,7 +185,7 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 - [ ] **高优先级：**
 
   - [x] 日语和英语的本地化。
-  - [ ] 用户指南。
+  - [x] 用户指南。
   - [x] 日语和英语数据集微调训练。
 
 - [ ] **功能:**
@@ -226,9 +226,9 @@ python tools/asr/funasr_asr.py -i <input> -o <output>
 通过Faster_Whisper进行ASR处理（除中文之外的ASR标记）
 
 （没有进度条，GPU性能可能会导致时间延迟）
-````
-python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
-````
+```
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
+```
 启用自定义列表保存路径
 
 ## 致谢
