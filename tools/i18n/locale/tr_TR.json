@@ -34,6 +34,7 @@
     "3、去混响、去延迟模型（by FoxJoy）：": "3. Yankı ve gecikme giderme modeli (FoxJoy tarafından):",
     "ASR 模型": "ASR modeli",
     "ASR 模型尺寸": "ASR model boyutu",
+    "数据类型精度": "veri türü doğruluğu",
     "ASR 语言设置": "ASR dil ayarları",
     "ASR进程输出信息": "ASR işlemi çıktı bilgisi",
     "GPT模型列表": "GPT model listesi",
