@@ -62,13 +62,16 @@ mem = []
 if_gpu_ok = False
 
 # 判断是否有能用来训练和加速推理的N卡
+ok_gpu_keywords={"10","16","20","30","40","A2","A3","A4","P4","A50","500","A60","70","80","90","M4","T4","TITAN","L4","4060","H"}
+set_gpu_numbers=set()
 if torch.cuda.is_available() or ngpu != 0:
     for i in range(ngpu):
         gpu_name = torch.cuda.get_device_name(i)
-        if any(value in gpu_name.upper()for value in ["10","16","20","30","40","A2","A3","A4","P4","A50","500","A60","70","80","90","M4","T4","TITAN","L4","4060"]):
+        if any(value in gpu_name.upper()for value in ok_gpu_keywords):
             # A10#A100#V100#A40#P40#M40#K80#A4500
             if_gpu_ok = True  # 至少有一张能用的N卡
             gpu_infos.append("%s\t%s" % (i, gpu_name))
+            set_gpu_numbers.add(i)
             mem.append(int(torch.cuda.get_device_properties(i).total_memory/ 1024/ 1024/ 1024+ 0.4))
 # # 判断是否支持mps加速
 # if torch.backends.mps.is_available():
@@ -82,9 +85,22 @@ if if_gpu_ok and len(gpu_infos) > 0:
 else:
     gpu_info = ("%s\t%s" % ("0", "CPU"))
     gpu_infos.append("%s\t%s" % ("0", "CPU"))
+    set_gpu_numbers.add(0)
     default_batch_size = int(psutil.virtual_memory().total/ 1024 / 1024 / 1024 / 2)
 gpus = "-".join([i[0] for i in gpu_infos])
-
+default_gpu_numbers=str(sorted(list(set_gpu_numbers))[0])
+def fix_gpu_number(input):#将越界的number强制改到界内
+    try:
+        if(int(input)not in set_gpu_numbers):return default_gpu_numbers
+    except:return input
+    return input
+def fix_gpu_numbers(inputs):
+    output=[]
+    try:
+        for input in inputs.split(","):output.append(str(fix_gpu_number(input)))
+        return ",".join(output)
+    except:
+        return inputs
 pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"
 pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
 def get_weights_names():
@@ -178,7 +194,7 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         os.environ["sovits_path"]=sovits_path if "/"in sovits_path else "%s/%s"%(SoVITS_weight_root,sovits_path)
         os.environ["cnhubert_base_path"]=cnhubert_base_path
         os.environ["bert_path"]=bert_path
-        os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_number
+        os.environ["_CUDA_VISIBLE_DEVICES"]=fix_gpu_number(gpu_number)
         os.environ["is_half"]=str(is_half)
         os.environ["infer_ttswebui"]=str(webui_port_infer_tts)
         os.environ["is_share"]=str(is_share)
@@ -315,7 +331,7 @@ def open1Bb(batch_size,total_epoch,exp_name,if_dpo,if_save_latest,if_save_every_
         data["train_phoneme_path"]="%s/2-name2text.txt"%s1_dir
         data["output_dir"]="%s/logs_s1"%s1_dir
 
-        os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_numbers.replace("-",",")
+        os.environ["_CUDA_VISIBLE_DEVICES"]=fix_gpu_numbers(gpu_numbers.replace("-",","))
         os.environ["hz"]="25hz"
         tmp_config_path="%s/tmp_s1.yaml"%tmp
         with open(tmp_config_path, "w") as f:f.write(yaml.dump(data, default_flow_style=False))
@@ -396,7 +412,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
                 {
                     "i_part": str(i_part),
                     "all_parts": str(all_parts),
-                    "_CUDA_VISIBLE_DEVICES": gpu_names[i_part],
+                    "_CUDA_VISIBLE_DEVICES": fix_gpu_number(gpu_names[i_part]),
                     "is_half": str(is_half)
                 }
             )
@@ -457,7 +473,7 @@ def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
                 {
                     "i_part": str(i_part),
                     "all_parts": str(all_parts),
-                    "_CUDA_VISIBLE_DEVICES": gpu_names[i_part],
+                    "_CUDA_VISIBLE_DEVICES": fix_gpu_number(gpu_names[i_part]),
                 }
             )
             os.environ.update(config)
@@ -505,7 +521,7 @@ def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
                 {
                     "i_part": str(i_part),
                     "all_parts": str(all_parts),
-                    "_CUDA_VISIBLE_DEVICES": gpu_names[i_part],
+                    "_CUDA_VISIBLE_DEVICES": fix_gpu_number(gpu_names[i_part]),
                 }
             )
             os.environ.update(config)
@@ -567,7 +583,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                         {
                             "i_part": str(i_part),
                             "all_parts": str(all_parts),
-                            "_CUDA_VISIBLE_DEVICES": gpu_names[i_part],
+                            "_CUDA_VISIBLE_DEVICES": fix_gpu_number(gpu_names[i_part]),
                         }
                     )
                     os.environ.update(config)
@@ -604,7 +620,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                     {
                         "i_part": str(i_part),
                         "all_parts": str(all_parts),
-                        "_CUDA_VISIBLE_DEVICES": gpu_names[i_part],
+                        "_CUDA_VISIBLE_DEVICES": fix_gpu_number(gpu_names[i_part]),
                     }
                 )
                 os.environ.update(config)
@@ -633,7 +649,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
                         {
                             "i_part": str(i_part),
                             "all_parts": str(all_parts),
-                            "_CUDA_VISIBLE_DEVICES": gpu_names[i_part],
+                            "_CUDA_VISIBLE_DEVICES": fix_gpu_number(gpu_names[i_part]),
                         }
                     )
                     os.environ.update(config)
