@@ -102,7 +102,7 @@ conda install -c conda-forge 'ffmpeg<7'
 
 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートディレクトリに置きます。
 
-##### Mac ユーザー
+##### MacOS ユーザー
 ```bash
 brew install ffmpeg
 ```
@@ -209,7 +209,7 @@ ASR処理はFaster_Whisperを通じて実行されます(中国語を除くASR�
 
 (進行状況バーは表示されません。GPU のパフォーマンスにより時間遅延が発生する可能性があります)
 ```
-python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
 カスタムリストの保存パスが有効になっています
 

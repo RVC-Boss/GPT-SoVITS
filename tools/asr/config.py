@@ -21,11 +21,13 @@ asr_dict = {
         'lang': ['zh'],
         'size': ['large'],
         'path': 'funasr_asr.py',
+        'precision': ['float32']
     },
     "Faster Whisper (多语种)": {
         'lang': ['auto', 'zh', 'en', 'ja'],
         'size': check_fw_local_models(),
-        'path': 'fasterwhisper_asr.py'
-    }
+        'path': 'fasterwhisper_asr.py',
+        'precision': ['float32', 'float16', 'int8']
+    },
 }
 
