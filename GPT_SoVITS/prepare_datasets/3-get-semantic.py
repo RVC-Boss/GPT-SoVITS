@@ -8,7 +8,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("_CUDA_VISIBLE_DEVICES")
 opt_dir = os.environ.get("opt_dir")
 pretrained_s2G = os.environ.get("pretrained_s2G")
 s2config_path = os.environ.get("s2config_path")
-is_half = eval(os.environ.get("is_half", "True"))
+import torch
+is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 import math, traceback
 import multiprocessing
 import sys, pdb
@@ -19,7 +20,7 @@ from random import shuffle
 import torch.multiprocessing as mp
 from glob import glob
 from tqdm import tqdm
-import logging, librosa, utils, torch
+import logging, librosa, utils
 from module.models import SynthesizerTrn
 
 logging.getLogger("numba").setLevel(logging.WARNING)
