@@ -31,7 +31,11 @@ rotary_embedding_torch
 pyjyutping 
 g2pk2
 ko_pron
+<<<<<<< HEAD
 opencc; sys_platform == 'win32'
 opencc==1.1.1; sys_platform != 'win32'
+=======
+opencc
+>>>>>>> 8ae3d63 (chores)
 eunjeon; sys_platform == 'win32'
 python_mecab_ko; sys_platform != 'win32'
