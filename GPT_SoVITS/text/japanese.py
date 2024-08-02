@@ -5,7 +5,11 @@ import sys
 import pyopenjtalk
 
 
-from text import symbols
+import os
+if os.environ.get("version","v1")=="v1":
+    from text.symbols import symbols
+else:
+    from text.symbols2 import symbols
 from text.symbols import punctuation
 # Regular expression matching Japanese without punctuation marks:
 _japanese_characters = re.compile(
