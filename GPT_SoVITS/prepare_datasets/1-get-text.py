@@ -82,6 +82,7 @@ if os.path.exists(txt_path) == False:
         for name, text, lan in data:
             try:
                 name = os.path.basename(name)
+                print(name)
                 phones, word2ph, norm_text = clean_text(
                     text.replace("%", "-").replace("￥", ","), lan
                 )
@@ -112,6 +113,12 @@ if os.path.exists(txt_path) == False:
         "EN": "en",
         "en": "en",
         "En": "en",
+        "KO": "ko",
+        "Ko": "ko",
+        "ko": "ko",
+        "yue": "yue",
+        "YUE": "yue",
+        "Yue": "yue",
     }
     for line in lines[int(i_part) :: int(all_parts)]:
         try:
