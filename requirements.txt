@@ -31,11 +31,15 @@ pyjyutping
 g2pk2
 ko_pron
 <<<<<<< HEAD
+<<<<<<< HEAD
 opencc; sys_platform == 'win32'
 opencc==1.1.1; sys_platform != 'win32'
 eunjeon; sys_platform == 'win32'
 python_mecab_ko; sys_platform != 'win32'
 =======
 eunjeon; sys_platform != 'windows'
+=======
+eunjeon; sys_platform == 'windows'
+>>>>>>> 8d7b601 (chores)
 python_mecab_ko; sys_platform != 'windows'
 >>>>>>> 1e2f91e (chores)
