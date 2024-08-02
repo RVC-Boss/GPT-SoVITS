@@ -18,7 +18,7 @@ def check_fw_local_models():
 
 asr_dict = {
     "达摩 ASR (中文)": {
-        'lang': ['zh'],
+        'lang': ['zh','yue'],
         'size': ['large'],
         'path': 'funasr_asr.py',
         'precision': ['float32']
