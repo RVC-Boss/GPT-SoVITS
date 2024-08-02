@@ -32,6 +32,7 @@ g2pk2
 ko_pron
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 opencc; sys_platform == 'win32'
 opencc==1.1.1; sys_platform != 'win32'
 eunjeon; sys_platform == 'win32'
@@ -43,3 +44,7 @@ eunjeon; sys_platform == 'windows'
 >>>>>>> 8d7b601 (chores)
 python_mecab_ko; sys_platform != 'windows'
 >>>>>>> 1e2f91e (chores)
+=======
+eunjeon; sys_platform == 'Windows'
+python_mecab_ko; sys_platform != 'Windows'
+>>>>>>> b7f969b (chores)
