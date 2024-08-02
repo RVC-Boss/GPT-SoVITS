@@ -6,8 +6,7 @@
 全部按英文识别
 全部按日文识别
 '''
-import os, re, logging
-import LangSegment
+import logging
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("httpcore").setLevel(logging.ERROR)
@@ -15,8 +14,13 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
+import LangSegment,os, re
 import pdb
 import torch
+
+version=os.environ.get("version","v1")
+pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
+pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"if version=="v1"else "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
 
 if os.path.exists("./gweight.txt"):
     with open("./gweight.txt", 'r', encoding="utf-8") as file:
@@ -25,18 +29,18 @@ if os.path.exists("./gweight.txt"):
             "gpt_path", gweight_data)
 else:
     gpt_path = os.environ.get(
-        "gpt_path", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt")
+        "gpt_path", pretrained_gpt_name)
 
 if os.path.exists("./sweight.txt"):
     with open("./sweight.txt", 'r', encoding="utf-8") as file:
         sweight_data = file.read()
         sovits_path = os.environ.get("sovits_path", sweight_data)
 else:
-    sovits_path = os.environ.get("sovits_path", "GPT_SoVITS/pretrained_models/s2G488k.pth")
+    sovits_path = os.environ.get("sovits_path", pretrained_sovits_name)
 # gpt_path = os.environ.get(
-#     "gpt_path", "pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
+#     "gpt_path", pretrained_gpt_name
 # )
-# sovits_path = os.environ.get("sovits_path", "pretrained_models/s2G488k.pth")
+# sovits_path = os.environ.get("sovits_path", pretrained_sovits_name)
 cnhubert_base_path = os.environ.get(
     "cnhubert_base_path", "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 )
@@ -562,8 +566,6 @@ def change_choices():
     return {"choices": sorted(SoVITS_names, key=custom_sort_key), "__type__": "update"}, {"choices": sorted(GPT_names, key=custom_sort_key), "__type__": "update"}
 
 
-pretrained_sovits_name = "GPT_SoVITS/pretrained_models/s2G488k.pth"
-pretrained_gpt_name = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
 SoVITS_weight_root = "SoVITS_weights"
 GPT_weight_root = "GPT_weights"
 os.makedirs(SoVITS_weight_root, exist_ok=True)
