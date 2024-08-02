@@ -1,5 +1,5 @@
 import os,shutil,sys,pdb,re
-version="v2"if sys.argv[0]=="v2" else"v1"
+version="v2"if sys.argv[1]=="v2" else"v1"
 language=sys.argv[-1] if sys.argv[-1]!='v2' and sys.argv[-1]!='v1' else 'auto'
 os.environ["version"]=version
 os.environ["language"]=language
@@ -208,7 +208,7 @@ def change_tts_inference(if_tts,bert_path,cnhubert_base_path,gpu_number,gpt_path
         os.environ["is_half"]=str(is_half)
         os.environ["infer_ttswebui"]=str(webui_port_infer_tts)
         os.environ["is_share"]=str(is_share)
-        cmd = '"%s" GPT_SoVITS/inference_webui.py'%(python_exec)
+        cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
         yield i18n("TTS推理进程已开启")
         print(cmd)
         p_tts_inference = Popen(cmd, shell=True)
