@@ -1,5 +1,8 @@
-from text.symbols import *
-
+import os
+if os.environ.get("version","v1")=="v1":
+  from text.symbols import symbols
+else:
+  from text.symbols2 import symbols
 
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
 

@@ -1,6 +1,13 @@
-from text import chinese, japanese, cleaned_text_to_sequence, symbols, english
+from text import japanese, cleaned_text_to_sequence, english,korean,cantonese
+import os
+if os.environ.get("version","v1")=="v1":
+    from text import chinese
+    from text.symbols import symbols
+else:
+    from text import chinese2 as chinese
+    from text.symbols2 import symbols
 
-language_module_map = {"zh": chinese, "ja": japanese, "en": english}
+language_module_map = {"zh": chinese, "ja": japanese, "en": english, "ko": korean,"yue":cantonese}
 special = [
     # ("%", "zh", "SP"),
     ("￥", "zh", "SP2"),
@@ -17,8 +24,11 @@ def clean_text(text, language):
         if special_s in text and language == special_l:
             return clean_special(text, language, special_s, target_symbol)
     language_module = language_module_map[language]
-    norm_text = language_module.text_normalize(text)
-    if language == "zh":
+    if hasattr(language_module,"text_normalize"):
+        norm_text = language_module.text_normalize(text)
+    else:
+        norm_text=text
+    if language == "zh" or language=="yue":##########
         phones, word2ph = language_module.g2p(norm_text)
         assert len(phones) == sum(word2ph)
         assert len(norm_text) == len(word2ph)
