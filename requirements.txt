@@ -7,9 +7,9 @@ pytorch-lightning
 gradio==3.38.0
 gradio_client==0.8.1
 ffmpeg-python
-onnxruntime
+onnxruntime-gpu
 tqdm
-funasr==1.0.0
+funasr==1.0.27
 cn2an
 pypinyin
 pyopenjtalk
