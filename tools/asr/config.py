@@ -24,7 +24,7 @@ asr_dict = {
         'precision': ['float32']
     },
     "Faster Whisper (多语种)": {
-        'lang': ['auto', 'zh', 'en', 'ja'],
+        'lang': ['auto', 'zh', 'en', 'ja', 'ko', 'yue'],
         'size': check_fw_local_models(),
         'path': 'fasterwhisper_asr.py',
         'precision': ['float32', 'float16', 'int8']

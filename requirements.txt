@@ -27,3 +27,8 @@ LangSegment>=0.2.0
 Faster_Whisper
 wordsegment
 rotary_embedding_torch
+pyjyutping 
+g2pk2
+ko_pron
+eunjeon; sys_platform != 'windows'
+python_mecab_ko; sys_platform != 'windows'
