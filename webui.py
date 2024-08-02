@@ -769,7 +769,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         )
                         asr_lang = gr.Dropdown(
                             label       = i18n("ASR 语言设置"),
-                            choices     = ["zh"],
+                            choices     = ["zh","yue"],
                             interactive = True,
                             value="zh"
                         )
