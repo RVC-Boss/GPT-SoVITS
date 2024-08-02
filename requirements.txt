@@ -30,5 +30,6 @@ rotary_embedding_torch
 pyjyutping 
 g2pk2
 ko_pron
+opencc
 eunjeon; sys_platform == 'win32'
 python_mecab_ko; sys_platform != 'win32'
