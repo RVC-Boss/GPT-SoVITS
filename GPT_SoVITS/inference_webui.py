@@ -71,6 +71,8 @@ from time import time as ttime
 from module.mel_processing import spectrogram_torch
 from tools.my_utils import load_audio
 from tools.i18n.i18n import I18nAuto
+from typing import Union
+from emotion_file_config import EmotionFile
 
 i18n = I18nAuto()
 
@@ -345,29 +347,27 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         int(hps.data.sampling_rate * 0.3),
         dtype=np.float16 if is_half == True else np.float32,
     )
-    if not ref_free:
-        with torch.no_grad():
-            wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-            if (wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000):
-                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
-            wav16k = torch.from_numpy(wav16k)
-            zero_wav_torch = torch.from_numpy(zero_wav)
-            if is_half == True:
-                wav16k = wav16k.half().to(device)
-                zero_wav_torch = zero_wav_torch.half().to(device)
-            else:
-                wav16k = wav16k.to(device)
-                zero_wav_torch = zero_wav_torch.to(device)
-            wav16k = torch.cat([wav16k, zero_wav_torch])
-            ssl_content = ssl_model.model(wav16k.unsqueeze(0))[
-                "last_hidden_state"
-            ].transpose(
-                1, 2
-            )  # .float()
-            codes = vq_model.extract_latent(ssl_content)
-            prompt_semantic = codes[0, 0]
-            prompt = prompt_semantic.unsqueeze(0).to(device)
-
+    with torch.no_grad():
+        wav16k, sr = librosa.load(ref_wav_path, sr=16000)
+        if (wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000):
+            raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
+        wav16k = torch.from_numpy(wav16k)
+        zero_wav_torch = torch.from_numpy(zero_wav)
+        if is_half == True:
+            wav16k = wav16k.half().to(device)
+            zero_wav_torch = zero_wav_torch.half().to(device)
+        else:
+            wav16k = wav16k.to(device)
+            zero_wav_torch = zero_wav_torch.to(device)
+        wav16k = torch.cat([wav16k, zero_wav_torch])
+        ssl_content = ssl_model.model(wav16k.unsqueeze(0))[
+            "last_hidden_state"
+        ].transpose(
+            1, 2
+        )  # .float()
+        codes = vq_model.extract_latent(ssl_content)
+   
+        prompt_semantic = codes[0, 0]
     t1 = ttime()
 
     if (how_to_cut == i18n("凑四句一切")):
@@ -407,7 +407,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
 
         bert = bert.to(device).unsqueeze(0)
         all_phoneme_len = torch.tensor([all_phoneme_ids.shape[-1]]).to(device)
-
+        prompt = prompt_semantic.unsqueeze(0).to(device)
         t2 = ttime()
         # cache_key="%s-%s-%s-%s-%s-%s-%s-%s"%(ref_wav_path,prompt_text,prompt_language,text,text_language,top_k,top_p,temperature)
         # print(cache.keys(),if_freeze)
@@ -607,6 +607,46 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             prompt_language = gr.Dropdown(
                 label=i18n("参考音频的语种"), choices=[i18n("中文"), i18n("英文"), i18n("日文"), i18n("中英混合"), i18n("日英混合"), i18n("多语种混合")], value=i18n("中文")
             )
+            #自己改的部分coder: 芙宁娜_荒性
+            base_path = f"{os.getcwd()}/character"
+            if not os.path.exists(base_path):
+                  print("自动创建character文件夹...")
+                  os.makedirs(base_path)
+
+            def updateEmotion(character:str,dectory:str) -> None:
+                try:
+                    if character == None and dectory == None:
+                       return
+                    print(f"用户选择的角色是{character}")
+                    characterpath = f"{base_path}/{character}"
+                    emotionpath = f"{characterpath}/{dectory}"
+                    emo_result = EmotionFile.process_audio_folder(emotionpath)
+                    print(f"[DEBUG]: {emo_result}")
+                    result = EmotionFile.getAllKeys(emo_result)
+                    print(f"[DEBUG]: {result}")
+                    return gr.update(choices=result)
+                except Exception as e:
+                    raise e
+                
+            def GetEmotionFile(character:str,dectory:str,key:str):
+                try:
+                    characterpath = f"{base_path}/{character}"
+                    emotionpath = f"{characterpath}/{dectory}"
+                    emo_result = EmotionFile.process_audio_folder(emotionpath)
+                    result = EmotionFile.getCurrentPath(emo_result,key)
+                    return key , result
+                except Exception as e:
+                    raise e
+
+            character_textbox = gr.Textbox(label=i18n("请输入角色名(可以是实验文件名)"), value="")
+            character_dectory = gr.Textbox(label=i18n("请输入角色情感文件夹名"), value="")
+            check_avaliable_button = gr.Button(i18n("检测可用的情感音频"), variant="primary")
+            flooingAudio = gr.Button("填充选择的情感音频",variant="primary")
+            avaliable_emotions = gr.Dropdown(label=i18n("可用的情感音频"),choices=[],value="默认",interactive=True)
+            
+            check_avaliable_button.click(updateEmotion,[character_textbox,character_dectory],[avaliable_emotions])
+            flooingAudio.click(GetEmotionFile,[character_textbox,character_dectory,avaliable_emotions],[prompt_text,inp_ref])
+            # ==========----=========
         gr.Markdown(value=i18n("*请填写需要合成的目标文本和语种模式"))
         with gr.Row():
             with gr.Column():
