@@ -264,8 +264,11 @@ def get_phones_and_bert(text,language):
                 return get_phones_and_bert(formattext,"zh")
             else:
                 phones, word2ph, norm_text = clean_text_inf(formattext, language)
-
-            bert = get_bert_feature(norm_text, word2ph).to(device)
+                bert = get_bert_feature(norm_text, word2ph).to(device)
+        elif language == "yue" and re.search(r'[A-Za-z]', formattext):
+                formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
+                formattext = chinese.text_normalize(formattext)
+                return get_phones_and_bert(formattext,"yue")
         else:
             phones, word2ph, norm_text = clean_text_inf(formattext, language)
             bert = torch.zeros(
