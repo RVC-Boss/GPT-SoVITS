@@ -7,7 +7,8 @@ pytorch-lightning
 gradio==3.38.0
 gradio_client==0.8.1
 ffmpeg-python
-onnxruntime-gpu
+onnxruntime; sys_platform == 'darwin'
+onnxruntime-gpu; sys_platform != 'darwin'
 tqdm
 funasr==1.0.27
 cn2an
@@ -30,11 +31,7 @@ rotary_embedding_torch
 pyjyutping 
 g2pk2
 ko_pron
-<<<<<<< HEAD
 opencc; sys_platform == 'win32'
 opencc==1.1.1; sys_platform != 'win32'
-=======
-opencc
->>>>>>> 8ae3d63 (chores)
 eunjeon; sys_platform == 'win32'
 python_mecab_ko; sys_platform != 'win32'
