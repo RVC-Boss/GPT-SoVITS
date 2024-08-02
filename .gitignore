@@ -10,5 +10,5 @@ reference
 GPT_weights
 SoVITS_weights
 TEMP
-gweights.txt
-sweights.txt
+gweight.txt
+sweight.txt

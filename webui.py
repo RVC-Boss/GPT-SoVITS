@@ -1,6 +1,8 @@
 import os,shutil,sys,pdb,re
-version="v2"if sys.argv[-1]=="v2" else"v1"
+version="v2"if sys.argv[0]=="v2" else"v1"
+language=sys.argv[-1] if sys.argv[-1]!='v2' and sys.argv[-1]!='v1' else 'auto'
 os.environ["version"]=version
+os.environ["language"]=language
 now_dir = os.getcwd()
 sys.path.insert(0, now_dir)
 import json,yaml,warnings,torch
@@ -52,7 +54,10 @@ from subprocess import Popen
 import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
 from tools.i18n.i18n import I18nAuto
-i18n = I18nAuto()
+if language != 'auto':
+    i18n = I18nAuto(language=language)
+else:
+    i18n = I18nAuto()
 from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
