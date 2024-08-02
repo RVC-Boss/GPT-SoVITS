@@ -173,7 +173,9 @@ Language dictionary:
 - 'zh': Chinese
 - 'ja': Japanese
 - 'en': English
-
+- 'ko': Korean
+- 'yue': Cantonese
+  
 Example:
 
 ```
@@ -189,15 +191,15 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
   - [x] Japanese and English dataset fine tune training.
 
 - [ ] **Features:**
-  - [ ] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
-  - [ ] TTS speaking speed control.
-  - [ ] Enhanced TTS emotion control.
-  - [ ] Experiment with changing SoVITS token inputs to probability distribution of vocabs.
-  - [ ] Improve English and Japanese text frontend.
+  - [x] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
+  - [x] TTS speaking speed control.
+  - [ ] ~~Enhanced TTS emotion control.~~
+  - [ ] Experiment with changing SoVITS token inputs to probability distribution of GPT vocabs (transformer latent).
+  - [x] Improve English and Japanese text frontend.
   - [ ] Develop tiny and larger-sized TTS models.
   - [x] Colab scripts.
   - [ ] Try expand training dataset (2k hours -> 10k hours).
-  - [ ] better sovits base model (enhanced audio quality)
+  - [x] better sovits base model (enhanced audio quality)
   - [ ] model mix
 
 ## (Additional) Method for running from the command line
