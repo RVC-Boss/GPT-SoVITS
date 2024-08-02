@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
-import LangSegment,os, re, sys
+import LangSegment, os, re, sys
 import pdb
 import torch
 
