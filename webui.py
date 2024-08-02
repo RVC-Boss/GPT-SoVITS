@@ -227,14 +227,14 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_
         output_file_name = os.path.basename(asr_inp_dir)
         output_folder = asr_opt_dir or "output/asr_opt"
         output_file_path = os.path.abspath(f'{output_folder}/{output_file_name}.list')
-        yield "ASR任务开启：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}, {"__type__":"update"}
+        yield "ASR任务开启：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}, {"__type__":"update"}, {"__type__":"update"}
         print(cmd)
         p_asr = Popen(cmd, shell=True)
         p_asr.wait()
         p_asr=None
-        yield f"ASR任务完成, 查看终端进行下一步", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__":"update","value":output_file_path}, {"__type__":"update","value":output_file_path}
+        yield f"ASR任务完成, 查看终端进行下一步", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__":"update","value":output_file_path}, {"__type__":"update","value":output_file_path}, {"__type__":"update","value":asr_inp_dir}
     else:
-        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务", {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}, {"__type__":"update"}
+        yield "已有正在进行的ASR任务，需先终止才能开启下一次任务", {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}, {"__type__":"update"}, {"__type__":"update"}
         # return None
 
 def close_asr():
@@ -861,8 +861,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     button1abc_open = gr.Button(i18n("开启一键三连"), variant="primary",visible=True)
                     button1abc_close = gr.Button(i18n("终止一键三连"), variant="primary",visible=False)
                     info1abc=gr.Textbox(label=i18n("一键三连进程输出信息"))
-                    
-            open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang, asr_precision], [asr_info,open_asr_button,close_asr_button,path_list,inp_text])
+
+            open_asr_button.click(open_asr, [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang, asr_precision], [asr_info,open_asr_button,close_asr_button,path_list,inp_text,inp_wav_dir])
             close_asr_button.click(close_asr, [], [asr_info,open_asr_button,close_asr_button])
             open_slicer_button.click(open_slice, [slice_inp_path,slice_opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,n_process], [slicer_info,open_slicer_button,close_slicer_button,asr_inp_dir,denoise_input_dir,inp_wav_dir])
             close_slicer_button.click(close_slice, [], [slicer_info,open_slicer_button,close_slicer_button])
