@@ -123,7 +123,7 @@
     "是否仅保存最新的ckpt文件以节省硬盘空间": "Se deve salvar apenas o último arquivo CKPT para economizar espaço em disco",
     "是否在每次保存时间点将最终小模型保存至weights文件夹": "Se deve salvar o modelo pequeno final na pasta Weights em cada ponto de salvamento de tempo",
     "是否开启TTS推理WebUI": "Se deseja ativar o webui de raciocínio TTS",
-    "是否开启UVR5-WebUI": "Se deseja ativar a UVR5-WEBUI",
+    "是否开启UVR5-WebUI": "Se deseja ativar a UVR5-WebUI",
     "是否开启dpo训练选项(实验性)": "Se deseja ativar a opção de treinamento DPO (experimental)",
     "是否开启打标WebUI": "Se deseja abrir o webui de marcação",
     "是否直接对上次合成结果调整语速。防止随机性。": "Se deve ajustar diretamente a velocidade da fala do último resultado de síntese para evitar aleatoriedade.",

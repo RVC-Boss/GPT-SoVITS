@@ -122,7 +122,7 @@
     "日英混合": "Japanese-English Mixed",
     "是否仅保存最新的ckpt文件以节省硬盘空间": "Save only the latest '.ckpt' file to save disk space:",
     "是否在每次保存时间点将最终小模型保存至weights文件夹": "Save a small final model to the 'weights' folder at each save point:",
-    "是否开启TTS推理WebUI": "Open TTS inference WEBUI",
+    "是否开启TTS推理WebUI": "Open TTS inference WebUI",
     "是否开启UVR5-WebUI": "Open UVR5-WebUI",
     "是否开启dpo训练选项(实验性)": "Enable DPO training (experimental feature)",
     "是否开启打标WebUI": "Open labelling WebUI",
