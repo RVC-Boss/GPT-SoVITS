@@ -72,7 +72,7 @@
     "伴奏人声分离&去混响&去回声": "Vocals/Accompaniment Separation & Reverberation Removal",
     "使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开，开启后无视填写的参考文本。": "When using the no-reference text mode, it is recommended to use a fine-tuned GPT. If the reference audio is unclear and you don't know what to write, you can enable this feature, which will ignore the reference text you've entered.",
     "保存频率save_every_epoch": "Save frequency (save_every_epoch):",
-    "凑50字一切": "Cut per 50 characters",
+    "凑50字一切": "Slice per 50 characters",
     "凑四句一切": "Slice once every 4 sentences",
     "切分后文本": "Text after sliced",
     "切分后的子音频的输出根目录": "Audio slicer output folder",
