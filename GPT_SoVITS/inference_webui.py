@@ -30,16 +30,20 @@ if os.path.exists("./gweight.txt"):
         gweight_data = file.read()
         gpt_path = os.environ.get(
             "gpt_path", gweight_data)
+        if version == 'v2':
+            gpt_path = pretrained_gpt_name 
 else:
     gpt_path = os.environ.get(
-        "gpt_path", pretrained_gpt_name)
+        "gpt_path", pretrained_gpt_name)   
 
 if os.path.exists("./sweight.txt"):
     with open("./sweight.txt", 'r', encoding="utf-8") as file:
         sweight_data = file.read()
         sovits_path = os.environ.get("sovits_path", sweight_data)
+        if version == 'v2':
+            sovits_path = pretrained_sovits_name  
 else:
-    sovits_path = os.environ.get("sovits_path", pretrained_sovits_name)
+    sovits_path = os.environ.get("sovits_path", pretrained_sovits_name)  
 # gpt_path = os.environ.get(
 #     "gpt_path", pretrained_gpt_name
 # )
