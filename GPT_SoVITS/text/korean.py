@@ -2,10 +2,7 @@ import re
 from jamo import h2j, j2hcj
 import ko_pron
 from g2pk2 import G2p
-import os
-# if os.environ.get("version","v1")=="v1":
-#     from text.symbols import symbols
-# else:
+
 from text.symbols2 import symbols 
 
 # This is a list of Korean classifiers preceded by pure Korean numerals.
@@ -255,7 +252,7 @@ def post_replace_ph(ph):
         ph = "停"
     return ph
 
-def g2p(text, version=""):
+def g2p(text):
     text = latin_to_hangul(text)
     text = _g2p(text)
     text = divide_hangul(text)

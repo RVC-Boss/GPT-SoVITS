@@ -228,7 +228,7 @@ dict_language = {
 
 
 def clean_text_inf(text, language, version):
-    phones, word2ph, norm_text = clean_text(text, language)
+    phones, word2ph, norm_text = clean_text(text, language, version)
     phones = cleaned_text_to_sequence(phones, version)
     return phones, word2ph, norm_text
 

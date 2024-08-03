@@ -49,11 +49,11 @@ def clean_text(text, language, version):
             phones = [','] * (4 - len(phones)) + phones
         word2ph = None
     else:
-        phones = language_module.g2p(norm_text, version)
+        phones = language_module.g2p(norm_text)
         word2ph = None
 
     for ph in phones:
-        assert ph in symbols
+        phones = ['UNK' if ph not in symbols else ph for ph in phones]
     return phones, word2ph, norm_text
 
 
@@ -71,7 +71,7 @@ def clean_special(text, language, special_s, target_symbol, version):
     text = text.replace(special_s, ",")
     language_module = language_module_map[language]
     norm_text = language_module.text_normalize(text)
-    phones = language_module.g2p(norm_text, version)
+    phones = language_module.g2p(norm_text)
     new_ph = []
     for ph in phones[0]:
         assert ph in symbols
