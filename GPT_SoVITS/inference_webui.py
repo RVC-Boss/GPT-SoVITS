@@ -14,32 +14,36 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
-import LangSegment, os, re, sys
+import LangSegment, os, re, sys, json
 import pdb
 import torch
 
+if len(sys.argv)==1:sys.argv.append('v1')
 version=os.environ.get("version","v1")
-language=os.environ.get("language","auto")
 version="v2"if sys.argv[1]=="v2" else version
 os.environ['version']=version
-language=sys.argv[-1] if sys.argv[-1]!='v2' and sys.argv[-1]!='v1' else language
+language=os.environ.get("language","auto")
+language=sys.argv[-1] if len(sys.argv[-1])==5 else language
 pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
 pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"if version=="v1"else "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
 
-if os.path.exists("./gweight.txt"):
-    with open("./gweight.txt", 'r', encoding="utf-8") as file:
-        gweight_data = file.read()
-        gpt_path = os.environ.get(
-            "gpt_path", gweight_data)
-if version == 'v2':
-    gpt_path = os.environ.get("gpt_path", pretrained_gpt_name)   
+if os.path.exists(f"./weight.json"):
+    pass
+else:
+    with open(f"./weight.json", 'w', encoding="utf-8") as file:json.dump({'GPT':{},'SoVITS':{}},file)
 
-if os.path.exists("./sweight.txt"):
-    with open("./sweight.txt", 'r', encoding="utf-8") as file:
-        sweight_data = file.read()
-        sovits_path = os.environ.get("sovits_path", sweight_data)
-if version == 'v2':
-    sovits_path = os.environ.get("sovits_path", pretrained_sovits_name)  
+with open(f"./weight.json", 'r', encoding="utf-8") as file:
+    weight_data = file.read()
+    weight_data=json.loads(weight_data)
+    gpt_path = os.environ.get(
+        "gpt_path", weight_data.get('GPT',{}).get(version,pretrained_gpt_name))
+    sovits_path = os.environ.get(
+        "sovits_path", weight_data.get('SoVITS',{}).get(version,pretrained_sovits_name))
+        
+# if len(sys.argv[1]==2) or len(sys.argv[1])==5:
+#     gpt_path = pretrained_gpt_name
+#     sovits_path = pretrained_sovits_name
+    
 # gpt_path = os.environ.get(
 #     "gpt_path", pretrained_gpt_name
 # )
@@ -166,8 +170,11 @@ def change_sovits_weights(sovits_path):
         vq_model = vq_model.to(device)
     vq_model.eval()
     print(vq_model.load_state_dict(dict_s2["weight"], strict=False))
-    with open("./sweight.txt", "w", encoding="utf-8") as f:
-        f.write(sovits_path)
+    with open("./weight.json")as f:
+            data=f.read()
+            data=json.loads(data)
+            data["SoVITS"][version]=sovits_path
+    with open("./weight.json","w")as f:f.write(json.dumps(data))
 
 
 change_sovits_weights(sovits_path)
@@ -187,7 +194,11 @@ def change_gpt_weights(gpt_path):
     t2s_model.eval()
     total = sum([param.nelement() for param in t2s_model.parameters()])
     print("Number of parameter: %.2fM" % (total / 1e6))
-    with open("./gweight.txt", "w", encoding="utf-8") as f: f.write(gpt_path)
+    with open("./weight.json")as f:
+            data=f.read()
+            data=json.loads(data)
+            data["GPT"][version]=gpt_path
+    with open("./weight.json","w")as f:f.write(json.dumps(data))
 
 
 change_gpt_weights(gpt_path)
@@ -588,8 +599,8 @@ def change_choices():
     return {"choices": sorted(SoVITS_names, key=custom_sort_key), "__type__": "update"}, {"choices": sorted(GPT_names, key=custom_sort_key), "__type__": "update"}
 
 
-SoVITS_weight_root = "SoVITS_weights"
-GPT_weight_root = "GPT_weights"
+SoVITS_weight_root = f"SoVITS_weights/{version}"
+GPT_weight_root = f"GPT_weights/{version}"
 os.makedirs(SoVITS_weight_root, exist_ok=True)
 os.makedirs(GPT_weight_root, exist_ok=True)
 
