@@ -39,10 +39,6 @@ with open(f"./weight.json", 'r', encoding="utf-8") as file:
         "gpt_path", weight_data.get('GPT',{}).get(version,pretrained_gpt_name))
     sovits_path = os.environ.get(
         "sovits_path", weight_data.get('SoVITS',{}).get(version,pretrained_sovits_name))
-        
-# if len(sys.argv[1]==2) or len(sys.argv[1])==5:
-#     gpt_path = pretrained_gpt_name
-#     sovits_path = pretrained_sovits_name
     
 # gpt_path = os.environ.get(
 #     "gpt_path", pretrained_gpt_name
