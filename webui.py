@@ -121,8 +121,8 @@ def get_weights_names():
     for name in os.listdir(GPT_weight_root):
         if name.endswith(".ckpt"): GPT_names.append(name)
     return SoVITS_names,GPT_names
-SoVITS_weight_root="SoVITS_weights"
-GPT_weight_root="GPT_weights"
+SoVITS_weight_root=f"SoVITS_weights/{version}"
+GPT_weight_root=f"GPT_weights/{version}"
 os.makedirs(SoVITS_weight_root,exist_ok=True)
 os.makedirs(GPT_weight_root,exist_ok=True)
 SoVITS_names,GPT_names = get_weights_names()
