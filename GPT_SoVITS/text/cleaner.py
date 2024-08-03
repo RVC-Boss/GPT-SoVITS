@@ -23,7 +23,7 @@ special = [
 def clean_text(text, language, version):
     if version == "v1":
         symbols = symbols_v1.symbols
-        language_module_map = {"zh": chinese_v1, "ja": japanese, "en": english, "ko": korean,"yue":cantonese}
+        language_module_map = {"zh": chinese_v1, "ja": japanese, "en": english}
     else:
         symbols = symbols_v2.symbols
         language_module_map = {"zh": chinese_v2, "ja": japanese, "en": english, "ko": korean,"yue":cantonese}
@@ -60,7 +60,7 @@ def clean_text(text, language, version):
 def clean_special(text, language, special_s, target_symbol, version):
     if version == "v1":
         symbols = symbols_v1.symbols
-        language_module_map = {"zh": chinese_v1, "ja": japanese, "en": english, "ko": korean,"yue":cantonese}
+        language_module_map = {"zh": chinese_v1, "ja": japanese, "en": english}
     else:
         symbols = symbols_v2.symbols
         language_module_map = {"zh": chinese_v2, "ja": japanese, "en": english, "ko": korean,"yue":cantonese}
