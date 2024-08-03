@@ -39,10 +39,6 @@ with open(f"./weight.json", 'r', encoding="utf-8") as file:
         "gpt_path", weight_data.get('GPT',{}).get(version,pretrained_gpt_name))
     sovits_path = os.environ.get(
         "sovits_path", weight_data.get('SoVITS',{}).get(version,pretrained_sovits_name))
-        
-# if len(sys.argv[1]==2) or len(sys.argv[1])==5:
-#     gpt_path = pretrained_gpt_name
-#     sovits_path = pretrained_sovits_name
     
 # gpt_path = os.environ.get(
 #     "gpt_path", pretrained_gpt_name
@@ -599,10 +595,12 @@ def change_choices():
     return {"choices": sorted(SoVITS_names, key=custom_sort_key), "__type__": "update"}, {"choices": sorted(GPT_names, key=custom_sort_key), "__type__": "update"}
 
 
-SoVITS_weight_root = f"SoVITS_weights/{version}"
-GPT_weight_root = f"GPT_weights/{version}"
-os.makedirs(SoVITS_weight_root, exist_ok=True)
-os.makedirs(GPT_weight_root, exist_ok=True)
+SoVITS_weight_root="SoVITS_weights_v2" if version=='v2' else "SoVITS_weights"
+GPT_weight_root="GPT_weights_v2" if version=='v2' else "GPT_weights"
+os.makedirs("SoVITS_weights",exist_ok=True)
+os.makedirs("GPT_weights",exist_ok=True)
+os.makedirs("SoVITS_weights_v2",exist_ok=True)
+os.makedirs("GPT_weights_v2",exist_ok=True)
 
 
 def get_weights_names():

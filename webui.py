@@ -1,6 +1,7 @@
 import os,shutil,sys,pdb,re
+if len(sys.argv)==1:sys.argv.append('v1')
 version="v2"if sys.argv[1]=="v2" else"v1"
-language=sys.argv[-1] if sys.argv[-1]!='v2' and sys.argv[-1]!='v1' else 'auto'
+language=sys.argv[-1] if len(sys.argv[-1])==5 else "auto"
 os.environ["version"]=version
 os.environ["language"]=language
 now_dir = os.getcwd()
@@ -121,10 +122,12 @@ def get_weights_names():
     for name in os.listdir(GPT_weight_root):
         if name.endswith(".ckpt"): GPT_names.append(name)
     return SoVITS_names,GPT_names
-SoVITS_weight_root=f"SoVITS_weights/{version}"
-GPT_weight_root=f"GPT_weights/{version}"
-os.makedirs(SoVITS_weight_root,exist_ok=True)
-os.makedirs(GPT_weight_root,exist_ok=True)
+SoVITS_weight_root="SoVITS_weights_v2" if version=='v2' else "SoVITS_weights"
+GPT_weight_root="GPT_weights_v2" if version=='v2' else "GPT_weights"
+os.makedirs("SoVITS_weights",exist_ok=True)
+os.makedirs("GPT_weights",exist_ok=True)
+os.makedirs("SoVITS_weights_v2",exist_ok=True)
+os.makedirs("GPT_weights_v2",exist_ok=True)
 SoVITS_names,GPT_names = get_weights_names()
 
 def custom_sort_key(s):
