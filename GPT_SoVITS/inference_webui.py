@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
-import LangSegment, os, re, sys, json
+import LangSegment, os, re, sys, json, importlib
 import pdb
 import torch
 
@@ -22,8 +22,6 @@ if len(sys.argv)==1:sys.argv.append('v1')
 version=os.environ.get("version","v1")
 version="v2"if sys.argv[1]=="v2" else version
 os.environ['version']=version
-language=os.environ.get("language","auto")
-language=sys.argv[-1] if len(sys.argv[-1])==5 else language
 pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
 pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"if version=="v1"else "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
 
@@ -73,8 +71,10 @@ from text.cleaner import clean_text
 from time import time as ttime
 from module.mel_processing import spectrogram_torch
 from tools.my_utils import load_audio
-from tools.i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto, scan_language_list
 
+language=os.environ.get("language","auto")
+language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 if language != 'auto':
     i18n = I18nAuto(language=language)
 else:
@@ -215,21 +215,28 @@ def get_spepc(hps, filename):
     )
     return spec
 
-
-dict_language = {
+dict_language_v1 = {
     i18n("中文"): "all_zh",#全部按中文识别
-    i18n("粤语"): "all_yue",#全部按中文识别
     i18n("英文"): "en",#全部按英文识别#######不变
     i18n("日文"): "all_ja",#全部按日文识别
+    i18n("中英混合"): "zh",#按中英混合识别####不变
+    i18n("日英混合"): "ja",#按日英混合识别####不变
+    i18n("多语种混合"): "auto",#多语种启动切分识别语种
+}
+dict_language_v2 = {
+    i18n("中文"): "all_zh",#全部按中文识别
+    i18n("英文"): "en",#全部按英文识别#######不变
+    i18n("日文"): "all_ja",#全部按日文识别
+    i18n("粤语"): "all_yue",#全部按中文识别
     i18n("韩文"): "all_ko",#全部按韩文识别
     i18n("中英混合"): "zh",#按中英混合识别####不变
-    i18n("粤英混合"): "yue",#按粤英混合识别####不变
     i18n("日英混合"): "ja",#按日英混合识别####不变
+    i18n("粤英混合"): "yue",#按粤英混合识别####不变
     i18n("韩英混合"): "ko",#按韩英混合识别####不变
     i18n("多语种混合"): "auto",#多语种启动切分识别语种
     i18n("多语种混合(粤语)"): "auto_yue",#多语种启动切分识别语种
 }
-
+dict_language = dict_language_v1 if version =='v1' else dict_language_v2
 
 def clean_text_inf(text, language):
     phones, word2ph, norm_text = clean_text(text, language)
@@ -591,7 +598,7 @@ def process_text(texts):
 
 
 def change_choices():
-    SoVITS_names, GPT_names = get_weights_names()
+    SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
     return {"choices": sorted(SoVITS_names, key=custom_sort_key), "__type__": "update"}, {"choices": sorted(GPT_names, key=custom_sort_key), "__type__": "update"}
 
 
@@ -603,7 +610,7 @@ os.makedirs("SoVITS_weights_v2",exist_ok=True)
 os.makedirs("GPT_weights_v2",exist_ok=True)
 
 
-def get_weights_names():
+def get_weights_names(GPT_weight_root, SoVITS_weight_root):
     SoVITS_names = [pretrained_sovits_name]
     for name in os.listdir(SoVITS_weight_root):
         if name.endswith(".pth"): SoVITS_names.append("%s/%s" % (SoVITS_weight_root, name))
@@ -613,7 +620,7 @@ def get_weights_names():
     return SoVITS_names, GPT_names
 
 
-SoVITS_names, GPT_names = get_weights_names()
+SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
 
 def html_center(text, label='p'):
     return f"""<div style="text-align: center; margin: 100; padding: 50;">
@@ -625,6 +632,31 @@ def html_left(text, label='p'):
                 <{label} style="margin: 0; padding: 0;">{text}</{label}>
                 </div>"""
 
+def switch_version(version_):
+    os.environ['version']=version_
+    global pretrained_sovits_name, pretrained_gpt_name, version
+    version = version_
+    importlib.reload(sys.modules['text.symbols'])
+    importlib.reload(sys.modules['text'])
+    importlib.reload(sys.modules['text.cleaner'])
+    importlib.reload(sys.modules['AR.models'])
+    importlib.reload(sys.modules['module.models'])
+    dict_language = dict_language_v1 if version =='v1' else dict_language_v2
+    SoVITS_weight_root="SoVITS_weights_v2" if version=='v2' else "SoVITS_weights"
+    GPT_weight_root="GPT_weights_v2" if version=='v2' else "GPT_weights"
+    pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
+    pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"if version=="v1"else "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
+    with open(f"./weight.json", 'r', encoding="utf-8") as file:
+        weight_data = file.read()
+        weight_data=json.loads(weight_data)
+        gpt_path = os.environ.get(
+            "gpt_path", weight_data.get('GPT',{}).get(version,pretrained_gpt_name))
+        sovits_path = os.environ.get(
+            "sovits_path", weight_data.get('SoVITS',{}).get(version,pretrained_sovits_name))
+    return  {'__type__':'update', 'value':gpt_path, 'choices':GPT_names}, {'__type__':'update', 'value':sovits_path, 'choices':SoVITS_names}, {'__type__':'update', 'choices':list(dict_language.keys()), 'value':i18n("中文")}, {'__type__':'update', 'choices':list(dict_language.keys()), 'value':i18n("中文")}
+
+
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
         value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
@@ -632,21 +664,22 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     with gr.Group():
         gr.Markdown(html_center(i18n("模型切换"),'h3'))
         with gr.Row():
-            GPT_dropdown = gr.Dropdown(label=i18n("GPT模型列表"), choices=sorted(GPT_names, key=custom_sort_key), value=gpt_path, interactive=True,scale=13)
-            SoVITS_dropdown = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=sorted(SoVITS_names, key=custom_sort_key), value=sovits_path, interactive=True,scale=13)
-            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary",scale=13)
+            GPT_dropdown = gr.Dropdown(label=i18n("GPT模型列表"), choices=sorted(GPT_names, key=custom_sort_key), value=gpt_path, interactive=True, scale=14)
+            SoVITS_dropdown = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=sorted(SoVITS_names, key=custom_sort_key), value=sovits_path, interactive=True, scale=14)
+            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=7)
+            version_dropdown = gr.Dropdown(label=i18n("切换模型版本"), choices=['v1','v2'], value=version, scale=7)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
             SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown], [])
             GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
         gr.Markdown(html_center(i18n("*请上传并填写参考信息"),'h3'))
         with gr.Row():
-            inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath",scale=13)
+            inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath", scale=13)
             with gr.Column(scale=13):
                 ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True)
                 gr.Markdown(html_left(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开。<br>开启后无视填写的参考文本。")))
                 prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=3, max_lines=3)
             prompt_language = gr.Dropdown(
-                label=i18n("参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文"),scale=14
+                label=i18n("参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文"), scale=14
             )
         gr.Markdown(html_center(i18n("*请填写需要合成的目标文本和语种模式"),'h3'))
         with gr.Row():
@@ -675,13 +708,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             #     get_phoneme_button = gr.Button(i18n("目标文本转音素"), variant="primary")
         with gr.Row():
             inference_button = gr.Button(i18n("合成语音"), variant="primary", size='lg', scale=25)
-            output = gr.Audio(label=i18n("输出的语音"),scale=14)
+            output = gr.Audio(label=i18n("输出的语音"), scale=14)
 
         inference_button.click(
             get_tts_wav,
             [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free,speed,if_freeze],
             [output],
         )
+        version_dropdown.change(switch_version,[version_dropdown],[GPT_dropdown,SoVITS_dropdown,prompt_language,text_language])
 
         # gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         # with gr.Row():

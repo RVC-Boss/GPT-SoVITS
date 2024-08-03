@@ -1,9 +1,7 @@
 import os,shutil,sys,pdb,re
 if len(sys.argv)==1:sys.argv.append('v1')
 version="v2"if sys.argv[1]=="v2" else"v1"
-language=sys.argv[-1] if len(sys.argv[-1])==5 else "auto"
 os.environ["version"]=version
-os.environ["language"]=language
 now_dir = os.getcwd()
 sys.path.insert(0, now_dir)
 import json,yaml,warnings,torch
@@ -54,7 +52,9 @@ import gradio as gr
 from subprocess import Popen
 import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
-from tools.i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto, scan_language_list
+language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else "auto"
+os.environ["language"]=language
 if language != 'auto':
     i18n = I18nAuto(language=language)
 else:
