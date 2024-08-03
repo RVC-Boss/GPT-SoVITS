@@ -7,7 +7,8 @@ pytorch-lightning
 gradio==3.38.0
 gradio_client==0.8.1
 ffmpeg-python
-onnxruntime-gpu
+onnxruntime; sys_platform == 'darwin'
+onnxruntime-gpu; sys_platform != 'darwin'
 tqdm
 funasr==1.0.27
 cn2an
