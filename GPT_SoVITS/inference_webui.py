@@ -595,8 +595,8 @@ def change_choices():
     return {"choices": sorted(SoVITS_names, key=custom_sort_key), "__type__": "update"}, {"choices": sorted(GPT_names, key=custom_sort_key), "__type__": "update"}
 
 
-SoVITS_weight_root = f"SoVITS_weights/{version}"
-GPT_weight_root = f"GPT_weights/{version}"
+SoVITS_weight_root="SoVITS_weights_v2" if version=='v2' else "SoVITS_weights"
+GPT_weight_root="GPT_weights_v2" if version=='v2' else "GPT_weights"
 os.makedirs(SoVITS_weight_root, exist_ok=True)
 os.makedirs(GPT_weight_root, exist_ok=True)
 
