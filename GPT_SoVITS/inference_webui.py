@@ -211,11 +211,16 @@ def get_spepc(hps, filename):
 
 dict_language = {
     i18n("中文"): "all_zh",#全部按中文识别
+    i18n("粤语"): "all_yue",#全部按中文识别
     i18n("英文"): "en",#全部按英文识别#######不变
     i18n("日文"): "all_ja",#全部按日文识别
+    i18n("韩文"): "all_ko",#全部按韩文识别
     i18n("中英混合"): "zh",#按中英混合识别####不变
+    i18n("粤英混合"): "yue",#按粤英混合识别####不变
     i18n("日英混合"): "ja",#按日英混合识别####不变
+    i18n("韩英混合"): "ko",#按韩英混合识别####不变
     i18n("多语种混合"): "auto",#多语种启动切分识别语种
+    i18n("多语种混合(粤语)"): "auto_yue",#多语种启动切分识别语种
 }
 
 
@@ -248,13 +253,13 @@ def get_first(text):
 
 from text import chinese
 def get_phones_and_bert(text,language):
-    if language in {"en","all_zh","all_ja"}:
+    if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")
         if language == "en":
             LangSegment.setfilters(["en"])
             formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
         else:
-            # 因无法区别中日文汉字,以用户输入为准
+            # 因无法区别中日韩文汉字,以用户输入为准
             formattext = text
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
@@ -265,32 +270,37 @@ def get_phones_and_bert(text,language):
                 return get_phones_and_bert(formattext,"zh")
             else:
                 phones, word2ph, norm_text = clean_text_inf(formattext, language)
-
-            bert = get_bert_feature(norm_text, word2ph).to(device)
+                bert = get_bert_feature(norm_text, word2ph).to(device)
+        elif language == "yue" and re.search(r'[A-Za-z]', formattext):
+                formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
+                formattext = chinese.text_normalize(formattext)
+                return get_phones_and_bert(formattext,"yue")
         else:
             phones, word2ph, norm_text = clean_text_inf(formattext, language)
             bert = torch.zeros(
                 (1024, len(phones)),
                 dtype=torch.float16 if is_half == True else torch.float32,
             ).to(device)
-    elif language in {"zh", "ja","auto"}:
+    elif language in {"zh", "ja", "ko", "yue", "auto", "auto_yue"}:
         textlist=[]
         langlist=[]
         LangSegment.setfilters(["zh","ja","en","ko"])
         if language == "auto":
             for tmp in LangSegment.getTexts(text):
-                if tmp["lang"] == "ko":
-                    langlist.append("zh")
-                    textlist.append(tmp["text"])
-                else:
-                    langlist.append(tmp["lang"])
-                    textlist.append(tmp["text"])
+                langlist.append(tmp["lang"])
+                textlist.append(tmp["text"])
+        elif language == "auto_yue":
+            for tmp in LangSegment.getTexts(text):
+                if tmp["lang"] == "zh":
+                    tmp["lang"] = "yue"
+                langlist.append(tmp["lang"])
+                textlist.append(tmp["text"])
         else:
             for tmp in LangSegment.getTexts(text):
                 if tmp["lang"] == "en":
                     langlist.append(tmp["lang"])
                 else:
-                    # 因无法区别中日文汉字,以用户输入为准
+                    # 因无法区别中日韩文汉字,以用户输入为准
                     langlist.append(language)
                 textlist.append(tmp["text"])
         print(textlist)
@@ -627,7 +637,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 gr.Markdown(html_left(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开。<br>开启后无视填写的参考文本。")))
                 prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=3, max_lines=3)
             prompt_language = gr.Dropdown(
-                label=i18n("参考音频的语种"), choices=[i18n("中文"), i18n("英文"), i18n("日文"), i18n("中英混合"), i18n("日英混合"), i18n("多语种混合")], value=i18n("中文"),scale=14
+                label=i18n("参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文"),scale=14
             )
         gr.Markdown(html_center(i18n("*请填写需要合成的目标文本和语种模式"),'h3'))
         with gr.Row():
@@ -635,7 +645,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=26, max_lines=26)
             with gr.Column(scale=7):
                 text_language = gr.Dropdown(
-                        label=i18n("需要合成的语种"), choices=[i18n("中文"), i18n("英文"), i18n("日文"), i18n("中英混合"), i18n("日英混合"), i18n("多语种混合")], value=i18n("中文"), scale=1
+                        label=i18n("需要合成的语种"), choices=list(dict_language.keys()), value=i18n("中文"), scale=1
                     )
                 how_to_cut = gr.Dropdown(
                         label=i18n("怎么切"),
@@ -655,8 +665,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             #     phoneme=gr.Textbox(label=i18n("音素框"), value="")
             #     get_phoneme_button = gr.Button(i18n("目标文本转音素"), variant="primary")
         with gr.Row():
-                inference_button = gr.Button(i18n("合成语音"), variant="primary", size='lg', scale=25)
-                output = gr.Audio(label=i18n("输出的语音"),scale=14)
+            inference_button = gr.Button(i18n("合成语音"), variant="primary", size='lg', scale=25)
+            output = gr.Audio(label=i18n("输出的语音"),scale=14)
 
         inference_button.click(
             get_tts_wav,
@@ -678,7 +688,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         #     button3.click(cut3, [text_inp], [text_opt])
         #     button4.click(cut4, [text_inp], [text_opt])
         #     button5.click(cut5, [text_inp], [text_opt])
-        gr.Markdown(html_center(i18n("后续将支持转音素、手工修改音素、语音合成分步执行。")))
+        # gr.Markdown(html_center(i18n("后续将支持转音素、手工修改音素、语音合成分步执行。")))
 
 if __name__ == '__main__':
     app.queue(concurrency_count=511, max_size=1022).launch(
