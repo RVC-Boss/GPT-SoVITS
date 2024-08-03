@@ -6,10 +6,10 @@ from g2p_en import G2p
 
 from text.symbols import punctuation
 
-if os.environ.get("version","v1")=="v1":
-    from text.symbols import symbols
-else:
-    from text.symbols2 import symbols
+# if os.environ.get("version","v1")=="v1":
+#     from text.symbols import symbols
+# else:
+from text.symbols2 import symbols
 
 import unicodedata
 from builtins import str as unicode
@@ -361,7 +361,7 @@ class en_G2p(G2p):
 _g2p = en_G2p()
 
 
-def g2p(text):
+def g2p(text, version=""):
     # g2p_en 整段推理，剔除不存在的arpa返回
     phone_list = _g2p(text)
     phones = [ph if ph != "<unk>" else "UNK" for ph in phone_list if ph not in [" ", "<pad>", "UW", "</s>", "<s>"]]

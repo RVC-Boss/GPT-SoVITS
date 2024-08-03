@@ -3,10 +3,10 @@ from jamo import h2j, j2hcj
 import ko_pron
 from g2pk2 import G2p
 import os
-if os.environ.get("version","v1")=="v1":
-    from text.symbols import symbols
-else:
-    from text.symbols2 import symbols
+# if os.environ.get("version","v1")=="v1":
+#     from text.symbols import symbols
+# else:
+from text.symbols2 import symbols 
 
 # This is a list of Korean classifiers preceded by pure Korean numerals.
 _korean_classifiers = '군데 권 개 그루 닢 대 두 마리 모 모금 뭇 발 발짝 방 번 벌 보루 살 수 술 시 쌈 움큼 정 짝 채 척 첩 축 켤레 톨 통'
@@ -255,7 +255,7 @@ def post_replace_ph(ph):
         ph = "停"
     return ph
 
-def g2p(text):
+def g2p(text, version=""):
     text = latin_to_hangul(text)
     text = _g2p(text)
     text = divide_hangul(text)

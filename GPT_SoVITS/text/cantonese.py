@@ -187,7 +187,7 @@ def get_bert_feature(text, word2ph):
     return chinese_bert.get_bert_feature(text, word2ph)
 
 
-def g2p(text):
+def g2p(text, version=""):
     # word2ph = []
     jyuping = get_jyutping(text)
     # print(jyuping)
