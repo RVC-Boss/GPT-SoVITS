@@ -632,16 +632,29 @@ def html_left(text, label='p'):
                 <{label} style="margin: 0; padding: 0;">{text}</{label}>
                 </div>"""
 
-def switch_version(version_):
+def switch_version(version_, prompt_language, text_language,inp_ref):
     os.environ['version']=version_
     global pretrained_sovits_name, pretrained_gpt_name, version
     version = version_
     importlib.reload(sys.modules['text.symbols'])
     importlib.reload(sys.modules['text'])
+    importlib.reload(sys.modules['text.english'])
+    importlib.reload(sys.modules['text.japanese'])
+    importlib.reload(sys.modules['text.korean'])
     importlib.reload(sys.modules['text.cleaner'])
     importlib.reload(sys.modules['AR.models'])
     importlib.reload(sys.modules['module.models'])
     dict_language = dict_language_v1 if version =='v1' else dict_language_v2
+    if prompt_language in list(dict_language.keys()):
+        prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
+    else:
+        prompt_text_update = {'__type__':'update', 'value':''}
+        prompt_language_update = {'__type__':'update', 'value':i18n("中文")}
+    if text_language in list(dict_language.keys()):
+        text_update, text_language_update = {'__type__':'update'}, {'__type__':'update', 'value':text_language}
+    else:
+        text_update = {'__type__':'update', 'value':''}
+        text_language_update = {'__type__':'update', 'value':i18n("中文")}
     SoVITS_weight_root="SoVITS_weights_v2" if version=='v2' else "SoVITS_weights"
     GPT_weight_root="GPT_weights_v2" if version=='v2' else "GPT_weights"
     pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
@@ -654,7 +667,7 @@ def switch_version(version_):
             "gpt_path", weight_data.get('GPT',{}).get(version,pretrained_gpt_name))
         sovits_path = os.environ.get(
             "sovits_path", weight_data.get('SoVITS',{}).get(version,pretrained_sovits_name))
-    return  {'__type__':'update', 'value':gpt_path, 'choices':GPT_names}, {'__type__':'update', 'value':sovits_path, 'choices':SoVITS_names}, {'__type__':'update', 'choices':list(dict_language.keys()), 'value':i18n("中文")}, {'__type__':'update', 'choices':list(dict_language.keys()), 'value':i18n("中文")}
+    return  {'__type__':'update', 'value':gpt_path, 'choices':GPT_names}, {'__type__':'update', 'value':sovits_path, 'choices':SoVITS_names}, {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update
 
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
@@ -715,7 +728,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free,speed,if_freeze],
             [output],
         )
-        version_dropdown.change(switch_version,[version_dropdown],[GPT_dropdown,SoVITS_dropdown,prompt_language,text_language])
+        version_dropdown.change(switch_version,[version_dropdown,prompt_language,text_language,inp_ref],[GPT_dropdown,SoVITS_dropdown,prompt_language,text_language,prompt_text,prompt_language,text,text_language])
 
         # gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         # with gr.Row():
