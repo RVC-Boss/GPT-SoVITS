@@ -21,6 +21,7 @@ import torch
 version=os.environ.get("version","v1")
 language=os.environ.get("language","auto")
 version="v2"if sys.argv[1]=="v2" else version
+os.environ['version']=version
 language=sys.argv[-1] if sys.argv[-1]!='v2' and sys.argv[-1]!='v1' else language
 pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
 pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"if version=="v1"else "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
@@ -30,19 +31,14 @@ if os.path.exists("./gweight.txt"):
         gweight_data = file.read()
         gpt_path = os.environ.get(
             "gpt_path", gweight_data)
-        if version == 'v2':
-            gpt_path = pretrained_gpt_name 
-else:
-    gpt_path = os.environ.get(
-        "gpt_path", pretrained_gpt_name)   
+if version == 'v2':
+    gpt_path = os.environ.get("gpt_path", pretrained_gpt_name)   
 
 if os.path.exists("./sweight.txt"):
     with open("./sweight.txt", 'r', encoding="utf-8") as file:
         sweight_data = file.read()
         sovits_path = os.environ.get("sovits_path", sweight_data)
-        if version == 'v2':
-            sovits_path = pretrained_sovits_name  
-else:
+if version == 'v2':
     sovits_path = os.environ.get("sovits_path", pretrained_sovits_name)  
 # gpt_path = os.environ.get(
 #     "gpt_path", pretrained_gpt_name
