@@ -1,6 +1,7 @@
 import os,shutil,sys,pdb,re
+if len(sys.argv)==1:sys.argv.append('v1')
 version="v2"if sys.argv[1]=="v2" else"v1"
-language=sys.argv[-1] if sys.argv[-1]!='v2' and sys.argv[-1]!='v1' else 'auto'
+language=sys.argv[-1] if len(sys.argv[-1])==5 else "auto"
 os.environ["version"]=version
 os.environ["language"]=language
 now_dir = os.getcwd()
