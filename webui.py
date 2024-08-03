@@ -124,8 +124,10 @@ def get_weights_names():
     return SoVITS_names,GPT_names
 SoVITS_weight_root="SoVITS_weights_v2" if version=='v2' else "SoVITS_weights"
 GPT_weight_root="GPT_weights_v2" if version=='v2' else "GPT_weights"
-os.makedirs(SoVITS_weight_root,exist_ok=True)
-os.makedirs(GPT_weight_root,exist_ok=True)
+os.makedirs("SoVITS_weights",exist_ok=True)
+os.makedirs("GPT_weights",exist_ok=True)
+os.makedirs("SoVITS_weights_v2",exist_ok=True)
+os.makedirs("GPT_weights_v2",exist_ok=True)
 SoVITS_names,GPT_names = get_weights_names()
 
 def custom_sort_key(s):
