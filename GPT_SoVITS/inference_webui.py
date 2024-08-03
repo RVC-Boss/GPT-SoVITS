@@ -20,6 +20,8 @@ import torch
 
 version=os.environ.get("version","v1")
 language=os.environ.get("language","auto")
+version="v2"if sys.argv[1]=="v2" else version
+language=sys.argv[-1] if sys.argv[-1]!='v2' and sys.argv[-1]!='v1' else language
 pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
 pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"if version=="v1"else "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
 
