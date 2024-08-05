@@ -6,10 +6,7 @@ from g2p_en import G2p
 
 from text.symbols import punctuation
 
-if os.environ.get("version","v1")=="v1":
-    from text.symbols import symbols
-else:
-    from text.symbols2 import symbols
+from text.symbols2 import symbols
 
 import unicodedata
 from builtins import str as unicode
