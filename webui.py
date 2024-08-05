@@ -731,7 +731,7 @@ def switch_version(version_):
     if len(pretrained_gpt_name) > 1 and len(pretrained_sovits_name) > 1:
         return  {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}
     else:
-        raise gr.Error(i18n('未下载V1模型'))
+        raise gr.Error(i18n(f'未下载{version.upper()}模型'))
 
 
 from text.g2pw import G2PWPinyin
