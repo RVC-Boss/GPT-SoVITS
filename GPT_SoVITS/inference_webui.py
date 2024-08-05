@@ -278,14 +278,14 @@ def get_phones_and_bert(text,language,version):
         if language == "zh":
             if re.search(r'[A-Za-z]', formattext):
                 formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
-                formattext = chinese.text_normalize(formattext)
+                formattext = chinese.mix_text_normalize(formattext)
                 return get_phones_and_bert(formattext,"zh",version)
             else:
                 phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
                 bert = get_bert_feature(norm_text, word2ph).to(device)
         elif language == "yue" and re.search(r'[A-Za-z]', formattext):
                 formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
-                formattext = chinese.text_normalize(formattext)
+                formattext = chinese.mix_text_normalize(formattext)
                 return get_phones_and_bert(formattext,"yue",version)
         else:
             phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
