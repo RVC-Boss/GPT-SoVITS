@@ -18,12 +18,19 @@ import LangSegment, os, re, sys, json
 import pdb
 import torch
 
-if len(sys.argv)==1:sys.argv.append('v1')
-version=os.environ.get("version","v1")
-version="v2"if sys.argv[1]=="v2" else version
-os.environ['version']=version
-pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
-pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"if version=="v1"else "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+version=os.environ.get("version","v2")
+pretrained_sovits_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth", "GPT_SoVITS/pretrained_models/s2G488k.pth"]
+pretrained_gpt_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
+
+_ =[[],[]]
+for i in range(2):
+    if os.path.exists(pretrained_gpt_name[i]):
+        _[0].append(pretrained_gpt_name[i])
+    if os.path.exists(pretrained_sovits_name[i]):
+        _[-1].append(pretrained_sovits_name[i])
+pretrained_gpt_name,pretrained_sovits_name = _
+    
+        
 
 if os.path.exists(f"./weight.json"):
     pass
@@ -37,6 +44,10 @@ with open(f"./weight.json", 'r', encoding="utf-8") as file:
         "gpt_path", weight_data.get('GPT',{}).get(version,pretrained_gpt_name))
     sovits_path = os.environ.get(
         "sovits_path", weight_data.get('SoVITS',{}).get(version,pretrained_sovits_name))
+    if isinstance(gpt_path,list):
+        gpt_path = gpt_path[0]
+    if isinstance(sovits_path,list):
+        sovits_path = sovits_path[0]
 
 # gpt_path = os.environ.get(
 #     "gpt_path", pretrained_gpt_name
@@ -86,6 +97,29 @@ if torch.cuda.is_available():
     device = "cuda"
 else:
     device = "cpu"
+
+dict_language_v1 = {
+    i18n("中文"): "all_zh",#全部按中文识别
+    i18n("英文"): "en",#全部按英文识别#######不变
+    i18n("日文"): "all_ja",#全部按日文识别
+    i18n("中英混合"): "zh",#按中英混合识别####不变
+    i18n("日英混合"): "ja",#按日英混合识别####不变
+    i18n("多语种混合"): "auto",#多语种启动切分识别语种
+}
+dict_language_v2 = {
+    i18n("中文"): "all_zh",#全部按中文识别
+    i18n("英文"): "en",#全部按英文识别#######不变
+    i18n("日文"): "all_ja",#全部按日文识别
+    i18n("粤语"): "all_yue",#全部按中文识别
+    i18n("韩文"): "all_ko",#全部按韩文识别
+    i18n("中英混合"): "zh",#按中英混合识别####不变
+    i18n("日英混合"): "ja",#按日英混合识别####不变
+    i18n("粤英混合"): "yue",#按粤英混合识别####不变
+    i18n("韩英混合"): "ko",#按韩英混合识别####不变
+    i18n("多语种混合"): "auto",#多语种启动切分识别语种
+    i18n("多语种混合(粤语)"): "auto_yue",#多语种启动切分识别语种
+}
+dict_language = dict_language_v1 if version =='v1' else dict_language_v2
 
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
@@ -146,8 +180,8 @@ else:
     ssl_model = ssl_model.to(device)
 
 
-def change_sovits_weights(sovits_path):
-    global vq_model, hps
+def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
+    global vq_model, hps, version, dict_language
     dict_s2 = torch.load(sovits_path, map_location="cpu")
     hps = dict_s2["config"]
     hps = DictToAttrRecursive(hps)
@@ -156,6 +190,7 @@ def change_sovits_weights(sovits_path):
         hps.model.version = "v1"
     else:
         hps.model.version = "v2"
+    version = hps.model.version
     # print("sovits版本:",hps.model.version)
     vq_model = SynthesizerTrn(
         hps.data.filter_length // 2 + 1,
@@ -171,11 +206,25 @@ def change_sovits_weights(sovits_path):
         vq_model = vq_model.to(device)
     vq_model.eval()
     print(vq_model.load_state_dict(dict_s2["weight"], strict=False))
+    dict_language = dict_language_v1 if version =='v1' else dict_language_v2
     with open("./weight.json")as f:
-            data=f.read()
-            data=json.loads(data)
-            data["SoVITS"][version]=sovits_path
+        data=f.read()
+        data=json.loads(data)
+        data["SoVITS"][version]=sovits_path
     with open("./weight.json","w")as f:f.write(json.dumps(data))
+    if prompt_language is not None and text_language is not None:
+        if prompt_language in list(dict_language.keys()):
+            prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
+        else:
+            prompt_text_update = {'__type__':'update', 'value':''}
+            prompt_language_update = {'__type__':'update', 'value':i18n("中文")}
+        if text_language in list(dict_language.keys()):
+            text_update, text_language_update = {'__type__':'update'}, {'__type__':'update', 'value':text_language}
+        else:
+            text_update = {'__type__':'update', 'value':''}
+            text_language_update = {'__type__':'update', 'value':i18n("中文")}
+        return  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update
+
 
 
 change_sovits_weights(sovits_path)
@@ -196,9 +245,9 @@ def change_gpt_weights(gpt_path):
     total = sum([param.nelement() for param in t2s_model.parameters()])
     print("Number of parameter: %.2fM" % (total / 1e6))
     with open("./weight.json")as f:
-            data=f.read()
-            data=json.loads(data)
-            data["GPT"][version]=gpt_path
+        data=f.read()
+        data=json.loads(data)
+        data["GPT"][version]=gpt_path
     with open("./weight.json","w")as f:f.write(json.dumps(data))
 
 
@@ -219,29 +268,6 @@ def get_spepc(hps, filename):
         center=False,
     )
     return spec
-
-dict_language_v1 = {
-    i18n("中文"): "all_zh",#全部按中文识别
-    i18n("英文"): "en",#全部按英文识别#######不变
-    i18n("日文"): "all_ja",#全部按日文识别
-    i18n("中英混合"): "zh",#按中英混合识别####不变
-    i18n("日英混合"): "ja",#按日英混合识别####不变
-    i18n("多语种混合"): "auto",#多语种启动切分识别语种
-}
-dict_language_v2 = {
-    i18n("中文"): "all_zh",#全部按中文识别
-    i18n("英文"): "en",#全部按英文识别#######不变
-    i18n("日文"): "all_ja",#全部按日文识别
-    i18n("粤语"): "all_yue",#全部按中文识别
-    i18n("韩文"): "all_ko",#全部按韩文识别
-    i18n("中英混合"): "zh",#按中英混合识别####不变
-    i18n("日英混合"): "ja",#按日英混合识别####不变
-    i18n("粤英混合"): "yue",#按粤英混合识别####不变
-    i18n("韩英混合"): "ko",#按韩英混合识别####不变
-    i18n("多语种混合"): "auto",#多语种启动切分识别语种
-    i18n("多语种混合(粤语)"): "auto_yue",#多语种启动切分识别语种
-}
-dict_language = dict_language_v1 if version =='v1' else dict_language_v2
 
 def clean_text_inf(text, language, version):
     phones, word2ph, norm_text = clean_text(text, language, version)
@@ -609,21 +635,21 @@ def change_choices():
     return {"choices": sorted(SoVITS_names, key=custom_sort_key), "__type__": "update"}, {"choices": sorted(GPT_names, key=custom_sort_key), "__type__": "update"}
 
 
-SoVITS_weight_root="SoVITS_weights_v2" if version=='v2' else "SoVITS_weights"
-GPT_weight_root="GPT_weights_v2" if version=='v2' else "GPT_weights"
-os.makedirs("SoVITS_weights",exist_ok=True)
-os.makedirs("GPT_weights",exist_ok=True)
-os.makedirs("SoVITS_weights_v2",exist_ok=True)
-os.makedirs("GPT_weights_v2",exist_ok=True)
+SoVITS_weight_root=["SoVITS_weights_v2","SoVITS_weights"]
+GPT_weight_root=["GPT_weights_v2","GPT_weights"]
+for path in SoVITS_weight_root+GPT_weight_root:
+    os.makedirs(path,exist_ok=True)
 
 
 def get_weights_names(GPT_weight_root, SoVITS_weight_root):
-    SoVITS_names = [pretrained_sovits_name]
-    for name in os.listdir(SoVITS_weight_root):
-        if name.endswith(".pth"): SoVITS_names.append("%s/%s" % (SoVITS_weight_root, name))
-    GPT_names = [pretrained_gpt_name]
-    for name in os.listdir(GPT_weight_root):
-        if name.endswith(".ckpt"): GPT_names.append("%s/%s" % (GPT_weight_root, name))
+    SoVITS_names = [i for i in pretrained_sovits_name]
+    for path in SoVITS_weight_root:
+        for name in os.listdir(path):
+            if name.endswith(".pth"): SoVITS_names.append("%s/%s" % (path, name))
+    GPT_names = [i for i in pretrained_gpt_name]
+    for path in GPT_weight_root:
+        for name in os.listdir(path):
+            if name.endswith(".ckpt"): GPT_names.append("%s/%s" % (path, name))
     return SoVITS_names, GPT_names
 
 
@@ -639,35 +665,6 @@ def html_left(text, label='p'):
                 <{label} style="margin: 0; padding: 0;">{text}</{label}>
                 </div>"""
 
-def switch_version(version_, prompt_language, text_language,inp_ref):
-    os.environ['version']=version_
-    global pretrained_sovits_name, pretrained_gpt_name, version
-    version = version_
-    print(version)
-    dict_language = dict_language_v1 if version =='v1' else dict_language_v2
-    if prompt_language in list(dict_language.keys()):
-        prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
-    else:
-        prompt_text_update = {'__type__':'update', 'value':''}
-        prompt_language_update = {'__type__':'update', 'value':i18n("中文")}
-    if text_language in list(dict_language.keys()):
-        text_update, text_language_update = {'__type__':'update'}, {'__type__':'update', 'value':text_language}
-    else:
-        text_update = {'__type__':'update', 'value':''}
-        text_language_update = {'__type__':'update', 'value':i18n("中文")}
-    SoVITS_weight_root="SoVITS_weights_v2" if version=='v2' else "SoVITS_weights"
-    GPT_weight_root="GPT_weights_v2" if version=='v2' else "GPT_weights"
-    pretrained_sovits_name="GPT_SoVITS/pretrained_models/s2G488k.pth"if version=="v1"else"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
-    pretrained_gpt_name="GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"if version=="v1"else "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
-    SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
-    with open(f"./weight.json", 'r', encoding="utf-8") as file:
-        weight_data = file.read()
-        weight_data=json.loads(weight_data)
-        gpt_path = weight_data.get('GPT',{}).get(version,pretrained_gpt_name)
-        sovits_path = weight_data.get('SoVITS',{}).get(version,pretrained_sovits_name)
-    print(gpt_path,sovits_path)
-    return  {'__type__':'update', 'value':gpt_path, 'choices':GPT_names}, {'__type__':'update', 'value':sovits_path, 'choices':SoVITS_names}, {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update
-
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
@@ -678,11 +675,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.Row():
             GPT_dropdown = gr.Dropdown(label=i18n("GPT模型列表"), choices=sorted(GPT_names, key=custom_sort_key), value=gpt_path, interactive=True, scale=14)
             SoVITS_dropdown = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=sorted(SoVITS_names, key=custom_sort_key), value=sovits_path, interactive=True, scale=14)
-            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=7)
-            version_dropdown = gr.Dropdown(label=i18n("切换模型版本"), choices=['v1','v2'], value=version, scale=7)
+            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
-            SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown], [])
-            GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
         gr.Markdown(html_center(i18n("*请上传并填写参考信息"),'h3'))
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath", scale=13)
@@ -727,7 +721,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free,speed,if_freeze],
             [output],
         )
-        version_dropdown.change(switch_version,[version_dropdown,prompt_language,text_language,inp_ref],[GPT_dropdown,SoVITS_dropdown,prompt_language,text_language,prompt_text,prompt_language,text,text_language])
+        SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown,prompt_language,text_language], [prompt_language,text_language,prompt_text,prompt_language,text,text_language])
+        GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
 
         # gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         # with gr.Row():
