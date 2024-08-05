@@ -12,6 +12,7 @@ opt_dir = os.environ.get("opt_dir")
 bert_pretrained_dir = os.environ.get("bert_pretrained_dir")
 import torch
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+version = os.environ.get('version', None)
 import sys, numpy as np, traceback, pdb
 import os.path
 from glob import glob
@@ -84,7 +85,7 @@ if os.path.exists(txt_path) == False:
                 name = os.path.basename(name)
                 print(name)
                 phones, word2ph, norm_text = clean_text(
-                    text.replace("%", "-").replace("￥", ","), lan
+                    text.replace("%", "-").replace("￥", ","), lan, version
                 )
                 path_bert = "%s/%s.pt" % (bert_dir, name)
                 if os.path.exists(path_bert) == False and lan == "zh":

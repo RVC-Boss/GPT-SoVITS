@@ -62,7 +62,8 @@ else:
 from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
-
+from text.g2pw import G2PWPinyin
+g2pw = G2PWPinyin(model_dir="GPT_SoVITS/text/G2PWModel",model_source="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",v_to_u=False, neutral_tone_with_five=True)
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
 
 n_cpu=cpu_count()
