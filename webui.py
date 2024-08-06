@@ -48,7 +48,6 @@ from tools import my_utils
 import traceback
 import shutil
 import pdb
-import gradio as gr
 from subprocess import Popen
 import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
@@ -63,7 +62,9 @@ from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
-
+import gradio.analytics as analytics
+analytics.version_check = lambda:None
+import gradio as gr
 n_cpu=cpu_count()
            
 ngpu = torch.cuda.device_count()
@@ -248,6 +249,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_
     if(p_asr==None):
         asr_inp_dir=my_utils.clean_path(asr_inp_dir)
         asr_opt_dir=my_utils.clean_path(asr_opt_dir)
+        check_for_exists([asr_inp_dir])
         cmd = f'"{python_exec}" tools/asr/{asr_dict[asr_model]["path"]}'
         cmd += f' -i "{asr_inp_dir}"'
         cmd += f' -o "{asr_opt_dir}"'
@@ -278,6 +280,7 @@ def open_denoise(denoise_inp_dir, denoise_opt_dir):
     if(p_denoise==None):
         denoise_inp_dir=my_utils.clean_path(denoise_inp_dir)
         denoise_opt_dir=my_utils.clean_path(denoise_opt_dir)
+        check_for_exists([denoise_inp_dir])
         cmd = '"%s" tools/cmd-denoise.py -i "%s" -o "%s" -p %s'%(python_exec,denoise_inp_dir,denoise_opt_dir,"float16"if is_half==True else "float32")
 
         yield "语音降噪任务开启：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}, {"__type__":"update"}, {"__type__":"update"}
@@ -306,6 +309,7 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
             data=json.loads(data)
         s2_dir="%s/%s"%(exp_root,exp_name)
         os.makedirs("%s/logs_s2"%(s2_dir),exist_ok=True)
+        check_for_exists([s2_dir],is_train=True)
         if(is_half==False):
             data["train"]["fp16_run"]=False
             batch_size=max(1,batch_size//2)
@@ -352,6 +356,7 @@ def open1Bb(batch_size,total_epoch,exp_name,if_dpo,if_save_latest,if_save_every_
             data=yaml.load(data, Loader=yaml.FullLoader)
         s1_dir="%s/%s"%(exp_root,exp_name)
         os.makedirs("%s/logs_s1"%(s1_dir),exist_ok=True)
+        check_for_exists([s1_dir],is_train=True)
         if(is_half==False):
             data["train"]["precision"]="32"
             batch_size = max(1, batch_size // 2)
@@ -396,6 +401,7 @@ def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_k
     global ps_slice
     inp = my_utils.clean_path(inp)
     opt_root = my_utils.clean_path(opt_root)
+    check_for_exists([inp])
     if(os.path.exists(inp)==False):
         yield "输入路径不存在", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__": "update"}, {"__type__": "update"}
         return
@@ -434,6 +440,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
+    check_for_exists([inp_text,inp_wav_dir])
     if (ps1a == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         config={
@@ -495,6 +502,7 @@ def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
     global ps1b
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
+    check_for_exists([inp_text,inp_wav_dir])
     if (ps1b == []):
         config={
             "inp_text":inp_text,
@@ -542,6 +550,7 @@ ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
     inp_text = my_utils.clean_path(inp_text)
+    check_for_exists([inp_text])
     if (ps1c == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         config={
@@ -600,6 +609,7 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
     global ps1abc
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
+    check_for_exists([inp_text,inp_wav_dir])
     if (ps1abc == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         try:
@@ -736,6 +746,18 @@ def switch_version(version_):
         gr.Warning(i18n(f'未下载{version.upper()}模型'))
     return  {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}
 
+def check_for_exists(file_list=[],is_train=False):
+    _=''
+    if is_train == True and file_list:
+        file_list.append(os.path.join(file_list[0],'2-name2text.txt'))
+        file_list.append(os.path.join(file_list[0],'3-bert'))
+        file_list.append(os.path.join(file_list[0],'4-cnhubert'))
+        file_list.append(os.path.join(file_list[0],'5-wav32k'))
+        file_list.append(os.path.join(file_list[0],'6-name2semantic.tsv'))
+    for file in file_list:
+        if os.path.exists(file):pass
+        else:_+=f'\n    {file}'
+    if _:gr.Warning(i18n('以下文件不存在:'))
 
 from text.g2pw import G2PWPinyin
 g2pw = G2PWPinyin(model_dir="GPT_SoVITS/text/G2PWModel",model_source="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",v_to_u=False, neutral_tone_with_five=True)
