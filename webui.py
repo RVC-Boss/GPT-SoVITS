@@ -1,15 +1,15 @@
-import os,shutil,sys,pdb,re
+import os,sys
 if len(sys.argv)==1:sys.argv.append('v2')
 version="v1"if sys.argv[1]=="v1" else"v2"
 os.environ["version"]=version
 now_dir = os.getcwd()
 sys.path.insert(0, now_dir)
-import json,yaml,warnings,torch
+import warnings
+warnings.filterwarnings("ignore")
+import json,yaml,torch,pdb,re,shutil
 import platform
 import psutil
 import signal
-
-warnings.filterwarnings("ignore")
 torch.manual_seed(233333)
 tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
@@ -121,24 +121,25 @@ _=''
 for i in pretrained_model_list:
     if os.path.exists(i):...
     else:_+=f'\n    {i}'
-if _:raise FileExistsError(i18n('以下模型不存在:')+_)
+if _:
+    print("warning:",i18n('以下模型不存在:')+_)
 
 _ =[[],[]]
 for i in range(2):
-    if os.path.exists(pretrained_gpt_name[i]):
-        _[0].append(pretrained_gpt_name[i])
-    if os.path.exists(pretrained_sovits_name[i]):
-        _[-1].append(pretrained_sovits_name[i])
+    if os.path.exists(pretrained_gpt_name[i]):_[0].append(pretrained_gpt_name[i])
+    else:_[0].append("")##没有下pretrained模型的，说不定他们是想自己从零训底模呢
+    if os.path.exists(pretrained_sovits_name[i]):_[-1].append(pretrained_sovits_name[i])
+    else:_[-1].append("")
 pretrained_gpt_name,pretrained_sovits_name = _
 
 SoVITS_weight_root=["SoVITS_weights_v2","SoVITS_weights"]
 GPT_weight_root=["GPT_weights_v2","GPT_weights"]
 def get_weights_names():
-    SoVITS_names = [i for i in pretrained_sovits_name]
+    SoVITS_names = [name for name in pretrained_sovits_name if name!=""]
     for path in SoVITS_weight_root:
         for name in os.listdir(path):
             if name.endswith(".pth"): SoVITS_names.append("%s/%s" % (path, name))
-    GPT_names = [i for i in pretrained_gpt_name]
+    GPT_names = [name for name in pretrained_gpt_name if name!=""]
     for path in GPT_weight_root:
         for name in os.listdir(path):
             if name.endswith(".ckpt"): GPT_names.append("%s/%s" % (path, name))
