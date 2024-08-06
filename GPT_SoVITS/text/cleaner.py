@@ -1,4 +1,4 @@
-from text import japanese, cleaned_text_to_sequence, english,korean,cantonese
+from text import cleaned_text_to_sequence
 import os
 # if os.environ.get("version","v1")=="v1":
 #     from text import chinese
@@ -9,8 +9,6 @@ import os
 
 from text import symbols as symbols_v1
 from text import symbols2 as symbols_v2
-from text import chinese as chinese_v1
-from text import chinese2 as chinese_v2
 
 special = [
     # ("%", "zh", "SP"),
@@ -24,10 +22,10 @@ def clean_text(text, language, version=None):
     if version is None:version=os.environ.get('version', 'v2')
     if version == "v1":
         symbols = symbols_v1.symbols
-        language_module_map = {"zh": chinese_v1, "ja": japanese, "en": english}
+        language_module_map = {"zh": "chinese", "ja": "japanese", "en": "english"}
     else:
         symbols = symbols_v2.symbols
-        language_module_map = {"zh": chinese_v2, "ja": japanese, "en": english, "ko": korean,"yue":cantonese}
+        language_module_map = {"zh": "chinese2", "ja": "japanese", "en": "english", "ko": "korean","yue":"cantonese"}
 
     if(language not in language_module_map):
         language="en"
@@ -35,7 +33,7 @@ def clean_text(text, language, version=None):
     for special_s, special_l, target_symbol in special:
         if special_s in text and language == special_l:
             return clean_special(text, language, special_s, target_symbol, version)
-    language_module = language_module_map[language]
+    language_module = __import__("text."+language_module_map[language],fromlist=[language_module_map[language]])
     if hasattr(language_module,"text_normalize"):
         norm_text = language_module.text_normalize(text)
     else:
@@ -62,16 +60,16 @@ def clean_special(text, language, special_s, target_symbol, version=None):
     if version is None:version=os.environ.get('version', 'v2')
     if version == "v1":
         symbols = symbols_v1.symbols
-        language_module_map = {"zh": chinese_v1, "ja": japanese, "en": english}
+        language_module_map = {"zh": "chinese", "ja": "japanese", "en": "english"}
     else:
         symbols = symbols_v2.symbols
-        language_module_map = {"zh": chinese_v2, "ja": japanese, "en": english, "ko": korean,"yue":cantonese}
+        language_module_map = {"zh": "chinese2", "ja": "japanese", "en": "english", "ko": "korean","yue":"cantonese"}
 
     """
     特殊静音段sp符号处理
     """
     text = text.replace(special_s, ",")
-    language_module = language_module_map[language]
+    language_module = __import__("text."+language_module_map[language],fromlist=[language_module_map[language]])
     norm_text = language_module.text_normalize(text)
     phones = language_module.g2p(norm_text)
     new_ph = []
