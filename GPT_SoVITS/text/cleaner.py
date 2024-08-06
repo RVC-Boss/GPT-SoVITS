@@ -20,7 +20,8 @@ special = [
 ]
 
 
-def clean_text(text, language, version):
+def clean_text(text, language, version=None):
+    if version is None:version=os.environ.get('version', 'v2')
     if version == "v1":
         symbols = symbols_v1.symbols
         language_module_map = {"zh": chinese_v1, "ja": japanese, "en": english}
@@ -57,7 +58,8 @@ def clean_text(text, language, version):
     return phones, word2ph, norm_text
 
 
-def clean_special(text, language, special_s, target_symbol, version):
+def clean_special(text, language, special_s, target_symbol, version=None):
+    if version is None:version=os.environ.get('version', 'v2')
     if version == "v1":
         symbols = symbols_v1.symbols
         language_module_map = {"zh": chinese_v1, "ja": japanese, "en": english}
@@ -82,9 +84,11 @@ def clean_special(text, language, special_s, target_symbol, version):
     return new_ph, phones[1], norm_text
 
 
-def text_to_sequence(text, language):
+def text_to_sequence(text, language, version=None):
+    version = os.environ.get('version',version)
+    if version is None:version='v2'
     phones = clean_text(text)
-    return cleaned_text_to_sequence(phones)
+    return cleaned_text_to_sequence(phones, version)
 
 
 if __name__ == "__main__":
