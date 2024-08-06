@@ -112,17 +112,6 @@ def fix_gpu_numbers(inputs):
     except:
         return inputs
 
-def get_weights_names(GPT_weight_root, SoVITS_weight_root):
-    SoVITS_names = [i for i in pretrained_sovits_name]
-    for path in SoVITS_weight_root:
-        for name in os.listdir(path):
-            if name.endswith(".pth"): SoVITS_names.append("%s/%s" % (path, name))
-    GPT_names = [i for i in pretrained_gpt_name]
-    for path in GPT_weight_root:
-        for name in os.listdir(path):
-            if name.endswith(".ckpt"): GPT_names.append("%s/%s" % (path, name))
-    return SoVITS_names, GPT_names
-
 pretrained_sovits_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth", "GPT_SoVITS/pretrained_models/s2G488k.pth"]
 pretrained_gpt_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
 
@@ -144,7 +133,18 @@ pretrained_gpt_name,pretrained_sovits_name = _
 
 SoVITS_weight_root=["SoVITS_weights_v2","SoVITS_weights"]
 GPT_weight_root=["GPT_weights_v2","GPT_weights"]
-SoVITS_names,GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
+def get_weights_names():
+    SoVITS_names = [i for i in pretrained_sovits_name]
+    for path in SoVITS_weight_root:
+        for name in os.listdir(path):
+            if name.endswith(".pth"): SoVITS_names.append("%s/%s" % (path, name))
+    GPT_names = [i for i in pretrained_gpt_name]
+    for path in GPT_weight_root:
+        for name in os.listdir(path):
+            if name.endswith(".ckpt"): GPT_names.append("%s/%s" % (path, name))
+    return SoVITS_names, GPT_names
+
+SoVITS_names,GPT_names = get_weights_names()
 for path in SoVITS_weight_root+GPT_weight_root:
     os.makedirs(path,exist_ok=True)
 
@@ -315,10 +315,10 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         data["train"]["if_save_every_weights"]=if_save_every_weights
         data["train"]["save_every_epoch"]=save_every_epoch
         data["train"]["gpu_numbers"]=gpu_numbers1Ba
+        data["model"]["version"]=version
         data["data"]["exp_dir"]=data["s2_ckpt_dir"]=s2_dir
-        data["save_weight_dir"]=SoVITS_weight_root
+        data["save_weight_dir"]=SoVITS_weight_root[-int(version[-1])+2]
         data["name"]=exp_name
-        data["version"]=version
         tmp_config_path="%s/tmp_s2.json"%tmp
         with open(tmp_config_path,"w")as f:f.write(json.dumps(data))
 
@@ -358,12 +358,12 @@ def open1Bb(batch_size,total_epoch,exp_name,if_dpo,if_save_latest,if_save_every_
         data["train"]["if_save_every_weights"]=if_save_every_weights
         data["train"]["if_save_latest"]=if_save_latest
         data["train"]["if_dpo"]=if_dpo
-        data["train"]["half_weights_save_dir"]=GPT_weight_root
+        data["train"]["half_weights_save_dir"]=GPT_weight_root[-int(version[-1])+2]
         data["train"]["exp_name"]=exp_name
         data["train_semantic_path"]="%s/6-name2semantic.tsv"%s1_dir
         data["train_phoneme_path"]="%s/2-name2text.txt"%s1_dir
         data["output_dir"]="%s/logs_s1"%s1_dir
-        data["version"]=version
+        # data["version"]=version
 
         os.environ["_CUDA_VISIBLE_DEVICES"]=fix_gpu_numbers(gpu_numbers.replace("-",","))
         os.environ["hz"]="25hz"
@@ -866,10 +866,10 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Row():
                 exp_name = gr.Textbox(label=i18n("*实验/模型名"), value="xxx", interactive=True)
                 gpu_info = gr.Textbox(label=i18n("显卡信息"), value=gpu_info, visible=True, interactive=False)
-                version_checkbox = gr.Radio(label=i18n("版本"),value='v2',choices=['v1','v2'])
-                pretrained_s2G = gr.Textbox(label=i18n("预训练的SoVITS-G模型路径"), value=pretrained_sovits_name[0], interactive=True)
-                pretrained_s2D = gr.Textbox(label=i18n("预训练的SoVITS-D模型路径"), value=pretrained_sovits_name[0].replace("s2G","s2D"), interactive=True)
-                pretrained_s1 = gr.Textbox(label=i18n("预训练的GPT模型路径"), value=pretrained_gpt_name[0], interactive=True)
+                version_checkbox = gr.Radio(label=i18n("版本"),value=version,choices=['v1','v2'])
+                pretrained_s2G = gr.Textbox(label=i18n("预训练的SoVITS-G模型路径"), value=pretrained_sovits_name[-int(version[-1])+2], interactive=True)
+                pretrained_s2D = gr.Textbox(label=i18n("预训练的SoVITS-D模型路径"), value=pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D"), interactive=True)
+                pretrained_s1 = gr.Textbox(label=i18n("预训练的GPT模型路径"), value=pretrained_gpt_name[-int(version[-1])+2], interactive=True)
             with gr.TabItem(i18n("1A-训练集格式化工具")):
                 gr.Markdown(value=i18n("输出logs/实验名目录下应有23456开头的文件和文件夹"))
                 with gr.Row():
