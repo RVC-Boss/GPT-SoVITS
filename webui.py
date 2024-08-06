@@ -758,10 +758,22 @@ def check_for_exists(file_list=[],is_train=False):
         if os.path.exists(file):pass
         else:_.append(file)
     if _:
-        for i in _:
-            if i != '':
-               gr.Warning(i)
-        gr.Warning(i18n('以下文件不存在:'))
+        if is_train:
+            for i in _:
+                if i != '':
+                    gr.Warning(i)
+            gr.Warning(i18n('以下文件或文件夹不存在:'))
+        else:
+            if len(_) == 1:
+                if _[0]:
+                    gr.Warning(i)
+                gr.Warning(i18n('文件或文件夹不存在:'))
+            else:
+                for i in _:
+                    if i != '':
+                        gr.Warning(i)
+                gr.Warning(i18n('以下文件或文件夹不存在:'))
+
 
 
 from text.g2pw import G2PWPinyin
