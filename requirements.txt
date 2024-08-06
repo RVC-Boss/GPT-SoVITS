@@ -33,5 +33,4 @@ g2pk2
 ko_pron
 opencc; sys_platform != 'linux'
 opencc==1.1.1; sys_platform == 'linux'
-eunjeon; sys_platform == 'win32'
 python_mecab_ko; sys_platform != 'win32'

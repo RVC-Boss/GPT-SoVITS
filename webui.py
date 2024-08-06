@@ -52,12 +52,9 @@ from subprocess import Popen
 import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
 from tools.i18n.i18n import I18nAuto, scan_language_list
-language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else "auto"
+language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
 os.environ["language"]=language
-if language != 'auto':
-    i18n = I18nAuto(language=language)
-else:
-    i18n = I18nAuto()
+i18n = I18nAuto(language=language)
 from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
