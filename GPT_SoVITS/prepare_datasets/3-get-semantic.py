@@ -8,6 +8,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("_CUDA_VISIBLE_DEVICES")
 opt_dir = os.environ.get("opt_dir")
 pretrained_s2G = os.environ.get("pretrained_s2G")
 s2config_path = os.environ.get("s2config_path")
+version=os.environ.get("version","v2")
 import torch
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 import math, traceback
@@ -50,6 +51,7 @@ if os.path.exists(semantic_path) == False:
         hps.data.filter_length // 2 + 1,
         hps.train.segment_size // hps.data.hop_length,
         n_speakers=hps.data.n_speakers,
+        version=version,
         **hps.model
     )
     if is_half == True:

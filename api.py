@@ -522,6 +522,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         prompt_semantic = codes[0, 0]
     t1 = ttime()
     version = vq_model.version
+    os.environ['version'] = version
     prompt_language = dict_language[prompt_language.lower()]
     text_language = dict_language[text_language.lower()]
     phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language, version)
