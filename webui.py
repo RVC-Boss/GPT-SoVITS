@@ -776,7 +776,7 @@ def check_for_exists(file_list=[],is_train=False):
 
 
 
-from text.g2pw import G2PWPinyin
+from GPT_SoVITS.text.g2pw import G2PWPinyin
 g2pw = G2PWPinyin(model_dir="GPT_SoVITS/text/G2PWModel",model_source="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",v_to_u=False, neutral_tone_with_five=True)
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
