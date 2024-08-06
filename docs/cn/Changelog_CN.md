@@ -213,16 +213,24 @@
 
 重点：
 
-4-[支持合成语速调节。支持冻结随机性只调节语速。](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2)
+4-[支持合成语速调节。支持冻结随机性只调节语速，](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2)并将其更新到api.py上https://github.com/RVC-Boss/GPT-SoVITS/pull/1340
 
 
-todolist：
+### 20240806
 
-1-中文多音字推理优化(有没有人来测试的，欢迎把测试结果写在pr评论区里) https://github.com/RVC-Boss/GPT-SoVITS/pull/488
-（v2底模训练已经合了，下个版本发布就要合了）
+1-增加bs-roformer人声伴奏分离模型支持。 https://github.com/RVC-Boss/GPT-SoVITS/pull/1306 https://github.com/RVC-Boss/GPT-SoVITS/pull/1356 [支持fp16推理。](https://github.com/RVC-Boss/GPT-SoVITS/commit/e62e965323a60a76a025bcaa45268c1ddcbcf05c)
 
-2-正在尝试解决低音质参考音频导致音质较差的问题(202407:已经解决了)，节点暂定8月吧
+2-更好的中文文本前端。 https://github.com/RVC-Boss/GPT-SoVITS/pull/987 https://github.com/RVC-Boss/GPT-SoVITS/pull/1351 https://github.com/RVC-Boss/GPT-SoVITS/pull/1404 优化多音字逻辑（v2版本特供）。 https://github.com/RVC-Boss/GPT-SoVITS/pull/488
 
+3-自动填充下一步的文件路径 https://github.com/RVC-Boss/GPT-SoVITS/pull/1356
+
+4-增加喂饭逻辑，用户瞎写显卡序号也可以正常运作 [#bce451a](https://github.com/RVC-Boss/GPT-SoVITS/commit/bce451a2d1641e581e200297d01f219aeaaf7299) [4c8b761](https://github.com/RVC-Boss/GPT-SoVITS/commit/4c8b7612206536b8b4435997acb69b25d93acb78)
+
+5-增加粤语ASR支持
+
+6-GPT-SoVITS-v2支持
+
+7-计时逻辑优化 https://github.com/RVC-Boss/GPT-SoVITS/pull/1387
 
 
 
