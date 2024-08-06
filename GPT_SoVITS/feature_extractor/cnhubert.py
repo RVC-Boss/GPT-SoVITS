@@ -4,7 +4,7 @@ import librosa
 import torch
 import torch.nn.functional as F
 import soundfile as sf
-import logging
+import logging, os
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
@@ -22,9 +22,11 @@ cnhubert_base_path = None
 class CNHubert(nn.Module):
     def __init__(self):
         super().__init__()
-        self.model = HubertModel.from_pretrained(cnhubert_base_path)
+        if os.path.exists(cnhubert_base_path):...
+        else:raise FileNotFoundError(cnhubert_base_path)
+        self.model = HubertModel.from_pretrained(cnhubert_base_path, local_files_only=True)
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
-            cnhubert_base_path
+            cnhubert_base_path, local_files_only=True
         )
 
     def forward(self, x):

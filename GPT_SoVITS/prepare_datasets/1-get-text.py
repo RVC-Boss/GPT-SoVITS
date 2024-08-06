@@ -54,6 +54,8 @@ if os.path.exists(txt_path) == False:
     #     device = "mps"
     else:
         device = "cpu"
+    if os.path.exists(bert_pretrained_dir):...
+    else:raise FileNotFoundError(bert_pretrained_dir)
     tokenizer = AutoTokenizer.from_pretrained(bert_pretrained_dir)
     bert_model = AutoModelForMaskedLM.from_pretrained(bert_pretrained_dir)
     if is_half == True:
