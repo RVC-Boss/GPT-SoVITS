@@ -134,6 +134,8 @@ pretrained_gpt_name,pretrained_sovits_name = _
 
 SoVITS_weight_root=["SoVITS_weights_v2","SoVITS_weights"]
 GPT_weight_root=["GPT_weights_v2","GPT_weights"]
+for root in SoVITS_weight_root+GPT_weight_root:
+    os.makedirs(root,exist_ok=True)
 def get_weights_names():
     SoVITS_names = [name for name in pretrained_sovits_name if name!=""]
     for path in SoVITS_weight_root:
