@@ -440,7 +440,7 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
-    check_for_exists([inp_text,inp_wav_dir])
+    check_for_exists([inp_text,inp_wav_dir], is_dataset_processing=True)
     if (ps1a == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         config={
@@ -502,7 +502,7 @@ def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
     global ps1b
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
-    check_for_exists([inp_text,inp_wav_dir])
+    check_for_exists([inp_text,inp_wav_dir], is_dataset_processing=True)
     if (ps1b == []):
         config={
             "inp_text":inp_text,
@@ -550,7 +550,7 @@ ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
     inp_text = my_utils.clean_path(inp_text)
-    check_for_exists([inp_text])
+    check_for_exists([inp_text,''], is_dataset_processing=True)
     if (ps1c == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         config={
@@ -746,7 +746,7 @@ def switch_version(version_):
         gr.Warning(i18n(f'未下载{version.upper()}模型'))
     return  {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}
 
-def check_for_exists(file_list=None,is_train=False):
+def check_for_exists(file_list=None,is_train=False,is_dataset_processing=False):
     missing_files=[]
     if is_train == True and file_list:
         file_list.append(os.path.join(file_list[0],'2-name2text.txt'))
@@ -767,12 +767,15 @@ def check_for_exists(file_list=None,is_train=False):
             for missing_file in missing_files:
                 if missing_file != '':
                     gr.Warning(missing_file)
-            gr.Warning(i18n('以下文件或文件夹不存在:'))
+            if file_list[-1]==[''] and is_dataset_processing:
+                pass
+            else:
+                gr.Warning(i18n('以下文件或文件夹不存在:'))
 
-
-from GPT_SoVITS.text.g2pw import G2PWPinyin
-g2pw = G2PWPinyin(model_dir="GPT_SoVITS/text/G2PWModel",model_source="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",v_to_u=False, neutral_tone_with_five=True)
-
+cmd = '"%s" GPT_SoVITS/g2pw_download'%python_exec
+print(cmd)
+p = Popen(cmd, shell=True)
+p.wait()
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
