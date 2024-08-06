@@ -1,6 +1,6 @@
+# reference: https://huggingface.co/spaces/Naozumi0512/Bert-VITS2-Cantonese-Yue/blob/main/text/chinese.py
+
 import sys
-# sys.path.append("/data/docker/liujing04/gpt-vits/mq-vits-s1bert_no_bert-kv_cache-new_text-emo")
-sys.path.append("/data/docker/liujing04/gpt-vits/mq-vits-s1bert_no_bert-kv_cache-new_text-emo2v2")
 import re
 import cn2an
 
