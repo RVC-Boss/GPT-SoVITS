@@ -13,6 +13,7 @@ from .onnx_api import G2PWOnnxConverter
 current_file_path = os.path.dirname(__file__)
 CACHE_PATH = os.path.join(current_file_path, "polyphonic.pickle")
 PP_DICT_PATH = os.path.join(current_file_path, "polyphonic.rep")
+PP_FIX_DICT_PATH = os.path.join(current_file_path, "polyphonic-fix.rep")
 
 
 class G2PWPinyin(Pinyin):
@@ -68,12 +69,6 @@ class Converter(UltimateConverter):
 
     def _to_pinyin(self, han, style, heteronym, errors, strict, **kwargs):
         pinyins = []
-
-        if han in pp_dict:
-            phns = pp_dict[han]
-            for ph in phns:
-                pinyins.append([ph])
-            return pinyins
 
         g2pw_pinyin = self._g2pw(han)
 
@@ -139,7 +134,21 @@ def read_dict():
             value = eval(value_str.strip())
             polyphonic_dict[key.strip()] = value
             line = f.readline()
+    with open(PP_FIX_DICT_PATH) as f:
+        line = f.readline()
+        while line:
+            key, value_str = line.split(':')
+            value = eval(value_str.strip())
+            polyphonic_dict[key.strip()] = value
+            line = f.readline()
     return polyphonic_dict
+
+
+def correct_pronunciation(word,word_pinyins):
+    if word in pp_dict:
+        word_pinyins = pp_dict[word]
+
+    return word_pinyins
 
 
 pp_dict = get_dict()
