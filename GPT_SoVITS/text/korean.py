@@ -1,3 +1,5 @@
+# reference: https://github.com/ORI-Muchim/MB-iSTFT-VITS-Korean/blob/main/text/korean.py
+
 import re
 from jamo import h2j, j2hcj
 import ko_pron
