@@ -746,8 +746,8 @@ def switch_version(version_):
         gr.Warning(i18n(f'未下载{version.upper()}模型'))
     return  {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}
 
-def check_for_exists(file_list=[],is_train=False):
-    _=[]
+def check_for_exists(file_list=None,is_train=False):
+    missing_files=[]
     if is_train == True and file_list:
         file_list.append(os.path.join(file_list[0],'2-name2text.txt'))
         file_list.append(os.path.join(file_list[0],'3-bert'))
@@ -756,28 +756,23 @@ def check_for_exists(file_list=[],is_train=False):
         file_list.append(os.path.join(file_list[0],'6-name2semantic.tsv'))
     for file in file_list:
         if os.path.exists(file):pass
-        else:_.append(file)
-    if _:
+        else:missing_files.append(file)
+    if missing_files:
         if is_train:
-            for i in _:
-                if i != '':
-                    gr.Warning(i)
+            for missing_file in missing_files:
+                if missing_file != '':
+                    gr.Warning(missing_file)
             gr.Warning(i18n('以下文件或文件夹不存在:'))
         else:
-            if len(_) == 1:
-                if _[0]:
-                    gr.Warning(i)
-                gr.Warning(i18n('文件或文件夹不存在:'))
-            else:
-                for i in _:
-                    if i != '':
-                        gr.Warning(i)
-                gr.Warning(i18n('以下文件或文件夹不存在:'))
+            for missing_file in missing_files:
+                if missing_file != '':
+                    gr.Warning(missing_file)
+            gr.Warning(i18n('以下文件或文件夹不存在:'))
 
 
-
-from text.g2pw import G2PWPinyin
+from GPT_SoVITS.text.g2pw import G2PWPinyin
 g2pw = G2PWPinyin(model_dir="GPT_SoVITS/text/G2PWModel",model_source="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",v_to_u=False, neutral_tone_with_five=True)
+
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
