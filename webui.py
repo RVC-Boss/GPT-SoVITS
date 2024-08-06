@@ -403,12 +403,12 @@ def open_slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_k
     opt_root = my_utils.clean_path(opt_root)
     check_for_exists([inp])
     if(os.path.exists(inp)==False):
-        yield "输入路径不存在", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__": "update"}, {"__type__": "update"}
+        yield "输入路径不存在", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__": "update"}, {"__type__": "update"}, {"__type__": "update"}
         return
     if os.path.isfile(inp):n_parts=1
     elif os.path.isdir(inp):pass
     else:
-        yield "输入路径存在但既不是文件也不是文件夹", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__": "update"}, {"__type__": "update"}
+        yield "输入路径存在但既不是文件也不是文件夹", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}, {"__type__": "update"}, {"__type__": "update"}, {"__type__": "update"}
         return
     if (ps_slice == []):
         for i_part in range(n_parts):
