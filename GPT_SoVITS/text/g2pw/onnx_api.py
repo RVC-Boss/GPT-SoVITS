@@ -13,6 +13,7 @@ from typing import Tuple
 
 import numpy as np
 import onnxruntime
+onnxruntime.set_default_logger_severity(3)
 from opencc import OpenCC
 from transformers import AutoTokenizer
 from pypinyin import pinyin

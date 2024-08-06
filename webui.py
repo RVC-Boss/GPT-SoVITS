@@ -772,11 +772,14 @@ def check_for_exists(file_list=None,is_train=False,is_dataset_processing=False):
             else:
                 gr.Warning(i18n('以下文件或文件夹不存在:'))
 
+<<<<<<< HEAD
 cmd = '"%s" GPT_SoVITS/g2pw_download'%python_exec
 print(cmd)
 p = Popen(cmd, shell=True)
 p.wait()
 
+=======
+>>>>>>> upstream/main
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
         value=
