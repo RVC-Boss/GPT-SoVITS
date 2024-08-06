@@ -771,8 +771,7 @@ def check_for_exists(file_list=None,is_train=False,is_dataset_processing=False):
 
 if os.path.exists('GPT_SoVITS/text/G2PWModel'):...
 else:
-    cmd = '"%s" GPT_SoVITS/g2pw_download.py'%python_exec
-    print(cmd)
+    cmd = '"%s" GPT_SoVITS/download.py'%python_exec
     p = Popen(cmd, shell=True)
     p.wait()
 

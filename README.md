@@ -74,7 +74,6 @@ bash install.sh
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-
 pip install -r requirements.txt
 ```
 
