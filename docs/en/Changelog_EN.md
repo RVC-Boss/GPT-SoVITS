@@ -168,7 +168,7 @@
 1. [PR 1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR 1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356) Added support for the BS RoFormer vocal accompaniment separation model. [Commit e62e965](https://github.com/RVC-Boss/GPT-SoVITS/commit/e62e965323a60a76a025bcaa45268c1ddcbcf05c) Enabled FP16 inference.
 2. Improved Chinese text frontend.
    - [PR 488](https://github.com/RVC-Boss/GPT-SoVITS/pull/488) added support for polyphonic characters (v2 only);
-   - [PR 987](https://github.com/RVC-Boss/GPT-SoVITS/pull/987) added measure words;
+   - [PR 987](https://github.com/RVC-Boss/GPT-SoVITS/pull/987) added quantifier;
    - [PR 1351](https://github.com/RVC-Boss/GPT-SoVITS/pull/1351) supports arithmetic and basic math formulas;
    - [PR 1404](https://github.com/RVC-Boss/GPT-SoVITS/pull/1404) fixed mixed text errors.
 3. [PR 1355](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356) automatically filled in the paths when processing audio in the WebUI.
