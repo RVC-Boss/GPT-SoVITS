@@ -163,10 +163,16 @@
 4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) supported speech rate adjustment for synthesis. 
    Enabled freezing randomness while only adjusting the speech rate.
 
-### TODO list:
+### 20240806 Update
 
-1. Optimize inference for Chinese polyphonic characters. 
-   (Seeking testers, feel free to comment your results in the [PR 488](https://github.com/RVC-Boss/GPT-SoVITS/pull/488))
-   **Caution: This PR have been merged in v2 base model and will be included in the next release**.
-2. Working on solving the issue of low-quality reference audio causing poor audio quality.
-   **Caution: Resolved in July 2024, scheduled for August 2024 release**.
+1. [PR 1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR 1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356) Added support for the BS RoFormer vocal accompaniment separation model. [Commit e62e965](https://github.com/RVC-Boss/GPT-SoVITS/commit/e62e965323a60a76a025bcaa45268c1ddcbcf05c) Enabled FP16 inference.
+2. Improved Chinese text frontend.
+   - [PR 488](https://github.com/RVC-Boss/GPT-SoVITS/pull/488) added support for polyphonic characters (v2 only);
+   - [PR 987](https://github.com/RVC-Boss/GPT-SoVITS/pull/987) added quantifier;
+   - [PR 1351](https://github.com/RVC-Boss/GPT-SoVITS/pull/1351) supports arithmetic and basic math formulas;
+   - [PR 1404](https://github.com/RVC-Boss/GPT-SoVITS/pull/1404) fixed mixed text errors.
+3. [PR 1355](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356) automatically filled in the paths when processing audio in the WebUI.
+4. [Commit bce451a](https://github.com/RVC-Boss/GPT-SoVITS/commit/bce451a2d1641e581e200297d01f219aeaaf7299), [Commit 4c8b761](https://github.com/RVC-Boss/GPT-SoVITS/commit/4c8b7612206536b8b4435997acb69b25d93acb78) optimized GPU recognition logic.
+5. [Commit 8a10147](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3) added support for Cantonese ASR.
+6. Added support for GPT-SoVITS v2.
+7. [PR 1387](https://github.com/RVC-Boss/GPT-SoVITS/pull/1387) optimized timing logic.
