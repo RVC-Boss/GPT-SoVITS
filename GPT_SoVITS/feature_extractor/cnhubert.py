@@ -4,8 +4,10 @@ import librosa
 import torch
 import torch.nn.functional as F
 import soundfile as sf
-import logging
+from transformers import logging as tf_logging
+tf_logging.set_verbosity_error()
 
+import logging
 logging.getLogger("numba").setLevel(logging.WARNING)
 
 from transformers import (
