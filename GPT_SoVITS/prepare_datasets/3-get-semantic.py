@@ -34,6 +34,8 @@ logging.getLogger("numba").setLevel(logging.WARNING)
 # os.environ["CUDA_VISIBLE_DEVICES"]=sys.argv[5]
 # opt_dir="/data/docker/liujing04/gpt-vits/fine_tune_dataset/%s"%exp_name
 
+if os.path.exists(pretrained_s2G):...
+else:raise FileNotFoundError(pretrained_s2G)
 
 hubert_dir = "%s/4-cnhubert" % (opt_dir)
 semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)

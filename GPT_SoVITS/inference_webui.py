@@ -389,6 +389,10 @@ def merge_short_text_in_array(texts, threshold):
 cache= {}
 def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False,speed=1,if_freeze=False):
     global cache
+    if ref_wav_path:pass
+    else:gr.Warning(i18n('请上传参考音频'))
+    if text:pass
+    else:gr.Warning(i18n('请填入推理文本'))
     t = []
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
@@ -413,6 +417,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         with torch.no_grad():
             wav16k, sr = librosa.load(ref_wav_path, sr=16000)
             if (wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000):
+                gr.Warning(i18n("参考音频在3~10秒范围外，请更换！"))
                 raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
             wav16k = torch.from_numpy(wav16k)
             zero_wav_torch = torch.from_numpy(zero_wav)
