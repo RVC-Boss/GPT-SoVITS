@@ -222,11 +222,11 @@
 
 2-更好的中文文本前端。 https://github.com/RVC-Boss/GPT-SoVITS/pull/987 https://github.com/RVC-Boss/GPT-SoVITS/pull/1351 https://github.com/RVC-Boss/GPT-SoVITS/pull/1404 优化多音字逻辑（v2版本特供）。 https://github.com/RVC-Boss/GPT-SoVITS/pull/488
 
-3-自动填充下一步的文件路径 https://github.com/RVC-Boss/GPT-SoVITS/pull/1356
+3-自动填充下一步的文件路径 https://github.com/RVC-Boss/GPT-SoVITS/pull/1355
 
-4-增加喂饭逻辑，用户瞎写显卡序号也可以正常运作 [#bce451a](https://github.com/RVC-Boss/GPT-SoVITS/commit/bce451a2d1641e581e200297d01f219aeaaf7299) [4c8b761](https://github.com/RVC-Boss/GPT-SoVITS/commit/4c8b7612206536b8b4435997acb69b25d93acb78)
+4-增加喂饭逻辑，用户瞎写显卡序号也可以正常运作 [bce451a](https://github.com/RVC-Boss/GPT-SoVITS/commit/bce451a2d1641e581e200297d01f219aeaaf7299) [4c8b761](https://github.com/RVC-Boss/GPT-SoVITS/commit/4c8b7612206536b8b4435997acb69b25d93acb78)
 
-5-增加粤语ASR支持
+5-增加粤语ASR支持 [8a10147](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3)
 
 6-GPT-SoVITS-v2支持
 
