@@ -51,7 +51,7 @@ _注: numba==0.56.4 需要 python<3.11_
 
 ### Windows
 
-如果你是 Windows 用户（已在 win>=10 上测试），可以下载[下载整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui-v2.bat 即可启动 GPT-SoVITS-WebUI。
+如果你是 Windows 用户（已在 win>=10 上测试），可以下载[下载整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
 
 中国地区用户可以通过点击链接并选择“下载副本”[下载整合包](https://www.icloud.com.cn/iclouddrive/030K8WjGJ9xMXhpzJVIMEWPzQ#GPT-SoVITS-beta0706fix1)。（如果下载时遇到错误，请退出登录）
 
@@ -99,7 +99,7 @@ conda install -c conda-forge 'ffmpeg<7'
 
 下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下。
 
-安装 [Visual Studio 2022](https://visualstudio.microsoft.com/zh-hans/downloads/) 环境(仅限韩语)
+安装 [Visual Studio 2022](https://visualstudio.microsoft.com/zh-hans/downloads/) 环境(仅限韩语TTS)
 
 ##### MacOS 用户
 ```bash
@@ -111,6 +111,7 @@ brew install ffmpeg
 ```bash
 pip install -r requirements.txt
 ```
+
 ### 在 Docker 中使用
 
 #### docker-compose.yaml 设置
@@ -142,7 +143,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 从 [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 下载预训练模型，并将它们放置在 `GPT_SoVITS\pretrained_models` 中。
 
-从 [G2PWModel-v2-onnx.zip](https://storage.googleapis.com/esun-ai/g2pW/G2PWModel-v2-onnx.zip) 下载G2PW模型,并将它们解压重命名为`G2PWModel` 后放置在 `GPT_SoVITS\text` 中。
+从 [G2PWModel-v2-onnx.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) 下载G2PW模型,并将它们解压重命名为`G2PWModel` 后放置在 `GPT_SoVITS\text` 中。（仅限中文TTS）
 
 对于 UVR5（人声/伴奏分离和混响移除，附加），从 [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 下载模型，并将它们放置在 `tools/uvr5/uvr5_weights` 中。
 
@@ -179,8 +180,8 @@ vocal_path|speaker_name|language|text
 - 'zh': 中文
 - 'ja': 日语
 - 'en': 英语
-- 'yue': 粤语
 - 'ko': 韩语
+- 'yue': 粤语
 
 示例：
 
@@ -188,7 +189,7 @@ vocal_path|speaker_name|language|text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|zh|我爱玩原神。
 ```
 
-## 使用
+## 微调与推理
 
 ### 打开WebUI
 
@@ -210,7 +211,7 @@ python webui.py v1 <language(optional)>
 ```
 或者在webUI内动态切换
 
-### 训练
+### 微调
 
 #### 现已支持自动填充路径
 
@@ -252,7 +253,7 @@ python webui.py
 
     2.更好的文本前端
 
-    3.底膜由2k小时扩展至5k小时
+    3.底模由2k小时扩展至5k小时
 
 ## 待办事项清单
 
