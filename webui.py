@@ -731,11 +731,10 @@ def switch_version(version_):
     os.environ['version']=version_
     global version
     version = version_
-
-    if len(pretrained_gpt_name) > 1 and len(pretrained_sovits_name) > 1:
-        return  {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}
-    else:
-        raise gr.Error(i18n(f'未下载{version.upper()}模型'))
+    if pretrained_sovits_name[-int(version[-1])+2] !='' and pretrained_gpt_name[-int(version[-1])+2] !='':...
+    else:   
+        gr.Warning(i18n(f'未下载{version.upper()}模型'))
+    return  {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}
 
 
 from text.g2pw import G2PWPinyin
