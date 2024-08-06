@@ -195,7 +195,7 @@ def _g2p(segments):
 
             initials = sum(initials, [])
             finals = sum(finals, [])
-            print("g2pw结果",initials,finals)
+            # print("g2pw结果",initials,finals)
 
         for c, v in zip(initials, finals):
             raw_pinyin = c + v
