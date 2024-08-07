@@ -4,7 +4,8 @@ inp_text = os.environ.get("inp_text")
 exp_name = os.environ.get("exp_name")
 i_part = os.environ.get("i_part")
 all_parts = os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("_CUDA_VISIBLE_DEVICES")
+if "_CUDA_VISIBLE_DEVICES" in os.environ:
+     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 opt_dir = os.environ.get("opt_dir")
 pretrained_s2G = os.environ.get("pretrained_s2G")
 s2config_path = os.environ.get("s2config_path")
