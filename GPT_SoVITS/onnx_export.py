@@ -4,7 +4,7 @@ import torch
 import torchaudio
 from torch import nn
 from feature_extractor import cnhubert
-cnhubert_base_path = "pretrained_models/chinese-hubert-base"
+cnhubert_base_path = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 cnhubert.cnhubert_base_path=cnhubert_base_path
 ssl_model = cnhubert.get_model()
 from text import cleaned_text_to_sequence
@@ -266,6 +266,22 @@ class SSLModel(nn.Module):
     def forward(self, ref_audio_16k):
         return self.ssl.model(ref_audio_16k)["last_hidden_state"].transpose(1, 2)
 
+    def export(self, ref_audio_16k, project_name):
+        self.ssl.model.eval()
+        torch.onnx.export(
+            self,
+            (ref_audio_16k),
+            f"onnx/{project_name}/{project_name}_cnhubert.onnx",
+            input_names=["ref_audio_16k"],
+            output_names=["last_hidden_state"],
+            dynamic_axes={
+                "ref_audio_16k": {1 : "text_length"},
+                "last_hidden_state": {2 : "pred_length"}
+            },
+            opset_version=17,
+            verbose=False
+        )
+
 
 def export(vits_path, gpt_path, project_name):
     vits = VitsModel(vits_path)
@@ -300,6 +316,7 @@ def export(vits_path, gpt_path, project_name):
 
     soundfile.write("out.wav", a, vits.hps.data.sampling_rate)
 
+    ssl.export(ref_audio_16k, project_name)
     gpt_sovits.export(ref_seq, text_seq, ref_bert, text_bert, ref_audio_sr, ssl_content, project_name)
 
     MoeVSConf = {
@@ -326,8 +343,8 @@ if __name__ == "__main__":
     except:
         pass
 
-    gpt_path = "GPT_weights/nahida-e25.ckpt"
-    vits_path = "SoVITS_weights/nahida_e30_s3930.pth"
+    gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
+    vits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
     exp_path = "nahida"
     export(vits_path, gpt_path, exp_path)
 
