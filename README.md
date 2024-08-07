@@ -249,23 +249,25 @@ then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
 
 New Features:
 
-     1.Support Korean and Cantonese
+  1.Support Korean and Cantonese
 
-     2.An optimized text frontend
+  2.An optimized text frontend
 
-     3.Pre-trained model extended from 2k hours to 5k hours
+  3.Pre-trained model extended from 2k hours to 5k hours
 
-     4.Improved synthesis quality for low-quality reference audio 
+  4.Improved synthesis quality for low-quality reference audio 
 
-     more details: https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7) 
+  [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7) ) 
 
 Use v2 from v1 environment: 
 
-     1.clone the latest codes from github
+  1.pip install -r requirements.txt to update some packages
 
-     2.download v2 pretrained models from https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained and put them into GPT_SoVITS\pretrained_models\gsv-v2final-pretrained
+  2.clone the latest codes from github
 
-       Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models,  unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS\text`.
+  3.download v2 pretrained models from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) and put them into GPT_SoVITS\pretrained_models\gsv-v2final-pretrained
+
+  Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models,  unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS\text`.
      
 ## Todo List
 
