@@ -23,7 +23,7 @@ from glob import glob
 from tqdm import tqdm
 import logging, librosa, utils
 from module.models import SynthesizerTrn
-
+from tools.my_utils import clean_path
 logging.getLogger("numba").setLevel(logging.WARNING)
 # from config import pretrained_s2G
 
@@ -91,6 +91,7 @@ if os.path.exists(semantic_path) == False:
         try:
             # wav_name,text=line.split("\t")
             wav_name, spk_name, language, text = line.split("|")
+            wav_name=clean_path(wav_name)
             wav_name = os.path.basename(wav_name)
             # name2go(name,lines1)
             name2go(wav_name, lines1)
