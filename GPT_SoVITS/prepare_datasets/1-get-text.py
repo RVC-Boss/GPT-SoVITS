@@ -20,6 +20,7 @@ from tqdm import tqdm
 from text.cleaner import clean_text
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import numpy as np
+from tools.my_utils import clean_path
 
 # inp_text=sys.argv[1]
 # inp_wav_dir=sys.argv[2]
@@ -84,6 +85,7 @@ if os.path.exists(txt_path) == False:
     def process(data, res):
         for name, text, lan in data:
             try:
+                name=clean_path(name)
                 name = os.path.basename(name)
                 print(name)
                 phones, word2ph, norm_text = clean_text(
