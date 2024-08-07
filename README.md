@@ -349,7 +349,9 @@ Special thanks to the following projects and contributors:
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
-  
+
+Thankful to @Naozumi520 for providing the Cantonese training set and for the guidance on Cantonese-related knowledge.
+
 ## Thanks to all contributors for their efforts
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
