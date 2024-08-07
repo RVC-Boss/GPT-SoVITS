@@ -59,8 +59,10 @@ from scipy.io import wavfile
 from tools.my_utils import load_audio
 from multiprocessing import cpu_count
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
-import gradio.analytics as analytics
-analytics.version_check = lambda:None
+try:
+    import gradio.analytics as analytics
+    analytics.version_check = lambda:None
+except:...
 import gradio as gr
 n_cpu=cpu_count()
            
