@@ -249,11 +249,25 @@ python webui.py
 
 新特性:
 
-    1.支持韩语及粤语
+  1.支持韩语及粤语
 
-    2.更好的文本前端
+  2.更好的文本前端
 
-    3.底模由2k小时扩展至5k小时
+  3.底模由2k小时扩展至5k小时
+
+  4.对低音质参考音频（尤其是来源于网络的高频严重缺失、听着很闷的音频）合成出来音质更好
+
+  详见[wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+
+从v1环境迁移至v2
+
+  1.需要pip安装requirements.txt更新环境
+
+  2.需要克隆github上的最新代码
+
+  3.需要从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) 下载预训练模型文件放到GPT_SoVITS\pretrained_models\gsv-v2final-pretrained下
+
+  中文额外需要下载[G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（下载G2PW模型,解压并重命名为`G2PWModel`,将其放到`GPT_SoVITS\text`目录下
 
 ## 待办事项清单
 
