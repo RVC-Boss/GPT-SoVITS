@@ -200,6 +200,7 @@ def kill_process(pid):
 def change_label(path_list):
     global p_label
     if(p_label==None):
+        check_for_existance([path_list])
         path_list=my_utils.clean_path(path_list)
         cmd = '"%s" tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s'%(python_exec,path_list,webui_port_subfix,is_share)
         yield i18n("打标工具WebUI已开启"), {'__type__':'update','visible':False}, {'__type__':'update','visible':True}
@@ -308,8 +309,8 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
             data=json.loads(data)
         s2_dir="%s/%s"%(exp_root,exp_name)
         os.makedirs("%s/logs_s2"%(s2_dir),exist_ok=True)
-        check_for_existance([s2_dir],is_train=True)
-        check_details([s2_dir],is_train=True)
+        if check_for_existance([s2_dir],is_train=True):
+            check_details([s2_dir],is_train=True)
         if(is_half==False):
             data["train"]["fp16_run"]=False
             batch_size=max(1,batch_size//2)
@@ -356,8 +357,8 @@ def open1Bb(batch_size,total_epoch,exp_name,if_dpo,if_save_latest,if_save_every_
             data=yaml.load(data, Loader=yaml.FullLoader)
         s1_dir="%s/%s"%(exp_root,exp_name)
         os.makedirs("%s/logs_s1"%(s1_dir),exist_ok=True)
-        check_for_existance([s1_dir],is_train=True)
-        check_details([s1_dir],is_train=True)
+        if check_for_existance([s1_dir],is_train=True):
+            check_details([s1_dir],is_train=True)
         if(is_half==False):
             data["train"]["precision"]="32"
             batch_size = max(1, batch_size // 2)
@@ -441,8 +442,8 @@ def open1a(inp_text,inp_wav_dir,exp_name,gpu_numbers,bert_pretrained_dir):
     global ps1a
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
-    check_for_existance([inp_text,inp_wav_dir], is_dataset_processing=True)
-    check_details([inp_text,inp_wav_dir], is_dataset_processing=True)
+    if check_for_existance([inp_text,inp_wav_dir], is_dataset_processing=True):
+        check_details([inp_text,inp_wav_dir], is_dataset_processing=True)
     if (ps1a == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         config={
@@ -504,8 +505,8 @@ def open1b(inp_text,inp_wav_dir,exp_name,gpu_numbers,ssl_pretrained_dir):
     global ps1b
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
-    check_for_existance([inp_text,inp_wav_dir], is_dataset_processing=True)
-    check_details([inp_text,inp_wav_dir], is_dataset_processing=True)
+    if check_for_existance([inp_text,inp_wav_dir], is_dataset_processing=True):
+        check_details([inp_text,inp_wav_dir], is_dataset_processing=True)
     if (ps1b == []):
         config={
             "inp_text":inp_text,
@@ -553,8 +554,8 @@ ps1c=[]
 def open1c(inp_text,exp_name,gpu_numbers,pretrained_s2G_path):
     global ps1c
     inp_text = my_utils.clean_path(inp_text)
-    check_for_existance([inp_text,''], is_dataset_processing=True)
-    check_details([inp_text,''], is_dataset_processing=True)
+    if check_for_existance([inp_text,''], is_dataset_processing=True):
+        check_details([inp_text,''], is_dataset_processing=True)
     if (ps1c == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         config={
@@ -613,8 +614,8 @@ def open1abc(inp_text,inp_wav_dir,exp_name,gpu_numbers1a,gpu_numbers1Ba,gpu_numb
     global ps1abc
     inp_text = my_utils.clean_path(inp_text)
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
-    check_for_existance([inp_text,inp_wav_dir], is_dataset_processing=True)
-    check_details([inp_text,inp_wav_dir], is_dataset_processing=True)
+    if check_for_existance([inp_text,inp_wav_dir], is_dataset_processing=True):
+        check_details([inp_text,inp_wav_dir], is_dataset_processing=True)
     if (ps1abc == []):
         opt_dir="%s/%s"%(exp_root,exp_name)
         try:
