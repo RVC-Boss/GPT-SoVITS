@@ -35,15 +35,12 @@ os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 os.environ["all_proxy"] = ""
 for site_packages_root in site_packages_roots:
     if os.path.exists(site_packages_root):
-        try:
-            with open("%s/users.pth" % (site_packages_root), "w") as f:
-                f.write(
-                    "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
-                    % (now_dir, now_dir, now_dir, now_dir, now_dir)
-                )
-            break
-        except PermissionError:
-            pass
+        for name in ["tools","tools/damo_asr","GPT_SoVITS","tools/uvr5"]:
+            if "PYTHONPATH" in os.environ:
+                os.environ["PYTHONPATH"] =  os.path.join(now_dir, name)+ os.pathsep + os.environ["PYTHONPATH"]
+            else:
+                os.environ["PYTHONPATH"] =  os.path.join(now_dir, name)+ os.pathsep
+sys.path = os.environ['PYTHONPATH'].split(os.pathsep) + sys.path
 from tools import my_utils
 import traceback
 import shutil
