@@ -38,7 +38,7 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ## 安装
 
-中国地区用户可[点击此处](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official)使用 AutoDL 云端镜像进行体验。
+中国地区的用户可[点击此处](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official)使用 AutoDL 云端镜像进行体验。
 
 ### 测试通过的环境
 
@@ -53,7 +53,7 @@ _注: numba==0.56.4 需要 python<3.11_
 
 如果你是 Windows 用户（已在 win>=10 上测试），可以下载[下载整合包](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)，解压后双击 go-webui.bat 即可启动 GPT-SoVITS-WebUI。
 
-中国地区用户可以[在此处下载整合包](https://hf-mirror.com/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true).
+**中国地区的用户可以[在此处下载整合包](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/dkxgpiy9zb96hob4#KTvnO)。**
 
 ### Linux
 
@@ -141,6 +141,8 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 ## 预训练模型
 
+**中国地区的用户可以[在此处下载这些模型](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/dkxgpiy9zb96hob4#nVNhX)。**
+
 1. 从 [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 下载预训练模型，并将其放置在 `GPT_SoVITS/pretrained_models` 目录中。
 
 2. 从 [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) 下载模型，解压并重命名为 `G2PWModel`，然后将其放置在 `GPT_SoVITS/text` 目录中。（仅限中文TTS）
@@ -150,18 +152,6 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 4. 对于中文 ASR（额外功能），从 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files)、[Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) 和 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 下载模型，并将它们放置在 `tools/asr/models` 目录中。
 
 5. 对于英语或日语 ASR（额外功能），从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将其放置在 `tools/asr/models` 目录中。此外，[其他模型](https://huggingface.co/Systran) 可能具有类似效果且占用更少的磁盘空间。
-
-中国地区用户可以通过以下链接下载这些模型：
-
-- [GPT-SoVITS Models](https://hf-mirror.com/lj1995/GPT-SoVITS)
-
-- [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)
-
-- [UVR5 Weights](https://hf-mirror.com/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights)
-
-- [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files)、[Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) 和 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files)
-
-- [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3) 或 [其他模型](https://hf-mirror.com/Systran)
 
 ## 数据集格式
 
