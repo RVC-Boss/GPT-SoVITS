@@ -17,6 +17,9 @@ from transformers import AutoTokenizer
 
 from text import cleaned_text_to_sequence
 
+version = os.environ.get('version', None)
+
+
 # from config import exp_dir
 
 
@@ -33,7 +36,7 @@ def batch_sequences(sequences: List[np.array], axis: int = 0, pad_value: int = 0
     padded_sequences = []
     for seq, length in zip(sequences, seq_lengths):
         padding = (
-            [(0, 0)] * axis + [(0, max_length - length)] + [(0, 0)] * (ndim - axis - 1)
+                [(0, 0)] * axis + [(0, max_length - length)] + [(0, 0)] * (ndim - axis - 1)
         )
         padded_seq = np.pad(seq, padding, mode="constant", constant_values=pad_value)
         padded_sequences.append(padded_seq)
@@ -45,16 +48,16 @@ class Text2SemanticDataset(Dataset):
     """dataset class for text tokens to semantic model training."""
 
     def __init__(
-        self,
-        phoneme_path: str,
-        semantic_path: str,
-        max_sample: int = None,
-        max_sec: int = 100,
-        pad_val: int = 1024,
-        # min value of phoneme/sec
-        min_ps_ratio: int = 3,
-        # max value of phoneme/sec
-        max_ps_ratio: int = 25,
+            self,
+            phoneme_path: str,
+            semantic_path: str,
+            max_sample: int = None,
+            max_sec: int = 100,
+            pad_val: int = 1024,
+            # min value of phoneme/sec
+            min_ps_ratio: int = 3,
+            # max value of phoneme/sec
+            max_ps_ratio: int = 25,
     ) -> None:
         super().__init__()
 
@@ -125,7 +128,7 @@ class Text2SemanticDataset(Dataset):
         for i in range(semantic_data_len):
             # 先依次遍历
             # get str
-            item_name = self.semantic_data.iloc[i,0]
+            item_name = self.semantic_data.iloc[i, 0]
             # print(self.phoneme_data)
             try:
                 phoneme, word2ph, text = self.phoneme_data[item_name]
@@ -135,13 +138,13 @@ class Text2SemanticDataset(Dataset):
                 num_not_in += 1
                 continue
 
-            semantic_str = self.semantic_data.iloc[i,1]
+            semantic_str = self.semantic_data.iloc[i, 1]
             # get token list
             semantic_ids = [int(idx) for idx in semantic_str.split(" ")]
             # (T), 是否需要变成 (1, T) -> 不需要，因为需要求 len
             # 过滤掉太长的样本
             if (
-                len(semantic_ids) > self.max_sec * self.hz
+                    len(semantic_ids) > self.max_sec * self.hz
             ):  #########1###根据token个数推测总时长过滤时长60s（config里）#40*25=1k
                 num_deleted_bigger += 1
                 continue
@@ -149,7 +152,7 @@ class Text2SemanticDataset(Dataset):
             phoneme = phoneme.split(" ")
 
             try:
-                phoneme_ids = cleaned_text_to_sequence(phoneme)
+                phoneme_ids = cleaned_text_to_sequence(phoneme, version)
             except:
                 traceback.print_exc()
                 # print(f"{item_name} not in self.phoneme_data !")
@@ -157,7 +160,7 @@ class Text2SemanticDataset(Dataset):
                 continue
             # if len(phoneme_ids) >400:###########2：改为恒定限制为semantic/2.5就行
             if (
-                len(phoneme_ids) > self.max_sec * self.hz / 2.5
+                    len(phoneme_ids) > self.max_sec * self.hz / 2.5
             ):  ###########2：改为恒定限制为semantic/2.5就行
                 num_deleted_ps += 1
                 continue
@@ -168,7 +171,7 @@ class Text2SemanticDataset(Dataset):
             ps_ratio = len(phoneme_ids) / (len(semantic_ids) / self.hz)
 
             if (
-                ps_ratio > self.max_ps_ratio or ps_ratio < self.min_ps_ratio
+                    ps_ratio > self.max_ps_ratio or ps_ratio < self.min_ps_ratio
             ):  ##########4#3~25#每秒多少个phone
                 num_deleted_ps += 1
                 # print(item_name)

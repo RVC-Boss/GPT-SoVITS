@@ -1,10 +1,12 @@
 import json
 import locale
 import os
+import pathlib
 
+i18n_dir = pathlib.Path(os.path.dirname(__file__)).as_posix().replace("tools/","")
 
 def load_language_list(language):
-    with open(f"./i18n/locale/{language}.json", "r", encoding="utf-8") as f:
+    with open(f"{i18n_dir}/locale/{language}.json", "r", encoding="utf-8") as f:
         language_list = json.load(f)
     return language_list
 
@@ -15,7 +17,7 @@ class I18nAuto:
             language = locale.getdefaultlocale()[
                 0
             ]  # getlocale can't identify the system's language ((None, None))
-        if not os.path.exists(f"./i18n/locale/{language}.json"):
+        if not os.path.exists(f"{i18n_dir}/locale/{language}.json"):
             language = "en_US"
         self.language = language
         self.language_map = load_language_list(language)
