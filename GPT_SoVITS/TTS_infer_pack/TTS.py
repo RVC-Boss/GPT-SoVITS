@@ -5,7 +5,6 @@ import random
 import traceback
 
 from tqdm import tqdm
-from loguru import logger
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -268,7 +267,6 @@ class TTS:
         else:
             hps['model']['version'] = "v2"
             self.version = "v2"
-        logger.debug(self.version)
         kwargs = hps["model"]
         vits_model = SynthesizerTrn(
             self.configs.filter_length // 2 + 1,

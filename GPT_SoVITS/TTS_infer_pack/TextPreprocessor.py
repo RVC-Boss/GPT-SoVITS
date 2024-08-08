@@ -1,4 +1,3 @@
-from loguru import logger
 import os, sys
 
 from tqdm import tqdm
@@ -53,7 +52,6 @@ class TextPreprocessor:
         self.tokenizer = tokenizer
         self.device = device
         self.version = version
-        logger.debug(self.version)
 
     def preprocess(self, text: str, lang: str, text_split_method: str) -> List[Dict]:
         print(i18n("############ 切分文本 ############"))
