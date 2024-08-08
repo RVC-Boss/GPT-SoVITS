@@ -299,7 +299,7 @@ def get_first(text):
     return text
 
 from text import chinese
-def get_phones_and_bert(text,language,version):
+def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")
         if language == "en":
@@ -366,6 +366,9 @@ def get_phones_and_bert(text,language,version):
         phones = sum(phones_list, [])
         norm_text = ''.join(norm_text_list)
 
+    if not final and len(phones) < 6:
+        return get_phones_and_bert("." + text,language,version,final=True)
+
     return phones,bert.to(dtype),norm_text
 
 
@@ -408,7 +411,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
         print(i18n("实际输入的参考文本:"), prompt_text)
     text = text.strip("\n")
-    if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
+    # if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
     
     print(i18n("实际输入的目标文本:"), text)
     zero_wav = np.zeros(

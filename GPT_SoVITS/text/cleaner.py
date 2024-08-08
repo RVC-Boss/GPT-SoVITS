@@ -45,7 +45,7 @@ def clean_text(text, language, version=None):
     elif language == "en":
         phones = language_module.g2p(norm_text)
         if len(phones) < 4:
-            phones = [','] * (4 - len(phones)) + phones
+            phones = [','] + phones
         word2ph = None
     else:
         phones = language_module.g2p(norm_text)
