@@ -38,12 +38,12 @@ for site_packages_root in site_packages_roots:
         try:
             with open("%s/users.pth" % (site_packages_root), "w") as f:
                 f.write(
-                    "%s\n%s/tools\n%s/tools/damo_asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+                    "%s\n%s/tools\n%s/tools/asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
                     % (now_dir, now_dir, now_dir, now_dir, now_dir)
                 )
             break
-        except PermissionError:
-            pass
+        except PermissionError as e:
+            print(e)
 from tools import my_utils
 import traceback
 import shutil
