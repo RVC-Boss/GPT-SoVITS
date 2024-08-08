@@ -151,6 +151,73 @@ def get_weights_names():
         if name.endswith(".ckpt"): GPT_names.append("%s/%s" % (GPT_weight_root, name))
     return SoVITS_names, GPT_names
 
+#region 输出音频历史记录相关
+output_history =[]
+history_max_num = 20
+
+def sync_output_history_to_checkbox_audio():
+    checkbox_result = []
+    audio_result = []
+    for item in output_history:
+        label = item['label']
+        if len(label)>15:
+            label=label[:15]+'...'
+        checkbox_result.append(gr.update(label=label,value=False))
+        audio_result.append(gr.Audio.update(value=item['value']))
+    for _ in range(len(audio_result),history_max_num):
+        checkbox_result.append(gr.Checkbox.update(label="",value=False))
+        audio_result.append(gr.Audio.update(value = None))
+    return [*checkbox_result,*audio_result]
+
+def add_to_history(audio,input_text):
+    if(audio is None or audio[1] is not None):
+        if len(output_history) == history_max_num:
+            output_history.pop()
+        output_history.insert(0,{'value':audio,'label':input_text})
+
+    return [*sync_output_history_to_checkbox_audio()]
+
+def clear_history():
+    output_history = []
+    checkbox_result = []
+    audio_result = []
+    for _ in range(history_max_num):
+        checkbox_result.append(gr.Checkbox.update(label="",value=False))
+        audio_result.append(gr.Audio.update(value = None))
+    return [*checkbox_result,*audio_result]
+
+def shown_audio_num_change(audio_num):
+    audio_num = int(audio_num)
+    audio_result = []
+    checkbox_result = []
+    for _ in range(audio_num):
+        audio_result.append(gr.Audio.update(visible=True))
+        checkbox_result.append(gr.update(visible=True))
+    for _ in range(audio_num,history_max_num):
+        audio_result.append(gr.Audio.update(visible=False))
+        checkbox_result.append(gr.update(visible=False))
+    return [*checkbox_result,*audio_result]
+
+def delete_selected_history(*selected_list):
+    for i in reversed(range(len(output_history))):
+        if(selected_list[i]):
+            output_history.pop(i)
+    return [*sync_output_history_to_checkbox_audio()]
+
+def merge_selected_history(*selected_list):
+    m_list = []
+    labels = ""
+    for i in reversed(range(len(output_history))):
+        if(selected_list[i]):
+            labels+=" "+output_history[i]["label"]
+            m_list.append(output_history[i]["value"][1])
+    if(m_list):
+        combined = np.hstack(m_list)
+        delete_selected_history(*selected_list)       
+        return add_to_history((32000, combined),labels)
+    return [*sync_output_history_to_checkbox_audio()]
+
+#endregion
 
 SoVITS_names, GPT_names = get_weights_names()
 
@@ -261,6 +328,30 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             text_opt = gr.Textbox(label=i18n("切分后文本"), value="", lines=4)
             cut_text.click(to_cut, [text_inp, _how_to_cut], [text_opt])
         gr.Markdown(value=i18n("后续将支持转音素、手工修改音素、语音合成分步执行。"))
+
+        history_audio = []
+        history_checkbox = []
+        with gr.Accordion("生成历史"):
+            with gr.Row():
+                shown_audio_num = gr.Slider(1,20,history_max_num,step=1,interactive=True,label="记录显示数量")
+                add_history_button = gr.Button("添加当前音频记录",variant="primary")
+                merge_audio_button = gr.Button("合并选中音频",variant="primary")
+                delete_select_history_button = gr.Button("删除选择的记录")
+                clear_history_button = gr.Button("清空记录")
+            index=0
+            while(index<history_max_num):
+                index+=5
+                with gr.Row():
+                    for _ in range(5):
+                        with gr.Group():
+                            history_checkbox.append(gr.Checkbox(interactive=True,show_label=False,label=""))
+                            history_audio.append(gr.Audio(label=""))
+
+            shown_audio_num.change(shown_audio_num_change,[shown_audio_num],[*history_checkbox,*history_audio])
+            add_history_button.click(add_to_history,[output,text],[*history_checkbox,*history_audio])
+            merge_audio_button.click(merge_selected_history,[*history_checkbox],[*history_checkbox,*history_audio])
+            delete_select_history_button.click(delete_selected_history,[*history_checkbox],[*history_checkbox,*history_audio])
+            clear_history_button.click(clear_history,outputs=[*history_checkbox,*history_audio])
 
 app.queue(concurrency_count=511, max_size=1022).launch(
     server_name="0.0.0.0",
