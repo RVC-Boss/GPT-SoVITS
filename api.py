@@ -275,7 +275,7 @@ def get_bert_inf(phones, word2ph, norm_text, language):
     return bert
 
 from text import chinese
-def get_phones_and_bert(text,language,version):
+def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")
         if language == "en":
@@ -339,6 +339,9 @@ def get_phones_and_bert(text,language,version):
         bert = torch.cat(bert_list, dim=1)
         phones = sum(phones_list, [])
         norm_text = ''.join(norm_text_list)
+
+    if not final and len(phones) < 6:
+        return get_phones_and_bert("." + text,language,version,final=True)
 
     return phones,bert.to(torch.float16 if is_half == True else torch.float32),norm_text
 
