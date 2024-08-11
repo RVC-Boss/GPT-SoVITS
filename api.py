@@ -11,7 +11,7 @@
 调用请求缺少参考音频时使用
 `-dr` - `默认参考音频路径`
 `-dt` - `默认参考音频文本`
-`-dl` - `默认参考音频语种, "中文","英文","日文","zh","en","ja"`
+`-dl` - `默认参考音频语种, "中文","英文","日文","韩文","粤语,"zh","en","ja","ko","yue"`
 
 `-d` - `推理设备, "cuda","cpu"`
 `-a` - `绑定地址, 默认"127.0.0.1"`
@@ -65,6 +65,28 @@ POST:
     "prompt_language": "zh",
     "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
     "text_language": "zh"
+}
+```
+
+RESP:
+成功: 直接返回 wav 音频流， http code 200
+失败: 返回包含错误信息的 json, http code 400
+
+手动指定当次推理所使用的参考音频，并提供参数:
+GET:
+    `http://127.0.0.1:9880?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh&text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh&top_k=20&top_p=0.6&temperature=0.6&speed=1`
+POST:
+```json
+{
+    "refer_wav_path": "123.wav",
+    "prompt_text": "一二三。",
+    "prompt_language": "zh",
+    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
+    "text_language": "zh",
+    "top_k": 20,
+    "top_p": 0.6,
+    "temperature": 0.6,
+    "speed": 1
 }
 ```
 
@@ -179,6 +201,11 @@ def change_sovits_weights(sovits_path):
     hps = dict_s2["config"]
     hps = DictToAttrRecursive(hps)
     hps.model.semantic_frame_rate = "25hz"
+    if dict_s2['weight']['enc_p.text_embedding.weight'].shape[0] == 322:
+        hps.model.version = "v1"
+    else:
+        hps.model.version = "v2"
+    print("sovits版本:",hps.model.version)
     model_params_dict = vars(hps.model)
     vq_model = SynthesizerTrn(
         hps.data.filter_length // 2 + 1,
@@ -229,9 +256,9 @@ def get_bert_feature(text, word2ph):
     return phone_level_feature.T
 
 
-def clean_text_inf(text, language):
-    phones, word2ph, norm_text = clean_text(text, language)
-    phones = cleaned_text_to_sequence(phones)
+def clean_text_inf(text, language, version):
+    phones, word2ph, norm_text = clean_text(text, language, version)
+    phones = cleaned_text_to_sequence(phones, version)
     return phones, word2ph, norm_text
 
 
@@ -247,54 +274,64 @@ def get_bert_inf(phones, word2ph, norm_text, language):
 
     return bert
 
-
-def get_phones_and_bert(text,language):
-    if language in {"en","all_zh","all_ja"}:
+from text import chinese
+def get_phones_and_bert(text,language,version,final=False):
+    if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")
         if language == "en":
             LangSegment.setfilters(["en"])
             formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
         else:
-            # 因无法区别中日文汉字,以用户输入为准
+            # 因无法区别中日韩文汉字,以用户输入为准
             formattext = text
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
-        phones, word2ph, norm_text = clean_text_inf(formattext, language)
         if language == "zh":
-            bert = get_bert_feature(norm_text, word2ph).to(device)
+            if re.search(r'[A-Za-z]', formattext):
+                formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
+                formattext = chinese.text_normalize(formattext)
+                return get_phones_and_bert(formattext,"zh",version)
+            else:
+                phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
+                bert = get_bert_feature(norm_text, word2ph).to(device)
+        elif language == "yue" and re.search(r'[A-Za-z]', formattext):
+                formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
+                formattext = chinese.text_normalize(formattext)
+                return get_phones_and_bert(formattext,"yue",version)
         else:
+            phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
             bert = torch.zeros(
                 (1024, len(phones)),
                 dtype=torch.float16 if is_half == True else torch.float32,
             ).to(device)
-    elif language in {"zh", "ja","auto"}:
+    elif language in {"zh", "ja", "ko", "yue", "auto", "auto_yue"}:
         textlist=[]
         langlist=[]
         LangSegment.setfilters(["zh","ja","en","ko"])
         if language == "auto":
             for tmp in LangSegment.getTexts(text):
-                if tmp["lang"] == "ko":
-                    langlist.append("zh")
-                    textlist.append(tmp["text"])
-                else:
-                    langlist.append(tmp["lang"])
-                    textlist.append(tmp["text"])
+                langlist.append(tmp["lang"])
+                textlist.append(tmp["text"])
+        elif language == "auto_yue":
+            for tmp in LangSegment.getTexts(text):
+                if tmp["lang"] == "zh":
+                    tmp["lang"] = "yue"
+                langlist.append(tmp["lang"])
+                textlist.append(tmp["text"])
         else:
             for tmp in LangSegment.getTexts(text):
                 if tmp["lang"] == "en":
                     langlist.append(tmp["lang"])
                 else:
-                    # 因无法区别中日文汉字,以用户输入为准
+                    # 因无法区别中日韩文汉字,以用户输入为准
                     langlist.append(language)
                 textlist.append(tmp["text"])
-        # logger.info(textlist)
-        # logger.info(langlist)
         phones_list = []
         bert_list = []
         norm_text_list = []
         for i in range(len(textlist)):
             lang = langlist[i]
-            phones, word2ph, norm_text = clean_text_inf(textlist[i], lang)
+            phones, word2ph, norm_text = clean_text_inf(textlist[i], lang, version)
             bert = get_bert_inf(phones, word2ph, norm_text, lang)
             phones_list.append(phones)
             norm_text_list.append(norm_text)
@@ -303,17 +340,38 @@ def get_phones_and_bert(text,language):
         phones = sum(phones_list, [])
         norm_text = ''.join(norm_text_list)
 
+    if not final and len(phones) < 6:
+        return get_phones_and_bert("." + text,language,version,final=True)
+
     return phones,bert.to(torch.float16 if is_half == True else torch.float32),norm_text
 
 
-class DictToAttrRecursive:
+class DictToAttrRecursive(dict):
     def __init__(self, input_dict):
+        super().__init__(input_dict)
         for key, value in input_dict.items():
             if isinstance(value, dict):
-                # 如果值是字典，递归调用构造函数
-                setattr(self, key, DictToAttrRecursive(value))
-            else:
-                setattr(self, key, value)
+                value = DictToAttrRecursive(value)
+            self[key] = value
+            setattr(self, key, value)
+
+    def __getattr__(self, item):
+        try:
+            return self[item]
+        except KeyError:
+            raise AttributeError(f"Attribute {item} not found")
+
+    def __setattr__(self, key, value):
+        if isinstance(value, dict):
+            value = DictToAttrRecursive(value)
+        super(DictToAttrRecursive, self).__setitem__(key, value)
+        super().__setattr__(key, value)
+
+    def __delattr__(self, item):
+        try:
+            del self[item]
+        except KeyError:
+            raise AttributeError(f"Attribute {item} not found")
 
 
 def get_spepc(hps, filename):
@@ -446,7 +504,7 @@ def only_punc(text):
     return not any(t.isalnum() or t.isalpha() for t in text)
 
 
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language):
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, top_k= 20, top_p = 0.6, temperature = 0.6, speed = 1):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
     prompt_language, text = prompt_language, text.strip("\n")
@@ -466,9 +524,11 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         codes = vq_model.extract_latent(ssl_content)
         prompt_semantic = codes[0, 0]
     t1 = ttime()
+    version = vq_model.version
+    os.environ['version'] = version
     prompt_language = dict_language[prompt_language.lower()]
     text_language = dict_language[text_language.lower()]
-    phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language)
+    phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language, version)
     texts = text.split("\n")
     audio_bytes = BytesIO()
 
@@ -478,7 +538,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
             continue
 
         audio_opt = []
-        phones2, bert2, norm_text2 = get_phones_and_bert(text, text_language)
+        phones2, bert2, norm_text2 = get_phones_and_bert(text, text_language, version)
         bert = torch.cat([bert1, bert2], 1)
 
         all_phoneme_ids = torch.LongTensor(phones1 + phones2).to(device).unsqueeze(0)
@@ -494,7 +554,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
                 prompt,
                 bert,
                 # prompt_phone_len=ph_offset,
-                top_k=config['inference']['top_k'],
+                top_k = top_k,
+                top_p = top_p,
+                temperature = temperature,
                 early_stop_num=hz * max_sec)
         t3 = ttime()
         # print(pred_semantic.shape,idx)
@@ -507,7 +569,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         # audio = vq_model.decode(pred_semantic, all_phoneme_ids, refer).detach().cpu().numpy()[0, 0]
         audio = \
             vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0),
-                            refer).detach().cpu().numpy()[
+                            refer,speed=speed).detach().cpu().numpy()[
                 0, 0]  ###试试重建不带上prompt部分
         audio_opt.append(audio)
         audio_opt.append(zero_wav)
@@ -553,7 +615,7 @@ def handle_change(path, text, language):
     return JSONResponse({"code": 0, "message": "Success"}, status_code=200)
 
 
-def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc):
+def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed):
     if (
             refer_wav_path == "" or refer_wav_path is None
             or prompt_text == "" or prompt_text is None
@@ -572,7 +634,7 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cu
     else:
         text = cut_text(text,cut_punc)
 
-    return StreamingResponse(get_tts_wav(refer_wav_path, prompt_text, prompt_language, text, text_language), media_type="audio/"+media_type)
+    return StreamingResponse(get_tts_wav(refer_wav_path, prompt_text, prompt_language, text, text_language, top_k, top_p, temperature, speed), media_type="audio/"+media_type)
 
 
 
@@ -582,17 +644,27 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cu
 # --------------------------------
 dict_language = {
     "中文": "all_zh",
+    "粤语": "all_yue",
     "英文": "en",
     "日文": "all_ja",
+    "韩文": "all_ko",
     "中英混合": "zh",
+    "粤英混合": "yue",
     "日英混合": "ja",
+    "韩英混合": "ko",
     "多语种混合": "auto",    #多语种启动切分识别语种
+    "多语种混合(粤语)": "auto_yue",
     "all_zh": "all_zh",
+    "all_yue": "all_yue",
     "en": "en",
     "all_ja": "all_ja",
+    "all_ko": "all_ko",
     "zh": "zh",
+    "yue": "yue",
     "ja": "ja",
+    "ko": "ko",
     "auto": "auto",
+    "auto_yue": "auto_yue",
 }
 
 # logger
@@ -755,6 +827,10 @@ async def tts_endpoint(request: Request):
         json_post_raw.get("text"),
         json_post_raw.get("text_language"),
         json_post_raw.get("cut_punc"),
+        json_post_raw.get("top_k", 10),
+        json_post_raw.get("top_p", 1.0),
+        json_post_raw.get("temperature", 1.0),
+        json_post_raw.get("speed", 1.0)
     )
 
 
@@ -766,8 +842,12 @@ async def tts_endpoint(
         text: str = None,
         text_language: str = None,
         cut_punc: str = None,
+        top_k: int = 10,
+        top_p: float = 1.0,
+        temperature: float = 1.0,
+        speed: float = 1.0
 ):
-    return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc)
+    return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed)
 
 
 if __name__ == "__main__":

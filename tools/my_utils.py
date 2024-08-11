@@ -28,6 +28,5 @@ def load_audio(file, sr):
 def clean_path(path_str:str):
     if path_str.endswith(('\\','/')):
         return clean_path(path_str[0:-1])
-    if platform.system() == 'Windows':
-        path_str = path_str.replace('/', '\\')
-    return path_str.strip(" ").strip('"').strip("\n").strip('"').strip(" ").strip("\u202a")
+    path_str = path_str.replace('/', os.sep).replace('\\', os.sep)
+    return path_str.strip(" ").strip('\'').strip("\n").strip('"').strip(" ").strip("\u202a")

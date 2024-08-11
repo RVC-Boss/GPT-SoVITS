@@ -9,6 +9,12 @@ def load_language_list(language):
         language_list = json.load(f)
     return language_list
 
+def scan_language_list():
+    language_list = []
+    for name in os.listdir(I18N_JSON_DIR):
+        if name.endswith(".json"):language_list.append(name.split('.')[0])
+    return language_list
+
 class I18nAuto:
     def __init__(self, language=None):
         if language in ["Auto", None]:

@@ -12,12 +12,13 @@ import torch
 import sys
 from mdxnet import MDXNetDereverb
 from vr import AudioPre, AudioPreDeEcho
+from bsroformer import BsRoformer_Loader
 
 weight_uvr5_root = "tools/uvr5/uvr5_weights"
 uvr5_names = []
 for name in os.listdir(weight_uvr5_root):
-    if name.endswith(".pth") or "onnx" in name:
-        uvr5_names.append(name.replace(".pth", ""))
+    if name.endswith(".pth") or name.endswith(".ckpt") or "onnx" in name:
+        uvr5_names.append(name.replace(".pth", "").replace(".ckpt", ""))
 
 device=sys.argv[1]
 is_half=eval(sys.argv[2])
@@ -33,6 +34,13 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         is_hp3 = "HP3" in model_name
         if model_name == "onnx_dereverb_By_FoxJoy":
             pre_fun = MDXNetDereverb(15)
+        elif model_name == "Bs_Roformer" or "bs_roformer" in model_name.lower():
+            func = BsRoformer_Loader
+            pre_fun = func(
+                model_path = os.path.join(weight_uvr5_root, model_name + ".ckpt"),
+                device = device,
+                is_half=is_half
+            )
         else:
             func = AudioPre if "DeEcho" not in model_name else AudioPreDeEcho
             pre_fun = func(
@@ -112,9 +120,18 @@ with gr.Blocks(title="UVR5 WebUI") as app:
         with gr.TabItem(i18n("伴奏人声分离&去混响&去回声")):
             with gr.Group():
                 gr.Markdown(
-                    value=i18n(
-                        "人声伴奏分离批量处理， 使用UVR5模型。 <br>合格的文件夹路径格式举例： E:\\codes\\py39\\vits_vc_gpu\\白鹭霜华测试样例(去文件管理器地址栏拷就行了)。 <br>模型分为三类： <br>1、保留人声：不带和声的音频选这个，对主人声保留比HP5更好。内置HP2和HP3两个模型，HP3可能轻微漏伴奏但对主人声保留比HP2稍微好一丁点； <br>2、仅保留主人声：带和声的音频选这个，对主人声可能有削弱。内置HP5一个模型； <br> 3、去混响、去延迟模型（by FoxJoy）：<br>  (1)MDX-Net(onnx_dereverb):对于双通道混响是最好的选择，不能去除单通道混响；<br>&emsp;(234)DeEcho:去除延迟效果。Aggressive比Normal去除得更彻底，DeReverb额外去除混响，可去除单声道混响，但是对高频重的板式混响去不干净。<br>去混响/去延迟，附：<br>1、DeEcho-DeReverb模型的耗时是另外2个DeEcho模型的接近2倍；<br>2、MDX-Net-Dereverb模型挺慢的；<br>3、个人推荐的最干净的配置是先MDX-Net再DeEcho-Aggressive。"
-                    )
+                    value=i18n("人声伴奏分离批量处理， 使用UVR5模型。") + "<br>" + \
+                        i18n("合格的文件夹路径格式举例： E:\\codes\\py39\\vits_vc_gpu\\白鹭霜华测试样例(去文件管理器地址栏拷就行了)。")+ "<br>" + \
+                        i18n("模型分为三类：") + "<br>" + \
+                        i18n("1、保留人声：不带和声的音频选这个，对主人声保留比HP5更好。内置HP2和HP3两个模型，HP3可能轻微漏伴奏但对主人声保留比HP2稍微好一丁点；") + "<br>" + \
+                        i18n("2、仅保留主人声：带和声的音频选这个，对主人声可能有削弱。内置HP5一个模型；") + "<br>" + \
+                        i18n("3、去混响、去延迟模型（by FoxJoy）：") + "<br>  " + \
+                        i18n("(1)MDX-Net(onnx_dereverb):对于双通道混响是最好的选择，不能去除单通道混响；") + "<br>&emsp;" + \
+                        i18n("(234)DeEcho:去除延迟效果。Aggressive比Normal去除得更彻底，DeReverb额外去除混响，可去除单声道混响，但是对高频重的板式混响去不干净。") + "<br>" + \
+                        i18n("去混响/去延迟，附：") + "<br>" + \
+                        i18n("1、DeEcho-DeReverb模型的耗时是另外2个DeEcho模型的接近2倍；") + "<br>" + \
+                        i18n("2、MDX-Net-Dereverb模型挺慢的；") + "<br>" + \
+                        i18n("3、个人推荐的最干净的配置是先MDX-Net再DeEcho-Aggressive。")
                 )
                 with gr.Row():
                     with gr.Column():

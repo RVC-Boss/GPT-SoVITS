@@ -15,6 +15,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
+version = os.environ.get('version',None)
+
 from text import cleaned_text_to_sequence
 
 # from config import exp_dir
@@ -149,7 +151,7 @@ class Text2SemanticDataset(Dataset):
             phoneme = phoneme.split(" ")
 
             try:
-                phoneme_ids = cleaned_text_to_sequence(phoneme)
+                phoneme_ids = cleaned_text_to_sequence(phoneme, version)
             except:
                 traceback.print_exc()
                 # print(f"{item_name} not in self.phoneme_data !")

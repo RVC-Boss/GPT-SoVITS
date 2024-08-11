@@ -35,6 +35,7 @@ from .num import RE_POSITIVE_QUANTIFIERS
 from .num import RE_RANGE
 from .num import RE_TO_RANGE
 from .num import RE_ASMD
+from .num import RE_POWER
 from .num import replace_default_num
 from .num import replace_frac
 from .num import replace_negative_num
@@ -44,6 +45,7 @@ from .num import replace_positive_quantifier
 from .num import replace_range
 from .num import replace_to_range
 from .num import replace_asmd
+from .num import replace_power
 from .phonecode import RE_MOBILE_PHONE
 from .phonecode import RE_NATIONAL_UNIFORM_NUMBER
 from .phonecode import RE_TELEPHONE
@@ -114,6 +116,12 @@ class TextNormalizer():
         sentence = sentence.replace('χ', '器')
         sentence = sentence.replace('ψ', '普赛').replace('Ψ', '普赛')
         sentence = sentence.replace('ω', '欧米伽').replace('Ω', '欧米伽')
+        # 兜底数学运算，顺便兼容懒人用语
+        sentence = sentence.replace('+', '加')
+        sentence = sentence.replace('-', '减')
+        sentence = sentence.replace('×', '乘')
+        sentence = sentence.replace('÷', '除')
+        sentence = sentence.replace('=', '等')
         # re filter special characters, have one more character "-" than line 68
         sentence = re.sub(r'[-——《》【】<=>{}()（）#&@“”^_|\\]', '', sentence)
         return sentence
@@ -136,6 +144,12 @@ class TextNormalizer():
         sentence = RE_TO_RANGE.sub(replace_to_range, sentence)
         sentence = RE_TEMPERATURE.sub(replace_temperature, sentence)
         sentence = replace_measure(sentence)
+
+        # 处理数学运算
+        while RE_ASMD.search(sentence):
+            sentence = RE_ASMD.sub(replace_asmd, sentence)
+        sentence = RE_POWER.sub(replace_power, sentence)
+
         sentence = RE_FRAC.sub(replace_frac, sentence)
         sentence = RE_PERCENTAGE.sub(replace_percentage, sentence)
         sentence = RE_MOBILE_PHONE.sub(replace_mobile, sentence)
@@ -144,10 +158,6 @@ class TextNormalizer():
         sentence = RE_NATIONAL_UNIFORM_NUMBER.sub(replace_phone, sentence)
 
         sentence = RE_RANGE.sub(replace_range, sentence)
-
-        # 处理加减乘除
-        while RE_ASMD.search(sentence):
-            sentence = RE_ASMD.sub(replace_asmd, sentence)
 
         sentence = RE_INTEGER.sub(replace_negative_num, sentence)
         sentence = RE_DECIMAL_NUM.sub(replace_number, sentence)

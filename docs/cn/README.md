@@ -74,17 +74,10 @@ bash install.sh
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-
 pip install -r requirements.txt
 ```
 
 ### 手动安装
-
-#### 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
 
 #### 安装 FFmpeg
 
@@ -106,9 +99,17 @@ conda install -c conda-forge 'ffmpeg<7'
 
 下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下。
 
-##### Mac 用户
+安装 [Visual Studio 2022](https://visualstudio.microsoft.com/zh-hans/downloads/) 环境(仅限韩语TTS)
+
+##### MacOS 用户
 ```bash
 brew install ffmpeg
+```
+
+#### 安装依赖
+
+```bash
+pip install -r requirements.txt
 ```
 
 ### 在 Docker 中使用
@@ -142,22 +143,28 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 从 [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 下载预训练模型，并将它们放置在 `GPT_SoVITS\pretrained_models` 中。
 
+从 [G2PWModel-v2-onnx.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) 下载G2PW模型,并将它们解压重命名为`G2PWModel` 后放置在 `GPT_SoVITS\text` 中。（仅限中文TTS）
+
 对于 UVR5（人声/伴奏分离和混响移除，附加），从 [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 下载模型，并将它们放置在 `tools/uvr5/uvr5_weights` 中。
 
 中国地区用户可以进入以下链接并点击“下载副本”下载以上两个模型（如果下载时遇到错误，请退出登录）：
 
-- [GPT-SoVITS Models](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
+- [GPT-SoVITS Models](https://www.icloud.com/iclouddrive/044boFMiOHHt22SNr-c-tirbA#pretrained_models)
 
 - [UVR5 Weights](https://www.icloud.com.cn/iclouddrive/0bekRKDiJXboFhbfm3lM2fVbA#UVR5_Weights)
 
+- [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（下载G2PW模型,并将它们解压重命名为 `G2PWModel` 后放置在 `GPT_SoVITS\text` 中）
+
 对于中文自动语音识别（附加），从 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), 和 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 下载模型，并将它们放置在 `tools/asr/models` 中。
+
+或者从[FunASR模型链接](https://www.icloud.com/iclouddrive/0b52_7SQWYr75kHkPoPXgpeQA#models)下载模型，并将它们解压后替换 `tools/asr/models` 。（点击“下载副本”，如果下载时遇到错误，请退出登录）
 
 对于英语与日语自动语音识别（附加）,从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型，并将它们放置在 `tools/asr/models` 中。 此外，[其他模型](https://huggingface.co/Systran)可能具有类似效果，但占用更小的磁盘空间。
 
 中国地区用户可以通过以下链接下载：
-- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3)（点击“下载副本”，如果下载时遇到错误，请退出登录）
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/00bUEp9_mcjMq_dhHu_vrAFDQ#faster-whisper-large-v3)（点击“下载副本”，如果下载时遇到错误，请退出登录）
   
-- [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3)(Hugging Face镜像站)
+- [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3)（Hugging Face镜像站）
 
 
 ## 数据集格式
@@ -170,22 +177,104 @@ vocal_path|speaker_name|language|text
 
 语言字典：
 
-- 'zh': Chinese
-- 'ja': Japanese
-- 'en': English
+- 'zh': 中文
+- 'ja': 日语
+- 'en': 英语
+- 'ko': 韩语
+- 'yue': 粤语
 
 示例：
 
 ```
-D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
+D:\GPT-SoVITS\xxx/xxx.wav|xxx|zh|我爱玩原神。
 ```
+
+## 微调与推理
+
+### 打开WebUI
+
+#### 整合包用户
+
+双击`go-webui.bat`或者使用`go-webui.ps`
+若想使用V1,则双击`go-webui-v1.bat`或者使用`go-webui-v1.ps`
+
+#### 其他
+
+```bash
+python webui.py <language(optional)>
+```
+
+若想使用V1,则
+
+```bash
+python webui.py v1 <language(optional)>
+```
+或者在webUI内动态切换
+
+### 微调
+
+#### 现已支持自动填充路径
+
+    1.填入训练音频路径
+
+    2.切割音频
+
+    3.进行降噪(可选)
+
+    4.进行ASR
+
+    5.校对标注
+
+    6.前往下一个窗口,点击训练
+
+### 打开推理WebUI
+
+#### 整合包用户
+
+双击 `go-webui.bat` 或者使用 `go-webui.ps` ,然后在 `1-GPT-SoVITS-TTS/1C-推理` 中打开推理webUI
+
+#### 其他
+
+```bash
+python GPT_SoVITS/inference_webui.py <language(optional)>
+```
+或者
+
+```bash
+python webui.py
+```
+然后在 `1-GPT-SoVITS-TTS/1C-推理` 中打开推理webUI
+
+## V2发布说明
+
+新特性:
+
+  1.支持韩语及粤语
+
+  2.更好的文本前端
+
+  3.底模由2k小时扩展至5k小时
+
+  4.对低音质参考音频（尤其是来源于网络的高频严重缺失、听着很闷的音频）合成出来音质更好
+
+  详见[wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+
+从v1环境迁移至v2
+
+  1.需要pip安装requirements.txt更新环境
+
+  2.需要克隆github上的最新代码
+
+  3.需要从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) 下载预训练模型文件放到GPT_SoVITS\pretrained_models\gsv-v2final-pretrained下
+
+  中文额外需要下载[G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（下载G2PW模型,解压并重命名为`G2PWModel`,将其放到`GPT_SoVITS\text`目录下
 
 ## 待办事项清单
 
 - [ ] **高优先级：**
 
   - [x] 日语和英语的本地化。
-  - [ ] 用户指南。
+  - [x] 用户指南。
   - [x] 日语和英语数据集微调训练。
 
 - [ ] **功能:**
@@ -205,10 +294,10 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ````
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ````
-如果打不开浏览器，请按照下面的格式进行UVR处理，这是使用mdxnet进行音频处理的方式
+<!-- 如果打不开浏览器，请按照下面的格式进行UVR处理，这是使用mdxnet进行音频处理的方式
 ````
 python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
-````
+```` -->
 这是使用命令行完成数据集的音频切分的方式
 ````
 python audio_slicer.py \
@@ -226,9 +315,9 @@ python tools/asr/funasr_asr.py -i <input> -o <output>
 通过Faster_Whisper进行ASR处理（除中文之外的ASR标记）
 
 （没有进度条，GPU性能可能会导致时间延迟）
-````
-python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
-````
+```
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
+```
 启用自定义列表保存路径
 
 ## 致谢
@@ -249,6 +338,9 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
 ### 推理用文本前端
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
 - [LangSegment](https://github.com/juntaosun/LangSegment)
+- [g2pW](https://github.com/GitYCC/g2pW)
+- [pypinyin-g2pW](https://github.com/mozillazg/pypinyin-g2pW)
+- [paddlespeech g2pw](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw)
 ### WebUI 工具
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)

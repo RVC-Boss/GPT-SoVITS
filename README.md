@@ -74,17 +74,10 @@ bash install.sh
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-
 pip install -r requirements.txt
 ```
 
 ### Install Manually
-
-#### Install Dependences
-
-```bash
-pip install -r requirements.txt
-```
 
 #### Install FFmpeg
 
@@ -106,9 +99,17 @@ conda install -c conda-forge 'ffmpeg<7'
 
 Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
 
-##### Mac Users
+Install [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) (Korean TTS Only)
+
+##### MacOS Users
 ```bash
 brew install ffmpeg
+```
+
+#### Install Dependences
+
+```bash
+pip install -r requirements.txt
 ```
 
 ### Using Docker
@@ -142,21 +143,27 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) and place them in `GPT_SoVITS/pretrained_models`.
 
+Download G2PW models from [G2PWModel-v2-onnx.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip), unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS\text`.(Chinese TTS Only)
+
 For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal, additionally), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
 
-Users in the China region can download these two models by entering the links below and clicking "Download a copy"(Log out if you encounter errors while downloading.)
+Users in the China region can download these two models by entering the links below and clicking "Download a copy" (Log out if you encounter errors while downloading.)
 
-- [GPT-SoVITS Models](https://www.icloud.com.cn/iclouddrive/056y_Xog_HXpALuVUjscIwTtg#GPT-SoVITS_Models)
+- [GPT-SoVITS Models](https://www.icloud.com/iclouddrive/044boFMiOHHt22SNr-c-tirbA#pretrained_models)
 
 - [UVR5 Weights](https://www.icloud.com.cn/iclouddrive/0bekRKDiJXboFhbfm3lM2fVbA#UVR5_Weights)
 
+- [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models,  unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS\text`.
+
 For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/asr/models`.
+
+Or Download FunASR Model from [FunASR Model](https://www.icloud.com/iclouddrive/0b52_7SQWYr75kHkPoPXgpeQA#models), unzip and replace `tools/asr/models`.(Log out if you encounter errors while downloading.)
 
 For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint. 
 
 Users in the China region can download this model by entering the links below
 
-- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/0c4pQxFs7oWyVU1iMTq2DbmLA#faster-whisper-large-v3) (Click "Download a copy", log out if you encounter errors while downloading.)
+- [Faster Whisper Large V3](https://www.icloud.com/iclouddrive/00bUEp9_mcjMq_dhHu_vrAFDQ#faster-whisper-large-v3) (Click "Download a copy", log out if you encounter errors while downloading.)
 
 - [Faster Whisper Large V3](https://hf-mirror.com/Systran/faster-whisper-large-v3) (HuggingFace mirror site)
 
@@ -173,31 +180,113 @@ Language dictionary:
 - 'zh': Chinese
 - 'ja': Japanese
 - 'en': English
-
+- 'ko': Korean
+- 'yue': Cantonese
+  
 Example:
 
 ```
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
+## Finetune and inference
+
+ ### Open WebUI
+
+ #### Integrated Package Users
+
+ Double-click `go-webui.bat`or use `go-webui.ps`
+ if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-v1.ps`
+
+ #### Others
+
+ ```bash
+ python webui.py <language(optional)>
+ ```
+
+ if you want to switch to V1,then
+
+ ```bash
+ python webui.py v1 <language(optional)>
+ ```
+Or maunally switch version in WebUI
+
+ ### Finetune
+
+ #### Path Auto-filling is now supported
+
+     1.Fill in the audio path
+
+     2.Slice the audio into small chunks
+
+     3.Denoise(optinal)
+
+     4.ASR
+
+     5.Proofreading ASR transcriptions
+
+     6.Go to the next Tab, then finetune the model
+
+ ### Open Inference WebUI
+
+ #### Integrated Package Users
+
+ Double-click `go-webui-v2.bat` or use `go-webui-v2.ps` ,then open the inference webui at  `1-GPT-SoVITS-TTS/1C-inference` 
+
+ #### Others
+
+ ```bash
+ python GPT_SoVITS/inference_webui.py <language(optional)>
+ ```
+ OR
+
+ ```bash
+ python webui.py
+ ```
+then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
+
+ ## V2 Release Notes
+
+New Features:
+
+  1.Support Korean and Cantonese
+
+  2.An optimized text frontend
+
+  3.Pre-trained model extended from 2k hours to 5k hours
+
+  4.Improved synthesis quality for low-quality reference audio 
+
+  [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7) ) 
+
+Use v2 from v1 environment: 
+
+  1.pip install -r requirements.txt to update some packages
+
+  2.clone the latest codes from github
+
+  3.download v2 pretrained models from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) and put them into GPT_SoVITS\pretrained_models\gsv-v2final-pretrained
+
+  Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models,  unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS\text`.
+     
 ## Todo List
 
-- [ ] **High Priority:**
+- [x] **High Priority:**
 
   - [x] Localization in Japanese and English.
   - [x] User guide.
   - [x] Japanese and English dataset fine tune training.
 
 - [ ] **Features:**
-  - [ ] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
-  - [ ] TTS speaking speed control.
-  - [ ] Enhanced TTS emotion control.
-  - [ ] Experiment with changing SoVITS token inputs to probability distribution of vocabs.
-  - [ ] Improve English and Japanese text frontend.
+  - [x] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
+  - [x] TTS speaking speed control.
+  - [ ] ~~Enhanced TTS emotion control.~~
+  - [ ] Experiment with changing SoVITS token inputs to probability distribution of GPT vocabs (transformer latent).
+  - [x] Improve English and Japanese text frontend.
   - [ ] Develop tiny and larger-sized TTS models.
   - [x] Colab scripts.
   - [ ] Try expand training dataset (2k hours -> 10k hours).
-  - [ ] better sovits base model (enhanced audio quality)
+  - [x] better sovits base model (enhanced audio quality)
   - [ ] model mix
 
 ## (Additional) Method for running from the command line
@@ -205,10 +294,10 @@ Use the command line to open the WebUI for UVR5
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
-If you can't open a browser, follow the format below for UVR processing,This is using mdxnet for audio processing
+<!-- If you can't open a browser, follow the format below for UVR processing,This is using mdxnet for audio processing
 ```
 python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
-```
+``` -->
 This is how the audio segmentation of the dataset is done using the command line
 ```
 python audio_slicer.py \
@@ -227,7 +316,7 @@ ASR processing is performed through Faster_Whisper(ASR marking except Chinese)
 
 (No progress bars, GPU performance may cause time delays)
 ```
-python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language>
+python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
 A custom list save path is enabled
 
@@ -249,6 +338,9 @@ Special thanks to the following projects and contributors:
 ### Text Frontend for Inference
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
 - [LangSegment](https://github.com/juntaosun/LangSegment)
+- [g2pW](https://github.com/GitYCC/g2pW)
+- [pypinyin-g2pW](https://github.com/mozillazg/pypinyin-g2pW)
+- [paddlespeech g2pw](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw)
 ### WebUI Tools
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)
@@ -257,7 +349,9 @@ Special thanks to the following projects and contributors:
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
-  
+
+Thankful to @Naozumi520 for providing the Cantonese training set and for the guidance on Cantonese-related knowledge.
+
 ## Thanks to all contributors for their efforts
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
