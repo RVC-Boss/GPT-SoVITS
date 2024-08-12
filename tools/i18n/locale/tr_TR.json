@@ -174,5 +174,15 @@
     "预训练的SSL模型路径": "Ön eğitilmiş SSL model yolu",
     "预训练的SoVITS-D模型路径": "Ön eğitilmiş SoVITS-D model yolu",
     "预训练的SoVITS-G模型路径": "Ön eğitilmiş SoVITS-G model yolu",
-    "预训练的中文BERT模型路径": "Ön eğitilmiş Çince BERT model yolu"
+    "预训练的中文BERT模型路径": "Ön eğitilmiş Çince BERT model yolu",
+    "音频加载失败": "Ses Yüklenemedi",
+    "以下文件或文件夹不存在": "Böyle Bir Dosya veya Klasör Yok",
+    "路径不能为空": "Boş Yol Beklenmiyor",
+    "请填入正确的List路径": "Lütfen Doğru Liste Yolunu Girin",
+    "请填入正确的音频文件夹路径": "Lütfen Doğru Ses Klasörü Yolunu Girin",
+    "路径错误": "Yol Hatası",
+    "缺少音素数据集": "Fonem Veri Seti Eksik",
+    "缺少Hubert数据集": "Hubert Veri Seti Eksik",
+    "缺少音频数据集": "Ses Veri Seti Eksik",
+    "缺少语义数据集": "Anlamsal Veri Seti Eksik"
 }

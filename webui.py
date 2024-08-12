@@ -25,6 +25,7 @@ if(os.path.exists(tmp)):
             print(str(e))
             pass
 import site
+import traceback
 site_packages_roots = []
 for path in site.getsitepackages():
     if "packages" in path:
@@ -43,9 +44,8 @@ for site_packages_root in site_packages_roots:
                 )
             break
         except PermissionError as e:
-            print(e)
+            traceback.print_exc()
 from tools import my_utils
-import traceback
 import shutil
 import pdb
 from subprocess import Popen

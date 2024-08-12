@@ -174,5 +174,15 @@
     "预训练的SSL模型路径": "Chemin du modèle SSL pré-entraîné",
     "预训练的SoVITS-D模型路径": "Chemin du modèle SoVITS-D pré-entraîné",
     "预训练的SoVITS-G模型路径": "Chemin du modèle SoVITS-G pré-entraîné",
-    "预训练的中文BERT模型路径": "Chemin du modèle BERT chinois pré-entraîné"
+    "预训练的中文BERT模型路径": "Chemin du modèle BERT chinois pré-entraîné",
+    "音频加载失败": "Échec du Chargement de l'Audio",
+    "以下文件或文件夹不存在": "Aucun Fichier ou Dossier de ce Type",
+    "路径不能为空": "Chemin Non Vide Attendu",
+    "请填入正确的List路径": "Veuillez Remplir le Chemin Correct de la Liste",
+    "请填入正确的音频文件夹路径": "Veuillez Remplir le Chemin Correct du Dossier Audio",
+    "路径错误": "Erreur de Chemin",
+    "缺少音素数据集": "Jeu de Données de Phonèmes Manquant",
+    "缺少Hubert数据集": "Jeu de Données Hubert Manquant",
+    "缺少音频数据集": "Jeu de Données Audio Manquant",
+    "缺少语义数据集": "Jeu de Données Sémantiques Manquant"
 }

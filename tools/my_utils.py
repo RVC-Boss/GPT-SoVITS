@@ -23,7 +23,7 @@ def load_audio(file, sr):
         )
     except Exception as e:
         traceback.print_exc()
-        raise RuntimeError(i18n("Failed to load audio:")+e)
+        raise RuntimeError(i18n("音频加载失败"))
 
     return np.frombuffer(out, np.float32).flatten()
 
@@ -51,7 +51,7 @@ def check_for_existance(file_list:list=None,is_train=False,is_dataset_processing
             for file,status in zip(file_list,files_status):
                 if status:pass
                 else:gr.Warning(file)
-            gr.Warning(i18n('以下文件或文件夹不存在:'))
+            gr.Warning(i18n('以下文件或文件夹不存在'))
             return False
         elif is_dataset_processing:
             if files_status[0]:
@@ -60,12 +60,12 @@ def check_for_existance(file_list:list=None,is_train=False,is_dataset_processing
                 gr.Warning(file_list[0])
             elif not files_status[1] and file_list[1]:
                 gr.Warning(file_list[1])
-            gr.Warning(i18n('以下文件或文件夹不存在:'))
+            gr.Warning(i18n('以下文件或文件夹不存在'))
             return False
         else:
             if file_list[0]:
                 gr.Warning(file_list[0])
-                gr.Warning(i18n('以下文件或文件夹不存在:'))
+                gr.Warning(i18n('以下文件或文件夹不存在'))
             else:
                 gr.Warning(i18n('路径不能为空'))
             return False
@@ -75,7 +75,7 @@ def check_details(path_list=None,is_train=False,is_dataset_processing=False):
     if is_dataset_processing:
         list_path, audio_path = path_list
         if (not list_path.endswith('.list')):
-            gr.Warning(i18n('请填入正确的list路径'))
+            gr.Warning(i18n('请填入正确的List路径'))
             return
         if audio_path:
             if not os.path.isdir(audio_path):
