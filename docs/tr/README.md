@@ -76,12 +76,6 @@ pip install -r requirements.txt
 
 ### El ile Yükleme
 
-#### Bağımlılıkları Yükleme
-
-```bash
-pip install -r requirements.txt
-```
-
 #### FFmpeg'i Yükleme
 
 ##### Conda Kullanıcıları
@@ -105,6 +99,12 @@ conda install -c conda-forge 'ffmpeg<7'
 ##### MacOS Kullanıcıları
 ```bash
 brew install ffmpeg
+```
+
+#### Bağımlılıkları Yükleme
+
+```bash
+pip install -r requirements.txt
 ```
 
 ### Docker Kullanarak
@@ -136,13 +136,15 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 ## Önceden Eğitilmiş Modeller
 
-Önceden eğitilmiş modelleri [GPT-SoVITS Modelleri](https://huggingface.co/lj1995/GPT-SoVITS) adresinden indirin ve `GPT_SoVITS/pretrained_models` dizinine yerleştirin.
+1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) üzerinden önceden eğitilmiş modelleri indirip `GPT_SoVITS/pretrained_models` dizinine yerleştirin.
 
-UVR5 (Vokal/Eşlik Ayırma ve Yankı Giderme, ayrıca) için, modelleri [UVR5 Ağırlıkları](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) adresinden indirin ve `tools/uvr5/uvr5_weights` dizinine yerleştirin.
+2. [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) üzerinden modeli indirip sıkıştırmayı açın ve `G2PWModel` olarak yeniden adlandırın, ardından `GPT_SoVITS/text` dizinine yerleştirin. (Sadece Çince TTS için)
 
-Çince ASR (ayrıca) için, modelleri [Damo ASR Modeli](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Modeli](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), ve [Damo Punc Modeli](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) adreslerinden indirin ve `tools/asr/models` dizinine yerleştirin.
+3. UVR5 (Vokal/Enstrümantal Ayrımı & Yankı Giderme) için, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) üzerinden modelleri indirip `tools/uvr5/uvr5_weights` dizinine yerleştirin.
 
-İngilizce veya Japonca ASR (ayrıca) için, modelleri [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) adresinden indirin ve `tools/asr/models` dizinine yerleştirin. Ayrıca, [diğer modeller](https://huggingface.co/Systran) daha küçük disk alanı kaplamasıyla benzer etkiye sahip olabilir.
+4. Çince ASR için, [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) ve [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) üzerinden modelleri indirip `tools/asr/models` dizinine yerleştirin.
+
+5. İngilizce veya Japonca ASR için, [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) üzerinden modeli indirip `tools/asr/models` dizinine yerleştirin. Ayrıca, [diğer modeller](https://huggingface.co/Systran) benzer bir etki yaratabilir ve daha az disk alanı kaplayabilir.
 
 ## Veri Seti Formatı
 
@@ -164,24 +166,104 @@ Dil sözlüğü:
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
+## İnce Ayar ve Çıkarım
+
+### WebUI'yi Açın
+
+#### Entegre Paket Kullanıcıları
+
+`go-webui.bat` dosyasına çift tıklayın veya `go-webui.ps` kullanın.
+V1'e geçmek istiyorsanız, `go-webui-v1.bat` dosyasına çift tıklayın veya `go-webui-v1.ps` kullanın.
+
+#### Diğerleri
+
+```bash
+python webui.py <dil(isteğe bağlı)>
+```
+
+V1'e geçmek istiyorsanız,
+
+```bash
+python webui.py v1 <dil(isteğe bağlı)>
+```
+veya WebUI'de manuel olarak sürüm değiştirin.
+
+### İnce Ayar
+
+#### Yol Otomatik Doldurma artık destekleniyor
+
+    1. Ses yolunu doldurun
+
+    2. Sesi küçük parçalara ayırın
+
+    3. Gürültü azaltma (isteğe bağlı)
+
+    4. ASR
+
+    5. ASR transkripsiyonlarını düzeltin
+
+    6. Bir sonraki sekmeye geçin ve modeli ince ayar yapın
+
+### Çıkarım WebUI'sini Açın
+
+#### Entegre Paket Kullanıcıları
+
+`go-webui-v2.bat` dosyasına çift tıklayın veya `go-webui-v2.ps` kullanın, ardından çıkarım webui'sini `1-GPT-SoVITS-TTS/1C-inference` adresinde açın.
+
+#### Diğerleri
+
+```bash
+python GPT_SoVITS/inference_webui.py <dil(isteğe bağlı)>
+```
+VEYA
+
+```bash
+python webui.py
+```
+ardından çıkarım webui'sini `1-GPT-SoVITS-TTS/1C-inference` adresinde açın.
+
+## V2 Sürüm Notları
+
+Yeni Özellikler:
+
+1. Korece ve Kantonca destekler
+
+2. Optimize edilmiş metin ön yüzü
+
+3. Önceden eğitilmiş model 2k saatten 5k saate kadar genişletildi
+
+4. Düşük kaliteli referans sesler için geliştirilmiş sentez kalitesi
+
+    [detaylar burada](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+
+V1 ortamından V2'yi kullanmak için:
+
+1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin
+
+2. github'dan en son kodları klonlayın.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) adresinden v2 önceden eğitilmiş modelleri indirin ve bunları `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained` dizinine yerleştirin.
+
+    Ek olarak Çince V2: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW modellerini indirip, zipten çıkarıp, `G2PWModel` olarak yeniden adlandırıp `GPT_SoVITS/text` dizinine yerleştirin.)
+
 ## Yapılacaklar Listesi
 
-- [ ] **Yüksek Öncelikli:**
+- [x] **Yüksek Öncelikli:**
 
   - [x] Japonca ve İngilizceye yerelleştirme.
   - [x] Kullanıcı kılavuzu.
   - [x] Japonca ve İngilizce veri seti ince ayar eğitimi.
 
 - [ ] **Özellikler:**
-  - [ ] Sıfır örnekli ses dönüştürme (5s) / birkaç örnekli ses dönüştürme (1dk).
-  - [ ] Metinden konuşmaya konuşma hızı kontrolü.
-  - [ ] Gelişmiş metinden konuşmaya duygu kontrolü.
+  - [x] Sıfır örnekli ses dönüştürme (5s) / birkaç örnekli ses dönüştürme (1dk).
+  - [x] Metinden konuşmaya konuşma hızı kontrolü.
+  - [ ] ~~Gelişmiş metinden konuşmaya duygu kontrolü.~~
   - [ ] SoVITS token girdilerini kelime dağarcığı olasılık dağılımına değiştirme denemesi.
-  - [ ] İngilizce ve Japonca metin ön ucunu iyileştirme.
+  - [x] İngilizce ve Japonca metin ön ucunu iyileştirme.
   - [ ] Küçük ve büyük boyutlu metinden konuşmaya modelleri geliştirme.
   - [x] Colab betikleri.
   - [ ] Eğitim veri setini genişletmeyi dene (2k saat -> 10k saat).
-  - [ ] daha iyi sovits temel modeli (geliştirilmiş ses kalitesi)
+  - [x] daha iyi sovits temel modeli (geliştirilmiş ses kalitesi)
   - [ ] model karışımı
 
 ## (Ekstra) Komut satırından çalıştırma yöntemi
@@ -241,6 +323,8 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+
+@Naozumi520’ye Kantonca eğitim setini sağladığı ve Kantonca ile ilgili bilgiler konusunda rehberlik ettiği için minnettarım.
   
 ## Tüm katkıda bulunanlara çabaları için teşekkürler
 
