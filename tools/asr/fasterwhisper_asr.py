@@ -68,10 +68,9 @@ def execute_asr(input_folder, output_folder, model_size, language, precision):
 
             if info.language == "zh":
                 print("检测为中文文本, 转 FunASR 处理")
-                if("only_asr"not in globals()):
-                    from tools.asr.funasr_asr import \
-                        only_asr  # #如果用英文就不需要导入下载模型
-                text = only_asr(file_path)
+                if("only_asr" not in globals()):
+                    from tools.asr.funasr_asr import only_asr  #如果用英文就不需要导入下载模型
+                text = only_asr(file_path, language=info.language.lower())
 
             if text == '':
                 for segment in segments:
