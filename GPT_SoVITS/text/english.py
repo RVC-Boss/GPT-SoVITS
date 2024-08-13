@@ -324,6 +324,8 @@ class en_G2p(G2p):
                 # 单读 A 发音修正, 此处不存在大写的情况
                 if w == "a":
                     phones.extend(['EY1'])
+                elif not w.isalpha():
+                    phones.extend([w])
                 else:
                     phones.extend(self.cmu[w][0])
             return phones
