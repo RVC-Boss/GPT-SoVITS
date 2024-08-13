@@ -108,6 +108,8 @@ def check_details(path_list=None,is_train=False,is_dataset_processing=False):
         else:gr.Warning(i18n('缺少Hubert数据集'))
         if os.listdir(wav_path):...
         else:gr.Warning(i18n('缺少音频数据集'))
-        df = pd.read_csv(semantic_path)
+        df = pd.read_csv(
+            semantic_path, delimiter="\t", encoding="utf-8"
+        )
         if len(df) > 1:...
         else:gr.Warning(i18n('缺少语义数据集'))
