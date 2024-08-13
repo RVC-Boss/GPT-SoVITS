@@ -174,5 +174,15 @@
     "预训练的SSL模型路径": "Ruta del modelo SSL preentrenado",
     "预训练的SoVITS-D模型路径": "Ruta del modelo SoVITS-D preentrenado",
     "预训练的SoVITS-G模型路径": "Ruta del modelo SoVITS-G preentrenado",
-    "预训练的中文BERT模型路径": "Ruta del modelo BERT en chino preentrenado"
+    "预训练的中文BERT模型路径": "Ruta del modelo BERT en chino preentrenado",
+    "音频加载失败": "Error al Cargar el Audio",
+    "以下文件或文件夹不存在": "No Existe Tal Archivo o Carpeta",
+    "路径不能为空": "Se Espera que la Ruta No Esté Vacía",
+    "请填入正确的List路径": "Por Favor, Introduzca la Ruta Correcta de la Lista",
+    "请填入正确的音频文件夹路径": "Por Favor, Introduzca la Ruta Correcta de la Carpeta de Audio",
+    "路径错误": "Error de Ruta",
+    "缺少音素数据集": "Falta el Conjunto de Datos de Fonemas",
+    "缺少Hubert数据集": "Falta el Conjunto de Datos de Hubert",
+    "缺少音频数据集": "Falta el Conjunto de Datos de Audio",
+    "缺少语义数据集": "Falta el Conjunto de Datos Semánticos"
 }

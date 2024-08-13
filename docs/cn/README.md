@@ -24,7 +24,7 @@
 
 2. **少样本 TTS：** 仅需 1 分钟的训练数据即可微调模型，提升声音相似度和真实感。
 
-3. **跨语言支持：** 支持与训练数据集不同语言的推理，目前支持英语、日语和中文。
+3. **跨语言支持：** 支持与训练数据集不同语言的推理，目前支持英语、日语、韩语、粤语和中文。
 
 4. **WebUI 工具：** 集成工具包括声音伴奏分离、自动训练集分割、中文自动语音识别(ASR)和文本标注，协助初学者创建训练数据集和 GPT/SoVITS 模型。
 
@@ -99,7 +99,7 @@ conda install -c conda-forge 'ffmpeg<7'
 
 下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下。
 
-安装 [Visual Studio 2022](https://visualstudio.microsoft.com/zh-hans/downloads/) 环境(仅限韩语TTS)
+安装 [Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) 环境(仅限韩语TTS)
 
 ##### MacOS 用户
 ```bash

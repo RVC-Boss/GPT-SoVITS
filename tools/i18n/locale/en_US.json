@@ -174,5 +174,15 @@
     "预训练的SSL模型路径": "Pretrained SSL model path",
     "预训练的SoVITS-D模型路径": "Pretrained SoVITS-D model path",
     "预训练的SoVITS-G模型路径": "Pretrained SoVITS-G model path",
-    "预训练的中文BERT模型路径": " Pretrained BERT model path"
+    "预训练的中文BERT模型路径": " Pretrained BERT model path",
+    "音频加载失败": "Failed to Load Audio",
+    "以下文件或文件夹不存在": "No Such File or Folder",
+    "路径不能为空": "Expected No Empty Path",
+    "请填入正确的List路径": "Please Fill in the Correct List Path",
+    "请填入正确的音频文件夹路径": "Please Fill in the Correct Audio Folder Path",
+    "路径错误": "Path Error",
+    "缺少音素数据集": "Missing Phoneme Dataset",
+    "缺少Hubert数据集": "Missing Hubert Dataset",
+    "缺少音频数据集": "Missing Audio Dataset",
+    "缺少语义数据集": "Missing Semantics Dataset"
 }
