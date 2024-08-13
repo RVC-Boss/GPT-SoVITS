@@ -101,7 +101,7 @@ def check_details(path_list=None,is_train=False,is_dataset_processing=False):
         path_list.append(os.path.join(path_list[0],'5-wav32k'))
         path_list.append(os.path.join(path_list[0],'6-name2semantic.tsv'))
         phone_path, hubert_path, wav_path, semantic_path = path_list[1:]
-        with open(phone_path,encoding='utf-8') as f:
+        with open(phone_path,'r',encoding='utf-8') as f:
             if f.read(1):...
             else:gr.Warning(i18n('缺少音素数据集'))
         if os.listdir(hubert_path):...
