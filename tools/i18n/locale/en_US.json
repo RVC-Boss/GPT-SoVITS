@@ -9,6 +9,7 @@
     "*请上传并填写参考信息": "*Please upload and fill reference information",
     "*请填写需要合成的目标文本和语种模式": "*Please fill in the target text and language mode for synthesis",
     ".list标注文件的路径": ".list annotation file path",
+    ".限制范围越小判别效果越好。": "Less Multilingual is better",
     "0-前置数据集获取工具": "0-Fetch dataset",
     "0a-UVR5人声伴奏分离&去混响去延迟工具": "0a-UVR5 webui (for vocal separation, deecho, dereverb and denoise)",
     "0b-语音切分工具": "0b-Audio slicer",
@@ -86,6 +87,7 @@
     "参考音频在3~10秒范围外，请更换！": "Reference audio is outside the 3-10 second range, please choose another one!",
     "参考音频的文本": "Text for reference audio",
     "参考音频的语种": "Language for reference audio",
+    "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。": "Optional: Upload multiple reference audio files by dragging and dropping them (recommended to be of the same gender), and average their tone. If this option is left blank, the tone will be controlled by the single reference audio on the left. If fine-tuning the model, it is recommended that all reference audio files have tones within the fine-tuning training set; the pretrained model can be ignored.",
     "合成语音": "Start inference",
     "合格的文件夹路径格式举例： E:\\codes\\py39\\vits_vc_gpu\\白鹭霜华测试样例(去文件管理器地址栏拷就行了)。": "An example of a valid folder path format: E:\\codes\\py39\\vits_vc_gpu\\白鹭霜华测试样例 (simply copy the address from the file manager's address bar).",
     "填切割后音频所在目录！读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名（不是全路径）。如果留空则使用.list文件里的绝对全路径。": "Please fill in the segmented audio files' directory! The full path of the audio file = the directory concatenated with the filename corresponding to the waveform in the list file (not the full path). If left blank, the absolute full path in the .list file will be used.",
@@ -129,6 +131,7 @@
     "是否仅保存最新的ckpt文件以节省硬盘空间": "Save only the latest '.ckpt' file to save disk space:",
     "是否在每次保存时间点将最终小模型保存至weights文件夹": "Save a small final model to the 'weights' folder at each save point:",
     "是否开启dpo训练选项(实验性)": "Enable DPO training (experimental feature)",
+    "是否直接对上次合成结果调整语速和音色。防止随机性。": "Adjust the speech rate and tone of the last synthesis result to prevent randomness.",
     "显卡信息": "GPU Information",
     "本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.": "This software is open source under the MIT license. The author does not have any control over the software. Users who use the software and distribute the sounds exported by the software are solely responsible. <br>If you do not agree with this clause, you cannot use or reference any codes and files within the software package. See the root directory <b>Agreement-LICENSE</b> for details.",
     "模型": "Model",
@@ -185,8 +188,5 @@
     "预训练的SSL模型路径": "Pretrained SSL model path",
     "预训练的SoVITS-D模型路径": "Pretrained SoVITS-D model path",
     "预训练的SoVITS-G模型路径": "Pretrained SoVITS-G model path",
-    "预训练的中文BERT模型路径": " Pretrained BERT model path",
-    ".限制范围越小判别效果越好。": "Less Multilingual is better",
-    "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。": "Optional: Upload multiple reference audio files by dragging and dropping them (recommended to be of the same gender), and average their tone. If this option is left blank, the tone will be controlled by the single reference audio on the left. If fine-tuning the model, it is recommended that all reference audio files have tones within the fine-tuning training set; the pretrained model can be ignored.",
-    "是否直接对上次合成结果调整语速和音色。防止随机性。": "Adjust the speech rate and tone of the last synthesis result to prevent randomness."
+    "预训练的中文BERT模型路径": " Pretrained BERT model path"
 }
