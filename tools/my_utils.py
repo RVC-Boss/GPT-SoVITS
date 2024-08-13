@@ -111,5 +111,5 @@ def check_details(path_list=None,is_train=False,is_dataset_processing=False):
         df = pd.read_csv(
             semantic_path, delimiter="\t", encoding="utf-8"
         )
-        if len(df) > 1:...
+        if len(df) >= 1:...
         else:gr.Warning(i18n('缺少语义数据集'))
