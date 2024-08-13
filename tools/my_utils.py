@@ -2,7 +2,7 @@ import platform,os,traceback
 import ffmpeg
 import numpy as np
 import gradio as gr
-from i18n.i18n import I18nAuto
+from tools.i18n.i18n import I18nAuto
 import pandas as pd
 i18n = I18nAuto(language=os.environ.get('language','Auto'))
 
