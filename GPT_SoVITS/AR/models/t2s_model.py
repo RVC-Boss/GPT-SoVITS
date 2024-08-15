@@ -182,51 +182,6 @@ class T2SBlock:
             )
         return x, k_cache, v_cache
     
-    
-
-    # def process_prompt(self, x, attn_mask : torch.Tensor, padding_mask:torch.Tensor=None):
-
-            
-    #     q, k, v = F.linear(x, self.qkv_w, self.qkv_b).chunk(3, dim=-1)
-
-    #     batch_size = q.shape[0]
-    #     q_len = q.shape[1]
-    #     kv_len = k.shape[1]
-        
-    #     k_cache = k
-    #     v_cache = v
-
-    #     q = q.view(batch_size, q_len, self.num_heads, -1).transpose(1, 2)
-    #     k = k_cache.view(batch_size, kv_len, self.num_heads, -1).transpose(1, 2)
-    #     v = v_cache.view(batch_size, kv_len, self.num_heads, -1).transpose(1, 2)
-
-    #     attn = scaled_dot_product_attention(q, k, v, attn_mask)
-
-    #     attn = attn.permute(2, 0, 1, 3).reshape(batch_size*q_len, self.hidden_dim)
-    #     attn = attn.view(q_len, batch_size, self.hidden_dim).transpose(1, 0)
-    #     attn = F.linear(attn, self.out_w, self.out_b)
-
-    #     for i in range(batch_size):
-    #         # mask = padding_mask[i,:,0]
-    #         idx = torch.where(padding_mask[i,:,0]==False)[0]
-    #         x_item = x[i,idx,:].unsqueeze(0)
-    #         attn_item = attn[i,idx,:].unsqueeze(0)
-    #         x_item = x_item + attn_item
-    #         x_item = F.layer_norm(
-    #             x_item, [self.hidden_dim], self.norm_w1, self.norm_b1, self.norm_eps1
-    #         )
-    #         x_item = x_item + self.mlp.forward(x_item)
-    #         x_item = F.layer_norm(
-    #             x_item,
-    #             [self.hidden_dim],
-    #             self.norm_w2,
-    #             self.norm_b2,
-    #             self.norm_eps2,
-    #         )
-    #         x[i,idx,:] = x_item.squeeze(0)
-    #     # x = self.to_mask(x, padding_mask)
-    #     return x, k_cache, v_cache
-
     def decode_next_token(self, x:torch.Tensor, k_cache:torch.Tensor, v_cache:torch.Tensor, attn_mask:Optional[torch.Tensor]=None):
         q, k, v = F.linear(x, self.qkv_w, self.qkv_b).chunk(3, dim=-1)
 
