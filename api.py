@@ -504,7 +504,7 @@ def only_punc(text):
     return not any(t.isalnum() or t.isalpha() for t in text)
 
 
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, top_k= 20, top_p = 0.6, temperature = 0.6, speed = 1):
+async def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, top_k= 20, top_p = 0.6, temperature = 0.6, speed = 1):
     t0 = ttime()
     prompt_text = prompt_text.strip("\n")
     prompt_language, text = prompt_language, text.strip("\n")
@@ -615,7 +615,7 @@ def handle_change(path, text, language):
     return JSONResponse({"code": 0, "message": "Success"}, status_code=200)
 
 
-def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed):
+async def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed):
     if (
             refer_wav_path == "" or refer_wav_path is None
             or prompt_text == "" or prompt_text is None
@@ -820,7 +820,7 @@ async def change_refer(
 @app.post("/")
 async def tts_endpoint(request: Request):
     json_post_raw = await request.json()
-    return handle(
+    return await handle(
         json_post_raw.get("refer_wav_path"),
         json_post_raw.get("prompt_text"),
         json_post_raw.get("prompt_language"),
@@ -847,7 +847,7 @@ async def tts_endpoint(
         temperature: float = 1.0,
         speed: float = 1.0
 ):
-    return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed)
+    return await handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed)
 
 
 if __name__ == "__main__":
