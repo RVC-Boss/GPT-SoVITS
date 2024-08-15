@@ -24,7 +24,7 @@
 
 2. **소량의 데이터 TTS:** 1분의 훈련 데이터만으로 모델을 미세 조정하여 음성 유사도와 실제감을 향상시킬 수 있습니다.
 
-3. **다국어 지원:** 훈련 데이터셋과 다른 언어의 추론을 지원하며, 현재 영어, 일본어, 중국어를 지원합니다.
+3. **다국어 지원:** 훈련 데이터셋과 다른 언어의 추론을 지원하며, 현재 영어, 일본어, 중국어, 광둥어, 한국어를 지원합니다.
 
 4. **WebUI 도구:** 음성 반주 분리, 자동 훈련 데이터셋 분할, 중국어 자동 음성 인식(ASR) 및 텍스트 주석 등의 도구를 통합하여 초보자가 훈련 데이터셋과 GPT/SoVITS 모델을 생성하는 데 도움을 줍니다.
 
@@ -76,12 +76,6 @@ pip install -r requirements.txt
 
 ### 수동 설치
 
-#### 의존성 설치
-
-```bash
-pip install -r requirements.txt
-```
-
 #### FFmpeg 설치
 
 ##### Conda 사용자
@@ -105,6 +99,12 @@ conda install -c conda-forge 'ffmpeg<7'
 ##### MacOS 사용자
 ```bash
 brew install ffmpeg
+```
+
+#### 의존성 설치
+
+```bash
+pip install -r requirements.txt
 ```
 
 ### Docker에서 사용
@@ -137,13 +137,17 @@ docker compose -f "docker-compose.yaml" up -d
 docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
 ```
 
-## 사전 훈련된 모델
+## 사전 학습된 모델
 
-[GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS)에서 사전 훈련된 모델을 다운로드하고 `GPT_SoVITS\pretrained_models`에 넣습니다.
+1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 에서 사전 학습된 모델을 다운로드하고, `GPT_SoVITS/pretrained_models` 디렉토리에 배치하세요.
 
-중국어 자동 음성 인식(ASR), 음성 반주 분리 및 음성 제거를 위해 [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) 및 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files)을 다운로드하고 `tools/asr/models`에 넣습니다.
+2. [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) 에서 모델을 다운로드하고 압축을 풀어 `G2PWModel`로 이름을 변경한 후, `GPT_SoVITS/text` 디렉토리에 배치하세요. (중국어 TTS 전용)
 
-UVR5(음성/반주 분리 및 잔향 제거)를 위해 [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights)에서 모델을 다운로드하고 `tools/uvr5/uvr5_weights`에 넣습니다.
+3. UVR5 (보컬/반주 분리 & 잔향 제거 추가 기능)의 경우, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 에서 모델을 다운로드하고 `tools/uvr5/uvr5_weights` 디렉토리에 배치하세요.
+
+4. 중국어 ASR (추가 기능)의 경우, [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) 및 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 에서 모델을 다운로드하고, `tools/asr/models` 디렉토리에 배치하세요.
+
+5. 영어 또는 일본어 ASR (추가 기능)의 경우, [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 에서 모델을 다운로드하고, `tools/asr/models` 디렉토리에 배치하세요. 또한, [다른 모델](https://huggingface.co/Systran) 은 더 적은 디스크 용량으로 비슷한 효과를 가질 수 있습니다.
 
 ## 데이터셋 형식
 
@@ -165,25 +169,106 @@ vocal_path|speaker_name|language|text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
+## 미세 조정 및 추론
+
+### WebUI 열기
+
+#### 통합 패키지 사용자
+
+`go-webui.bat`을 더블 클릭하거나 `go-webui.ps`를 사용하십시오.
+V1으로 전환하려면, `go-webui-v1.bat`을 더블 클릭하거나 `go-webui-v1.ps`를 사용하십시오.
+
+#### 기타
+
+```bash
+python webui.py <언어(옵션)>
+```
+
+V1으로 전환하려면,
+
+```bash
+python webui.py v1 <언어(옵션)>
+```
+또는 WebUI에서 수동으로 버전을 전환하십시오.
+
+### 미세 조정
+
+#### 경로 자동 채우기가 지원됩니다
+
+    1. 오디오 경로를 입력하십시오.
+
+    2. 오디오를 작은 청크로 분할하십시오.
+
+    3. 노이즈 제거(옵션)
+
+    4. ASR 수행
+
+    5. ASR 전사를 교정하십시오.
+
+    6. 다음 탭으로 이동하여 모델을 미세 조정하십시오.
+
+### 추론 WebUI 열기
+
+#### 통합 패키지 사용자
+
+`go-webui-v2.bat`을 더블 클릭하거나 `go-webui-v2.ps`를 사용한 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.
+
+#### 기타
+
+```bash
+python GPT_SoVITS/inference_webui.py <언어(옵션)>
+```
+또는
+
+```bash
+python webui.py
+```
+그런 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.
+
+## V2 릴리스 노트
+
+새로운 기능:
+
+1. 한국어 및 광둥어 지원
+
+2. 최적화된 텍스트 프론트엔드
+
+3. 사전 학습 모델이 2천 시간에서 5천 시간으로 확장
+
+4. 저품질 참조 오디오에 대한 합성 품질 향상
+
+    [자세한 내용](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+
+V1 환경에서 V2를 사용하려면:
+
+1. `pip install -r requirements.txt`를 사용하여 일부 패키지 업데이트
+
+2. github에서 최신 코드를 클론하십시오.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)에서 V2 사전 학습 모델을 다운로드하여 `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`에 넣으십시오.
+
+    중국어 V2 추가: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다.)
+
+
 ## 할 일 목록
 
-- [ ] **최우선순위:**
+- [x] **최우선순위:**
 
   - [x] 일본어 및 영어 지역화.
-  - [ ] 사용자 가이드.
+  - [x] 사용자 가이드.
   - [x] 일본어 및 영어 데이터셋 미세 조정 훈련.
 
 - [ ] **기능:**
 
-  - [ ] 제로샷 음성 변환 (5초) / 소량의 음성 변환 (1분).
-  - [ ] TTS 속도 제어.
-  - [ ] 향상된 TTS 감정 제어.
+  - [x] 제로샷 음성 변환 (5초) / 소량의 음성 변환 (1분).
+  - [x] TTS 속도 제어.
+  - [ ] ~~향상된 TTS 감정 제어.~~
   - [ ] SoVITS 토큰 입력을 단어 확률 분포로 변경해 보세요.
-  - [ ] 영어 및 일본어 텍스트 프론트 엔드 개선.
+  - [x] 영어 및 일본어 텍스트 프론트 엔드 개선.
   - [ ] 작은 크기와 큰 크기의 TTS 모델 개발.
   - [x] Colab 스크립트.
   - [ ] 훈련 데이터셋 확장 (2k 시간에서 10k 시간).
-  - [ ] 더 나은 sovits 기본 모델 (향상된 오디오 품질).
+  - [x] 더 나은 sovits 기본 모델 (향상된 오디오 품질).
   - [ ] 모델 블렌딩.
 
 ## (추가적인) 명령줄에서 실행하는 방법
@@ -244,6 +329,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
 
+@Naozumi520 님께 감사드립니다. 광둥어 학습 자료를 제공해 주시고, 광둥어 관련 지식을 지도해 주셔서 감사합니다.
 
 ## 모든 기여자들에게 감사드립니다 ;)
 

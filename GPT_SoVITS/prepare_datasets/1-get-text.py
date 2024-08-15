@@ -7,7 +7,8 @@ inp_wav_dir = os.environ.get("inp_wav_dir")
 exp_name = os.environ.get("exp_name")
 i_part = os.environ.get("i_part")
 all_parts = os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("_CUDA_VISIBLE_DEVICES")
+if "_CUDA_VISIBLE_DEVICES" in os.environ:
+     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 opt_dir = os.environ.get("opt_dir")
 bert_pretrained_dir = os.environ.get("bert_pretrained_dir")
 import torch
