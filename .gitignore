@@ -10,3 +10,5 @@ reference
 GPT_weights
 SoVITS_weights
 TEMP
+ffmpeg*
+ffprobe*
