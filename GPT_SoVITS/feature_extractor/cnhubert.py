@@ -23,13 +23,15 @@ cnhubert_base_path = None
 
 
 class CNHubert(nn.Module):
-    def __init__(self):
+    def __init__(self, base_path:str=None):
         super().__init__()
-        if os.path.exists(cnhubert_base_path):...
-        else:raise FileNotFoundError(cnhubert_base_path)
-        self.model = HubertModel.from_pretrained(cnhubert_base_path, local_files_only=True)
+        if base_path is None:
+            base_path = cnhubert_base_path
+        if os.path.exists(base_path):...
+        else:raise FileNotFoundError(base_path)
+        self.model = HubertModel.from_pretrained(base_path, local_files_only=True)
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
-            cnhubert_base_path, local_files_only=True
+            base_path, local_files_only=True
         )
 
     def forward(self, x):
