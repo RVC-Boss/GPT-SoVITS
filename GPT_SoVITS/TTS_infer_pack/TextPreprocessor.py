@@ -60,6 +60,8 @@ class TextPreprocessor:
         texts = self.pre_seg_text(text, lang, text_split_method)
         result = []
         print(i18n("############ 提取文本Bert特征 ############"))
+        with open('./srt/tts-out.txt', 'w', encoding='utf-8') as f:
+            f.write(str(texts))
         for text in tqdm(texts):
             phones, bert_features, norm_text = self.segment_and_extract_feature_for_text(text, lang)
             if phones is None:
