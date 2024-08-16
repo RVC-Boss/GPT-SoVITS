@@ -39,7 +39,7 @@ default_config = {
     "EOS": 1024,
 }
 
-@torch.jit.script
+# @torch.jit.script
 # Efficient implementation equivalent to the following:
 def scaled_dot_product_attention(query:torch.Tensor, key:torch.Tensor, value:torch.Tensor, attn_mask:Optional[torch.Tensor]=None, scale:Optional[torch.Tensor]=None) -> torch.Tensor:
     B, H, L, S =query.size(0), query.size(1), query.size(-2), key.size(-2)
@@ -82,7 +82,7 @@ class T2SMLP:
         return x
 
 
-@torch.jit.script
+# @torch.jit.script
 class T2SBlock:
     def __init__(
         self,
@@ -218,7 +218,7 @@ class T2SBlock:
         return x, k_cache, v_cache
 
 
-@torch.jit.script
+# @torch.jit.script
 class T2STransformer:
     def __init__(self, num_blocks : int, blocks: List[T2SBlock]):
         self.num_blocks : int = num_blocks
