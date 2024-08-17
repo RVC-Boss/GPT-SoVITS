@@ -413,7 +413,10 @@ class TTS:
 
     def _set_ref_spec(self, ref_audio_path):
         spec = self._get_ref_spec(ref_audio_path)
-        self.prompt_cache["refer_spec"].append(spec)
+        if self.prompt_cache["refer_spec"] in [[],None]:
+            self.prompt_cache["refer_spec"]=[spec]
+        else:
+            self.prompt_cache["refer_spec"][0] = spec
 
     def _get_ref_spec(self, ref_audio_path):
         audio = load_audio(ref_audio_path, int(self.configs.sampling_rate))
