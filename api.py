@@ -325,14 +325,14 @@ def get_phones_and_bert(text,language,version,final=False):
         if language == "zh":
             if re.search(r'[A-Za-z]', formattext):
                 formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
-                formattext = chinese.text_normalize(formattext)
+                formattext = chinese.mix_text_normalize(formattext)
                 return get_phones_and_bert(formattext,"zh",version)
             else:
                 phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
                 bert = get_bert_feature(norm_text, word2ph).to(device)
         elif language == "yue" and re.search(r'[A-Za-z]', formattext):
                 formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
-                formattext = chinese.text_normalize(formattext)
+                formattext = chinese.mix_text_normalize(formattext)
                 return get_phones_and_bert(formattext,"yue",version)
         else:
             phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
@@ -413,6 +413,9 @@ class DictToAttrRecursive(dict):
 def get_spepc(hps, filename):
     audio,_ = librosa.load(filename, int(hps.data.sampling_rate))
     audio = torch.FloatTensor(audio)
+    maxx=audio.abs().max()
+    if(maxx>1):
+        audio/=min(2,maxx)
     audio_norm = audio
     audio_norm = audio_norm.unsqueeze(0)
     spec = spectrogram_torch(audio_norm, hps.data.filter_length, hps.data.sampling_rate, hps.data.hop_length,
