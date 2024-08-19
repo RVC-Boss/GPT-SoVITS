@@ -75,7 +75,7 @@ RESP:
 
 手动指定当次推理所使用的参考音频，并提供参数:
 GET:
-    `http://127.0.0.1:9880?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh&text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh&top_k=20&top_p=0.6&temperature=0.6&speed=1`
+    `http://127.0.0.1:9880?refer_wav_path=123.wav&prompt_text=一二三。&prompt_language=zh&text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh&top_k=20&top_p=0.6&temperature=0.6&speed=1&inp_refs="456.wav"&inp_refs="789.wav"`
 POST:
 ```json
 {
@@ -87,7 +87,8 @@ POST:
     "top_k": 20,
     "top_p": 0.6,
     "temperature": 0.6,
-    "speed": 1
+    "speed": 1,
+    "inp_refs": ["456.wav","789.wav"]
 }
 ```
 
