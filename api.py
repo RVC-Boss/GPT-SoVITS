@@ -501,14 +501,20 @@ def pack_wav(audio_bytes, rate):
 
 
 def pack_aac(audio_bytes, data, rate):
+    if is_int32:
+        pcm = 's32le'
+        bit_rate = '256k'
+    else:
+        pcm = 's16le'
+        bit_rate = '128k'
     process = subprocess.Popen([
         'ffmpeg',
-        '-f', 's16le',  # 输入16位有符号小端整数PCM
+        '-f', pcm,  # 输入16位有符号小端整数PCM
         '-ar', str(rate),  # 设置采样率
         '-ac', '1',  # 单声道
         '-i', 'pipe:0',  # 从管道读取输入
         '-c:a', 'aac',  # 音频编码器为AAC
-        '-b:a', '192k',  # 比特率
+        '-b:a', bit_rate,  # 比特率
         '-vn',  # 不包含视频
         '-f', 'adts',  # 输出AAC数据流格式
         'pipe:1'  # 将输出写入管道
