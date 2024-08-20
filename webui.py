@@ -223,8 +223,12 @@ def change_uvr5():
         p_uvr5=None
         yield i18n("UVR5已关闭"), {'__type__':'update','visible':True}, {'__type__':'update','visible':False}
 
-def change_tts_inference(bert_path,cnhubert_base_path,gpu_number,gpt_path,sovits_path):
+def change_tts_inference(bert_path,cnhubert_base_path,gpu_number,gpt_path,sovits_path, batched_infer_enabled):
     global p_tts_inference
+    if batched_infer_enabled:
+        cmd = '"%s" GPT_SoVITS/inference_webui_fast.py "%s"'%(python_exec, language)
+    else:
+        cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
     if(p_tts_inference==None):
         os.environ["gpt_path"]=gpt_path if "/" in gpt_path else "%s/%s"%(GPT_weight_root,gpt_path)
         os.environ["sovits_path"]=sovits_path if "/"in sovits_path else "%s/%s"%(SoVITS_weight_root,sovits_path)
@@ -234,7 +238,6 @@ def change_tts_inference(bert_path,cnhubert_base_path,gpu_number,gpt_path,sovits
         os.environ["is_half"]=str(is_half)
         os.environ["infer_ttswebui"]=str(webui_port_infer_tts)
         os.environ["is_share"]=str(is_share)
-        cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
         yield i18n("TTS推理进程已开启"), {'__type__':'update','visible':False}, {'__type__':'update','visible':True}
         print(cmd)
         p_tts_inference = Popen(cmd, shell=True)
@@ -1032,12 +1035,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     refresh_button.click(fn=change_choices,inputs=[],outputs=[SoVITS_dropdown,GPT_dropdown])
                 with gr.Row():
                     with gr.Row():
+                        batched_infer_enabled = gr.Checkbox(label=i18n("启用并行推理版本(推理速度更快)"), value=False, interactive=True, show_label=True)
+                    with gr.Row():
                         open_tts = gr.Button(value=i18n("开启TTS推理WebUI"),variant='primary',visible=True)
                         close_tts = gr.Button(value=i18n("关闭TTS推理WebUI"),variant='primary',visible=False)
                     with gr.Row():
                         tts_info = gr.Textbox(label=i18n("TTS推理WebUI进程输出信息"))
-                    open_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown], [tts_info,open_tts,close_tts])
-                    close_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown], [tts_info,open_tts,close_tts])
+                    open_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
+                    close_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
             version_checkbox.change(switch_version,[version_checkbox],[pretrained_s2G,pretrained_s2D,pretrained_s1,GPT_dropdown,SoVITS_dropdown])
         with gr.TabItem(i18n("2-GPT-SoVITS-变声")):gr.Markdown(value=i18n("施工中，请静候佳音"))
     app.queue(concurrency_count=511, max_size=1022).launch(
