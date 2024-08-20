@@ -4,8 +4,7 @@ tensorboard
 librosa==0.9.2
 numba==0.56.4
 pytorch-lightning
-gradio==3.38.0
-gradio_client==0.8.1
+gradio>=4.0,<=4.24.0
 ffmpeg-python
 onnxruntime; sys_platform == 'darwin'
 onnxruntime-gpu; sys_platform != 'darwin'
