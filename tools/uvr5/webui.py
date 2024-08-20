@@ -194,7 +194,7 @@ with gr.Blocks(title="UVR5 WebUI") as app:
                         [vc_output4],
                         api_name="uvr_convert",
                     )
-app.queue(concurrency_count=511, max_size=1022).launch(
+app.queue().launch(#concurrency_count=511, max_size=1022
     server_name="0.0.0.0",
     inbrowser=True,
     share=is_share,
