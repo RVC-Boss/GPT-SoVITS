@@ -1045,7 +1045,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     close_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
             version_checkbox.change(switch_version,[version_checkbox],[pretrained_s2G,pretrained_s2D,pretrained_s1,GPT_dropdown,SoVITS_dropdown])
         with gr.TabItem(i18n("2-GPT-SoVITS-变声")):gr.Markdown(value=i18n("施工中，请静候佳音"))
-    app.queue(concurrency_count=511, max_size=1022).launch(
+    app.queue().launch(#concurrency_count=511, max_size=1022
         server_name="0.0.0.0",
         inbrowser=True,
         share=is_share,
