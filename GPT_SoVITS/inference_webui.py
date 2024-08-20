@@ -757,7 +757,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         # gr.Markdown(html_center(i18n("后续将支持转音素、手工修改音素、语音合成分步执行。")))
 
 if __name__ == '__main__':
-    app.queue(concurrency_count=511, max_size=1022).launch(
+    app.queue().launch(#concurrency_count=511, max_size=1022
         server_name="0.0.0.0",
         inbrowser=True,
         share=is_share,
