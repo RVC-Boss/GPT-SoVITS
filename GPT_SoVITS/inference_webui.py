@@ -21,6 +21,11 @@ import LangSegment, os, re, sys, json
 import pdb
 import torch
 
+try:
+    import gradio.analytics as analytics
+    analytics.version_check = lambda:None
+except:...
+
 version=os.environ.get("version","v2")
 pretrained_sovits_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth", "GPT_SoVITS/pretrained_models/s2G488k.pth"]
 pretrained_gpt_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
