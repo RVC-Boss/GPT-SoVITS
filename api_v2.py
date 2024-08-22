@@ -24,7 +24,7 @@ POST:
     "text": "",                   # str.(required) text to be synthesized
     "text_lang: "",               # str.(required) language of the text to be synthesized
     "ref_audio_path": "",         # str.(required) reference audio path
-    "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker synthesis
+    "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
     "prompt_text": "",            # str.(optional) prompt text for the reference audio
     "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
     "top_k": 5,                   # int. top k sampling
@@ -34,7 +34,6 @@ POST:
     "batch_size": 1,              # int. batch size for inference
     "batch_threshold": 0.75,      # float. threshold for batch splitting.
     "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
-    "return_fragment": False,     # bool. step by step return the audio fragment.
     "speed_factor":1.0,           # float. control the speed of the synthesized audio.
     "streaming_mode": False,      # bool. whether to return a streaming response.
     "seed": -1,                   # int. random seed for reproducibility.
@@ -302,13 +301,14 @@ async def tts_handle(req:dict):
     """
     
     streaming_mode = req.get("streaming_mode", False)
+    return_fragment = req.get("return_fragment", False)
     media_type = req.get("media_type", "wav")
 
     check_res = check_params(req)
     if check_res is not None:
         return check_res
 
-    if streaming_mode:
+    if streaming_mode or return_fragment:
         req["return_fragment"] = True
     
     try:
