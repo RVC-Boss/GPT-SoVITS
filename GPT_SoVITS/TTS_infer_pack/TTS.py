@@ -185,6 +185,7 @@ class TTS_Config:
         if os.path.exists(configs_path):
             ...
         else:
+            print(i18n("路径不存在,使用默认配置"))
             self.save_configs(configs_path)
         with open(configs_path, 'r') as f:
             configs = yaml.load(f, Loader=yaml.FullLoader)
