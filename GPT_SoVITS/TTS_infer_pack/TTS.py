@@ -182,6 +182,10 @@ class TTS_Config:
 
             
     def _load_configs(self, configs_path: str)->dict:
+        if os.path.exists(configs_path):
+            ...
+        else:
+            self.save_configs()
         with open(configs_path, 'r') as f:
             configs = yaml.load(f, Loader=yaml.FullLoader)
     
@@ -748,7 +752,8 @@ class TTS:
                 phones, bert_features, norm_text = \
                     self.text_preprocessor.segment_and_extract_feature_for_text(
                                                                         prompt_text, 
-                                                                        prompt_lang)
+                                                                        prompt_lang,
+                                                                        self.configs.version)
                 self.prompt_cache["phones"] = phones
                 self.prompt_cache["bert_features"] = bert_features
                 self.prompt_cache["norm_text"] = norm_text
@@ -760,7 +765,7 @@ class TTS:
         t1 = ttime()
         data:list = None
         if not return_fragment:
-            data = self.text_preprocessor.preprocess(text, text_lang, text_split_method)
+            data = self.text_preprocessor.preprocess(text, text_lang, text_split_method, self.configs.version)
             if len(data) == 0:
                 yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
                                                             dtype=np.int16)

@@ -55,9 +55,9 @@ class TextPreprocessor:
         self.tokenizer = tokenizer
         self.device = device
         
-    def preprocess(self, text:str, lang:str, text_split_method:str, version:str="v1")->List[Dict]:
+    def preprocess(self, text:str, lang:str, text_split_method:str, version:str="v2")->List[Dict]:
         print(i18n("############ 切分文本 ############"))
-        text = self.replace_consecutive_punctuation(text) # 变量命名应该是写错了
+        text = self.replace_consecutive_punctuation(text)
         texts = self.pre_seg_text(text, lang, text_split_method)
         result = []
         print(i18n("############ 提取文本Bert特征 ############"))
@@ -204,7 +204,7 @@ class TextPreprocessor:
         phone_level_feature = torch.cat(phone_level_feature, dim=0)
         return phone_level_feature.T
     
-    def clean_text_inf(self, text:str, language:str, version:str="v1"):
+    def clean_text_inf(self, text:str, language:str, version:str="v2"):
         phones, word2ph, norm_text = clean_text(text, language, version)
         phones = cleaned_text_to_sequence(phones, version)
         return phones, word2ph, norm_text
