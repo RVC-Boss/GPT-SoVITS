@@ -185,7 +185,7 @@ class TTS_Config:
         if os.path.exists(configs_path):
             ...
         else:
-            self.save_configs()
+            self.save_configs(configs_path)
         with open(configs_path, 'r') as f:
             configs = yaml.load(f, Loader=yaml.FullLoader)
     
