@@ -20,6 +20,7 @@ import librosa
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 from tools.my_utils import load_audio,clean_path
+from tqdm import tqdm
 
 # from config import cnhubert_base_path
 # cnhubert.cnhubert_base_path=cnhubert_base_path
@@ -70,7 +71,7 @@ def name2go(wav_name,wav_path):
     tmp_audio = load_audio(wav_path, 32000)
     tmp_max = np.abs(tmp_audio).max()
     if tmp_max > 2.2:
-        print("%s-filtered,%s" % (wav_name, tmp_max))
+        tqdm.write("%s-filtered,%s" % (wav_name, tmp_max))
         return
     tmp_audio32 = (tmp_audio / tmp_max * (maxx * alpha*32768)) + ((1 - alpha)*32768) * tmp_audio
     tmp_audio32b = (tmp_audio / tmp_max * (maxx * alpha*1145.14)) + ((1 - alpha)*1145.14) * tmp_audio
@@ -85,7 +86,7 @@ def name2go(wav_name,wav_path):
     ssl=model.model(tensor_wav16.unsqueeze(0))["last_hidden_state"].transpose(1,2).cpu()#torch.Size([1, 768, 215])
     if np.isnan(ssl.detach().numpy()).sum()!= 0:
         nan_fails.append((wav_name,wav_path))
-        print("nan filtered:%s"%wav_name)
+        tqdm.write("nan filtered:%s"%wav_name)
         return
     wavfile.write(
         "%s/%s"%(wav32dir,wav_name),
@@ -97,7 +98,7 @@ def name2go(wav_name,wav_path):
 with open(inp_text,"r",encoding="utf8")as f:
     lines=f.read().strip("\n").split("\n")
 
-for line in lines[int(i_part)::int(all_parts)]:
+for line in tqdm(lines[int(i_part)::int(all_parts)],position=int(i_part)):
     try:
         # wav_name,text=line.split("\t")
         wav_name, spk_name, language, text = line.split("|")
@@ -111,13 +112,13 @@ for line in lines[int(i_part)::int(all_parts)]:
             wav_name = os.path.basename(wav_name)
         name2go(wav_name,wav_path)
     except:
-        print(line,traceback.format_exc())
+        tqdm.write(line,traceback.format_exc())
 
 if(len(nan_fails)>0 and is_half==True):
     is_half=False
     model=model.float()
-    for wav in nan_fails:
+    for wav in tqdm(nan_fails,position=int(i_part)):
         try:
             name2go(wav[0],wav[1])
         except:
-            print(wav_name,traceback.format_exc())
+            tqdm.write(wav_name,traceback.format_exc())

@@ -25,6 +25,7 @@ from tqdm import tqdm
 import logging, librosa, utils
 from module.models import SynthesizerTrn
 from tools.my_utils import clean_path
+from tqdm import tqdm
 logging.getLogger("numba").setLevel(logging.WARNING)
 # from config import pretrained_s2G
 
@@ -87,8 +88,8 @@ if os.path.exists(semantic_path) == False:
         lines = f.read().strip("\n").split("\n")
 
     lines1 = []
-    for line in lines[int(i_part) :: int(all_parts)]:
-        # print(line)
+    for line in tqdm(lines[int(i_part) :: int(all_parts)],position=int(i_part)):
+        # tqdm.write(line)
         try:
             # wav_name,text=line.split("\t")
             wav_name, spk_name, language, text = line.split("|")
@@ -97,6 +98,6 @@ if os.path.exists(semantic_path) == False:
             # name2go(name,lines1)
             name2go(wav_name, lines1)
         except:
-            print(line, traceback.format_exc())
+            tqdm.write(line, traceback.format_exc())
     with open(semantic_path, "w", encoding="utf8") as f:
         f.write("\n".join(lines1))
