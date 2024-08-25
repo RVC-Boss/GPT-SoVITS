@@ -642,7 +642,7 @@ class TTS:
                     "text": "",                   # str.(required) text to be synthesized
                     "text_lang: "",               # str.(required) language of the text to be synthesized
                     "ref_audio_path": "",         # str.(required) reference audio path
-                    "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker synthesis
+                    "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
                     "prompt_text": "",            # str.(optional) prompt text for the reference audio
                     "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
                     "top_k": 5,                   # int. top k sampling
