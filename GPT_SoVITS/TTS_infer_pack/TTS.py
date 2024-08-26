@@ -304,7 +304,6 @@ class TTS:
     def init_vits_weights(self, weights_path: str):
         print(f"Loading VITS weights from {weights_path}")
         self.configs.vits_weights_path = weights_path
-        self.configs.save_configs()
         dict_s2 = torch.load(weights_path, map_location=self.configs.device)
         hps = dict_s2["config"]
         if dict_s2['weight']['enc_p.text_embedding.weight'].shape[0] == 322:
