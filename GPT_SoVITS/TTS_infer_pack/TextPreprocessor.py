@@ -183,7 +183,7 @@ class TextPreprocessor:
             phones = sum(phones_list, [])
             norm_text = ''.join(norm_text_list)
 
-        if not final and len(phones) < 6:
+        if not final:
             return self.get_phones_and_bert("." + text,language,version,final=True)
 
         return phones, bert, norm_text
