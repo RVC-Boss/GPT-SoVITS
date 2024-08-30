@@ -199,6 +199,8 @@ with gr.Blocks(title="UVR5 WebUI") as app:
                         [vc_output4],
                         api_name="uvr_convert",
                     )
+
+    i18n.translate_blocks(app)
 app.queue().launch(#concurrency_count=511, max_size=1022
     server_name="0.0.0.0",
     inbrowser=True,
