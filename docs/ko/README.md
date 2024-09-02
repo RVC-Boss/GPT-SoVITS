@@ -175,8 +175,8 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 
 #### 통합 패키지 사용자
 
-`go-webui.bat`을 더블 클릭하거나 `go-webui.ps`를 사용하십시오.
-V1으로 전환하려면, `go-webui-v1.bat`을 더블 클릭하거나 `go-webui-v1.ps`를 사용하십시오.
+`go-webui.bat`을 더블 클릭하거나 `go-webui.ps1`를 사용하십시오.
+V1으로 전환하려면, `go-webui-v1.bat`을 더블 클릭하거나 `go-webui-v1.ps1`를 사용하십시오.
 
 #### 기타
 
@@ -211,7 +211,7 @@ python webui.py v1 <언어(옵션)>
 
 #### 통합 패키지 사용자
 
-`go-webui-v2.bat`을 더블 클릭하거나 `go-webui-v2.ps`를 사용한 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.
+`go-webui-v2.bat`을 더블 클릭하거나 `go-webui-v2.ps1`를 사용한 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.
 
 #### 기타
 
