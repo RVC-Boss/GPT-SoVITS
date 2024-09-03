@@ -181,8 +181,8 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|zh|我爱玩原神。
 
 #### 整合包用户
 
-双击`go-webui.bat`或者使用`go-webui.ps`
-若想使用V1,则双击`go-webui-v1.bat`或者使用`go-webui-v1.ps`
+双击`go-webui.bat`或者使用`go-webui.ps1`
+若想使用V1,则双击`go-webui-v1.bat`或者使用`go-webui-v1.ps1`
 
 #### 其他
 
@@ -217,7 +217,7 @@ python webui.py v1 <language(optional)>
 
 #### 整合包用户
 
-双击 `go-webui.bat` 或者使用 `go-webui.ps` ,然后在 `1-GPT-SoVITS-TTS/1C-推理` 中打开推理webUI
+双击 `go-webui.bat` 或者使用 `go-webui.ps1` ,然后在 `1-GPT-SoVITS-TTS/1C-推理` 中打开推理webUI
 
 #### 其他
 
