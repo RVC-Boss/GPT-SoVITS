@@ -184,8 +184,8 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 
  #### Integrated Package Users
 
- Double-click `go-webui.bat`or use `go-webui.ps`
- if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-v1.ps`
+ Double-click `go-webui.bat`or use `go-webui.ps1`
+ if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-v1.ps1`
 
  #### Others
 
@@ -220,7 +220,7 @@ Or maunally switch version in WebUI
 
  #### Integrated Package Users
 
- Double-click `go-webui-v2.bat` or use `go-webui-v2.ps` ,then open the inference webui at  `1-GPT-SoVITS-TTS/1C-inference` 
+ Double-click `go-webui-v2.bat` or use `go-webui-v2.ps1` ,then open the inference webui at  `1-GPT-SoVITS-TTS/1C-inference` 
 
  #### Others
 
