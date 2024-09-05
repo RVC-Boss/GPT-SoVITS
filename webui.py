@@ -1035,7 +1035,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     refresh_button.click(fn=change_choices,inputs=[],outputs=[SoVITS_dropdown,GPT_dropdown])
                 with gr.Row():
                     with gr.Row():
-                        batched_infer_enabled = gr.Checkbox(label=i18n("启用并行推理版本(推理速度更快)"), value=False, interactive=True, show_label=True)
+                        batched_infer_enabled = gr.Checkbox(label=i18n("加快推理速度,降低质量"), value=False, interactive=True, show_label=True)
                     with gr.Row():
                         open_tts = gr.Button(value=i18n("开启TTS推理WebUI"),variant='primary',visible=True)
                         close_tts = gr.Button(value=i18n("关闭TTS推理WebUI"),variant='primary',visible=False)
