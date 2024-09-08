@@ -676,8 +676,8 @@ def get_weights_names(GPT_weight_root, SoVITS_weight_root):
 SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
 
 def html_center(text, label='p'):
-    return f"""<div style="text-align: center; margin: 100; padding: 50;">
-                <{label} style="margin: 0; padding: 0;">{text}</{label}>
+    return f"""<div style="text-align: center; margin: 20; padding: 20;">
+                <{label} style="margin: 10; padding: 20;">{text}</{label}>
                 </div>"""
 
 def html_left(text, label='p'):
@@ -691,31 +691,36 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
     )
     with gr.Group():
-        gr.Markdown(html_center(i18n("模型切换"),'h3'))
+        gr.Markdown(html_left(i18n("模型切换"),'h3'))
         with gr.Row():
             GPT_dropdown = gr.Dropdown(label=i18n("GPT模型列表"), choices=sorted(GPT_names, key=custom_sort_key), value=gpt_path, interactive=True, scale=14)
             SoVITS_dropdown = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=sorted(SoVITS_names, key=custom_sort_key), value=sovits_path, interactive=True, scale=14)
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
-        gr.Markdown(html_center(i18n("*请上传并填写参考信息"),'h3'))
-        with gr.Row():
-            inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath", scale=13)
-            with gr.Column(scale=13):
-                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True,scale=1)
-                gr.Markdown(html_left(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开。<br>开启后无视填写的参考文本。")))
-                prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=5, max_lines=5,scale=1)
+
+    with gr.Group():
+        gr.Markdown(html_left(i18n("*请上传并填写参考信息"),'h3'))
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=26):
+                with gr.Row(equal_height=True):
+                    inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath", sources='upload', min_length=3, max_length=10)
+                    inp_refs = gr.File(label=i18n("可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"), file_count="multiple", height=200)
             with gr.Column(scale=14):
+                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True,scale=1)
                 prompt_language = gr.Dropdown(
-                    label=i18n("参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文"),
+                    label=i18n("参考音频的语种"), info=i18n('V2支持更多语言'), choices=list(dict_language.keys()), value=i18n("中文"),
                 )
-                inp_refs = gr.File(label=i18n("可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"),file_count="multiple")
-        gr.Markdown(html_center(i18n("*请填写需要合成的目标文本和语种模式"),'h3'))
+                gr.Markdown(html_left(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开，开启后无视填写的参考文本。")))
+                prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=2, max_lines=2, scale=1)
+
+    with gr.Group():
+        gr.Markdown(html_left(i18n("*请填写需要合成的目标文本和语种模式"),'h3'))
         with gr.Row():
             with gr.Column(scale=13):
                 text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=26, max_lines=26)
             with gr.Column(scale=7):
                 text_language = gr.Dropdown(
-                        label=i18n("需要合成的语种")+i18n(".限制范围越小判别效果越好。"), choices=list(dict_language.keys()), value=i18n("中文"), scale=1
+                        label=i18n("需要合成的语种")+i18n(".限制范围越小判别效果越好。"), info=i18n('V2支持更多语言'), choices=list(dict_language.keys()), value=i18n("中文"), scale=1
                     )
                 how_to_cut = gr.Dropdown(
                         label=i18n("怎么切"),
@@ -724,12 +729,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         interactive=True, scale=1
                     )
                 gr.Markdown(value=html_center(i18n("语速调整，高为更快")))
-                if_freeze=gr.Checkbox(label=i18n("是否直接对上次合成结果调整语速和音色。防止随机性。"), value=False, interactive=True,show_label=True, scale=1)
+                if_freeze=gr.Checkbox(label=i18n("是否直接对上次合成结果调整语速和音色，防止随机性。"), value=False, interactive=True,show_label=True, scale=1)
                 speed = gr.Slider(minimum=0.6,maximum=1.65,step=0.05,label=i18n("语速"),value=1,interactive=True, scale=1)
                 gr.Markdown(html_center(i18n("GPT采样参数(无参考文本时不要太低。不懂就用默认)：")))
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=15,interactive=True, scale=1)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True, scale=1)
-                temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True,  scale=1) 
+                temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),info=i18n('随机性'),value=1,interactive=True,  scale=1) 
             # with gr.Column():
             #     gr.Markdown(value=i18n("手工调整音素。当音素框不为空时使用手工音素输入推理，无视目标文本框。"))
             #     phoneme=gr.Textbox(label=i18n("音素框"), value="")
