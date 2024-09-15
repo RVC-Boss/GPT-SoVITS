@@ -1,5 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
 import utils, os
-
 hps = utils.get_hparams(stage=2)
 os.environ["CUDA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
 import torch
@@ -119,7 +120,7 @@ def run(rank, n_gpus, hps):
         collate_fn=collate_fn,
         batch_sampler=train_sampler,
         persistent_workers=True,
-        prefetch_factor=16,
+        prefetch_factor=4,
     )
     # if rank == 0:
     #     eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps.data, val=True)
@@ -211,7 +212,7 @@ def run(rank, n_gpus, hps):
         # traceback.print_exc()
         epoch_str = 1
         global_step = 0
-        if hps.train.pretrained_s2G != "":
+        if hps.train.pretrained_s2G != ""and hps.train.pretrained_s2G != None and os.path.exists(hps.train.pretrained_s2G):
             if rank == 0:
                 logger.info("loaded pretrained %s" % hps.train.pretrained_s2G)
             print(
@@ -223,7 +224,7 @@ def run(rank, n_gpus, hps):
                     strict=False,
                 )
             )  ##测试不加载优化器
-        if hps.train.pretrained_s2D != "":
+        if hps.train.pretrained_s2D != ""and hps.train.pretrained_s2D != None and os.path.exists(hps.train.pretrained_s2D):
             if rank == 0:
                 logger.info("loaded pretrained %s" % hps.train.pretrained_s2D)
             print(

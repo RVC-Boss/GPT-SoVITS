@@ -17,8 +17,8 @@ from functools import lru_cache
 import requests
 from scipy.io import wavfile
 from io import BytesIO
-from my_utils import load_audio
-
+from tools.my_utils import load_audio
+version = os.environ.get('version',None)
 # ZeroDivisionError fixed by Tybost (https://github.com/RVC-Boss/GPT-SoVITS/issues/79)
 class TextAudioSpeakerLoader(torch.utils.data.Dataset):
     """
@@ -77,7 +77,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
             try:
                 phoneme = self.phoneme_data[audiopath][0]
                 phoneme = phoneme.split(' ')
-                phoneme_ids = cleaned_text_to_sequence(phoneme)
+                phoneme_ids = cleaned_text_to_sequence(phoneme, version)
             except Exception:
                 print(f"{audiopath} not in self.phoneme_data !")
                 skipped_phone += 1

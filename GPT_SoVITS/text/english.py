@@ -4,9 +4,9 @@ import re
 import wordsegment
 from g2p_en import G2p
 
-from string import punctuation
+from text.symbols import punctuation
 
-from text import symbols
+from text.symbols2 import symbols
 
 import unicodedata
 from builtins import str as unicode
@@ -108,6 +108,13 @@ def replace_phs(phs):
         else:
             print("ph not in symbols: ", ph)
     return phs_new
+
+
+def replace_consecutive_punctuation(text):
+    punctuations = ''.join(re.escape(p) for p in punctuation)
+    pattern = f'([{punctuations}])([{punctuations}])+'
+    result = re.sub(pattern, r'\1', text)
+    return result
 
 
 def read_dict():
@@ -234,6 +241,9 @@ def text_normalize(text):
     text = re.sub(r"(?i)i\.e\.", "that is", text)
     text = re.sub(r"(?i)e\.g\.", "for example", text)
 
+    # 避免重复标点引起的参考泄露
+    text = replace_consecutive_punctuation(text)
+
     return text
 
 
@@ -314,6 +324,8 @@ class en_G2p(G2p):
                 # 单读 A 发音修正, 此处不存在大写的情况
                 if w == "a":
                     phones.extend(['EY1'])
+                elif not w.isalpha():
+                    phones.extend([w])
                 else:
                     phones.extend(self.cmu[w][0])
             return phones

@@ -93,7 +93,7 @@
 
 2-uvr5适配高版本librosa https://github.com/RVC-Boss/GPT-SoVITS/pull/403
 
-3-修复uvr5 inf everywhere报错的问题(is_half传参未转换bool导致恒定半精度推理，16系显卡会inf) https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8
+3-[修复uvr5 inf everywhere报错的问题(is_half传参未转换bool导致恒定半精度推理，16系显卡会inf)](https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8)
 
 4-优化英文文本前端
 
@@ -183,14 +183,65 @@
 
 4-修复了webui的GPT中文微调没读到bert导致和推理不一致，训练太多可能效果还会变差的问题。如果大量数据微调的建议重新微调模型得到质量优化 [#99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a)
 
+### 20240706
 
-todolist：
+小问题修复：
 
-1-中文多音字推理优化(有没有人来测试的，欢迎把测试结果写在pr评论区里) https://github.com/RVC-Boss/GPT-SoVITS/pull/488
-（v2底模训练已经合了，下个版本发布就要合了）
+1-[修正CPU推理默认bs小数](https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041)
 
-2-正在尝试解决低音质参考音频导致音质较差的问题，v2再试试如果能解决就发了，节点暂定高考后吧
+2-修复降噪、asr中途遇到异常跳出所有需处理的音频文件的问题 https://github.com/RVC-Boss/GPT-SoVITS/pull/1258 https://github.com/RVC-Boss/GPT-SoVITS/pull/1265 https://github.com/RVC-Boss/GPT-SoVITS/pull/1267
+
+3-修复按标点符号切分时小数会被切分 https://github.com/RVC-Boss/GPT-SoVITS/pull/1253
+
+4-[多卡训练多进程保存逻辑修复](https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca)
+
+5-移除冗余my_utils https://github.com/RVC-Boss/GPT-SoVITS/pull/1251
+
+重点：
+
+6-倍速推理代码经过验证后推理效果和base完全一致，合并进main。使用的代码：https://github.com/RVC-Boss/GPT-SoVITS/pull/672 。支持无参考文本模式也倍速。
+
+后面会逐渐验证快速推理分支的推理改动的一致性
+
+### 20240727
+
+1-清理冗余i18n代码 https://github.com/RVC-Boss/GPT-SoVITS/pull/1298
+
+2-修复用户打文件及路径在结尾添加/会导致命令行报错的问题 https://github.com/RVC-Boss/GPT-SoVITS/pull/1299
+
+3-修复GPT训练的step计算逻辑 https://github.com/RVC-Boss/GPT-SoVITS/pull/756
+
+重点：
+
+4-[支持合成语速调节。支持冻结随机性只调节语速，](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2)并将其更新到api.py上https://github.com/RVC-Boss/GPT-SoVITS/pull/1340
 
 
+### 20240806
+
+1-增加bs-roformer人声伴奏分离模型支持。 https://github.com/RVC-Boss/GPT-SoVITS/pull/1306 https://github.com/RVC-Boss/GPT-SoVITS/pull/1356 [支持fp16推理。](https://github.com/RVC-Boss/GPT-SoVITS/commit/e62e965323a60a76a025bcaa45268c1ddcbcf05c)
+
+2-更好的中文文本前端。 https://github.com/RVC-Boss/GPT-SoVITS/pull/987 https://github.com/RVC-Boss/GPT-SoVITS/pull/1351 https://github.com/RVC-Boss/GPT-SoVITS/pull/1404 优化多音字逻辑（v2版本特供）。 https://github.com/RVC-Boss/GPT-SoVITS/pull/488
+
+3-自动填充下一步的文件路径 https://github.com/RVC-Boss/GPT-SoVITS/pull/1355
+
+4-增加喂饭逻辑，用户瞎写显卡序号也可以正常运作 [bce451a](https://github.com/RVC-Boss/GPT-SoVITS/commit/bce451a2d1641e581e200297d01f219aeaaf7299) [4c8b761](https://github.com/RVC-Boss/GPT-SoVITS/commit/4c8b7612206536b8b4435997acb69b25d93acb78)
+
+5-增加粤语ASR支持 [8a10147](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3)
+
+6-GPT-SoVITS-v2支持
+
+7-计时逻辑优化 https://github.com/RVC-Boss/GPT-SoVITS/pull/1387
+
+### 20240821
+
+1-fast_inference分支合并进main：https://github.com/RVC-Boss/GPT-SoVITS/pull/1490
+ 
+2-支持通过ssml标签优化数字、电话、时间日期等：https://github.com/RVC-Boss/GPT-SoVITS/issues/1508
+ 
+3-api修复优化：https://github.com/RVC-Boss/GPT-SoVITS/pull/1503
+ 
+4-修复了参考音频混合只能上传一条的bug:https://github.com/RVC-Boss/GPT-SoVITS/pull/1422
+ 
+5-增加了各种数据集检查,若缺失会弹出warning:https://github.com/RVC-Boss/GPT-SoVITS/pull/1422
 
 
