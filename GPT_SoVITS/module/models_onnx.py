@@ -16,6 +16,7 @@ from module.quantize import ResidualVectorQuantizer
 # from text import symbols
 from text import symbols as symbols_v1
 from text import symbols2 as symbols_v2
+from torch.cuda.amp import autocast
 
 
 class StochasticDurationPredictor(nn.Module):

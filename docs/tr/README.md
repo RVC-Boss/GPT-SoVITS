@@ -172,8 +172,8 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 
 #### Entegre Paket Kullanıcıları
 
-`go-webui.bat` dosyasına çift tıklayın veya `go-webui.ps` kullanın.
-V1'e geçmek istiyorsanız, `go-webui-v1.bat` dosyasına çift tıklayın veya `go-webui-v1.ps` kullanın.
+`go-webui.bat` dosyasına çift tıklayın veya `go-webui.ps1` kullanın.
+V1'e geçmek istiyorsanız, `go-webui-v1.bat` dosyasına çift tıklayın veya `go-webui-v1.ps1` kullanın.
 
 #### Diğerleri
 
@@ -208,7 +208,7 @@ veya WebUI'de manuel olarak sürüm değiştirin.
 
 #### Entegre Paket Kullanıcıları
 
-`go-webui-v2.bat` dosyasına çift tıklayın veya `go-webui-v2.ps` kullanın, ardından çıkarım webui'sini `1-GPT-SoVITS-TTS/1C-inference` adresinde açın.
+`go-webui-v2.bat` dosyasına çift tıklayın veya `go-webui-v2.ps1` kullanın, ardından çıkarım webui'sini `1-GPT-SoVITS-TTS/1C-inference` adresinde açın.
 
 #### Diğerleri
 

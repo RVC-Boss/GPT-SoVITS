@@ -186,6 +186,7 @@ def replace_positive_quantifier(match) -> str:
     match_2: str = match_2 if match_2 else ""
     quantifiers: str = match.group(3)
     number: str = num2str(number)
+    number = "两" if number == "二" else number
     result = f"{number}{match_2}{quantifiers}"
     return result
 
