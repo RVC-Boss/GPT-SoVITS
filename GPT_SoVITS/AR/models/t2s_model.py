@@ -83,7 +83,7 @@ class T2SMLP:
 class T2SBlock:
     def __init__(
             self,
-            num_heads: int,
+            num_heads,
             hidden_dim: int,
             mlp: T2SMLP,
             qkv_w,
@@ -92,12 +92,12 @@ class T2SBlock:
             out_b,
             norm_w1,
             norm_b1,
-            norm_eps1: float,
+            norm_eps1,
             norm_w2,
             norm_b2,
-            norm_eps2: float,
+            norm_eps2,
     ):
-        self.num_heads:int = num_heads
+        self.num_heads = num_heads
         self.mlp = mlp
         self.hidden_dim: int = hidden_dim
         self.qkv_w = qkv_w
@@ -266,7 +266,7 @@ class Text2SemanticDecoder(nn.Module):
         self.norm_first = norm_first
         self.vocab_size = config["model"]["vocab_size"]
         self.phoneme_vocab_size = config["model"]["phoneme_vocab_size"]
-        self.p_dropout = float(config["model"]["dropout"])
+        self.p_dropout = config["model"]["dropout"]
         self.EOS = config["model"]["EOS"]
         self.norm_first = norm_first
         assert self.EOS == self.vocab_size - 1
