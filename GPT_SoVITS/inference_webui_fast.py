@@ -252,7 +252,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         label=i18n("主参考音频的语种"), info=i18n('V2支持更多语言'), choices=list(dict_language.keys()), value=i18n("中文"),
                     )
                     with gr.Column():
-                        gr.Markdown(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开，开启后无视填写的参考文本。"))
+                        gr.Markdown(i18n("使用无参考文本模式时建议使用微调的GPT，开启后无视填写的参考文本。"))
                         ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True)
         
             with gr.Column(scale=1):
@@ -282,7 +282,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 seed = gr.Number(value=-1,visible=False)
                 
             with gr.Column():
-                gr.Markdown(value=html_left(i18n("GPT参数"),label='h4'))
+                gr.Markdown(value=html_left(i18n("GPT采样参数："),label='h4'))
                 with gr.Row():
                     with gr.Column():
                         top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=5,interactive=True)
@@ -315,29 +315,6 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         stop_infer.click(tts_pipeline.stop, [], [])
         SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown,prompt_language,text_language], [prompt_language,text_language,prompt_text,prompt_language,text,text_language])
         GPT_dropdown.change(tts_pipeline.init_t2s_weights, [GPT_dropdown], [])
-
-    # with gr.Group():
-    #     gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
-    #     with gr.Row():
-    #         text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"), value="", lines=4)
-    #         with gr.Column():
-    #             _how_to_cut = gr.Radio(
-    #                         label=i18n("怎么切"),
-    #                         choices=[i18n("不切"), i18n("凑四句一切"), i18n("凑50字一切"), i18n("按中文句号。切"), i18n("按英文句号.切"), i18n("按标点符号切"), ],
-    #                         value=i18n("凑四句一切"),
-    #                         interactive=True,
-    #                     )
-    #             cut_text= gr.Button(i18n("切分"), variant="primary")
-            
-    #         def to_cut(text_inp, how_to_cut):
-    #             if len(text_inp.strip()) == 0 or text_inp==[]:
-    #                 return ""
-    #             method = get_method(cut_method[how_to_cut])
-    #             return method(text_inp)
-        
-    #         text_opt = gr.Textbox(label=i18n("切分后文本"), value="", lines=4)
-    #         cut_text.click(to_cut, [text_inp, _how_to_cut], [text_opt])
-    #     gr.Markdown(value=i18n("后续将支持转音素、手工修改音素、语音合成分步执行。"))
 
 if __name__ == '__main__':
     app.queue().launch(#concurrency_count=511, max_size=1022
