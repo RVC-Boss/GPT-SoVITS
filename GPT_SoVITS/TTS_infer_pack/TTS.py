@@ -550,6 +550,7 @@ class TTS:
             all_phones_len_list = []
             all_bert_features_list = []
             norm_text_batch = []
+            origin_text_batch = []
             all_bert_max_len = 0
             all_phones_max_len = 0
             for item in item_list:
@@ -575,6 +576,7 @@ class TTS:
                 all_phones_len_list.append(all_phones.shape[-1])
                 all_bert_features_list.append(all_bert_features)
                 norm_text_batch.append(item["norm_text"])
+                origin_text_batch.append(item["origin_text"])
                 
             phones_batch = phones_list
             all_phones_batch = all_phones_list
@@ -606,6 +608,7 @@ class TTS:
                 "all_phones_len": torch.LongTensor(all_phones_len_list).to(device),
                 "all_bert_features": all_bert_features_batch,
                 "norm_text": norm_text_batch,
+                "origin_text": origin_text_batch,
                 "max_len": max_len,
             }
             _data.append(batch)
@@ -658,6 +661,7 @@ class TTS:
                     "batch_threshold": 0.75,      # float. threshold for batch splitting.
                     "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
                     "return_fragment": False,     # bool. step by step return the audio fragment.
+                    "return_with_srt": "",        # str. return with or without("") subtitles, using "orig"inal or "norm"alized text
                     "speed_factor":1.0,           # float. control the speed of the synthesized audio.
                     "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
                     "seed": -1,                   # int. random seed for reproducibility.
@@ -685,6 +689,7 @@ class TTS:
         split_bucket = inputs.get("split_bucket", True)
         return_fragment = inputs.get("return_fragment", False)
         fragment_interval = inputs.get("fragment_interval", 0.3)
+        return_with_srt = inputs.get("return_with_srt", "")
         seed = inputs.get("seed", -1)
         seed = -1 if seed in ["", None] else seed
         actual_seed = set_seed(seed)
@@ -703,6 +708,9 @@ class TTS:
             if split_bucket:
                 split_bucket = False
                 print(i18n("分段返回模式不支持分桶处理，已自动关闭分桶处理"))
+
+        ret_width = 3 if return_with_srt else 2 # return (sr, audio, srt) or (sr, audio)
+        srt_text = "norm_text" if return_with_srt.startswith("norm") else "origin_text"
 
         if split_bucket and speed_factor==1.0:
             print(i18n("分桶处理模式已开启"))
@@ -773,8 +781,7 @@ class TTS:
         if not return_fragment:
             data = self.text_preprocessor.preprocess(text, text_lang, text_split_method, self.configs.version)
             if len(data) == 0:
-                yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
-                                                            dtype=np.int16)
+                yield self.audio_failure()[:ret_width]
                 return
 
             batch_index_list:list = None
@@ -806,6 +813,7 @@ class TTS:
                         "phones": phones,
                         "bert_features": bert_features,
                         "norm_text": norm_text,
+                        "origin_text": text,
                     }
                     batch_data.append(res)
                 if len(batch_data) == 0:
@@ -841,10 +849,11 @@ class TTS:
                 all_phoneme_ids:torch.LongTensor = item["all_phones"]
                 all_phoneme_lens:torch.LongTensor  = item["all_phones_len"]
                 all_bert_features:torch.LongTensor = item["all_bert_features"]
-                norm_text:str = item["norm_text"]
+                # norm_text:List[str] = item["norm_text"]
+                # origin_text:List[str] = item["origin_text"]
                 max_len = item["max_len"]
 
-                print(i18n("前端处理后的文本(每句):"), norm_text)
+                print(i18n("前端处理后的文本(每批):"), item["norm_text"])
                 if no_prompt_text :
                     prompt = None
                 else:
@@ -915,39 +924,38 @@ class TTS:
                 if return_fragment:
                     print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
                     yield self.audio_postprocess([batch_audio_fragment], 
+                                                    [item[srt_text]],
                                                     self.configs.sampling_rate, 
                                                     None, 
                                                     speed_factor, 
                                                     False,
                                                     fragment_interval
-                                                    )
+                                                    )[:ret_width]
                 else:
                     audio.append(batch_audio_fragment)
 
                 if self.stop_flag:
-                    yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
-                                                            dtype=np.int16)
+                    yield self.audio_failure()[:ret_width]
                     return
 
             if not return_fragment:
                 print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t_34, t_45))
                 if len(audio) == 0:
-                    yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
-                                                                dtype=np.int16)
+                    yield self.audio_failure()[:ret_width]
                     return
                 yield self.audio_postprocess(audio, 
+                                                [v[srt_text] for v in data],
                                                 self.configs.sampling_rate, 
                                                 batch_index_list, 
                                                 speed_factor, 
                                                 split_bucket,
                                                 fragment_interval
-                                                )
+                                                )[:ret_width]
 
         except Exception as e:
             traceback.print_exc()
             # 必须返回一个空音频, 否则会导致显存不释放。
-            yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
-                                                            dtype=np.int16)
+            yield self.audio_failure()[:ret_width]
             # 重置模型, 否则会导致显存释放不完全。
             del self.t2s_model
             del self.vits_model
@@ -968,15 +976,19 @@ class TTS:
                 torch.mps.empty_cache()
         except:
             pass 
-        
+
+    def audio_failure(self):
+        return self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate), dtype=np.int16), []
+
     def audio_postprocess(self, 
-                          audio:List[torch.Tensor], 
+                          audio:List[torch.Tensor],
+                          texts:List[List[str]],
                           sr:int, 
                           batch_index_list:list=None, 
                           speed_factor:float=1.0, 
                           split_bucket:bool=True,
                           fragment_interval:float=0.3
-                          )->Tuple[int, np.ndarray]:
+                          )->Tuple[int, np.ndarray, List]:
         zero_wav = torch.zeros(
                         int(self.configs.sampling_rate * fragment_interval),
                         dtype=self.precision,
@@ -993,11 +1005,17 @@ class TTS:
         
         if split_bucket:
             audio = self.recovery_order(audio, batch_index_list)
+            texts = self.recovery_order(texts, batch_index_list)
         else:
             # audio = [item for batch in audio for item in batch]
             audio = sum(audio, [])
-            
-            
+            texts = sum(texts, [])
+
+        # 按顺序计算每段语音的起止时间，并与文字一一对应，用于生成字幕
+        from itertools import accumulate
+        stamps = [0.0] + [x/sr for x in accumulate([v.size for v in audio])]
+        srts = list(zip(stamps[:-1], stamps[1:], texts)) # time start, end, text
+
         audio = np.concatenate(audio, 0)
         audio = (audio * 32768).astype(np.int16) 
         
@@ -1007,7 +1025,7 @@ class TTS:
         # except Exception as e:
         #     print(f"Failed to change speed of audio: \n{e}")
         
-        return sr, audio
+        return sr, audio, srts
             
         
         

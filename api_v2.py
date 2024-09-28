@@ -36,6 +36,7 @@ POST:
     "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
     "speed_factor":1.0,           # float. control the speed of the synthesized audio.
     "streaming_mode": False,      # bool. whether to return a streaming response.
+    "with_srt_format": "",        # str. ""(no srt) or "raw" or "srt", "lrc", "vtt", ... formats (not implemented yet)
     "seed": -1,                   # int. random seed for reproducibility.
     "parallel_infer": True,       # bool. whether to use parallel inference.
     "repetition_penalty": 1.35    # float. repetition penalty for T2S model.
@@ -98,7 +99,7 @@ RESP:
 import os
 import sys
 import traceback
-from typing import Generator
+from typing import Generator, List, Union
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -162,6 +163,7 @@ class TTS_Request(BaseModel):
     seed:int = -1
     media_type:str = "wav"
     streaming_mode:bool = False
+    with_srt_format:str = ""
     parallel_infer:bool = True
     repetition_penalty:float = 1.35
 
@@ -211,6 +213,21 @@ def pack_audio(io_buffer:BytesIO, data:np.ndarray, rate:int, media_type:str):
     io_buffer.seek(0)
     return io_buffer
 
+def pack_srt(srt:List, fmt:str):
+    if fmt == "raw":
+        return srt
+    # TODO: support formats like "srt", "lrc", "vtt", ...
+    return srt
+
+def load_base64_audio(audio):
+    import base64
+    if isinstance(audio, (bytes, bytearray)):
+        audio = bytes(audio)
+    elif hasattr(audio, 'read'): # file-like obj
+        audio = audio.read()
+    else:                        # path-like
+        audio = open(audio, 'rb').read()
+    return base64.b64encode(audio).decode('ascii')
 
 _base64_audio_cache = {}
 def save_base64_audio(b64str:str):
@@ -309,6 +326,7 @@ async def tts_handle(req:dict):
                 "seed": -1,                   # int. random seed for reproducibility.
                 "media_type": "wav",          # str. media type of the output audio, support "wav", "raw", "ogg", "aac".
                 "streaming_mode": False,      # bool. whether to return a streaming response.
+                "with_srt_format": "",        # str. ""(no srt) or "raw" or "srt", "lrc", "vtt", ... formats (not implemented yet)
                 "parallel_infer": True,       # bool.(optional) whether to use parallel inference.
                 "repetition_penalty": 1.35    # float.(optional) repetition penalty for T2S model.          
             }
@@ -319,6 +337,7 @@ async def tts_handle(req:dict):
     streaming_mode = req.get("streaming_mode", False)
     return_fragment = req.get("return_fragment", False)
     media_type = req.get("media_type", "wav")
+    with_srt_format = req.get("with_srt_format", "")
     ref_audio_path = req.get("ref_audio_path", "")
     if ref_audio_path.startswith("base64:"):
         req['ref_audio_path'] = ref_audio_path = save_base64_audio(ref_audio_path[len("base64:"):])
@@ -329,7 +348,10 @@ async def tts_handle(req:dict):
 
     if streaming_mode or return_fragment:
         req["return_fragment"] = True
-    
+
+    if streaming_mode: with_srt_format = "" # streaming not support srt
+    req["return_with_srt"] = "orig" if with_srt_format else ""
+
     try:
         tts_generator=tts_pipeline.run(req)
         
@@ -343,6 +365,16 @@ async def tts_handle(req:dict):
             # _media_type = f"audio/{media_type}" if not (streaming_mode and media_type in ["wav", "raw"]) else f"audio/x-{media_type}"
             return StreamingResponse(streaming_generator(tts_generator, media_type, ), media_type=f"audio/{media_type}")
     
+        elif with_srt_format:
+            output = []
+            for sr, audio_data, srt_data in tts_generator:
+                audio_data = pack_audio(BytesIO(), audio_data, sr, media_type).getvalue()
+                output.append({
+                    "audio": load_base64_audio(audio_data), "media_type": f"audio/{media_type}",
+                    "srt": pack_srt(srt_data, with_srt_format), "srt_fmt": with_srt_format,
+                })
+            return { "message":"succeed", "output":output } # Jsonresponse(status_code=200, content=...)
+
         else:
             sr, audio_data = next(tts_generator)
             audio_data = pack_audio(BytesIO(), audio_data, sr, media_type).getvalue()
@@ -383,6 +415,7 @@ async def tts_get_endpoint(
                         seed:int = -1,
                         media_type:str = "wav",
                         streaming_mode:bool = False,
+                        with_srt_format:str = "",
                         parallel_infer:bool = True,
                         repetition_penalty:float = 1.35
                         ):
