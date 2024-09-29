@@ -4,8 +4,8 @@ from torch import nn
 from torch.nn import functional as F
 
 from module import commons
-from module.modules import LayerNorm
 
+from typing import Optional
 
 class LayerNorm(nn.Module):
     def __init__(self, channels, eps=1e-5):
@@ -59,6 +59,7 @@ class Encoder(nn.Module):
         #  self.cond_layer = weight_norm(cond_layer, name='weight')
         #  self.gin_channels = 256
         self.cond_layer_idx = self.n_layers
+        self.spk_emb_linear = nn.Linear(256, self.hidden_channels)
         if "gin_channels" in kwargs:
             self.gin_channels = kwargs["gin_channels"]
             if self.gin_channels != 0:
@@ -98,22 +99,36 @@ class Encoder(nn.Module):
             )
             self.norm_layers_2.append(LayerNorm(hidden_channels))
 
-    def forward(self, x, x_mask, g=None):
+    # def forward(self, x, x_mask, g=None):
+    #     attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
+    #     x = x * x_mask
+    #     for i in range(self.n_layers):
+    #         if i == self.cond_layer_idx and g is not None:
+    #             g = self.spk_emb_linear(g.transpose(1, 2))
+    #             g = g.transpose(1, 2)
+    #             x = x + g
+    #             x = x * x_mask
+    #         y = self.attn_layers[i](x, x, attn_mask)
+    #         y = self.drop(y)
+    #         x = self.norm_layers_1[i](x + y)
+
+    #         y = self.ffn_layers[i](x, x_mask)
+    #         y = self.drop(y)
+    #         x = self.norm_layers_2[i](x + y)
+    #     x = x * x_mask
+    #     return x
+    
+    def forward(self, x, x_mask):
         attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
         x = x * x_mask
-        for i in range(self.n_layers):
-            if i == self.cond_layer_idx and g is not None:
-                g = self.spk_emb_linear(g.transpose(1, 2))
-                g = g.transpose(1, 2)
-                x = x + g
-                x = x * x_mask
-            y = self.attn_layers[i](x, x, attn_mask)
+        for attn_layers,norm_layers_1,ffn_layers,norm_layers_2 in zip(self.attn_layers,self.norm_layers_1,self.ffn_layers,self.norm_layers_2):
+            y = attn_layers(x, x, attn_mask)
             y = self.drop(y)
-            x = self.norm_layers_1[i](x + y)
+            x = norm_layers_1(x + y)
 
-            y = self.ffn_layers[i](x, x_mask)
+            y = ffn_layers(x, x_mask)
             y = self.drop(y)
-            x = self.norm_layers_2[i](x + y)
+            x = norm_layers_2(x + y)
         x = x * x_mask
         return x
 
@@ -172,17 +187,18 @@ class MultiHeadAttention(nn.Module):
                 self.conv_k.weight.copy_(self.conv_q.weight)
                 self.conv_k.bias.copy_(self.conv_q.bias)
 
-    def forward(self, x, c, attn_mask=None):
+    def forward(self, x, c, attn_mask:Optional[torch.Tensor]=None):
         q = self.conv_q(x)
         k = self.conv_k(c)
         v = self.conv_v(c)
 
-        x, self.attn = self.attention(q, k, v, mask=attn_mask)
+        # x, self.attn = self.attention(q, k, v, mask=attn_mask)
+        x, _ = self.attention(q, k, v, mask=attn_mask)
 
         x = self.conv_o(x)
         return x
 
-    def attention(self, query, key, value, mask=None):
+    def attention(self, query, key, value, mask:Optional[torch.Tensor]=None):
         # reshape [b, d, t] -> [b, n_h, t, d_k]
         b, d, t_s, _ = (*key.size(), query.size(2))
         query = query.view(b, self.n_heads, self.k_channels, -1).transpose(2, 3)
@@ -304,7 +320,7 @@ class FFN(nn.Module):
         filter_channels,
         kernel_size,
         p_dropout=0.0,
-        activation=None,
+        activation="",
         causal=False,
     ):
         super().__init__()
@@ -316,10 +332,11 @@ class FFN(nn.Module):
         self.activation = activation
         self.causal = causal
 
-        if causal:
-            self.padding = self._causal_padding
-        else:
-            self.padding = self._same_padding
+        # 从上下文看这里一定是 False
+        # if causal:
+        #     self.padding = self._causal_padding
+        # else:
+        #     self.padding = self._same_padding
 
         self.conv_1 = nn.Conv1d(in_channels, filter_channels, kernel_size)
         self.conv_2 = nn.Conv1d(filter_channels, out_channels, kernel_size)
@@ -334,6 +351,9 @@ class FFN(nn.Module):
         x = self.drop(x)
         x = self.conv_2(self.padding(x * x_mask))
         return x * x_mask
+    
+    def padding(self, x):
+        return self._same_padding(x)
 
     def _causal_padding(self, x):
         if self.kernel_size == 1:
@@ -351,4 +371,36 @@ class FFN(nn.Module):
         pad_r = self.kernel_size // 2
         padding = [[0, 0], [0, 0], [pad_l, pad_r]]
         x = F.pad(x, commons.convert_pad_shape(padding))
+        return x
+
+
+class MRTE(nn.Module):
+    def __init__(
+        self,
+        content_enc_channels=192,
+        hidden_size=512,
+        out_channels=192,
+        kernel_size=5,
+        n_heads=4,
+        ge_layer=2,
+    ):
+        super(MRTE, self).__init__()
+        self.cross_attention = MultiHeadAttention(hidden_size, hidden_size, n_heads)
+        self.c_pre = nn.Conv1d(content_enc_channels, hidden_size, 1)
+        self.text_pre = nn.Conv1d(content_enc_channels, hidden_size, 1)
+        self.c_post = nn.Conv1d(hidden_size, out_channels, 1)
+
+    def forward(self, ssl_enc, ssl_mask, text, text_mask, ge):
+        attn_mask = text_mask.unsqueeze(2) * ssl_mask.unsqueeze(-1)
+
+        ssl_enc = self.c_pre(ssl_enc * ssl_mask)
+        text_enc = self.text_pre(text * text_mask)
+        x = (
+                self.cross_attention(
+                    ssl_enc * ssl_mask, text_enc * text_mask, attn_mask
+                )
+                + ssl_enc
+                + ge
+            )
+        x = self.c_post(x * ssl_mask)
         return x
