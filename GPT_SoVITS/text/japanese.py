@@ -1,6 +1,8 @@
 # modified from https://github.com/CjangCjengh/vits/blob/main/text/japanese.py
 import re
 
+from text.symbols2 import symbols
+
 import pyopenjtalk
 import os
 import hashlib
@@ -222,6 +224,5 @@ def g2p(norm_text, with_prosody=True):
 
 
 if __name__ == "__main__":
-    from text.symbols2 import symbols
     phones = g2p("Hello.こんにちは！今日もNiCe天気ですね！tokyotowerに行きましょう！")
     print(phones)
