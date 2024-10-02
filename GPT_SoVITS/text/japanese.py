@@ -82,9 +82,8 @@ def post_replace_ph(ph):
         ph = rep_map[ph]
     # if ph in symbols:
     #     return ph
-    if ph not in symbols:
-        ph = "UNK"
-        # UNK may be useful as a pause token as it was trained in the model
+    # if ph not in symbols:
+    #     ph = "UNK"
     return ph
 
 
@@ -104,8 +103,6 @@ def symbols_to_japanese(text):
 def preprocess_jap(text, with_prosody=False):
     """Reference https://r9y9.github.io/ttslearn/latest/notebooks/ch10_Recipe-Tacotron.html"""
     text = symbols_to_japanese(text)
-    # English words to lower case, should have no influence on japanese words.
-    text = text.lower()
     sentences = re.split(_japanese_marks, text)
     marks = re.findall(_japanese_marks, text)
     text = []
@@ -222,6 +219,5 @@ def g2p(norm_text, with_prosody=True):
 
 
 if __name__ == "__main__":
-    from text.symbols2 import symbols
-    phones = g2p("Hello.こんにちは！今日もNiCe天気ですね！tokyotowerに行きましょう！")
+    phones = g2p("こんにちは, hello, AKITOです,よろしくお願いしますね！")
     print(phones)
