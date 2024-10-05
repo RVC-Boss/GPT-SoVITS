@@ -1,29 +1,34 @@
 # modified from https://github.com/CjangCjengh/vits/blob/main/text/japanese.py
 import re
-
-import pyopenjtalk
 import os
 import hashlib
-current_file_path = os.path.dirname(__file__)
-def get_hash(fp: str) -> str:
-    hash_md5 = hashlib.md5()
-    with open(fp, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+try:
+    import pyopenjtalk
+    current_file_path = os.path.dirname(__file__)
+    def get_hash(fp: str) -> str:
+        hash_md5 = hashlib.md5()
+        with open(fp, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
 
-USERDIC_CSV_PATH = os.path.join(current_file_path, "ja_userdic", "userdict.csv")
-USERDIC_BIN_PATH = os.path.join(current_file_path, "ja_userdic", "user.dict")
-USERDIC_HASH_PATH = os.path.join(current_file_path, "ja_userdic", "userdict.md5")
-# 如果没有用户词典，就生成一个；如果有，就检查md5，如果不一样，就重新生成
-if os.path.exists(USERDIC_CSV_PATH):
-    if not os.path.exists(USERDIC_BIN_PATH) or get_hash(USERDIC_CSV_PATH) != open(USERDIC_HASH_PATH, "r",encoding='utf-8').read():
-        pyopenjtalk.mecab_dict_index(USERDIC_CSV_PATH, USERDIC_BIN_PATH)
-        with open(USERDIC_HASH_PATH, "w", encoding='utf-8') as f:
-            f.write(get_hash(USERDIC_CSV_PATH))
+    USERDIC_CSV_PATH = os.path.join(current_file_path, "ja_userdic", "userdict.csv")
+    USERDIC_BIN_PATH = os.path.join(current_file_path, "ja_userdic", "user.dict")
+    USERDIC_HASH_PATH = os.path.join(current_file_path, "ja_userdic", "userdict.md5")
+    # 如果没有用户词典，就生成一个；如果有，就检查md5，如果不一样，就重新生成
+    if os.path.exists(USERDIC_CSV_PATH):
+        if not os.path.exists(USERDIC_BIN_PATH) or get_hash(USERDIC_CSV_PATH) != open(USERDIC_HASH_PATH, "r",encoding='utf-8').read():
+            pyopenjtalk.mecab_dict_index(USERDIC_CSV_PATH, USERDIC_BIN_PATH)
+            with open(USERDIC_HASH_PATH, "w", encoding='utf-8') as f:
+                f.write(get_hash(USERDIC_CSV_PATH))
 
-if os.path.exists(USERDIC_BIN_PATH):
-    pyopenjtalk.update_global_jtalk_with_user_dict(USERDIC_BIN_PATH)    
+    if os.path.exists(USERDIC_BIN_PATH):
+        pyopenjtalk.update_global_jtalk_with_user_dict(USERDIC_BIN_PATH)   
+except Exception as e:
+    # print(e)
+    import pyopenjtalk
+    # failed to load user dictionary, ignore.
+    pass
 
 
 from text.symbols import punctuation
@@ -80,10 +85,6 @@ def post_replace_ph(ph):
 
     if ph in rep_map.keys():
         ph = rep_map[ph]
-    # if ph in symbols:
-    #     return ph
-    # if ph not in symbols:
-    #     ph = "UNK"
     return ph
 
 
@@ -103,6 +104,8 @@ def symbols_to_japanese(text):
 def preprocess_jap(text, with_prosody=False):
     """Reference https://r9y9.github.io/ttslearn/latest/notebooks/ch10_Recipe-Tacotron.html"""
     text = symbols_to_japanese(text)
+    # English words to lower case, should have no influence on japanese words.
+    text = text.lower()
     sentences = re.split(_japanese_marks, text)
     marks = re.findall(_japanese_marks, text)
     text = []
@@ -219,5 +222,5 @@ def g2p(norm_text, with_prosody=True):
 
 
 if __name__ == "__main__":
-    phones = g2p("こんにちは, hello, AKITOです,よろしくお願いしますね！")
+    phones = g2p("Hello.こんにちは！今日もNiCe天気ですね！tokyotowerに行きましょう！")
     print(phones)

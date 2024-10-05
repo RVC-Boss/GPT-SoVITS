@@ -4,6 +4,11 @@ import json
 import os
 import uuid
 
+try:
+    import gradio.analytics as analytics
+    analytics.version_check = lambda:None
+except:...
+
 import librosa
 import gradio as gr
 import numpy as np

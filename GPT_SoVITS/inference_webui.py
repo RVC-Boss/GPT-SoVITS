@@ -21,6 +21,11 @@ import LangSegment, os, re, sys, json
 import pdb
 import torch
 
+try:
+    import gradio.analytics as analytics
+    analytics.version_check = lambda:None
+except:...
+
 version=os.environ.get("version","v2")
 pretrained_sovits_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth", "GPT_SoVITS/pretrained_models/s2G488k.pth"]
 pretrained_gpt_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
@@ -392,7 +397,8 @@ def merge_short_text_in_array(texts, threshold):
 ##ref_wav_path+prompt_text+prompt_language+text(单个)+text_language+top_k+top_p+temperature
 # cache_tokens={}#暂未实现清理机制
 cache= {}
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False,speed=1,if_freeze=False,inp_refs=123):
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free 
+    =False,speed=1,if_freeze=False,inp_refs=None):
     global cache
     if ref_wav_path:pass
     else:gr.Warning(i18n('请上传参考音频'))

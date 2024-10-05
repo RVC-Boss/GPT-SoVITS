@@ -9,6 +9,7 @@ DEFAULT_LANGUAGE: str         = "zh_CN" # 默认语言
 TITLE_LEN       : int         = 60      # 标题显示长度
 KEY_LEN         : int         = 30      # 键名显示长度
 SHOW_KEYS       : bool        = False   # 是否显示键信息
+SORT_KEYS       : bool        = False   # 是否按全局键名写入文件
 
 def extract_i18n_strings(node):
     i18n_strings = []
@@ -49,6 +50,7 @@ def scan_i18n_strings():
     return code_keys
 
 def update_i18n_json(json_file, standard_keys):
+    standard_keys = sorted(standard_keys)
     print(f" Process {json_file} ".center(TITLE_LEN, "="))
     # 读取 JSON 文件
     with open(json_file, "r", encoding="utf-8") as f:
@@ -79,8 +81,13 @@ def update_i18n_json(json_file, standard_keys):
                 print(f"{'Removed Unused Key'.ljust(KEY_LEN)}: {key}")
     # 按键顺序排序
     json_data = OrderedDict(
-        sorted(json_data.items(), 
-        key=lambda x: list(standard_keys).index(x[0])))
+        sorted(
+            json_data.items(),
+            key=lambda x: (
+                list(standard_keys).index(x[0]) if x[0] in standard_keys and not x[1].startswith('#!') else len(json_data),
+            )
+        )
+    )
     # 打印处理后的 JSON 条目数
     if len(miss_keys) != 0 or len(diff_keys) != 0:
         print(f"{'Total Keys (After)'.ljust(KEY_LEN)}: {len(json_data)}")
@@ -107,7 +114,7 @@ def update_i18n_json(json_file, standard_keys):
         print(f"\033[32m[Passed] All Keys Translated\033[0m")
     # 将处理后的结果写入 JSON 文件
     with open(json_file, "w", encoding="utf-8") as f:
-        json.dump(json_data, f, ensure_ascii=False, indent=4, sort_keys=True)
+        json.dump(json_data, f, ensure_ascii=False, indent=4, sort_keys=SORT_KEYS)
         f.write("\n")
     print(f" Updated {json_file} ".center(TITLE_LEN, "=") + '\n')
 
