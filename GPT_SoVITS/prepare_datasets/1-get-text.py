@@ -84,11 +84,10 @@ if os.path.exists(txt_path) == False:
         return phone_level_feature.T
 
     def process(data, res):
-        for name, text, lan in data:
+        for name, text, lan in tqdm(data,position=int(i_part),delay=0.5):
             try:
                 name=clean_path(name)
                 name = os.path.basename(name)
-                print(name)
                 phones, word2ph, norm_text = clean_text(
                     text.replace("%", "-").replace("￥", ","), lan, version
                 )
@@ -102,7 +101,7 @@ if os.path.exists(txt_path) == False:
                 # res.append([name,phones])
                 res.append([name, phones, word2ph, norm_text])
             except:
-                print(name, text, traceback.format_exc())
+                tqdm.write(name, text, traceback.format_exc())
 
     todo = []
     res = []
@@ -135,9 +134,9 @@ if os.path.exists(txt_path) == False:
                     [wav_name, text, language_v1_to_language_v2.get(language, language)]
                 )
             else:
-                print(f"\033[33m[Waring] The {language = } of {wav_name} is not supported for training.\033[0m")
+                tqdm.write(f"\033[33m[Waring] The {language = } of {wav_name} is not supported for training.\033[0m")
         except:
-            print(line, traceback.format_exc())
+            tqdm.write(line, traceback.format_exc())
 
     process(todo, res)
     opt = []

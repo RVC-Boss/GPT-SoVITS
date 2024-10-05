@@ -113,7 +113,7 @@ class TextPreprocessor:
         print(texts)
         return texts
     
-    def segment_and_extract_feature_for_text(self, text:str, language:str, version:str="v1")->Tuple[list, torch.Tensor, str]:
+    def segment_and_extract_feature_for_text(self, text:str, language:str, version:str="v2")->Tuple[list, torch.Tensor, str]:
         return self.get_phones_and_bert(text, language, version)
         
     def get_phones_and_bert(self, text:str, language:str, version:str, final:bool=False):
