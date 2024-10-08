@@ -162,7 +162,7 @@
     "语音降噪进程输出信息": "Voice Denoiser Process Output Information",
     "请上传3~10秒内参考音频，超过会报错！": "Please upload a reference audio within the 3-10 second range; if it exceeds this duration, it will raise errors.",
     "请上传参考音频": "Please Upload the Reference Audio",
-    "请填入推理文本": "Please Fill in the Terget Text",
+    "请填入推理文本": "Please Fill in the Target Text",
     "请填入正确的List路径": "Please Fill in the Correct List Path",
     "请填入正确的音频文件夹路径": "Please Fill in the Correct Audio Folder Path",
     "请输入有效文本": "Please enter valid text.",
