@@ -16,3 +16,6 @@ TEMP
 weight.json
 ffmpeg*
 ffprobe*
+tmp
+model
+*log
