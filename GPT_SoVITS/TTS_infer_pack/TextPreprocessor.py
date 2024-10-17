@@ -20,7 +20,7 @@ from tools.i18n.i18n import I18nAuto, scan_language_list
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
-punctuation = set(['!', '?', '…', ',', '.', '-'," "])
+punctuation = set(['!', '?', '…', ',', '.', '-'])
 
 def get_first(text:str) -> str:
     pattern = "[" + "".join(re.escape(sep) for sep in splits) + "]"
