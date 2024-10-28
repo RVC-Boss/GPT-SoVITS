@@ -40,6 +40,8 @@ def clean_text(text, language, version=None):
         norm_text=text
     if language == "zh" or language=="yue":##########
         phones, word2ph = language_module.g2p(norm_text)
+        if hasattr(language_module,"clean_custom_pinyin"):
+            norm_text=language_module.clean_custom_pinyin(norm_text)
         assert len(phones) == sum(word2ph)
         assert len(norm_text) == len(word2ph)
     elif language == "en":
