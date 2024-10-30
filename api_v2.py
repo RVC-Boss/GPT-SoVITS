@@ -128,11 +128,13 @@ parser = argparse.ArgumentParser(description="GPT-SoVITS api")
 parser.add_argument("-c", "--tts_config", type=str, default="GPT_SoVITS/configs/tts_infer.yaml", help="tts_infer路径")
 parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 127.0.0.1")
 parser.add_argument("-p", "--port", type=int, default="9880", help="default: 9880")
+parser.add_argument("-w", "--workers", type=int, default="1", help="default: 1")
 args = parser.parse_args()
 config_path = args.tts_config
 # device = args.device
 port = args.port
 host = args.bind_addr
+workers = args.workers
 argv = sys.argv
 
 if config_path in [None, ""]:
@@ -453,7 +455,7 @@ if __name__ == "__main__":
     try:
         if host == 'None':   # 在调用时使用 -a None 参数，可以让api监听双栈
             host = None
-        uvicorn.run(app=APP, host=host, port=port, workers=1)
+        uvicorn.run(app="api_v2:APP", host=host, port=port, workers=workers)
     except Exception as e:
         traceback.print_exc()
         os.kill(os.getpid(), signal.SIGTERM)
