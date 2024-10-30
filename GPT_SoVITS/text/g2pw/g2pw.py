@@ -127,14 +127,14 @@ def get_dict():
 
 def read_dict():
     polyphonic_dict = {}
-    with open(PP_DICT_PATH) as f:
+    with open(PP_DICT_PATH,encoding="utf-8") as f:
         line = f.readline()
         while line:
             key, value_str = line.split(':')
             value = eval(value_str.strip())
             polyphonic_dict[key.strip()] = value
             line = f.readline()
-    with open(PP_FIX_DICT_PATH) as f:
+    with open(PP_FIX_DICT_PATH,encoding="utf-8") as f:
         line = f.readline()
         while line:
             key, value_str = line.split(':')
