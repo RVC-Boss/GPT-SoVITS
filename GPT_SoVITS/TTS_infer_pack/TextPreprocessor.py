@@ -69,6 +69,7 @@ class TextPreprocessor:
                 "phones": phones,
                 "bert_features": bert_features,
                 "norm_text": norm_text,
+                "origin_text": text,
             }
             result.append(res)
         return result
