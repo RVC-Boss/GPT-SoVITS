@@ -3,8 +3,8 @@
 import sys
 import re
 import cn2an
+import ToJyutping
 
-from pyjyutping import jyutping
 from text.symbols import punctuation
 from text.zh_normalization.text_normlization import TextNormalizer
 
@@ -173,12 +173,24 @@ def jyuping_to_initials_finals_tones(jyuping_syllables):
 
 
 def get_jyutping(text):
-    jp = jyutping.convert(text)
-    # print(1111111,jp)
-    for symbol in punctuation:
-        jp = jp.replace(symbol, " " + symbol + " ")
-    jp_array = jp.split()
-    return jp_array
+    jyutping_array = []
+    punct_pattern = re.compile(r"^[{}]+$".format(re.escape("".join(punctuation))))
+
+    syllables = ToJyutping.get_jyutping_list(text)
+
+    for word, syllable in syllables:
+        if punct_pattern.match(word):
+            puncts = re.split(r"([{}])".format(re.escape("".join(punctuation))), word)
+            for punct in puncts:
+                if len(punct) > 0:
+                    jyutping_array.append(punct)
+        else:
+            # match multple jyutping eg: liu4 ge3, or single jyutping eg: liu4
+            if not re.search(r"^([a-z]+[1-6]+[ ]?)+$", syllable):
+                raise ValueError(f"Failed to convert {word} to jyutping: {syllable}")
+            jyutping_array.append(syllable)
+
+    return jyutping_array
 
 
 def get_bert_feature(text, word2ph):
