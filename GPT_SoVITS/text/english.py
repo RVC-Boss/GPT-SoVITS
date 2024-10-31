@@ -30,6 +30,16 @@ rep_map = {
         "？": "?",
     }
 
+ordinal_map = {
+    "1. ": "First",
+    "2. ": "Second",
+    "3. ": "Third",
+    "4. ": "Fourth",
+    "5. ": "Fifth",
+    "6. ": "Sixth",
+    # 添加更多序数词映射
+}
+
 arpa = {
     "AH0",
     "S",
@@ -236,6 +246,9 @@ def text_normalize(text):
     # 来自 g2p_en 文本格式化处理
     # 增加大写兼容
     text = unicode(text)
+    for key, value in ordinal_map.items():
+        text = re.sub(rf"{re.escape(key)}\s?", value + ", ", text)
+        
     text = normalize_numbers(text)
     text = ''.join(char for char in unicodedata.normalize('NFD', text)
                     if unicodedata.category(char) != 'Mn')  # Strip accents
