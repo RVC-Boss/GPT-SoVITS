@@ -22,6 +22,14 @@ CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
 CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
 NAMECACHE_PATH = os.path.join(current_file_path, "namedict_cache.pickle")
 
+rep_map = {
+        "[;:：，；]": ",",
+        '["’]': "'",
+        "。": ".",
+        "！": "!",
+        "？": "?",
+    }
+
 arpa = {
     "AH0",
     "S",
@@ -221,15 +229,9 @@ def get_namedict():
 def text_normalize(text):
     # todo: eng text normalize
     # 适配中文及 g2p_en 标点
-    rep_map = {
-        "[;:：，；]": ",",
-        '["’]': "'",
-        "。": ".",
-        "！": "!",
-        "？": "?",
-    }
-    for p, r in rep_map.items():
-        text = re.sub(p, r, text)
+    
+    pattern = re.compile("|".join(re.escape(p) for p in rep_map.keys()))
+    text = pattern.sub(lambda x: rep_map[x.group()], text)
 
     # 来自 g2p_en 文本格式化处理
     # 增加大写兼容
