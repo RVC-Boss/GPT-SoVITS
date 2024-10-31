@@ -22,6 +22,24 @@ CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
 CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
 NAMECACHE_PATH = os.path.join(current_file_path, "namedict_cache.pickle")
 
+rep_map = {
+        "[;:：，；]": ",",
+        '["’]': "'",
+        "。": ".",
+        "！": "!",
+        "？": "?",
+    }
+
+ordinal_map = {
+    "1. ": "First",
+    "2. ": "Second",
+    "3. ": "Third",
+    "4. ": "Fourth",
+    "5. ": "Fifth",
+    "6. ": "Sixth",
+    # 添加更多序数词映射
+}
+
 arpa = {
     "AH0",
     "S",
@@ -221,22 +239,20 @@ def get_namedict():
 def text_normalize(text):
     # todo: eng text normalize
     # 适配中文及 g2p_en 标点
-    rep_map = {
-        "[;:：，；]": ",",
-        '["’]': "'",
-        "。": ".",
-        "！": "!",
-        "？": "?",
-    }
-    for p, r in rep_map.items():
-        text = re.sub(p, r, text)
+    
+    pattern = re.compile("|".join(re.escape(p) for p in rep_map.keys()))
+    text = pattern.sub(lambda x: rep_map[x.group()], text)
 
     # 来自 g2p_en 文本格式化处理
     # 增加大写兼容
     text = unicode(text)
+    for key, value in ordinal_map.items():
+        text = re.sub(rf"{re.escape(key)}\s?", value + ", ", text)
+        
     text = normalize_numbers(text)
     text = ''.join(char for char in unicodedata.normalize('NFD', text)
                     if unicodedata.category(char) != 'Mn')  # Strip accents
+    text = re.sub("%", " percent", text) # 将 % 转化为 “percent”
     text = re.sub("[^ A-Za-z'.,?!\-]", "", text)
     text = re.sub(r"(?i)i\.e\.", "that is", text)
     text = re.sub(r"(?i)e\.g\.", "for example", text)
