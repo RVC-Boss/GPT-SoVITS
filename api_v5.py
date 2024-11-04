@@ -9,7 +9,10 @@ app = Flask(__name__)
 tts_config_cache = {}  # 缓存 TTS_Config 对象
 
 def get_tts_config(tts_infer_yaml_path):
-    return TTS_Config(tts_infer_yaml_path)
+    if tts_infer_yaml_path not in tts_config_cache:
+        print(f"从缓存中获取: {tts_infer_yaml_path}")
+        tts_config_cache[tts_infer_yaml_path] = TTS_Config(tts_infer_yaml_path)
+    return tts_config_cache[tts_infer_yaml_path]
 
 def tts_handle(req: dict):
     # 打印传入的配置信息
@@ -33,8 +36,6 @@ def tts_handle(req: dict):
         # 保存音频到本地文件
         sf.write(output_file, audio_data, sr)
         print(f"音频已保存到: {output_file}")
-        tts_instance.stop()
-        tts_instance.empty_cache()
         return {
             "path": output_file,
             "success": 1,
@@ -49,22 +50,21 @@ def tts_handle(req: dict):
             "msg": str(e)
         }
 
-@app.route('/', methods=['GET','POST'])
+@app.route('/', methods=['GET'])
 def hello():
-    json = request.json
+    json = request.form
     text = json.get('text', '早知他来，我就不来了')
     ref_audio_path = json.get('ref_audio_path', 'example/model-dali.mp3')
-    prompt_text = json.get('prompt_text', '')
-    aux_ref_audio = json.get('aux_ref_audio', [])
+    prompt_text = json.get('prompt_text', '我叫夯大力,我以为上了大学就不会有调休的说法,要不是周六要上周五的课,我差点就信了')
     text_split_method = json.get('text_split_method', 'cut2')
     speed_factor = json.get('speed_factor', 1.15)
     output_file = json.get('output_file', 'generated_audio.wav')
-    yaml_path = json.get('yaml_path', 'GPT_SoVITS/configs/daiyu.yaml')
+    yaml_path = json.get('yaml_path', 'GPT_SoVITS/configs/dali.yaml')
     result = tts_handle({
         "text": text,  # 待合成的文本内容
         "text_lang": "zh",  # 待合成文本的语言。
         "ref_audio_path": ref_audio_path,  # 参考音频的路径。
-        "aux_ref_audio_paths": aux_ref_audio,  # 辅助参考音频路径列
+        "aux_ref_audio_paths": [],  # 辅助参考音频路径列
         "prompt_text": prompt_text,  # 参考音频的提示文本
         "prompt_lang": "zh",  # 参考音频提示文本的语言。
         "top_k": 5,  # 顶K采样值，用于控制生成文本的多样性。
@@ -77,7 +77,7 @@ def hello():
         "speed_factor": float(speed_factor),  # 控制合成音频的播放速度。。
         "split_bucket": True,  # 是是否将批量数据分割成多个桶进行处理。
         "fragment_interval": 0.3,  # 控制音频片段的间隔时间。 。
-        "seed": -1,  # 随机种子，用于保证结果的可复现性。
+        "seed": 2381411557,  # 随机种子，用于保证结果的可复现性。
         "media_type": "wav",
         "streaming_mode": False,
         "parallel_infer": True,  # 是否使用并行推理。
@@ -88,4 +88,4 @@ def hello():
     return jsonify(result)
 
 if __name__ == '__main__':
-    app.run(debug=False,host="0.0.0.0", port=5001)
+    app.run(debug=True, host="0.0.0.0", port=6001)

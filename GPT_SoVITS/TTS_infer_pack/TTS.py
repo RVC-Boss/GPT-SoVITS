@@ -274,6 +274,7 @@ class TTS:
         self.precision:torch.dtype = torch.float16 if self.configs.is_half else torch.float32
 
     def _init_models(self,):
+        print(f"loader-model-config: {self.configs}")
         self.init_t2s_weights(self.configs.t2s_weights_path)
         self.init_vits_weights(self.configs.vits_weights_path)
         self.init_bert_weights(self.configs.bert_base_path)
@@ -690,6 +691,7 @@ class TTS:
         actual_seed = set_seed(seed)
         parallel_infer = inputs.get("parallel_infer", True)
         repetition_penalty = inputs.get("repetition_penalty", 1.35)
+        print(f"lastConfig: {inputs}")
 
         if parallel_infer:
             print(i18n("并行推理模式已开启"))

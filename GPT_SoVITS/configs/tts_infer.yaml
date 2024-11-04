@@ -3,9 +3,9 @@ custom:
   cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
   device: cuda
   is_half: true
-  t2s_weights_path: GPT_weights_v2/daiyu-e15.ckpt
+  t2s_weights_path: GPT_weights_v2/dali-e15.ckpt
   version: v2
-  vits_weights_path: SoVITS_weights_v2/daiyu_e8_s64.pth
+  vits_weights_path: SoVITS_weights_v2/dali_e8_s96.pth
 default:
   bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
   cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
