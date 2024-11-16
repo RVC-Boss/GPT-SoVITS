@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "GPT_SoVITS"
 dynamic = ["version"]
-description = ""
+description = "A packaged version of GPT_SoVITS designed to be installable"
 readme = "README.md"
 license = {text = "MIT License"}
 classifiers = [
@@ -50,11 +50,12 @@ dependencies = [
     "opencc==1.1.1; sys_platform == 'linux'",
     "python_mecab_ko; sys_platform != 'win32'",
     "fastapi<0.112.2",
+    "sounddevice"
 ]
 
 
 [project.urls]
-Homepage = "https://github.com/RVC-Boss/GPT-SoVITS"
+Homepage = "https://github.com/JarodMica/GPT-SoVITS/tree/main"
 
 [project.scripts]
 "gpt_sovits_api" = "GPT_SoVITS.api_v2:main"
