@@ -114,6 +114,8 @@ from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi import FastAPI, UploadFile, File
 import uvicorn
+
+from importlib.resources import files
 from io import BytesIO
 from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
@@ -125,7 +127,7 @@ i18n = I18nAuto()
 cut_method_names = get_cut_method_names()
 
 parser = argparse.ArgumentParser(description="GPT-SoVITS api")
-parser.add_argument("-c", "--tts_config", type=str, default="GPT_SoVITS/configs/tts_infer.yaml", help="tts_infer路径")
+parser.add_argument("-c", "--tts_config", type=str, default=None, help="tts_infer路径")
 parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 127.0.0.1")
 parser.add_argument("-p", "--port", type=int, default="9880", help="default: 9880")
 args = parser.parse_args()
@@ -136,7 +138,7 @@ host = args.bind_addr
 argv = sys.argv
 
 if config_path in [None, ""]:
-    config_path = "GPT-SoVITS/configs/tts_infer.yaml"
+    config_path = str(files("GPT_SoVITS").joinpath("configs/tts_infer.yaml"))
 
 tts_config = TTS_Config(config_path)
 print(tts_config)
@@ -394,7 +396,7 @@ async def tts_get_endpoint(
 
 @APP.post("/tts")
 async def tts_post_endpoint(request: TTS_Request):
-    req = request.dict()
+    req = request.model_dump()
     return await tts_handle(req)
 
 
@@ -449,7 +451,8 @@ async def set_sovits_weights(weights_path: str = None):
 
 
 
-if __name__ == "__main__":
+def main():
+    global port, host, argv
     try:
         if host == 'None':   # 在调用时使用 -a None 参数，可以让api监听双栈
             host = None
@@ -458,3 +461,6 @@ if __name__ == "__main__":
         traceback.print_exc()
         os.kill(os.getpid(), signal.SIGTERM)
         exit(0)
+
+if __name__ == "__main__":
+    main()

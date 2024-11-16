@@ -1,60 +1,66 @@
 from copy import deepcopy
 import math
 import os, sys, gc
-import random
-import traceback
 
-from tqdm import tqdm
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import ffmpeg
-import os
-from typing import Generator, List, Tuple, Union
+import librosa
 import numpy as np
+import random
 import torch
 import torch.nn.functional as F
+import traceback
 import yaml
-from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+from huggingface_hub import snapshot_download, hf_hub_download
+from importlib.resources import files
+from time import time as ttime
+from typing import Generator, List, Tuple, Union
+from tqdm import tqdm
+
 
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from feature_extractor.cnhubert import CNHubert
 from module.models import SynthesizerTrn
-import librosa
-from time import time as ttime
+from module.mel_processing import spectrogram_torch
 from tools.i18n.i18n import I18nAuto, scan_language_list
 from tools.my_utils import load_audio
-from module.mel_processing import spectrogram_torch
+from transformers import AutoModelForMaskedLM, AutoTokenizer
 from TTS_infer_pack.text_segmentation_method import splits
 from TTS_infer_pack.TextPreprocessor import TextPreprocessor
+
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
+LIBRARY_NAME = "GPT_SoVITS"
 
 # configs/tts_infer.yaml
 """
 custom:
-  bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
-  cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
+  bert_base_path: pretrained_models/chinese-roberta-wwm-ext-large
+  cnhuhbert_base_path: pretrained_models/chinese-hubert-base
   device: cpu
   is_half: false
-  t2s_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
-  vits_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
+  t2s_weights_path: pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
+  vits_weights_path: pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
   version: v2
 default:
-  bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
-  cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
+  bert_base_path: pretrained_models/chinese-roberta-wwm-ext-large
+  cnhuhbert_base_path: pretrained_models/chinese-hubert-base
   device: cpu
   is_half: false
-  t2s_weights_path: GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
-  vits_weights_path: GPT_SoVITS/pretrained_models/s2G488k.pth
+  t2s_weights_path: pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
+  vits_weights_path: pretrained_models/s2G488k.pth
   version: v1
 default_v2:
-  bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
-  cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
+  bert_base_path: pretrained_models/chinese-roberta-wwm-ext-large
+  cnhuhbert_base_path: pretrained_models/chinese-hubert-base
   device: cpu
   is_half: false
-  t2s_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
-  vits_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
+  t2s_weights_path: pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
+  vits_weights_path: pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
   version: v2
 """
 
@@ -86,19 +92,19 @@ class TTS_Config:
                 "device": "cpu",
                 "is_half": False,
                 "version": "v1",
-                "t2s_weights_path": "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
-                "vits_weights_path": "GPT_SoVITS/pretrained_models/s2G488k.pth",
-                "cnhuhbert_base_path": "GPT_SoVITS/pretrained_models/chinese-hubert-base",
-                "bert_base_path": "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
+                "t2s_weights_path": "pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
+                "vits_weights_path": "pretrained_models/s2G488k.pth",
+                "cnhuhbert_base_path": "pretrained_models/chinese-hubert-base",
+                "bert_base_path": "pretrained_models/chinese-roberta-wwm-ext-large",
             },
         "default_v2":{
                 "device": "cpu",
                 "is_half": False,
                 "version": "v2",
-                "t2s_weights_path": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
-                "vits_weights_path": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
-                "cnhuhbert_base_path": "GPT_SoVITS/pretrained_models/chinese-hubert-base",
-                "bert_base_path": "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
+                "t2s_weights_path": "pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
+                "vits_weights_path": "pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
+                "cnhuhbert_base_path": "pretrained_models/chinese-hubert-base",
+                "bert_base_path": "pretrained_models/chinese-roberta-wwm-ext-large",
             },
     }
     configs:dict = None
@@ -120,7 +126,7 @@ class TTS_Config:
     def __init__(self, configs: Union[dict, str]=None):
         
         # 设置默认配置文件路径
-        configs_base_path:str = "GPT_SoVITS/configs/"
+        configs_base_path:str = "configs/"
         os.makedirs(configs_base_path, exist_ok=True)
         self.configs_path:str = os.path.join(configs_base_path, "tts_infer.yaml")
         
@@ -152,22 +158,23 @@ class TTS_Config:
         self.bert_base_path = self.configs.get("bert_base_path", None)
         self.cnhuhbert_base_path = self.configs.get("cnhuhbert_base_path", None)
         self.languages = self.v2_languages if self.version=="v2" else self.v1_languages
-
         
         if (self.t2s_weights_path in [None, ""]) or (not os.path.exists(self.t2s_weights_path)):
-            self.t2s_weights_path = self.default_configs[default_config_key]['t2s_weights_path']
+            self.t2s_weights_path = str(files(LIBRARY_NAME).joinpath(self.default_configs[default_config_key]['t2s_weights_path']))
             print(f"fall back to default t2s_weights_path: {self.t2s_weights_path}")
         if (self.vits_weights_path in [None, ""]) or (not os.path.exists(self.vits_weights_path)):
-            self.vits_weights_path = self.default_configs[default_config_key]['vits_weights_path']
+            self.vits_weights_path = str(files(LIBRARY_NAME).joinpath(self.default_configs[default_config_key]['vits_weights_path']))
             print(f"fall back to default vits_weights_path: {self.vits_weights_path}")
         if (self.bert_base_path in [None, ""]) or (not os.path.exists(self.bert_base_path)):
-            self.bert_base_path = self.default_configs[default_config_key]['bert_base_path']
+            self.bert_base_path = str(files(LIBRARY_NAME).joinpath(self.default_configs[default_config_key]['bert_base_path']))
             print(f"fall back to default bert_base_path: {self.bert_base_path}")
         if (self.cnhuhbert_base_path in [None, ""]) or (not os.path.exists(self.cnhuhbert_base_path)):
-            self.cnhuhbert_base_path = self.default_configs[default_config_key]['cnhuhbert_base_path']
+            self.cnhuhbert_base_path = str(files(LIBRARY_NAME).joinpath(self.default_configs[default_config_key]['cnhuhbert_base_path']))
             print(f"fall back to default cnhuhbert_base_path: {self.cnhuhbert_base_path}")
+            
+        repo_name="lj1995/GPT-SoVITS"
+        snapshot_download(repo_id=repo_name, local_dir=os.path.dirname(self.bert_base_path))
         self.update_configs()
-        
         
         self.max_sec = None
         self.hz:int = 50

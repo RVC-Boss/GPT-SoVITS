@@ -1,3 +1,6 @@
+# Jarod's NOTE
+Working on turning this into a package.  Right now, the API *does in fact* work to make requests to and this can be installed.  Will get instrucitons out sometime in the future.
+
 <div align="center">
 
 
