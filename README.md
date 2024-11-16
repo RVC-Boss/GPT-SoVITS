@@ -5,7 +5,7 @@ Working on turning this into a package.  Right now, the API *does in fact* work 
 Ideally, do this all inside of a venv for package isolation
 1. Install by doing:
   ```
-  pip install git+https://github.com/JarodMica/GPT-SoVITS.git
+  pip install git+https://github.com/JarodMica/GPT-SoVITS-Package.git
   ```
 2. Make sure torch is installed with CUDA enabled.  Reccomend to run `pip uninstall torch` to uninstall torch, then reinstall with the following.  I chose 2.4.0+cu121:
   ```
