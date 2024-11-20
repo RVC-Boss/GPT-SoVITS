@@ -8,9 +8,8 @@ from text.symbols import punctuation
 
 from text.symbols2 import symbols
 
-import unicodedata
 from builtins import str as unicode
-from g2p_en.expand import normalize_numbers
+from text.en_normalization.expend import normalize_numbers
 from nltk.tokenize import TweetTokenizer
 word_tokenize = TweetTokenizer().tokenize
 from nltk import pos_tag
@@ -23,21 +22,11 @@ CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
 NAMECACHE_PATH = os.path.join(current_file_path, "namedict_cache.pickle")
 
 rep_map = {
-        "[;:：，；]": ",",
-        '["’]': "'",
-        "。": ".",
-        "！": "!",
-        "？": "?",
-    }
-
-ordinal_map = {
-    "1. ": "First",
-    "2. ": "Second",
-    "3. ": "Third",
-    "4. ": "Fourth",
-    "5. ": "Fifth",
-    "6. ": "Sixth",
-    # 添加更多序数词映射
+    "[;:：，；]": ",",
+    '["’]': "'",
+    "。": ".",
+    "！": "!",
+    "？": "?",
 }
 
 arpa = {
@@ -235,34 +224,6 @@ def get_namedict():
 
     return name_dict
 
-
-def text_normalize(text):
-    # todo: eng text normalize
-    # 适配中文及 g2p_en 标点
-    
-    pattern = re.compile("|".join(re.escape(p) for p in rep_map.keys()))
-    text = pattern.sub(lambda x: rep_map[x.group()], text)
-
-    # 来自 g2p_en 文本格式化处理
-    # 增加大写兼容
-    text = unicode(text)
-    for key, value in ordinal_map.items():
-        text = re.sub(rf"{re.escape(key)}\s?", value + ", ", text)
-        
-    text = normalize_numbers(text)
-    text = ''.join(char for char in unicodedata.normalize('NFD', text)
-                    if unicodedata.category(char) != 'Mn')  # Strip accents
-    text = re.sub("%", " percent", text) # 将 % 转化为 “percent”
-    text = re.sub("[^ A-Za-z'.,?!\-]", "", text)
-    text = re.sub(r"(?i)i\.e\.", "that is", text)
-    text = re.sub(r"(?i)e\.g\.", "for example", text)
-
-    # 避免重复标点引起的参考泄露
-    text = replace_consecutive_punctuation(text)
-
-    return text
-
-
 class en_G2p(G2p):
     def __init__(self):
         super().__init__()
@@ -382,6 +343,18 @@ def g2p(text):
     phones = [ph if ph != "<unk>" else "UNK" for ph in phone_list if ph not in [" ", "<pad>", "UW", "</s>", "<s>"]]
 
     return replace_phs(phones)
+
+def text_normalize(text):
+    # 效果相同，和 chinese.py 保持一致
+    pattern = re.compile("|".join(re.escape(p) for p in rep_map.keys()))
+    text = pattern.sub(lambda x: rep_map[x.group()], text)
+    
+    text = unicode(text)
+    text = normalize_numbers(text)
+    
+    # 避免重复标点引起的参考泄露
+    text = replace_consecutive_punctuation(text)
+    return text
 
 
 if __name__ == "__main__":

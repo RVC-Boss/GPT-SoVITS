@@ -119,6 +119,7 @@ class TextPreprocessor:
     def get_phones_and_bert(self, text:str, language:str, version:str, final:bool=False):
         if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
             language = language.replace("all_","")
+            # 去掉了不必要的过滤器
             formattext = text
             while "  " in formattext:
                 formattext = formattext.replace("  ", " ")
