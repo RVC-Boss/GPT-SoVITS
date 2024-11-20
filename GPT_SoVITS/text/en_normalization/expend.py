@@ -230,7 +230,7 @@ def _expand_number(m):
         return _inflect.number_to_words(num, andword='')
 
 
-def normalize_numbers(text):
+def normalize(text):
     """
     !!! 所有的处理都需要正确的输入 !!!
     可以添加新的处理，只需要添加正则表达式和对应的处理函数即可
@@ -263,10 +263,10 @@ def normalize_numbers(text):
 if __name__ == '__main__':
     # 我觉得其实可以把切分结果展示出来（只读，或者修改不影响传给TTS的实际text）
     # 然后让用户确认后再输入给 TTS，可以让用户检查自己有没有不标准的输入
-    print(normalize_numbers("1. test ordinal number 1st"))
-    print(normalize_numbers("32.3$, $6.24, 1.1£, £7.14."))
-    print(normalize_numbers("3/23, 1/2, 3/2, 1/3, 6/1"))
-    print(normalize_numbers("1st, 22nd"))
-    print(normalize_numbers("a test 20h, 1.2s, 1L, 0.1km"))
-    print(normalize_numbers("a test of time 4:00, 13:00, 13:30"))
-    print(normalize_numbers("a test of temperature 4°F, 23°C, -19°C"))
+    print(normalize("1. test ordinal number 1st"))
+    print(normalize("32.3$, $6.24, 1.1£, £7.14."))
+    print(normalize("3/23, 1/2, 3/2, 1/3, 6/1"))
+    print(normalize("1st, 22nd"))
+    print(normalize("a test 20h, 1.2s, 1L, 0.1km"))
+    print(normalize("a test of time 4:00, 13:00, 13:30"))
+    print(normalize("a test of temperature 4°F, 23°C, -19°C"))

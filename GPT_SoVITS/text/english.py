@@ -9,7 +9,7 @@ from text.symbols import punctuation
 from text.symbols2 import symbols
 
 from builtins import str as unicode
-from text.en_normalization.expend import normalize_numbers
+from text.en_normalization.expend import normalize
 from nltk.tokenize import TweetTokenizer
 word_tokenize = TweetTokenizer().tokenize
 from nltk import pos_tag
@@ -350,7 +350,7 @@ def text_normalize(text):
     text = pattern.sub(lambda x: rep_map[x.group()], text)
     
     text = unicode(text)
-    text = normalize_numbers(text)
+    text = normalize(text)
     
     # 避免重复标点引起的参考泄露
     text = replace_consecutive_punctuation(text)
