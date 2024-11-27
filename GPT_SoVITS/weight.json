@@ -1,0 +1,1 @@
+{"GPT": {"v2": "pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"}, "SoVITS": {"v2": "pretrained_models/gsv-v2final-pretrained/s2G2333k.pth", "v1": "pretrained_models/doria_female/doria_e8_s496.pth"}}

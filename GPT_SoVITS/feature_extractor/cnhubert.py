@@ -16,7 +16,7 @@ from transformers import (
     HubertModel,
 )
 
-import utils
+import GPT_SoVITS.utils
 import torch.nn as nn
 
 cnhubert_base_path = None
@@ -102,9 +102,10 @@ def get_content(hmodel, wav_16k_tensor):
 
 
 if __name__ == "__main__":
+    from GPT_SoVITS.utils import load_wav_to_torch_and_resample
     model = get_model()
     src_path = "/Users/Shared/原音频2.wav"
-    wav_16k_tensor = utils.load_wav_to_torch_and_resample(src_path, 16000)
+    wav_16k_tensor = load_wav_to_torch_and_resample(src_path, 16000)
     model = model
     wav_16k_tensor = wav_16k_tensor
     feats = get_content(model, wav_16k_tensor)
