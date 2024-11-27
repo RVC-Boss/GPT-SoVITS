@@ -27,8 +27,8 @@ try:
 except:...
 
 version=os.environ.get("version","v2")
-pretrained_sovits_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth", "GPT_SoVITS/pretrained_models/s2G488k.pth"]
-pretrained_gpt_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
+pretrained_sovits_name=["pretrained_models/gsv-v2final-pretrained/s2G2333k.pth", "pretrained_models/s2G488k.pth"]
+pretrained_gpt_name=["pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
 
 _ =[[],[]]
 for i in range(2):
@@ -38,14 +38,19 @@ for i in range(2):
         _[-1].append(pretrained_sovits_name[i])
 pretrained_gpt_name,pretrained_sovits_name = _
     
-        
 
-if os.path.exists(f"./weight.json"):
+weight_json_file_path = os.path.join(
+    os.path.dirname(__file__),
+    "weight.json"
+)
+
+print("weight_json_file_path: ", weight_json_file_path)
+if os.path.exists(weight_json_file_path):
     pass
 else:
-    with open(f"./weight.json", 'w', encoding="utf-8") as file:json.dump({'GPT':{},'SoVITS':{}},file)
+    with open(weight_json_file_path, 'w', encoding="utf-8") as file:json.dump({'GPT':{},'SoVITS':{}},file)
 
-with open(f"./weight.json", 'r', encoding="utf-8") as file:
+with open(weight_json_file_path, 'r', encoding="utf-8") as file:
     weight_data = file.read()
     weight_data=json.loads(weight_data)
     gpt_path = os.environ.get(
@@ -62,11 +67,12 @@ with open(f"./weight.json", 'r', encoding="utf-8") as file:
 # )
 # sovits_path = os.environ.get("sovits_path", pretrained_sovits_name)
 cnhubert_base_path = os.environ.get(
-    "cnhubert_base_path", "GPT_SoVITS/pretrained_models/chinese-hubert-base"
+    "cnhubert_base_path", "pretrained_models/chinese-hubert-base"
 )
 bert_path = os.environ.get(
-    "bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
+    "bert_path", "pretrained_models/chinese-roberta-wwm-ext-large"
 )
+
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
 is_share = os.environ.get("is_share", "False")
@@ -79,18 +85,18 @@ import gradio as gr
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import numpy as np
 import librosa
-from feature_extractor import cnhubert
+from GPT_SoVITS.feature_extractor import cnhubert
 
 cnhubert.cnhubert_base_path = cnhubert_base_path
 
-from module.models import SynthesizerTrn
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from text import cleaned_text_to_sequence
-from text.cleaner import clean_text
+from GPT_SoVITS.module.models import SynthesizerTrn
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.text import cleaned_text_to_sequence
+from GPT_SoVITS.text.cleaner import clean_text
 from time import time as ttime
-from module.mel_processing import spectrogram_torch
-from tools.my_utils import load_audio
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from GPT_SoVITS.module.mel_processing import spectrogram_torch
+from GPT_SoVITS.tools.my_utils import load_audio
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto, scan_language_list
 
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -125,6 +131,7 @@ dict_language_v2 = {
     i18n("多语种混合(粤语)"): "auto_yue",#多语种启动切分识别语种
 }
 dict_language = dict_language_v1 if version =='v1' else dict_language_v2
+
 
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
@@ -187,6 +194,9 @@ else:
 
 def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
     global vq_model, hps, version, dict_language
+    print("sovits_path: ", sovits_path)
+    print("os.path.isfile(sovits_path) = ", os.path.isfile(sovits_path))
+
     dict_s2 = torch.load(sovits_path, map_location="cpu")
     hps = dict_s2["config"]
     hps = DictToAttrRecursive(hps)
@@ -212,11 +222,11 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
     vq_model.eval()
     print(vq_model.load_state_dict(dict_s2["weight"], strict=False))
     dict_language = dict_language_v1 if version =='v1' else dict_language_v2
-    with open("./weight.json")as f:
+    with open(weight_json_file_path)as f:
         data=f.read()
         data=json.loads(data)
         data["SoVITS"][version]=sovits_path
-    with open("./weight.json","w")as f:f.write(json.dumps(data))
+    with open(weight_json_file_path,"w")as f:f.write(json.dumps(data))
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
             prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
@@ -249,11 +259,11 @@ def change_gpt_weights(gpt_path):
     t2s_model.eval()
     total = sum([param.nelement() for param in t2s_model.parameters()])
     print("Number of parameter: %.2fM" % (total / 1e6))
-    with open("./weight.json")as f:
+    with open(weight_json_file_path)as f:
         data=f.read()
         data=json.loads(data)
         data["GPT"][version]=gpt_path
-    with open("./weight.json","w")as f:f.write(json.dumps(data))
+    with open(weight_json_file_path,"w")as f:f.write(json.dumps(data))
 
 
 change_gpt_weights(gpt_path)
@@ -303,7 +313,7 @@ def get_first(text):
     text = re.split(pattern, text)[0].strip()
     return text
 
-from text import chinese
+from GPT_SoVITS.text import chinese
 def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")

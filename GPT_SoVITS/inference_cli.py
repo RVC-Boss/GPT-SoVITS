@@ -2,8 +2,14 @@ import argparse
 import os
 import soundfile as sf
 
-from tools.i18n.i18n import I18nAuto
+import GPT_SoVITS
+import sys
+
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav
+
+
+
 
 i18n = I18nAuto()
 
@@ -18,6 +24,7 @@ def synthesize(GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text_path,
 
     # Change model weights
     change_gpt_weights(gpt_path=GPT_model_path)
+
     change_sovits_weights(sovits_path=SoVITS_model_path)
 
     # Synthesize audio
@@ -29,6 +36,8 @@ def synthesize(GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text_path,
     
     result_list = list(synthesis_result)
 
+    if not os.path.isdir(output_path):
+        os.makedirs(output_path, exist_ok=True)
     if result_list:
         last_sampling_rate, last_audio_data = result_list[-1]
         output_wav_path = os.path.join(output_path, "output.wav")

@@ -10,7 +10,7 @@ cnhubert.cnhubert_base_path = cnhubert_base_path
 ssl_model = cnhubert.get_model()
 from text import cleaned_text_to_sequence
 import soundfile
-from tools.my_utils import load_audio
+from GPT_SoVITS.tools.my_utils import load_audio
 import os
 import json
 
