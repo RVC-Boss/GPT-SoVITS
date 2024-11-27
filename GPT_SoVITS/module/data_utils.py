@@ -17,7 +17,7 @@ from functools import lru_cache
 import requests
 from scipy.io import wavfile
 from io import BytesIO
-from tools.my_utils import load_audio
+from GPT_SoVITS.tools.my_utils import load_audio
 version = os.environ.get('version',None)
 # ZeroDivisionError fixed by Tybost (https://github.com/RVC-Boss/GPT-SoVITS/issues/79)
 class TextAudioSpeakerLoader(torch.utils.data.Dataset):

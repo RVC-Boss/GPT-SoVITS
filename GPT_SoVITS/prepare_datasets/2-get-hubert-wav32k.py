@@ -19,7 +19,7 @@ from scipy.io import wavfile
 import librosa
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-from tools.my_utils import load_audio,clean_path
+from GPT_SoVITS.tools.my_utils import load_audio,clean_path
 
 # from config import cnhubert_base_path
 # cnhubert.cnhubert_base_path=cnhubert_base_path
