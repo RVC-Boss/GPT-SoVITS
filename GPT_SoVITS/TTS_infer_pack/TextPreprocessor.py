@@ -117,6 +117,7 @@ class TextPreprocessor:
         return self.get_phones_and_bert(text, language, version)
         
     def get_phones_and_bert(self, text:str, language:str, version:str, final:bool=False):
+        LangSegment.setKeepPinyin(True)
         if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
             language = language.replace("all_","")
             if language == "en":

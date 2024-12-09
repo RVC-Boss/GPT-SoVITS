@@ -177,6 +177,9 @@ def _g2p(segments):
                 # assert len(sub_initials) == len(sub_finals) == len(word)
             initials = sum(initials, [])
             finals = sum(finals, [])
+            initials=[to_initials(customer_pinyin[index]) if customer_pinyin[index] != "" else item for index,item in enumerate(initials)]
+            finals=[to_finals_tone3(customer_pinyin[index]) if customer_pinyin[index] != "" else item for index,item in enumerate(finals)]
+            print("customer_pinyin:",customer_pinyin)
             print("pypinyin结果",initials,finals)
         else:
             # g2pw采用整句推理
@@ -215,7 +218,7 @@ def _g2p(segments):
 
             initials = sum(initials, [])
             finals = sum(finals, [])
-            # print("g2pw结果",initials,finals)
+            print("g2pw结果",initials,finals)
 
         for c, v in zip(initials, finals):
             raw_pinyin = c + v
