@@ -693,22 +693,54 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             SoVITS_dropdown = gr.Dropdown(label=i18n("SoVITS模型列表"), choices=sorted(SoVITS_names, key=custom_sort_key), value=sovits_path, interactive=True, scale=14)
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
-        gr.Markdown(html_center(i18n("*请上传并填写参考信息"),'h3'))
+  
+    with gr.Group():
+        gr.Markdown(value=i18n("*请上传并填写参考信息"))
         with gr.Row():
-            inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath", scale=13)
-            with gr.Column(scale=13):
-                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True,scale=1)
-                gr.Markdown(html_left(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开。<br>开启后无视填写的参考文本。")))
-                prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=5, max_lines=5,scale=1)
-            with gr.Column(scale=14):
+            with gr.Column():
+                with gr.Row():
+                    file_selector = gr.File(label=i18n(
+                        "选择主参考音频（可以选择多个,请上传3~10秒内参考音频，超过会报错）"), file_count="multiple")
+                    inp_refs = gr.File(label=i18n(
+                        "辅参考音频(可不选, 可选上传多个参考音频(建议同性), 平均融合其音色. 微调模型建议参考音频全在微调训练集内, 底模不用管)"), file_count="multiple")
+                audio_dropdown = gr.Dropdown(label=i18n(
+                    "选择主参考音频"), choices=[], interactive=True)
                 prompt_language = gr.Dropdown(
-                    label=i18n("参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文"),
+                    label=i18n("主参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文")
                 )
-                inp_refs = gr.File(label=i18n("可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"),file_count="multiple")
+            with gr.Column():
+                inp_ref = gr.Audio(label=i18n("预览主参考音频"), type="filepath")
+                ref_text_free = gr.Checkbox(label=i18n(
+                    "开启无参考文本模式。不填参考文本亦相当于开启。使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开，开启后无视填写的参考文本"), 
+                    value=False, interactive=True, show_label=True)
+                prompt_text = gr.Textbox(
+                    label=i18n("主参考音频的文本"), value="", lines=2)
+
+
+            # 更新下拉菜单选项的函数
+            def update_dropdown(files):
+                if files:
+                    return {"choices": [file.name for file in files], "__type__": "update"}
+                return {"choices": [], "__type__": "update"}
+
+            # 更新音频组件的函数
+            def update_audio(selected_file, files):
+                if selected_file:
+                    for file in files:
+                        if file.name == selected_file:
+                            return {"value": file.name, "__type__": "update"}
+                return {"value": None, "__type__": "update"}
+
+            file_selector.change(
+                update_dropdown, [file_selector], [audio_dropdown])
+            audio_dropdown.change(
+                update_audio, [audio_dropdown, file_selector], [inp_ref])
+
+
         gr.Markdown(html_center(i18n("*请填写需要合成的目标文本和语种模式"),'h3'))
         with gr.Row():
             with gr.Column(scale=13):
-                text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=26, max_lines=26)
+                text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=24, max_lines=24)
             with gr.Column(scale=7):
                 text_language = gr.Dropdown(
                         label=i18n("需要合成的语种")+i18n(".限制范围越小判别效果越好。"), choices=list(dict_language.keys()), value=i18n("中文"), scale=1
@@ -763,4 +795,5 @@ if __name__ == '__main__':
         server_port=infer_ttswebui,
         quiet=True,
     )
+
 
