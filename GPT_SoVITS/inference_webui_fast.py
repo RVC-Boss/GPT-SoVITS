@@ -253,7 +253,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             with gr.Column():
                 with gr.Row():
                     file_selector = gr.File(label=i18n(
-                        "选择主参考音频（可以选择多个）"), file_count="multiple")
+                        "选择主参考音频（可以选择多个，, 请上传3~10秒内参考音频，超过会报错）"), file_count="multiple")
                     inp_refs = gr.File(label=i18n(
                         "辅参考音频(可选多个，或不选)"), file_count="multiple")
                 audio_dropdown = gr.Dropdown(label=i18n(
