@@ -23,6 +23,7 @@ from time import time as ttime
 from module.mel_processing import spectrogram_torch
 from tools.my_utils import load_audio
 from tools.i18n.i18n import I18nAuto, scan_language_list
+from TTS_infer_pack.text_segmentation_method import get_method
 
 try:
     import gradio.analytics as analytics
@@ -123,15 +124,14 @@ dict_language_v2 = {
 }
 dict_language = dict_language_v1 if version =='v1' else dict_language_v2
 
-def cut_text(text, how_to_cut):
-    cut_methods = {
-        i18n("凑四句一切"): cut1,
-        i18n("凑50字一切"): cut2,
-        i18n("按中文句号。切"): cut3,
-        i18n("按英文句号.切"): cut4,
-        i18n("按标点符号切"): cut5
-    }
-    return cut_methods.get(how_to_cut, lambda x: x)(text)
+cut_method = {
+    i18n("不切"): "cut0",
+    i18n("凑四句一切"): "cut1",
+    i18n("凑50字一切"): "cut2",
+    i18n("按中文句号。切"): "cut3",
+    i18n("按英文句号.切"): "cut4",
+    i18n("按标点符号切"): "cut5",
+}
 
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
@@ -313,12 +313,7 @@ from text import chinese
 def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")
-        if language == "en":
-            LangSegment.setfilters(["en"])
-            formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
-        else:
-            # 因无法区别中日韩文汉字,以用户输入为准
-            formattext = text
+        formattext = text
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
         if language == "zh":
@@ -425,7 +420,6 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
         print(i18n("实际输入的参考文本:"), prompt_text)
     text = text.strip("\n")
-    # if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
     
     print(i18n("实际输入的目标文本:"), text)
     zero_wav = np.zeros(
@@ -459,7 +453,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     t1 = ttime()
     t.append(t1-t0)
 
-    text = cut_text(text, how_to_cut)
+    method = get_method(cut_method[how_to_cut])
+    text = method(text)
+
     while "\n\n" in text:
         text = text.replace("\n\n", "\n")
     print(i18n("实际输入的目标文本(切句后):"), text)
@@ -550,85 +546,6 @@ def split(todo_text):
         else:
             i_split_head += 1
     return todo_texts
-
-
-def cut1(inp):
-    inp = inp.strip("\n")
-    inps = split(inp)
-    split_idx = list(range(0, len(inps), 4))
-    split_idx[-1] = None
-    if len(split_idx) > 1:
-        opts = []
-        for idx in range(len(split_idx) - 1):
-            opts.append("".join(inps[split_idx[idx]: split_idx[idx + 1]]))
-    else:
-        opts = [inp]
-    opts = [item for item in opts if not set(item).issubset(punctuation)]
-    return "\n".join(opts)
-
-
-def cut2(inp):
-    inp = inp.strip("\n")
-    inps = split(inp)
-    if len(inps) < 2:
-        return inp
-    opts = []
-    summ = 0
-    tmp_str = ""
-    for i in range(len(inps)):
-        summ += len(inps[i])
-        tmp_str += inps[i]
-        if summ > 50:
-            summ = 0
-            opts.append(tmp_str)
-            tmp_str = ""
-    if tmp_str != "":
-        opts.append(tmp_str)
-    # print(opts)
-    if len(opts) > 1 and len(opts[-1]) < 50:  ##如果最后一个太短了，和前一个合一起
-        opts[-2] = opts[-2] + opts[-1]
-        opts = opts[:-1]
-    opts = [item for item in opts if not set(item).issubset(punctuation)]
-    return "\n".join(opts)
-
-
-def cut3(inp):
-    inp = inp.strip("\n")
-    opts = ["%s" % item for item in inp.strip("。").split("。")]
-    opts = [item for item in opts if not set(item).issubset(punctuation)]
-    return  "\n".join(opts)
-
-def cut4(inp):
-    inp = inp.strip("\n")
-    opts = ["%s" % item for item in inp.strip(".").split(".")]
-    opts = [item for item in opts if not set(item).issubset(punctuation)]
-    return "\n".join(opts)
-
-
-# contributed by https://github.com/AI-Hobbyist/GPT-SoVITS/blob/main/GPT_SoVITS/inference_webui.py
-def cut5(inp):
-    inp = inp.strip("\n")
-    punds = {',', '.', ';', '?', '!', '、', '，', '。', '？', '！', ';', '：', '…'}
-    mergeitems = []
-    items = []
-
-    for i, char in enumerate(inp):
-        if char in punds:
-            if char == '.' and i > 0 and i < len(inp) - 1 and inp[i - 1].isdigit() and inp[i + 1].isdigit():
-                items.append(char)
-            else:
-                items.append(char)
-                mergeitems.append("".join(items))
-                items = []
-        else:
-            items.append(char)
-
-    if items:
-        mergeitems.append("".join(items))
-
-    opt = [item for item in mergeitems if not set(item).issubset(punds)]
-    return "\n".join(opt)
-
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
@@ -795,5 +712,4 @@ if __name__ == '__main__':
         server_port=infer_ttswebui,
         quiet=True,
     )
-
 
