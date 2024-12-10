@@ -237,6 +237,7 @@ def normalize(text):
     """
 
     text = re.sub(_ordinal_number_re, _convert_ordinal, text)
+    text = re.sub(r'(?<!\d)-|-(?!\d)', ' minus ', text)
     text = re.sub(_comma_number_re, _remove_commas, text)
     text = re.sub(_time_re, _expand_time, text)
     text = re.sub(_measurement_re, _expand_measurement, text)
@@ -252,7 +253,6 @@ def normalize(text):
     text = ''.join(char for char in unicodedata.normalize('NFD', text)
                     if unicodedata.category(char) != 'Mn')  # Strip accents
     
-    text = re.sub("-", "minus ", text)
     text = re.sub("%", " percent", text)
     text = re.sub("[^ A-Za-z'.,?!\-]", "", text)
     text = re.sub(r"(?i)i\.e\.", "that is", text)
