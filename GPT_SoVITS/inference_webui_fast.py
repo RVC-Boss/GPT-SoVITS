@@ -273,14 +273,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             # 更新下拉菜单选项的函数
             def update_dropdown(files):
                 if files:
-                    return {"choices": [file.name for file in files], "__type__": "update"}
+                    return {"choices": [os.path.basename(file.name) for file in files], "__type__": "update"}
                 return {"choices": [], "__type__": "update"}
 
             # 更新音频组件的函数
             def update_audio(selected_file, files):
                 if selected_file:
                     for file in files:
-                        if file.name == selected_file:
+                        if os.path.basename(file.name) == selected_file:
                             return {"value": file.name, "__type__": "update"}
                 return {"value": None, "__type__": "update"}
 
