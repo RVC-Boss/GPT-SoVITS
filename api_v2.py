@@ -165,6 +165,9 @@ class TTS_Request(BaseModel):
     parallel_infer:bool = True
     repetition_penalty:float = 1.35
 
+# List of supported audio file extensions
+AUDIO_EXTENSIONS = ('.wav', '.aac', '.flac', '.ogg', '.mp3', '.m4a')
+
 ### modify from https://github.com/RVC-Boss/GPT-SoVITS/pull/894/files
 def pack_ogg(io_buffer:BytesIO, data:np.ndarray, rate:int):
     with sf.SoundFile(io_buffer, mode='w', samplerate=rate, channels=1, format='ogg') as audio_file:
@@ -331,10 +334,57 @@ async def tts_handle(req:dict):
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"tts failed", "Exception": str(e)})
     
+def list_audio_files(ref_audio_path: str = None):
+    try:
+        if ref_audio_path:
+            directory = ref_audio_path
+            if not os.path.isdir(directory):
+                return JSONResponse(status_code=404, content={"message": "Specified path is not a valid directory."})
+        else:
+            directory = os.getcwd()
 
+        files = os.listdir(directory)
+        audio_files = [f for f in files if f.lower().endswith(AUDIO_EXTENSIONS)]
 
+        if not audio_files:
+            return JSONResponse(status_code=404, content={"message": "No audio files found in the directory."})
+        return JSONResponse(content={"audio_files": audio_files})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Failed to list audio files: {str(e)}"})
 
+def list_gpt_files(directory_path: str = "GPT_weights_v2"):
+    try:
+        current_dir = os.path.join(os.getcwd(), directory_path)
+        files = os.listdir(current_dir)
+        gpt_files = [f for f in files if f.lower().endswith('.ckpt')]
+        if not gpt_files:
+            return JSONResponse(status_code=404, content={"message": "No gpt files found in the directory."})
+        return JSONResponse(content={"gpt_files": gpt_files})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Failed to list gpt files: {str(e)}"})
 
+def list_sovits_files(directory_path: str = "SoVITS_weights_v2"):
+    try:
+        current_dir = os.path.join(os.getcwd(), directory_path)
+        files = os.listdir(current_dir)
+        sovits_files = [f for f in files if f.lower().endswith('.pth')]
+        if not sovits_files:
+            return JSONResponse(status_code=404, content={"message": "No sovits files found in the directory."})
+        return JSONResponse(content={"sovits_files": sovits_files})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Failed to list sovits files: {str(e)}"})
+
+@APP.get("/list_audio_files")
+async def get_audio_files(ref_audio_path: str = None):
+    return list_audio_files(ref_audio_path)
+
+@APP.get("/list_gpt_files")
+async def get_gpt_files(directory_path: str = "GPT_weights_v2"):
+    return list_gpt_files(directory_path)
+
+@APP.get("/list_sovits_files")
+async def get_sovits_files(directory_path: str = "SoVITS_weights_v2"):
+    return list_sovits_files(directory_path)
 
 @APP.get("/control")
 async def control(command: str = None):
