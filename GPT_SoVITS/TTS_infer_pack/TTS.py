@@ -1079,6 +1079,9 @@ class TTS:
         actual_seed = set_seed(seed)
         parallel_infer = inputs.get("parallel_infer", True)
         repetition_penalty = inputs.get("repetition_penalty", 1.35)
+        search_length = inputs.get("search_length", 32000 * 5)
+        num_zeroes = inputs.get("num_zeroes", 5)
+        cumulation_amount = inputs.get("cumulation_amount", 50)
 
         if parallel_infer:
             print(i18n("并行推理模式已开启"))
@@ -1250,9 +1253,6 @@ class TTS:
                 crossing_direction = 0
                 first_chunk = True
                 last_chunk = False
-                search_length = 32000*5
-                num_zeroes = 5
-                cumulation_amount=50
                 
                 # Use infer_panel_generator to generate tokens in batches
                 for generated_tokens in self.t2s_model.model.infer_panel_generator(
@@ -1313,14 +1313,14 @@ class TTS:
                     elif center_index >= len(audio_output):
                         raise "Something wrong is going on here, center index issue, greater than audio_output"
                     
+                    # How this works: Sequentially progress through audio file in "chunks", starting from the previous zc (zero_crossing) index up and through to the last chunk.
                     if first_chunk:
-                        
                         zc_index1, crossing_direction = find_zero_zone(
-                        chunk=audio_output,
-                        start_index=start_index,
-                        search_length=search_length,
-                        num_zeroes=num_zeroes
-                    )
+                            chunk=audio_output,
+                            start_index=start_index,
+                            search_length=search_length,
+                            num_zeroes=num_zeroes
+                        )
                         audio_fragment = audio_output[:zc_index1]
                         yield self.configs.sampling_rate, audio_fragment
                         first_chunk = False
@@ -1431,8 +1431,6 @@ class TTS:
         
         return sr, audio
             
-        
-        
        
 def speed_change(input_audio:np.ndarray, speed:float, sr:int):
     # 将 NumPy 数组转换为原始 PCM 流
