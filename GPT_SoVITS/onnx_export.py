@@ -1,5 +1,5 @@
 from module.models_onnx import SynthesizerTrn, symbols_v1, symbols_v2
-from AR.models.t2s_lightning_module_onnx import Text2SemanticLightningModule
+from GPT_SoVITS.AR.models.t2s_lightning_module_onnx import Text2SemanticLightningModule
 import torch
 import torchaudio
 from torch import nn

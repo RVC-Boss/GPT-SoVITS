@@ -303,7 +303,7 @@ class MultiHeadAttention(nn.Module):
     def _attention_bias_proximal(self, length):
         """Bias for self-attention to encourage attention to close positions.
         Args:
-          length: an integer scalar.
+          length: an integer scalGPT_SoVITS.AR.
         Returns:
           a Tensor with shape [1, 1, length, length]
         """

@@ -143,7 +143,7 @@ class Predictor:
     def demix_base(self, mixes, margin_size):
         chunked_sources = []
         progress_bar = tqdm(total=len(mixes))
-        progress_bar.set_description("Processing")
+        progress_bGPT_SoVITS.AR.set_description("Processing")
         for mix in mixes:
             cmix = mixes[mix]
             sources = []
@@ -188,12 +188,12 @@ class Predictor:
                     end = None
                 sources.append(tar_signal[:, start:end])
 
-                progress_bar.update(1)
+                progress_bGPT_SoVITS.AR.update(1)
 
             chunked_sources.append(sources)
         _sources = np.concatenate(chunked_sources, axis=-1)
         # del self.model
-        progress_bar.close()
+        progress_bGPT_SoVITS.AR.close()
         return _sources
 
     def prediction(self, m, vocal_root, others_root, format):

@@ -14,14 +14,14 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger  # WandbLogger
 from pytorch_lightning.strategies import DDPStrategy
-from AR.data.data_module import Text2SemanticDataModule
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from AR.utils.io import load_yaml_config
+from GPT_SoVITS.AR.data.data_module import Text2SemanticDataModule
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.AR.utils.io import load_yaml_config
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 torch.set_float32_matmul_precision("high")
-from AR.utils import get_newest_ckpt
+from GPT_SoVITS.AR.utils import get_newest_ckpt
 
 from collections import OrderedDict
 from time import time as ttime

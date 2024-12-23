@@ -25,15 +25,15 @@ from typing import Generator, List, Tuple, Union
 from tqdm import tqdm
 
 
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from feature_extractor.cnhubert import CNHubert
-from module.models import SynthesizerTrn
-from module.mel_processing import spectrogram_torch
-from tools.i18n.i18n import I18nAuto, scan_language_list
-from tools.my_utils import load_audio
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.feature_extractor.cnhubert import CNHubert
+from GPT_SoVITS.module.models import SynthesizerTrn
+from GPT_SoVITS.module.mel_processing import spectrogram_torch
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto, scan_language_list
+from GPT_SoVITS.tools.my_utils import load_audio
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from TTS_infer_pack.text_segmentation_method import splits
-from TTS_infer_pack.TextPreprocessor import TextPreprocessor
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import splits
+from GPT_SoVITS.TTS_infer_pack.TextPreprocessor import TextPreprocessor
 
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language

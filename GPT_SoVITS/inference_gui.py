@@ -299,7 +299,7 @@ class GPTSoVITSGUI(QMainWindow):
 
             result = "Audio saved to " + output_wav_path
 
-        self.status_bar.showMessage("合成完成！输出路径：" + output_wav_path, 5000)
+        self.status_bGPT_SoVITS.AR.showMessage("合成完成！输出路径：" + output_wav_path, 5000)
         self.output_text.append("处理结果：\n" + result)
 
 

@@ -12,7 +12,7 @@ from torch.nn.modules.linear import NonDynamicallyQuantizableLinear
 from torch.nn.parameter import Parameter
 
 from torch.nn import functional as F
-from AR.modules.patched_mha_with_cache import multi_head_attention_forward_patched
+from GPT_SoVITS.AR.modules.patched_mha_with_cache import multi_head_attention_forward_patched
 
 F.multi_head_attention_forward = multi_head_attention_forward_patched
 
@@ -152,14 +152,14 @@ class MultiheadAttention(Module):
                 self.in_proj_linear = linear1_cls(
                     embed_dim, 3 * embed_dim, bias=bias, **factory_kwargs
                 )
-                self.in_proj_weight = self.in_proj_linear.weight
+                self.in_proj_weight = self.in_proj_lineGPT_SoVITS.AR.weight
 
                 self.register_parameter("q_proj_weight", None)
                 self.register_parameter("k_proj_weight", None)
                 self.register_parameter("v_proj_weight", None)
 
                 if bias:
-                    self.in_proj_bias = self.in_proj_linear.bias
+                    self.in_proj_bias = self.in_proj_lineGPT_SoVITS.AR.bias
                 else:
                     self.register_parameter("in_proj_bias", None)
 

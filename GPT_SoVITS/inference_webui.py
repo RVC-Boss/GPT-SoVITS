@@ -84,7 +84,7 @@ from feature_extractor import cnhubert
 cnhubert.cnhubert_base_path = cnhubert_base_path
 
 from module.models import SynthesizerTrn
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from time import time as ttime
