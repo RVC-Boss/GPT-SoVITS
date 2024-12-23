@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 from GPT_SoVITS.text.cleaner import clean_text
 from GPT_SoVITS.text import cleaned_text_to_sequence
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 
 from GPT_SoVITS.tools.i18n.i18n import I18nAuto, scan_language_list
 

@@ -44,8 +44,8 @@ bert_path = os.environ.get("bert_path", None)
 version=os.environ.get("version","v2")
         
 import gradio as gr
-from TTS_infer_pack.TTS import TTS, TTS_Config
-from TTS_infer_pack.text_segmentation_method import get_method
+from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method
 from GPT_SoVITS.tools.i18n.i18n import I18nAuto, scan_language_list
 
 language=os.environ.get("language","Auto")
