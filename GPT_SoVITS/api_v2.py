@@ -117,7 +117,7 @@ import uvicorn
 
 from importlib.resources import files
 from io import BytesIO
-from tools.i18n.i18n import I18nAuto
+from GPT_SoVITS.tools..i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from fastapi.responses import StreamingResponse

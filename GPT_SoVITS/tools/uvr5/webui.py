@@ -1,8 +1,8 @@
 import os
 import traceback,gradio as gr
 import logging
-from tools.i18n.i18n import I18nAuto
-from tools.my_utils import clean_path
+from GPT_SoVITS.tools..i18n.i18n import I18nAuto
+from GPT_SoVITS.tools..my_utils import clean_path
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)

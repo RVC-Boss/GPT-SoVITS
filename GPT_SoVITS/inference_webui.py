@@ -89,8 +89,8 @@ from GPT_SoVITS.text import cleaned_text_to_sequence
 from GPT_SoVITS.text.cleaner import clean_text
 from time import time as ttime
 from GPT_SoVITS.module.mel_processing import spectrogram_torch
-from tools.my_utils import load_audio
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from GPT_SoVITS.tools..my_utils import load_audio
+from GPT_SoVITS.tools..i18n.i18n import I18nAuto, scan_language_list
 
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
