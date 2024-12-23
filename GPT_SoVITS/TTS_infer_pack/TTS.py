@@ -13,6 +13,10 @@ import torch
 import torch.nn.functional as F
 import traceback
 import yaml
+import queue
+import sounddevice as sd
+import soundfile as sf
+import threading
 
 from huggingface_hub import snapshot_download, hf_hub_download
 from importlib.resources import files
@@ -875,9 +879,64 @@ class TTS:
                 t_34 += t4 - t3
 
                 refer_audio_spec:torch.Tensor = [item.to(dtype=self.precision, device=self.configs.device) for item in self.prompt_cache["refer_spec"]]
-                                                    
+                                    
+                # Split the semantic tokens into chunks
+                num_chunks = 10  # Number of chunks to split into
+                chunked_pred_semantic_list = []  # This will store the chunks for each sample
+                
+                pred_semantic_list = [item[-idx:] for item, idx in zip(pred_semantic_list, idx_list)] 
+                
+                for semantic_tokens in pred_semantic_list:
+                    total_length = semantic_tokens.shape[0]
+                    chunk_size = total_length // num_chunks
+                    chunks = []
+                    for i in range(num_chunks):
+                        overlap = 0
+                        # samples_per_token = 1280
+                        # sample_rate = 32000
+                        # start_idx = i * chunk_size - overlap
+                        start_idx = 0 
+                        # so each subsequent sample is overlapping by 5120 samples
+                        if start_idx < 0:
+                            start_idx = 0
+                        if i == num_chunks - 1:
+                            # Make sure to include the remainder in the last chunk
+                            end_idx = total_length
+                        else:
+                            end_idx = (i + 1) * chunk_size
+                        chunk = semantic_tokens[start_idx:end_idx]
+                        chunks.append(chunk)
+                    chunked_pred_semantic_list.append(chunks)                    
+                
+                # Process chunks through VITS
+                batch_audio_chunks = []  # List to hold audio chunks for each sample
 
-                batch_audio_fragment = []
+                for i, (chunks, phones) in enumerate(zip(chunked_pred_semantic_list, batch_phones)):
+                    phones = phones.unsqueeze(0).to(self.configs.device)
+                    audio_chunks = []
+                    for chunk in chunks:
+                        # Prepare the chunk for VITS
+                        chunk = chunk.unsqueeze(0).unsqueeze(0).to(self.configs.device)
+                        # Process the chunk through VITS
+                        audio_fragment = self.vits_model.decode(
+                            chunk, phones, refer_audio_spec, speed=speed_factor
+                        ).detach()[0, 0, :]
+                        audio_chunks.append(audio_fragment.cpu().numpy())
+                    batch_audio_chunks.append(audio_chunks)
+                    
+                    output_dir = 'output_chunks'
+                    os.makedirs(output_dir, exist_ok=True)
+
+                    for sample_idx, audio_chunks in enumerate(batch_audio_chunks):
+                        for chunk_idx, audio_chunk in enumerate(audio_chunks):
+                            # Convert audio_chunk to float32
+                            audio_chunk = audio_chunk.astype(np.float32)
+                            # Create a filename for each chunk
+                            filename = f'sample_{sample_idx}_chunk_{chunk_idx}.wav'
+                            output_path = os.path.join(output_dir, filename)
+                            # Save the audio chunk
+                            sf.write(output_path, audio_chunk, self.configs.sampling_rate)
+                            print(f'Saved audio chunk: {output_path}')
             
                 # ## vits并行推理 method 1
                 # pred_semantic_list = [item[-idx:] for item, idx in zip(pred_semantic_list, idx_list)]
@@ -965,6 +1024,362 @@ class TTS:
             raise e
         finally:
             self.empty_cache()
+            
+    @torch.no_grad()
+    def run_generator(self, inputs:dict):
+        """
+        Text to speech inference.
+        
+        Args:
+            inputs (dict): 
+                {
+                    "text": "",                   # str.(required) text to be synthesized
+                    "text_lang: "",               # str.(required) language of the text to be synthesized
+                    "ref_audio_path": "",         # str.(required) reference audio path
+                    "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
+                    "prompt_text": "",            # str.(optional) prompt text for the reference audio
+                    "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
+                    "top_k": 5,                   # int. top k sampling
+                    "top_p": 1,                   # float. top p sampling
+                    "temperature": 1,             # float. temperature for sampling
+                    "text_split_method": "cut0",  # str. text split method, see text_segmentation_method.py for details.
+                    "batch_size": 1,              # int. batch size for inference
+                    "batch_threshold": 0.75,      # float. threshold for batch splitting.
+                    "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
+                    "return_fragment": False,     # bool. step by step return the audio fragment.
+                    "speed_factor":1.0,           # float. control the speed of the synthesized audio.
+                    "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
+                    "seed": -1,                   # int. random seed for reproducibility.
+                    "parallel_infer": True,       # bool. whether to use parallel inference.
+                    "repetition_penalty": 1.35    # float. repetition penalty for T2S model.
+                }
+        returns:
+            Tuple[int, np.ndarray]: sampling rate and audio data.
+        """
+        ########## variables initialization ###########
+        self.stop_flag:bool = False
+        text:str = inputs.get("text", "")
+        text_lang:str = inputs.get("text_lang", "")
+        ref_audio_path:str = inputs.get("ref_audio_path", "")
+        aux_ref_audio_paths:list = inputs.get("aux_ref_audio_paths", [])
+        prompt_text:str = inputs.get("prompt_text", "")
+        prompt_lang:str = inputs.get("prompt_lang", "")
+        top_k:int = inputs.get("top_k", 5)
+        top_p:float = inputs.get("top_p", 1)
+        temperature:float = inputs.get("temperature", 1)
+        text_split_method:str = inputs.get("text_split_method", "cut0")
+        batch_size = inputs.get("batch_size", 1)
+        batch_threshold = inputs.get("batch_threshold", 0.75)
+        speed_factor = inputs.get("speed_factor", 1.0)
+        split_bucket = inputs.get("split_bucket", True)
+        return_fragment = inputs.get("return_fragment", False)
+        fragment_interval = inputs.get("fragment_interval", 0.3)
+        seed = inputs.get("seed", -1)
+        seed = -1 if seed in ["", None] else seed
+        actual_seed = set_seed(seed)
+        parallel_infer = inputs.get("parallel_infer", True)
+        repetition_penalty = inputs.get("repetition_penalty", 1.35)
+
+        if parallel_infer:
+            print(i18n("并行推理模式已开启"))
+            self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_batch_infer
+        else:
+            print(i18n("并行推理模式已关闭"))
+            self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_naive_batched
+
+        if return_fragment:
+            print(i18n("分段返回模式已开启"))
+            if split_bucket:
+                split_bucket = False
+                print(i18n("分段返回模式不支持分桶处理，已自动关闭分桶处理"))
+
+        if split_bucket and speed_factor==1.0:
+            print(i18n("分桶处理模式已开启"))
+        elif speed_factor!=1.0:
+            print(i18n("语速调节不支持分桶处理，已自动关闭分桶处理"))
+            split_bucket = False
+        else:
+            print(i18n("分桶处理模式已关闭"))
+
+        if fragment_interval<0.01:
+            fragment_interval = 0.01
+            print(i18n("分段间隔过小，已自动设置为0.01"))
+
+        no_prompt_text = False
+        if prompt_text in [None, ""]:
+            no_prompt_text = True
+
+        assert text_lang in self.configs.languages
+        if not no_prompt_text:
+            assert prompt_lang in self.configs.languages
+
+        if ref_audio_path in [None, ""] and \
+            ((self.prompt_cache["prompt_semantic"] is None) or (self.prompt_cache["refer_spec"] in [None, []])):
+            raise ValueError("ref_audio_path cannot be empty, when the reference audio is not set using set_ref_audio()")
+
+        ###### setting reference audio and prompt text preprocessing ########
+        t0 = ttime()
+        if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
+            if not os.path.exists(ref_audio_path):
+                raise ValueError(f"{ref_audio_path} not exists")
+            self.set_ref_audio(ref_audio_path)
+            
+        aux_ref_audio_paths = aux_ref_audio_paths if aux_ref_audio_paths is not None else []
+        paths = set(aux_ref_audio_paths)&set(self.prompt_cache["aux_ref_audio_paths"])
+        if not (len(list(paths)) == len(aux_ref_audio_paths) == len(self.prompt_cache["aux_ref_audio_paths"])):
+            self.prompt_cache["aux_ref_audio_paths"] = aux_ref_audio_paths
+            self.prompt_cache["refer_spec"] = [self.prompt_cache["refer_spec"][0]]
+            for path in aux_ref_audio_paths:
+                if path in [None, ""]:
+                    continue
+                if not os.path.exists(path):
+                    print(i18n("音频文件不存在，跳过：{}").format(path))
+                    continue
+                self.prompt_cache["refer_spec"].append(self._get_ref_spec(path))
+                
+        if not no_prompt_text:
+            prompt_text = prompt_text.strip("\n")
+            if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_lang != "en" else "."
+            print(i18n("实际输入的参考文本:"), prompt_text)
+            if self.prompt_cache["prompt_text"] != prompt_text:
+                self.prompt_cache["prompt_text"] = prompt_text
+                self.prompt_cache["prompt_lang"] = prompt_lang
+                phones, bert_features, norm_text = \
+                    self.text_preprocessor.segment_and_extract_feature_for_text(
+                                                                        prompt_text, 
+                                                                        prompt_lang,
+                                                                        self.configs.version)
+                self.prompt_cache["phones"] = phones
+                self.prompt_cache["bert_features"] = bert_features
+                self.prompt_cache["norm_text"] = norm_text
+
+
+
+
+        ###### text preprocessing ########
+        t1 = ttime()
+        data:list = None
+        if not return_fragment:
+            data = self.text_preprocessor.preprocess(text, text_lang, text_split_method, self.configs.version)
+            if len(data) == 0:
+                yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
+                                                            dtype=np.int16)
+                return
+
+            batch_index_list:list = None
+            data, batch_index_list = self.to_batch(data, 
+                                prompt_data=self.prompt_cache if not no_prompt_text else None, 
+                                batch_size=batch_size, 
+                                threshold=batch_threshold,
+                                split_bucket=split_bucket,
+                                device=self.configs.device,
+                                precision=self.precision
+                                )
+        else:
+            print(i18n("############ 切分文本 ############"))
+            texts = self.text_preprocessor.pre_seg_text(text, text_lang, text_split_method)
+            data = []
+            for i in range(len(texts)):
+                if i%batch_size == 0:
+                    data.append([])
+                data[-1].append(texts[i])
+            
+            def make_batch(batch_texts):
+                batch_data = []
+                print(i18n("############ 提取文本Bert特征 ############"))
+                for text in tqdm(batch_texts):
+                    phones, bert_features, norm_text = self.text_preprocessor.segment_and_extract_feature_for_text(text, text_lang, self.configs.version)
+                    if phones is None:
+                        continue
+                    res={
+                        "phones": phones,
+                        "bert_features": bert_features,
+                        "norm_text": norm_text,
+                    }
+                    batch_data.append(res)
+                if len(batch_data) == 0:
+                    return None
+                batch, _ = self.to_batch(batch_data, 
+                            prompt_data=self.prompt_cache if not no_prompt_text else None, 
+                            batch_size=batch_size, 
+                            threshold=batch_threshold,
+                            split_bucket=False,
+                            device=self.configs.device,
+                            precision=self.precision
+                            )
+                return batch[0]
+
+        t2 = ttime()
+        
+        try:
+            print("############ 推理 ############")
+            ###### inference ######
+            t_34 = 0.0
+            t_45 = 0.0
+            audio = []
+            for item in data:
+                t3 = ttime()
+                if return_fragment:
+                    item = make_batch(item)
+                    if item is None:
+                        continue
+
+                batch_phones:List[torch.LongTensor] = item["phones"]
+                # batch_phones:torch.LongTensor = item["phones"]
+                batch_phones_len:torch.LongTensor = item["phones_len"]
+                all_phoneme_ids:torch.LongTensor = item["all_phones"]
+                all_phoneme_lens:torch.LongTensor  = item["all_phones_len"]
+                all_bert_features:torch.LongTensor = item["all_bert_features"]
+                norm_text:str = item["norm_text"]
+                max_len = item["max_len"]
+
+                print(i18n("前端处理后的文本(每句):"), norm_text)
+                if no_prompt_text :
+                    prompt = None
+                else:
+                    prompt = self.prompt_cache["prompt_semantic"].expand(len(all_phoneme_ids), -1).to(self.configs.device)
+
+                refer_audio_spec:torch.Tensor = [item.to(dtype=self.precision, device=self.configs.device) for item in self.prompt_cache["refer_spec"]]
+                
+                generated_tokens_list = []
+                start = ttime()
+
+                from GPT_SoVITS.TTS_infer_pack.zero_crossing import find_zero_zone, find_matching_index
+                zc_index1 = 0
+                zc_index2 = 0
+                crossing_direction = 0
+                first_chunk = True
+                last_chunk = False
+                search_length = 32000*5
+                num_zeroes = 5
+                cumulation_amount=50
+                
+                # Use infer_panel_generator to generate tokens in batches
+                for generated_tokens in self.t2s_model.model.infer_panel_generator(
+                    all_phoneme_ids[0].unsqueeze(0),
+                    all_phoneme_lens[0].unsqueeze(0),
+                    prompt[0].unsqueeze(0) if prompt is not None else None,
+                    all_bert_features[0].unsqueeze(0),
+                    cumulation_amount=cumulation_amount,
+                    top_k=top_k,
+                    top_p=top_p,
+                    temperature=temperature,
+                    early_stop_num=self.configs.hz * self.configs.max_sec,
+                    max_len=max_len,
+                    repetition_penalty=repetition_penalty,
+                ):
+                    # Append the generated tokens
+                    generated_tokens_list.append(generated_tokens)
+                    total_tokens = sum([tokens.size(1) for tokens in generated_tokens_list])
+            
+                    tokens_to_process = torch.cat(generated_tokens_list, dim=1)[:, :total_tokens] # uses full context for decoding
+                    
+                    # Check if tokens_to_process contains the EOS token (1024)
+                    contains_eos = (tokens_to_process == 1024).any()
+
+                    if contains_eos:
+                        # Replace all instances of the EOS token (1024) with 0
+                        tokens_to_process = tokens_to_process.masked_fill(tokens_to_process == 1024, 0)
+                        print("Replaced EOS token (1024) with 0 in tokens_to_process")
+                        last_chunk = True
+                        first_chunk = False
+
+                    # Prepare input for VITS model
+                    _pred_semantic = tokens_to_process.unsqueeze(0)
+                    phones = batch_phones[0].unsqueeze(0).to(self.configs.device)
+                    
+                    # Generate audio for the tokens
+                    audio_output = self.vits_model.decode(
+                        _pred_semantic, phones, refer_audio_spec, speed=speed_factor
+                    ).detach()[0, 0, :]
+            
+                    audio_output = audio_output[:].cpu().numpy()
+                    # Convert audio_fragment to float32 and normalize
+                    audio_output = audio_output.astype(np.float32)
+                    max_val = np.abs(audio_output).max()
+                    if max_val > 1.0:
+                        audio_output /= max_val
+   
+                    start_index = len(audio_output) - search_length
+                    if start_index < 0:
+                        search_length = len(audio_output)
+                        print(f"search_length is too HIGH! Auto adjusted to {search_length} frames as the chunks are only {len(audio_output)} frames large")
+                        start_index = 0
+                    center_index = zc_index2 # Start from previous zero crossing index and search outwards
+                    max_offset = int(search_length // 2) # branches out in both ways
+                        
+                    if center_index < 0:
+                        raise "Something wrong is going on here, center index issue, less than 0"
+                    elif center_index >= len(audio_output):
+                        raise "Something wrong is going on here, center index issue, greater than audio_output"
+                    
+                    if first_chunk:
+                        
+                        zc_index1, crossing_direction = find_zero_zone(
+                        chunk=audio_output,
+                        start_index=start_index,
+                        search_length=search_length,
+                        num_zeroes=num_zeroes
+                    )
+                        audio_fragment = audio_output[:zc_index1]
+                        yield self.configs.sampling_rate, audio_fragment
+                        first_chunk = False
+                        zc_index2 = zc_index1
+                    elif last_chunk:
+                        zc_index1 = find_matching_index(
+                            chunk=audio_output,
+                            center_index=center_index,
+                            max_offset=max_offset,
+                            crossing_direction=crossing_direction
+                            )
+                        audio_fragment = audio_output[zc_index1:]
+                        yield self.configs.sampling_rate, audio_fragment
+
+                    else:
+                        zc_index1 = find_matching_index(
+                            chunk=audio_output,
+                            center_index=center_index,
+                            max_offset=max_offset,
+                            crossing_direction=crossing_direction
+                            )
+                        
+                        zc_index2, crossing_direction = find_zero_zone(
+                            chunk=audio_output,
+                            start_index=start_index,
+                            search_length=search_length,
+                            num_zeroes=num_zeroes
+                        )
+                        audio_fragment = audio_output[zc_index1:zc_index2]
+                        yield self.configs.sampling_rate, audio_fragment
+                    
+                    end = ttime()
+                    print(f"Time to speech: {end-start}")
+                    
+        except Exception as e:
+            traceback.print_exc()
+            # 必须返回一个空音频, 否则会导致显存不释放。
+            yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
+                                                            dtype=np.int16)
+            # 重置模型, 否则会导致显存释放不完全。
+            del self.t2s_model
+            del self.vits_model
+            self.t2s_model = None
+            self.vits_model = None
+            self.init_t2s_weights(self.configs.t2s_weights_path)
+            self.init_vits_weights(self.configs.vits_weights_path)
+            raise e
+        finally:
+            self.empty_cache()
+    
+    def empty_cache(self):
+        try:
+            gc.collect() # 触发gc的垃圾回收。避免内存一直增长。
+            if "cuda" in str(self.configs.device):
+                torch.cuda.empty_cache()
+            elif str(self.configs.device) == "mps":
+                torch.mps.empty_cache()
+        except:
+            pass
     
     def empty_cache(self):
         try:

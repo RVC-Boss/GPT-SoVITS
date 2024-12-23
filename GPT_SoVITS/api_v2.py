@@ -358,7 +358,7 @@ async def tts_get_endpoint(
                         top_p:float = 1,
                         temperature:float = 1,
                         text_split_method:str = "cut0",
-                        batch_size:int = 1,
+                        batch_size:int = 4,
                         batch_threshold:float = 0.75,
                         split_bucket:bool = True,
                         speed_factor:float = 1.0,
