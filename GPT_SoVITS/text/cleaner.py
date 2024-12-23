@@ -33,7 +33,7 @@ def clean_text(text, language, version=None):
     for special_s, special_l, target_symbol in special:
         if special_s in text and language == special_l:
             return clean_special(text, language, special_s, target_symbol, version)
-    language_module = __import__("text."+language_module_map[language],fromlist=[language_module_map[language]])
+    language_module = __import__("GPT_SoVITS.text."+language_module_map[language],fromlist=[language_module_map[language]])
     if hasattr(language_module,"text_normalize"):
         norm_text = language_module.text_normalize(text)
     else:
@@ -67,7 +67,7 @@ def clean_special(text, language, special_s, target_symbol, version=None):
     特殊静音段sp符号处理
     """
     text = text.replace(special_s, ",")
-    language_module = __import__("text."+language_module_map[language],fromlist=[language_module_map[language]])
+    language_module = __import__("GPT_SoVITS.text."+language_module_map[language],fromlist=[language_module_map[language]])
     norm_text = language_module.text_normalize(text)
     phones = language_module.g2p(norm_text)
     new_ph = []
