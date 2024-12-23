@@ -9,7 +9,7 @@ import torch
 from faster_whisper import WhisperModel
 from tqdm import tqdm
 
-from GPT_SoVITS.tools..asr.config import check_fw_local_models
+from GPT_SoVITS.tools.asr.config import check_fw_local_models
 
 language_code_list = [
     "af", "am", "ar", "as", "az", 
@@ -69,7 +69,7 @@ def execute_asr(input_folder, output_folder, model_size, language, precision):
             if info.language == "zh":
                 print("检测为中文文本, 转 FunASR 处理")
                 if("only_asr" not in globals()):
-                    from GPT_SoVITS.tools..asr.funasr_asr import only_asr  #如果用英文就不需要导入下载模型
+                    from GPT_SoVITS.tools.asr.funasr_asr import only_asr  #如果用英文就不需要导入下载模型
                 text = only_asr(file_path, language=info.language.lower())
 
             if text == '':

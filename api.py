@@ -167,7 +167,7 @@ from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModu
 from GPT_SoVITS.text import cleaned_text_to_sequence
 from GPT_SoVITS.text.cleaner import clean_text
 from GPT_SoVITS.module.mel_processing import spectrogram_torch
-from GPT_SoVITS.tools..my_utils import load_audio
+from GPT_SoVITS.tools.my_utils import load_audio
 import config as global_config
 import logging
 import subprocess

@@ -3,7 +3,7 @@ from collections import OrderedDict
 from time import time as ttime
 import shutil,os
 import torch
-from GPT_SoVITS.tools..i18n.i18n import I18nAuto
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
 
