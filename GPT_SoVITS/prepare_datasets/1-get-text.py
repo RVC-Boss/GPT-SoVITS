@@ -18,7 +18,7 @@ import sys, numpy as np, traceback, pdb
 import os.path
 from glob import glob
 from tqdm import tqdm
-from text.cleaner import clean_text
+from GPT_SoVITS.text.cleaner import clean_text
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import numpy as np
 from tools.my_utils import clean_path

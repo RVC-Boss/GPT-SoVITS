@@ -6,9 +6,9 @@ import cn2an
 from pypinyin import lazy_pinyin, Style
 from pypinyin.contrib.tone_convert import to_normal, to_finals_tone3, to_initials, to_finals
 
-from text.symbols import punctuation
-from text.tone_sandhi import ToneSandhi
-from text.zh_normalization.text_normlization import TextNormalizer
+from GPT_SoVITS.text.symbols import punctuation
+from GPT_SoVITS.text.tone_sandhi import ToneSandhi
+from GPT_SoVITS.text.zh_normalization.text_normlization import TextNormalizer
 
 normalizer = lambda x: cn2an.transform(x, "an2cn")
 
@@ -25,7 +25,7 @@ import jieba_fast.posseg as psg
 is_g2pw = True#True if is_g2pw_str.lower() == 'true' else False
 if is_g2pw:
     print("当前使用g2pw进行拼音推理")
-    from text.g2pw import G2PWPinyin, correct_pronunciation
+    from GPT_SoVITS.text.g2pw import G2PWPinyin, correct_pronunciation
     parent_directory = os.path.dirname(current_file_path)
     g2pw = G2PWPinyin(model_dir="GPT_SoVITS/text/G2PWModel",model_source=os.environ.get("bert_path","GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"),v_to_u=False, neutral_tone_with_five=True)
 

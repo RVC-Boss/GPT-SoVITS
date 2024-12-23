@@ -3,7 +3,7 @@
 import argparse
 from typing import Optional
 from my_utils import load_audio
-from text import cleaned_text_to_sequence
+from GPT_SoVITS.text import cleaned_text_to_sequence
 import torch
 import torchaudio
 
@@ -14,7 +14,7 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 from feature_extractor import cnhubert
 
 from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from module.models_onnx import SynthesizerTrn
+from GPT_SoVITS.module.models_onnx import SynthesizerTrn
 
 from inference_webui import get_phones_and_bert
 

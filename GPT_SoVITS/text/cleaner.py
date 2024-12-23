@@ -1,14 +1,14 @@
-from text import cleaned_text_to_sequence
+from GPT_SoVITS.text import cleaned_text_to_sequence
 import os
 # if os.environ.get("version","v1")=="v1":
-#     from text import chinese
-#     from text.symbols import symbols
+#     from GPT_SoVITS.text import chinese
+#     from GPT_SoVITS.text.symbols import symbols
 # else:
-#     from text import chinese2 as chinese
-#     from text.symbols2 import symbols
+#     from GPT_SoVITS.text import chinese2 as chinese
+#     from GPT_SoVITS.text.symbols2 import symbols
 
-from text import symbols as symbols_v1
-from text import symbols2 as symbols_v2
+from GPT_SoVITS.text import symbols as symbols_v1
+from GPT_SoVITS.text import symbols2 as symbols_v2
 
 special = [
     # ("%", "zh", "SP"),
