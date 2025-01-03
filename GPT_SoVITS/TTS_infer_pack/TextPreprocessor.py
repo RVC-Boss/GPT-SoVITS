@@ -20,7 +20,7 @@ from tools.i18n.i18n import I18nAuto, scan_language_list
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
-punctuation = set(['!', '?', '…', ',', '.', '-'," "])
+punctuation = set(['!', '?', '…', ',', '.', '-'])
 
 def get_first(text:str) -> str:
     pattern = "[" + "".join(re.escape(sep) for sep in splits) + "]"
@@ -234,11 +234,13 @@ class TextPreprocessor:
         return _text
     
 
-    def replace_consecutive_punctuation(self,text):
+    def replace_consecutive_punctuation(self, text):
+        # Collapse consecutive punctuation marks
         punctuations = ''.join(re.escape(p) for p in punctuation)
         pattern = f'([{punctuations}])([{punctuations}])+'
-        result = re.sub(pattern, r'\1', text)
-        return result
+        text = re.sub(pattern, r'\1', text)
 
+        # Collapse multiple spaces to a single space
+        text = re.sub(r'\s+', ' ', text)
 
-
+        return text
