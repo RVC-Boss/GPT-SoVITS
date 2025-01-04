@@ -136,7 +136,7 @@ host = args.bind_addr
 argv = sys.argv
 
 if config_path in [None, ""]:
-    config_path = "GPT-SoVITS/configs/tts_infer.yaml"
+    config_path = "GPT_SoVITS/configs/tts_infer.yaml"
 
 tts_config = TTS_Config(config_path)
 print(tts_config)
