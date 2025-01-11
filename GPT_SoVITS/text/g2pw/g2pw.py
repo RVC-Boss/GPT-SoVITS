@@ -144,11 +144,16 @@ def read_dict():
     return polyphonic_dict
 
 
-def correct_pronunciation(word,word_pinyins):
-    if word in pp_dict:
-        word_pinyins = pp_dict[word]
-
-    return word_pinyins
+def correct_pronunciation(word, word_pinyins):
+    new_pinyins = pp_dict.get(word, "")
+    if new_pinyins == "":
+        for idx, w in enumerate(word):
+            w_pinyin = pp_dict.get(w, "")
+            if w_pinyin != "":
+                word_pinyins[idx] = w_pinyin[0]
+        return word_pinyins
+    else:
+        return new_pinyins
 
 
 pp_dict = get_dict()
