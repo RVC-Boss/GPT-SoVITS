@@ -307,12 +307,7 @@ from text import chinese
 def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")
-        if language == "en":
-            LangSegment.setfilters(["en"])
-            formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
-        else:
-            # 因无法区别中日韩文汉字,以用户输入为准
-            formattext = text
+        formattext = text
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
         if language == "zh":
