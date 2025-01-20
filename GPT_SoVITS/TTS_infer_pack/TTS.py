@@ -187,7 +187,7 @@ class TTS_Config:
         else:
             print(i18n("路径不存在,使用默认配置"))
             self.save_configs(configs_path)
-        with open(configs_path, 'r') as f:
+        with open(configs_path, "r", encoding="utf-8") as f:
             configs = yaml.load(f, Loader=yaml.FullLoader)
     
         return configs
@@ -199,7 +199,7 @@ class TTS_Config:
             
         if configs_path is None:
             configs_path = self.configs_path
-        with open(configs_path, 'w') as f:
+        with open(configs_path, "w", encoding="utf-8") as f:
             yaml.dump(configs, f)
 
     def update_configs(self):
