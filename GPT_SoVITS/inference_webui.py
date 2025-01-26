@@ -73,7 +73,15 @@ is_share = os.environ.get("is_share", "False")
 is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+
+
+is_fp16_supported = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] > 7
+
+if is_fp16_supported:
+    is_half = True
+else:
+    is_half = False
+
 punctuation = set(['!', '?', '…', ',', '.', '-'," "])
 import gradio as gr
 from transformers import AutoModelForMaskedLM, AutoTokenizer
