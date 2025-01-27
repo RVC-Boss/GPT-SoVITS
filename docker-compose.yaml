@@ -10,6 +10,7 @@ services:
     volumes:
       - ./output:/workspace/output
       - ./logs:/workspace/logs
+      - ./GPT_weights:/workspace/GPT_weights
       - ./SoVITS_weights:/workspace/SoVITS_weights
       - ./reference:/workspace/reference
     working_dir: /workspace
