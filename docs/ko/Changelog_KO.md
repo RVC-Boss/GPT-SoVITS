@@ -176,3 +176,14 @@
 5. [Commit 8a10147](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3) 광동어 ASR 지원을 추가했습니다.
 6. GPT-SoVITS v2 지원을 추가했습니다.
 7. [PR 1387](https://github.com/RVC-Boss/GPT-SoVITS/pull/1387) 타이밍 로직을 최적화했습니다.
+
+### 20240821 업데이트
+
+1. [PR 1490](https://github.com/RVC-Boss/GPT-SoVITS/pull/1490) `fast_inference` 브랜치를 메인 브랜치에 병합.
+2. [Issue 1508](https://github.com/RVC-Boss/GPT-SoVITS/issues/1508) SSML 태그를 사용하여 숫자, 전화번호, 날짜 및 시간 최적화 지원.
+3. [PR 1503](https://github.com/RVC-Boss/GPT-SoVITS/pull/1503) API 수정 및 최적화.
+4. [PR 1422](https://github.com/RVC-Boss/GPT-SoVITS/pull/1422) 믹싱을 위한 참조 오디오를 하나만 업로드할 수 있는 버그 수정, 다양한 데이터셋 검사 추가 및 파일이 누락된 경우 경고 팝업.
+
+### 20250211 업데이트
+
+1. [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) GPT-SoVITS v3 모델 추가.
