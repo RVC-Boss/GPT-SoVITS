@@ -90,11 +90,12 @@ if torch.cuda.is_available() or ngpu != 0:
 #     gpu_infos.append("%s\t%s" % ("0", "Apple GPU"))
 #     mem.append(psutil.virtual_memory().total/ 1024 / 1024 / 1024) # 实测使用系统内存作为显存不会爆显存
 
-minmem=min(mem)
+
 def set_default():
     global default_batch_size,default_max_batch_size,gpu_info,default_sovits_epoch,default_sovits_save_every_epoch,max_sovits_epoch,max_sovits_save_every_epoch,default_batch_size_s1
     if if_gpu_ok and len(gpu_infos) > 0:
         gpu_info = "\n".join(gpu_infos)
+        minmem = min(mem)
         default_batch_size = minmem // 2 if version!="v3"else minmem//14
         default_batch_size_s1=minmem // 2
     else:
