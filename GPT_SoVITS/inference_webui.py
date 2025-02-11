@@ -479,6 +479,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     t = []
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
+    if model_version=="v3":ref_free=False#s2v3暂不支持ref_free
     t0 = ttime()
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
@@ -815,7 +816,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath", scale=13)
             with gr.Column(scale=13):
-                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True,scale=1)
+                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。v3暂不支持该模式，使用了会报错。"), value=False, interactive=True, show_label=True,scale=1)
                 gr.Markdown(html_left(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开。<br>开启后无视填写的参考文本。")))
                 prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=5, max_lines=5,scale=1)
             with gr.Column(scale=14):
