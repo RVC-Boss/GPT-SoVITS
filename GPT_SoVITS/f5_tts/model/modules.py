@@ -391,7 +391,7 @@ class Attention(nn.Module):
 
 # Attention processor
 
-from torch.nn.attention import SDPBackend
+# from torch.nn.attention import SDPBackend
 # torch.backends.cuda.enable_flash_sdp(True)
 class AttnProcessor:
     def __init__(self):
