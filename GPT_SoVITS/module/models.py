@@ -1187,8 +1187,8 @@ class SynthesizerTrnV3(nn.Module):
         self.model_dim=512
         self.use_sdp = use_sdp
         self.enc_p = TextEncoder(inter_channels,hidden_channels,filter_channels,n_heads,n_layers,kernel_size,p_dropout)
-        # self.ref_enc = modules.MelStyleEncoder(spec_channels, style_vector_dim=gin_channels)###�ع�������
-        self.ref_enc = modules.MelStyleEncoder(704, style_vector_dim=gin_channels)###�ع�������
+        # self.ref_enc = modules.MelStyleEncoder(spec_channels, style_vector_dim=gin_channels)###Rollback
+        self.ref_enc = modules.MelStyleEncoder(704, style_vector_dim=gin_channels)###Rollback
         # self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates,
         #                      upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
         # self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, 16,
