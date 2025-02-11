@@ -244,4 +244,7 @@
  
 5-增加了各种数据集检查,若缺失会弹出warning:https://github.com/RVC-Boss/GPT-SoVITS/pull/1422
 
+### 20250211
+
+1-增加gpt-sovits-v3模型
 
