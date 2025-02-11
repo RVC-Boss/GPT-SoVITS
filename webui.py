@@ -39,8 +39,9 @@ for site_packages_root in site_packages_roots:
         try:
             with open("%s/users.pth" % (site_packages_root), "w") as f:
                 f.write(
-                    "%s\n%s/tools\n%s/tools/asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
-                    % (now_dir, now_dir, now_dir, now_dir, now_dir)
+                    # "%s\n%s/runtime\n%s/tools\n%s/tools/asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+                    "%s\n%s/GPT_SoVITS/BigVGAN\n%s/tools\n%s/tools/asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
+                    % (now_dir, now_dir, now_dir, now_dir, now_dir, now_dir)
                 )
             break
         except PermissionError as e:
@@ -72,7 +73,7 @@ mem = []
 if_gpu_ok = False
 
 # 判断是否有能用来训练和加速推理的N卡
-ok_gpu_keywords={"10","16","20","30","40","A2","A3","A4","P4","A50","500","A60","70","80","90","M4","T4","TITAN","L4","4060","H","600"}
+ok_gpu_keywords={"10","16","20","30","40","A2","A3","A4","P4","A50","500","A60","70","80","90","M4","T4","TITAN","L4","4060","H","600","506","507","508","509"}
 set_gpu_numbers=set()
 if torch.cuda.is_available() or ngpu != 0:
     for i in range(ngpu):
@@ -89,14 +90,32 @@ if torch.cuda.is_available() or ngpu != 0:
 #     gpu_infos.append("%s\t%s" % ("0", "Apple GPU"))
 #     mem.append(psutil.virtual_memory().total/ 1024 / 1024 / 1024) # 实测使用系统内存作为显存不会爆显存
 
-if if_gpu_ok and len(gpu_infos) > 0:
-    gpu_info = "\n".join(gpu_infos)
-    default_batch_size = min(mem) // 2
-else:
-    gpu_info = ("%s\t%s" % ("0", "CPU"))
-    gpu_infos.append("%s\t%s" % ("0", "CPU"))
-    set_gpu_numbers.add(0)
-    default_batch_size = int(psutil.virtual_memory().total/ 1024 / 1024 / 1024 / 2)
+minmem=min(mem)
+def set_default():
+    global default_batch_size,default_max_batch_size,gpu_info,default_sovits_epoch,default_sovits_save_every_epoch,max_sovits_epoch,max_sovits_save_every_epoch,default_batch_size_s1
+    if if_gpu_ok and len(gpu_infos) > 0:
+        gpu_info = "\n".join(gpu_infos)
+        default_batch_size = minmem // 2 if version!="v3"else minmem//14
+        default_batch_size_s1=minmem // 2
+    else:
+        gpu_info = ("%s\t%s" % ("0", "CPU"))
+        gpu_infos.append("%s\t%s" % ("0", "CPU"))
+        set_gpu_numbers.add(0)
+        default_batch_size = default_batch_size_s1=int(psutil.virtual_memory().total/ 1024 / 1024 / 1024 / 2)
+    if version!="v3":
+        default_sovits_epoch=8
+        default_sovits_save_every_epoch=4
+        max_sovits_epoch=25
+        max_sovits_save_every_epoch=25
+    else:
+        default_sovits_epoch=2
+        default_sovits_save_every_epoch=1
+        max_sovits_epoch=6
+        max_sovits_save_every_epoch=6
+    default_max_batch_size=default_batch_size*3
+
+set_default()
+
 gpus = "-".join([i[0] for i in gpu_infos])
 default_gpu_numbers=str(sorted(list(set_gpu_numbers))[0])
 def fix_gpu_number(input):#将越界的number强制改到界内
@@ -112,10 +131,10 @@ def fix_gpu_numbers(inputs):
     except:
         return inputs
 
-pretrained_sovits_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth", "GPT_SoVITS/pretrained_models/s2G488k.pth"]
-pretrained_gpt_name=["GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
+pretrained_sovits_name=["GPT_SoVITS/pretrained_models/s2G488k.pth", "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth","GPT_SoVITS/pretrained_models/s2Gv3.pth"]
+pretrained_gpt_name=["GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt","GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "GPT_SoVITS/pretrained_models/s1v3.ckpt"]
 
-pretrained_model_list = (pretrained_sovits_name[-int(version[-1])+2],pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D"),pretrained_gpt_name[-int(version[-1])+2],"GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large","GPT_SoVITS/pretrained_models/chinese-hubert-base")
+pretrained_model_list = (pretrained_sovits_name[int(version[-1])-1],pretrained_sovits_name[int(version[-1])-1].replace("s2G","s2D"),pretrained_gpt_name[int(version[-1])-1],"GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large","GPT_SoVITS/pretrained_models/chinese-hubert-base")
 
 _=''
 for i in pretrained_model_list:
@@ -125,15 +144,15 @@ if _:
     print("warning:",i18n('以下模型不存在:')+_)
 
 _ =[[],[]]
-for i in range(2):
+for i in range(3):
     if os.path.exists(pretrained_gpt_name[i]):_[0].append(pretrained_gpt_name[i])
     else:_[0].append("")##没有下pretrained模型的，说不定他们是想自己从零训底模呢
     if os.path.exists(pretrained_sovits_name[i]):_[-1].append(pretrained_sovits_name[i])
     else:_[-1].append("")
 pretrained_gpt_name,pretrained_sovits_name = _
 
-SoVITS_weight_root=["SoVITS_weights_v2","SoVITS_weights"]
-GPT_weight_root=["GPT_weights_v2","GPT_weights"]
+SoVITS_weight_root=["SoVITS_weights","SoVITS_weights_v2","SoVITS_weights_v3"]
+GPT_weight_root=["GPT_weights","GPT_weights_v2","GPT_weights_v3"]
 for root in SoVITS_weight_root+GPT_weight_root:
     os.makedirs(root,exist_ok=True)
 def get_weights_names():
@@ -169,7 +188,7 @@ p_asr=None
 p_denoise=None
 p_tts_inference=None
 
-def kill_proc_tree(pid, including_parent=True):  
+def kill_proc_tree(pid, including_parent=True):
     try:
         parent = psutil.Process(pid)
     except psutil.NoSuchProcess:
@@ -195,7 +214,7 @@ def kill_process(pid):
         os.system(cmd)
     else:
         kill_proc_tree(pid)
-    
+
 
 def change_label(path_list):
     global p_label
@@ -228,6 +247,9 @@ def change_tts_inference(bert_path,cnhubert_base_path,gpu_number,gpt_path,sovits
     if batched_infer_enabled:
         cmd = '"%s" GPT_SoVITS/inference_webui_fast.py "%s"'%(python_exec, language)
     else:
+        cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
+    #####v3暂不支持加速推理
+    if version=="v3":
         cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
     if(p_tts_inference==None):
         os.environ["gpt_path"]=gpt_path if "/" in gpt_path else "%s/%s"%(GPT_weight_root,gpt_path)
@@ -311,7 +333,7 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
             data=f.read()
             data=json.loads(data)
         s2_dir="%s/%s"%(exp_root,exp_name)
-        os.makedirs("%s/logs_s2"%(s2_dir),exist_ok=True)
+        os.makedirs("%s/logs_s2_%s"%(s2_dir,version),exist_ok=True)
         if check_for_existance([s2_dir],is_train=True):
             check_details([s2_dir],is_train=True)
         if(is_half==False):
@@ -328,13 +350,15 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         data["train"]["gpu_numbers"]=gpu_numbers1Ba
         data["model"]["version"]=version
         data["data"]["exp_dir"]=data["s2_ckpt_dir"]=s2_dir
-        data["save_weight_dir"]=SoVITS_weight_root[-int(version[-1])+2]
+        data["save_weight_dir"]=SoVITS_weight_root[int(version[-1])-1]
         data["name"]=exp_name
         data["version"]=version
         tmp_config_path="%s/tmp_s2.json"%tmp
         with open(tmp_config_path,"w")as f:f.write(json.dumps(data))
-
-        cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
+        if version in ["v1","v2"]:
+            cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
+        else:
+            cmd = '"%s" GPT_SoVITS/s2_train_v3.py --config "%s"'%(python_exec,tmp_config_path)
         yield "SoVITS训练开始：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
@@ -372,11 +396,11 @@ def open1Bb(batch_size,total_epoch,exp_name,if_dpo,if_save_latest,if_save_every_
         data["train"]["if_save_every_weights"]=if_save_every_weights
         data["train"]["if_save_latest"]=if_save_latest
         data["train"]["if_dpo"]=if_dpo
-        data["train"]["half_weights_save_dir"]=GPT_weight_root[-int(version[-1])+2]
+        data["train"]["half_weights_save_dir"]=GPT_weight_root[int(version[-1])-1]
         data["train"]["exp_name"]=exp_name
         data["train_semantic_path"]="%s/6-name2semantic.tsv"%s1_dir
         data["train_phoneme_path"]="%s/2-name2text.txt"%s1_dir
-        data["output_dir"]="%s/logs_s1"%s1_dir
+        data["output_dir"]="%s/logs_s1_%s"%(s1_dir,version)
         # data["version"]=version
 
         os.environ["_CUDA_VISIBLE_DEVICES"]=fix_gpu_numbers(gpu_numbers.replace("-",","))
@@ -747,13 +771,14 @@ def close1abc():
     return "已终止所有一键三连进程", {"__type__": "update", "visible": True}, {"__type__": "update", "visible": False}
 
 def switch_version(version_):
-    os.environ['version']=version_
+    os.environ["version"]=version_
     global version
     version = version_
-    if pretrained_sovits_name[-int(version[-1])+2] !='' and pretrained_gpt_name[-int(version[-1])+2] !='':...
-    else:   
+    if pretrained_sovits_name[int(version[-1])-1] !='' and pretrained_gpt_name[int(version[-1])-1] !='':...
+    else:
         gr.Warning(i18n(f'未下载{version.upper()}模型'))
-    return  {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_gpt_name[-int(version[-1])+2]}, {'__type__':'update', 'value':pretrained_sovits_name[-int(version[-1])+2]}
+    set_default()
+    return  {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]},{'__type__':'update',"value":default_batch_size,"maximum":default_max_batch_size},{'__type__':'update',"value":default_sovits_epoch,"maximum":max_sovits_epoch},{'__type__':'update',"value":default_sovits_save_every_epoch,"maximum":max_sovits_save_every_epoch},{'__type__':'update',"interactive":True if version!="v3"else False}
 
 if os.path.exists('GPT_SoVITS/text/G2PWModel'):...
 else:
@@ -796,7 +821,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         max_sil_kept=gr.Textbox(label=i18n("max_sil_kept:切完后静音最多留多长"),value="500")
                     with gr.Row():
                         _max=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("max:归一化后最大值多少"),value=0.9,interactive=True)
-                        alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)   
+                        alpha=gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("alpha_mix:混多少比例归一化后音频进来"),value=0.25,interactive=True)
                     with gr.Row():
                         n_process=gr.Slider(minimum=1,maximum=n_cpu,step=1,label=i18n("切割使用的进程数"),value=4,interactive=True)
                         slicer_info = gr.Textbox(label=i18n("语音切割进程输出信息"))
@@ -850,11 +875,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             choices     = ["float32"],
                             interactive = True,
                             value="float32"
-                        ) 
+                        )
                     with gr.Row():
-                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))     
+                        asr_info = gr.Textbox(label=i18n("ASR进程输出信息"))
                 open_asr_button = gr.Button(i18n("开启离线批量ASR"), variant="primary",visible=True)
-                close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)                  
+                close_asr_button = gr.Button(i18n("终止ASR进程"), variant="primary",visible=False)
 
                 def change_lang_choices(key): #根据选择的模型修改可选的语言
                     # return gr.Dropdown(choices=asr_dict[key]['lang'])
@@ -878,7 +903,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 asr_model.change(change_size_choices, [asr_model], [asr_size])
                 asr_model.change(change_precision_choices, [asr_model], [asr_precision])
 
-                
+
             gr.Markdown(value=i18n("0d-语音文本校对标注工具"))
             with gr.Row():
                 with gr.Column(scale=3):
@@ -889,7 +914,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         interactive=True,
                     )
                         label_info = gr.Textbox(label=i18n("打标工具进程输出信息"))
-                
+
                 open_label = gr.Button(value=i18n("开启打标WebUI"),variant="primary",visible=True)
                 close_label = gr.Button(value=i18n("关闭打标WebUI"),variant="primary",visible=False)
             open_label.click(change_label, [path_list], [label_info,open_label,close_label])
@@ -902,11 +927,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     exp_name = gr.Textbox(label=i18n("*实验/模型名"), value="xxx", interactive=True)
                     gpu_info = gr.Textbox(label=i18n("显卡信息"), value=gpu_info, visible=True, interactive=False)
-                    version_checkbox = gr.Radio(label=i18n("版本"),value=version,choices=['v1','v2'])
+                    version_checkbox = gr.Radio(label=i18n("版本"),value=version,choices=['v1','v2','v3'])
                 with gr.Row():
-                    pretrained_s2G = gr.Textbox(label=i18n("预训练的SoVITS-G模型路径"), value=pretrained_sovits_name[-int(version[-1])+2], interactive=True, lines=2, max_lines=3,scale=9)
-                    pretrained_s2D = gr.Textbox(label=i18n("预训练的SoVITS-D模型路径"), value=pretrained_sovits_name[-int(version[-1])+2].replace("s2G","s2D"), interactive=True, lines=2, max_lines=3,scale=9)
-                    pretrained_s1 = gr.Textbox(label=i18n("预训练的GPT模型路径"), value=pretrained_gpt_name[-int(version[-1])+2], interactive=True, lines=2, max_lines=3,scale=10)
+                    pretrained_s2G = gr.Textbox(label=i18n("预训练的SoVITS-G模型路径"), value=pretrained_sovits_name[int(version[-1])-1], interactive=True, lines=2, max_lines=3,scale=9)
+                    pretrained_s2D = gr.Textbox(label=i18n("预训练的SoVITS-D模型路径"), value=pretrained_sovits_name[int(version[-1])-1].replace("s2G","s2D"), interactive=True, lines=2, max_lines=3,scale=9)
+                    pretrained_s1 = gr.Textbox(label=i18n("预训练的GPT模型路径"), value=pretrained_gpt_name[int(version[-1])-1], interactive=True, lines=2, max_lines=3,scale=10)
             with gr.TabItem(i18n("1A-训练集格式化工具")):
                 gr.Markdown(value=i18n("输出logs/实验名目录下应有23456开头的文件和文件夹"))
                 with gr.Row():
@@ -946,7 +971,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     with gr.Row():
                         gpu_numbers1c = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"),value="%s-%s"%(gpus,gpus),interactive=True)
                     with gr.Row():
-                        pretrained_s2G_ = gr.Textbox(label=i18n("预训练的SoVITS-G模型路径"), value=pretrained_sovits_name[-int(version[-1])+2], interactive=False,lines=2)
+                        pretrained_s2G_ = gr.Textbox(label=i18n("预训练的SoVITS-G模型路径"), value=pretrained_sovits_name[int(version[-1])-1], interactive=False,lines=2)
                     with gr.Row():
                         button1c_open = gr.Button(i18n("开启语义token提取"), variant="primary",visible=True)
                         button1c_close = gr.Button(i18n("终止语义token提取进程"), variant="primary",visible=False)
@@ -981,11 +1006,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     with gr.Column():
                         with gr.Row():
-                            batch_size = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
-                            total_epoch = gr.Slider(minimum=1,maximum=25,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=8,interactive=True)
+                            batch_size = gr.Slider(minimum=1,maximum=default_max_batch_size,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
+                            total_epoch = gr.Slider(minimum=1,maximum=max_sovits_epoch,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=default_sovits_epoch,interactive=True)
                         with gr.Row():
-                            text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,interactive=True)
-                            save_every_epoch = gr.Slider(minimum=1,maximum=25,step=1,label=i18n("保存频率save_every_epoch"),value=4,interactive=True)
+                            text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,interactive=True if version!="v3"else False)#v3 not need
+                            save_every_epoch = gr.Slider(minimum=1,maximum=max_sovits_save_every_epoch,step=1,label=i18n("保存频率save_every_epoch"),value=default_sovits_save_every_epoch,interactive=True)
                     with gr.Column():     
                         with gr.Column():                   
                             if_save_latest = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
@@ -1002,7 +1027,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     with gr.Column():
                         with gr.Row():
-                            batch_size1Bb = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
+                            batch_size1Bb = gr.Slider(minimum=1,maximum=40,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size_s1,interactive=True)
                             total_epoch1Bb = gr.Slider(minimum=2,maximum=50,step=1,label=i18n("总训练轮数total_epoch"),value=15,interactive=True)
                         with gr.Row():
                             save_every_epoch1Bb = gr.Slider(minimum=1,maximum=50,step=1,label=i18n("保存频率save_every_epoch"),value=5,interactive=True) 
@@ -1035,7 +1060,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     refresh_button.click(fn=change_choices,inputs=[],outputs=[SoVITS_dropdown,GPT_dropdown])
                 with gr.Row():
                     with gr.Row():
-                        batched_infer_enabled = gr.Checkbox(label=i18n("启用并行推理版本(推理速度更快)"), value=False, interactive=True, show_label=True)
+                        batched_infer_enabled = gr.Checkbox(label=i18n("启用并行推理版本"), value=False, interactive=True, show_label=True)
                     with gr.Row():
                         open_tts = gr.Button(value=i18n("开启TTS推理WebUI"),variant='primary',visible=True)
                         close_tts = gr.Button(value=i18n("关闭TTS推理WebUI"),variant='primary',visible=False)
@@ -1043,7 +1068,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         tts_info = gr.Textbox(label=i18n("TTS推理WebUI进程输出信息"))
                     open_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
                     close_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
-            version_checkbox.change(switch_version,[version_checkbox],[pretrained_s2G,pretrained_s2D,pretrained_s1,GPT_dropdown,SoVITS_dropdown])
+            version_checkbox.change(switch_version,[version_checkbox],[pretrained_s2G,pretrained_s2D,pretrained_s1,GPT_dropdown,SoVITS_dropdown,batch_size,total_epoch,save_every_epoch,text_low_lr_rate])
         with gr.TabItem(i18n("2-GPT-SoVITS-变声")):gr.Markdown(value=i18n("施工中，请静候佳音"))
     app.queue().launch(#concurrency_count=511, max_size=1022
         server_name="0.0.0.0",
