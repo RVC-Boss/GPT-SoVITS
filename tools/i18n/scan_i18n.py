@@ -37,16 +37,21 @@ def scan_i18n_strings():
     strings = []
     print(" Scanning Files and Extracting i18n Strings ".center(TITLE_LEN, "="))
     for filename in glob.iglob("**/*.py", recursive=True):
-        with open(filename, "r", encoding="utf-8") as f:
-            code = f.read()
-            if "I18nAuto" in code:
-                tree = ast.parse(code)
-                i18n_strings = extract_i18n_strings(tree)
-                print(f"{filename.ljust(30)}: {len(i18n_strings)}")
-                strings.extend(i18n_strings)
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                code = f.read()
+                if "I18nAuto" in code:
+                    tree = ast.parse(code)
+                    i18n_strings = extract_i18n_strings(tree)
+                    print(f"{filename.ljust(KEY_LEN*3//2)}: {len(i18n_strings)}")
+                    if SHOW_KEYS:
+                        print("\n".join([s for s in i18n_strings]))
+                    strings.extend(i18n_strings)
+        except Exception as e:
+            print(f"\033[31m[Failed] Error occur at {filename}: {e}\033[0m")
 
     code_keys = set(strings)
-    print(f"{'Total Unique'.ljust(30)}: {len(code_keys)}")
+    print(f"{'Total Unique'.ljust(KEY_LEN*3//2)}: {len(code_keys)}")
     return code_keys
 
 def update_i18n_json(json_file, standard_keys):
@@ -74,7 +79,7 @@ def update_i18n_json(json_file, standard_keys):
     # 识别多余的键并删除
     diff_keys = set(json_data.keys()) - set(standard_keys)
     if len(diff_keys) > 0:
-        print(f"{'Unused Keys  (-)'.ljust(KEY_LEN)}: {len(diff_keys)}")    
+        print(f"{'Unused Keys  (-)'.ljust(KEY_LEN)}: {len(diff_keys)}")
         for key in diff_keys:
             del json_data[key]
             if SHOW_KEYS:
@@ -107,7 +112,7 @@ def update_i18n_json(json_file, standard_keys):
     for value, keys in duplicate_items.items():
         if len(keys) > 1:
             print("\n".join([f"\033[31m{'[Failed] Duplicate Value'.ljust(KEY_LEN)}: {key} -> {value}\033[0m" for key in keys]))
-    
+
     if num_miss_translation > 0:
         print(f"\033[31m{'[Failed] Missing Translation'.ljust(KEY_LEN)}: {num_miss_translation}\033[0m")
     else:
