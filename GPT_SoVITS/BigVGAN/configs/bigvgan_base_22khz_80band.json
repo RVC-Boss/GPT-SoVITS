@@ -8,9 +8,9 @@
     "lr_decay": 0.9999996,
     "seed": 1234,
 
-    "upsample_rates": [4,4,2,2,2,2],
-    "upsample_kernel_sizes": [8,8,4,4,4,4],
-    "upsample_initial_channel": 1536,
+    "upsample_rates": [8,8,2,2],
+    "upsample_kernel_sizes": [16,16,4,4],
+    "upsample_initial_channel": 512,
     "resblock_kernel_sizes": [3,7,11],
     "resblock_dilation_sizes": [[1,3,5], [1,3,5], [1,3,5]],
 
