@@ -193,6 +193,44 @@ def resample(audio_tensor, sr0):
 
 def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
     global vq_model, hps, version, model_version, dict_language
+    '''
+        v1:about 82942KB
+        half thr:82978KB
+        v2:about 83014KB
+        v3:about 750MB
+        
+        version:
+            symbols version and timebre_embedding version
+        model_version:
+            sovits is v1/2 (VITS) or v3 (shortcut CFM DiT)
+    '''
+    if os.path.getsize(sovits_path)>82978*1024:
+        version="v2"
+    else:
+        version="v1"
+    if os.path.getsize(sovits_path)>700*1024*1024:
+        model_version="v3"
+    else:
+        model_version=version
+    if prompt_language is not None and text_language is not None:
+        if prompt_language in list(dict_language.keys()):
+            prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
+        else:
+            prompt_text_update = {'__type__':'update', 'value':''}
+            prompt_language_update = {'__type__':'update', 'value':i18n("中文")}
+        if text_language in list(dict_language.keys()):
+            text_update, text_language_update = {'__type__':'update'}, {'__type__':'update', 'value':text_language}
+        else:
+            text_update = {'__type__':'update', 'value':''}
+            text_language_update = {'__type__':'update', 'value':i18n("中文")}
+        if model_version=="v3":
+            visible_sample_steps=True
+            visible_inp_refs=False
+        else:
+            visible_sample_steps=False
+            visible_inp_refs=True
+        yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "value": False,"interactive":True if model_version!="v3"else False}
+
     dict_s2 = torch.load(sovits_path, map_location="cpu")
     hps = dict_s2["config"]
     hps = DictToAttrRecursive(hps)
@@ -201,17 +239,7 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         hps.model.version = "v1"
     else:
         hps.model.version = "v2"
-    version = hps.model.version
-    if os.path.getsize(sovits_path)>700*1024*1024:
-        model_version="v3"
-    else:
-        model_version=version
-    '''
-        v1:about 82942KB
-        half thr:82978KB
-        v2:about 83014KB
-        v3:about 750MB
-    '''
+    version=hps.model.version
     # print("sovits版本:",hps.model.version)
     if model_version!="v3":
         vq_model = SynthesizerTrn(
@@ -243,24 +271,6 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         data=json.loads(data)
         data["SoVITS"][version]=sovits_path
     with open("./weight.json","w")as f:f.write(json.dumps(data))
-    if prompt_language is not None and text_language is not None:
-        if prompt_language in list(dict_language.keys()):
-            prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
-        else:
-            prompt_text_update = {'__type__':'update', 'value':''}
-            prompt_language_update = {'__type__':'update', 'value':i18n("中文")}
-        if text_language in list(dict_language.keys()):
-            text_update, text_language_update = {'__type__':'update'}, {'__type__':'update', 'value':text_language}
-        else:
-            text_update = {'__type__':'update', 'value':''}
-            text_language_update = {'__type__':'update', 'value':i18n("中文")}
-        if model_version=="v3":
-            visible_sample_steps=True
-            visible_inp_refs=False
-        else:
-            visible_sample_steps=False
-            visible_inp_refs=True
-        return  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps},{"__type__": "update", "visible": visible_inp_refs}
 
 
 change_sovits_weights(sovits_path)
@@ -859,7 +869,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             [inp_ref, prompt_text, prompt_language, text, text_language, how_to_cut, top_k, top_p, temperature, ref_text_free,speed,if_freeze,inp_refs,sample_steps],
             [output],
         )
-        SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown,prompt_language,text_language], [prompt_language,text_language,prompt_text,prompt_language,text,text_language,sample_steps,inp_refs])
+        SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown,prompt_language,text_language], [prompt_language,text_language,prompt_text,prompt_language,text,text_language,sample_steps,inp_refs,ref_text_free])
         GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
 
         # gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
