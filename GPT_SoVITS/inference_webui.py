@@ -197,21 +197,32 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         v1:about 82942KB
         half thr:82978KB
         v2:about 83014KB
+        half thr:100MB
+        v1base:103490KB
+        half thr:103520KB
+        v2base:103551KB
         v3:about 750MB
         
+        ~82978K~100M~103420~700M
+        v1-v2-v1base-v2base-v3
         version:
             symbols version and timebre_embedding version
         model_version:
             sovits is v1/2 (VITS) or v3 (shortcut CFM DiT)
     '''
-    if os.path.getsize(sovits_path)>82978*1024:
-        version="v2"
+    size=os.path.getsize(sovits_path)
+    if size<82978*1024:
+        model_version=version="v1"
+    elif size<100*1024*1024:
+        model_version=version="v2"
+    elif size<103520*1024:
+        model_version=version="v1"
+    elif size<700*1024*1024:
+        model_version = version = "v2"
     else:
-        version="v1"
-    if os.path.getsize(sovits_path)>700*1024*1024:
+        version = "v2"
         model_version="v3"
-    else:
-        model_version=version
+
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
             prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
@@ -248,6 +259,7 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
             n_speakers=hps.data.n_speakers,
             **hps.model
         )
+        model_version=version
     else:
         vq_model = SynthesizerTrnV3(
             hps.data.filter_length // 2 + 1,
