@@ -10,6 +10,7 @@ import json,yaml,torch,pdb,re,shutil
 import platform
 import psutil
 import signal
+os.environ['TORCH_DISTRIBUTED_DEBUG'] = 'INFO'
 torch.manual_seed(233333)
 tmp = os.path.join(now_dir, "TEMP")
 os.makedirs(tmp, exist_ok=True)
@@ -327,7 +328,7 @@ def close_denoise():
     return "已终止语音降噪进程", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
 
 p_train_SoVITS=None
-def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D):
+def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt):
     global p_train_SoVITS
     if(p_train_SoVITS==None):
         with open("GPT_SoVITS/configs/s2.json")as f:
@@ -349,6 +350,7 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         data["train"]["if_save_every_weights"]=if_save_every_weights
         data["train"]["save_every_epoch"]=save_every_epoch
         data["train"]["gpu_numbers"]=gpu_numbers1Ba
+        data["train"]["grad_ckpt"]=if_grad_ckpt
         data["model"]["version"]=version
         data["data"]["exp_dir"]=data["s2_ckpt_dir"]=s2_dir
         data["save_weight_dir"]=SoVITS_weight_root[int(version[-1])-1]
@@ -779,7 +781,7 @@ def switch_version(version_):
     else:
         gr.Warning(i18n(f'未下载{version.upper()}模型'))
     set_default()
-    return  {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]},{'__type__':'update',"value":default_batch_size,"maximum":default_max_batch_size},{'__type__':'update',"value":default_sovits_epoch,"maximum":max_sovits_epoch},{'__type__':'update',"value":default_sovits_save_every_epoch,"maximum":max_sovits_save_every_epoch},{'__type__':'update',"interactive":True if version!="v3"else False}
+    return  {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]},{'__type__':'update',"value":default_batch_size,"maximum":default_max_batch_size},{'__type__':'update',"value":default_sovits_epoch,"maximum":max_sovits_epoch},{'__type__':'update',"value":default_sovits_save_every_epoch,"maximum":max_sovits_save_every_epoch},{'__type__':'update',"interactive":True if version!="v3"else False},{'__type__':'update',"interactive":True if version == "v3" else False}
 
 if os.path.exists('GPT_SoVITS/text/G2PWModel'):...
 else:
@@ -1016,6 +1018,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         with gr.Column():                   
                             if_save_latest = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                             if_save_every_weights = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
+                            if_grad_ckpt = gr.Checkbox(label="是否开启梯度检查点节省显存占用", value=False, interactive=True if version == "v3" else False, show_label=True) # 只有V3s2可以用
                         with gr.Row():
                             gpu_numbers1Ba = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"), value="%s" % (gpus), interactive=True)
                 with gr.Row():
@@ -1045,7 +1048,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         button1Bb_close = gr.Button(i18n("终止GPT训练"), variant="primary",visible=False)
                     with gr.Row():
                         info1Bb=gr.Textbox(label=i18n("GPT训练进程输出信息"))
-            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D], [info1Ba,button1Ba_open,button1Ba_close])
+            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt], [info1Ba,button1Ba_open,button1Ba_close])
             button1Ba_close.click(close1Ba, [], [info1Ba,button1Ba_open,button1Ba_close])
             button1Bb_open.click(open1Bb, [batch_size1Bb,total_epoch1Bb,exp_name,if_dpo,if_save_latest1Bb,if_save_every_weights1Bb,save_every_epoch1Bb,gpu_numbers1Bb,pretrained_s1],   [info1Bb,button1Bb_open,button1Bb_close])
             button1Bb_close.click(close1Bb, [], [info1Bb,button1Bb_open,button1Bb_close])
@@ -1069,7 +1072,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         tts_info = gr.Textbox(label=i18n("TTS推理WebUI进程输出信息"))
                     open_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
                     close_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
-            version_checkbox.change(switch_version,[version_checkbox],[pretrained_s2G,pretrained_s2D,pretrained_s1,GPT_dropdown,SoVITS_dropdown,batch_size,total_epoch,save_every_epoch,text_low_lr_rate])
+            version_checkbox.change(switch_version,[version_checkbox],[pretrained_s2G,pretrained_s2D,pretrained_s1,GPT_dropdown,SoVITS_dropdown,batch_size,total_epoch,save_every_epoch,text_low_lr_rate, if_grad_ckpt])
         with gr.TabItem(i18n("2-GPT-SoVITS-变声")):gr.Markdown(value=i18n("施工中，请静候佳音"))
     app.queue().launch(#concurrency_count=511, max_size=1022
         server_name="0.0.0.0",
