@@ -1,7 +1,7 @@
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
-パワフルな数発音声変換・音声合成 WebUI。<br><br>
+パワフルなFew-Shot音声変換・音声合成 WebUI。<br><br>
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
 
@@ -20,17 +20,17 @@
 
 ## 機能:
 
-1. **ゼロショット TTS:** 5 秒間のボーカルサンプルを入力すると、即座にテキストから音声に変換されます。
+1. **Zero-Shot TTS:** たった5秒間の音声サンプルで、即座にテキストからその音声に変換できます。
 
-2. **数ショット TTS:** わずか 1 分間のトレーニングデータでモデルを微調整し、音声の類似性とリアリズムを向上。
+2. **Few-Shot TTS:** わずか1分間のトレーニングデータでモデルを微調整し、音声のクオリティを向上。
 
-3. **多言語サポート:** 現在、英語、日本語、韓語、粵語、中国語をサポートしています。
+3. **多言語サポート:** 現在、英語、日本語、韓国語、広東語、中国語をサポートしています。
 
-4. **WebUI ツール:** 統合されたツールには、音声伴奏の分離、トレーニングセットの自動セグメンテーション、中国語 ASR、テキストラベリングが含まれ、初心者がトレーニングデータセットと GPT/SoVITS モデルを作成するのを支援します。
+4. **WebUI ツール:** 統合されたツールは、音声と伴奏（BGM等）の分離、トレーニングセットの自動セグメンテーション、ASR（中国語のみ）、テキストラベリング等を含むため、初心者の方でもトレーニングデータセットの作成やGPT/SoVITSモデルのトレーニング等を非常に簡単に行えます。
 
 **[デモ動画](https://www.bilibili.com/video/BV12g4y1m7Uw)をチェック！**
 
-未見の話者数ショット微調整デモ：
+声の事前学習無しかつFew-Shotでトレーニングされたモデルのデモ:
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
@@ -49,7 +49,7 @@ _注記: numba==0.56.4 は py<3.11 が必要です_
 
 ### Windows
 
-Windows ユーザーの方へ（Windows 10 以降でテスト済み）、[統合パッケージをダウンロード](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)し、解凍後に _go-webui.bat_ をダブルクリックすると、GPT-SoVITS-WebUI が起動します。
+Windows ユーザー:（Windows 10 以降でテスト済み）、[統合パッケージをダウンロード](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)し、解凍後に _go-webui.bat_ をダブルクリックすると、GPT-SoVITS-WebUI が起動します。
 
 ### Linux
 
@@ -61,7 +61,7 @@ bash install.sh
 
 ### macOS
 
-**注：MacでGPUを使用して訓練されたモデルは、他のデバイスで訓練されたモデルと比較して著しく品質が低下するため、当面はCPUを使用して訓練します。**
+**注：MacでGPUを使用して訓練されたモデルは、他のデバイスで訓練されたモデルと比較して著しく品質が低下するため、当面はCPUを使用して訓練することを強く推奨します。**
 
 1. `xcode-select --install` を実行して、Xcodeコマンドラインツールをインストールします。
 2. `brew install ffmpeg` を実行してFFmpegをインストールします。
@@ -94,7 +94,7 @@ conda install -c conda-forge 'ffmpeg<7'
 
 ##### Windows ユーザー
 
-[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートディレクトリに置きます。
+[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートフォルダに置きます。
 
 ##### MacOS ユーザー
 ```bash
@@ -111,13 +111,13 @@ pip install -r requirementx.txt
 
 #### docker-compose.yaml の設定
 
-0. イメージのタグについて：コードベースの更新が速く、イメージのパッケージングとテストが遅いため、[Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) で現在パッケージされている最新のイメージをご覧になり、ご自身の状況に応じて選択するか、またはご自身のニーズに応じて Dockerfile を使用してローカルで構築してください。
+0. イメージのタグについて：コードベースの更新が速い割に、イメージのパッケージングとテストが遅いため、[Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) で現在パッケージされている最新のイメージをご覧になり、ご自身の状況に応じて選択するか、またはご自身のニーズに応じて Dockerfile を使用してローカルでビルドしてください。
 1. 環境変数：
 
    - `is_half`：半精度／倍精度の制御。"SSL 抽出"ステップ中に`4-cnhubert/5-wav32k`ディレクトリ内の内容が正しく生成されない場合、通常これが原因です。実際の状況に応じて True または False に調整してください。
 
 2. ボリューム設定：コンテナ内のアプリケーションのルートディレクトリは`/workspace`に設定されます。デフォルトの`docker-compose.yaml`には、アップロード／ダウンロードの内容の実例がいくつか記載されています。
-3. `shm_size`：Windows の Docker Desktop のデフォルトの利用可能メモリが小さすぎるため、異常な動作を引き起こす可能性があります。状況に応じて適宜設定してください。
+3. `shm_size`：Windows の Docker Desktop のデフォルトの利用可能メモリは小さすぎるため、うまく動作しない可能性があります。状況に応じて適宜設定してください。
 4. `deploy`セクションの GPU に関連する内容は、システムと実際の状況に応じて慎重に設定してください。
 
 #### docker compose で実行する
@@ -140,11 +140,11 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 2. [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) からモデルをダウンロードし、解凍して `G2PWModel` にリネームし、`GPT_SoVITS/text` ディレクトリに配置してください。（中国語TTSのみ）
 
-3. UVR5（ボーカル/伴奏分離 & リバーブ除去の追加機能）の場合は、[UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) からモデルをダウンロードし、`tools/uvr5/uvr5_weights` ディレクトリに配置してください。
+3. UVR5（ボーカル/伴奏（BGM等）分離 & リバーブ除去の追加機能）の場合は、[UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) からモデルをダウンロードし、`tools/uvr5/uvr5_weights` ディレクトリに配置してください。
 
 4. 中国語ASR（追加機能）の場合は、[Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files)、[Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files)、および [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください。
 
-5. 英語または日本語のASR（追加機能）の場合は、[Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください。また、[他のモデル](https://huggingface.co/Systran) は、より少ないディスク容量で同様の効果を持つ可能性があります。
+5. 英語または日本語のASR（追加機能）を使用する場合は、[Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください。また、[他のモデル](https://huggingface.co/Systran) は、より小さいサイズで高クオリティな可能性があります。
 
 ## データセット形式
 
@@ -185,11 +185,11 @@ V1に切り替えたい場合は
 ```bash
 python webui.py v1 <言語(オプション)>
 ```
-またはWebUIで手動でバージョンを切り替えます。
+またはWebUIで手動でバージョンを切り替えてください。
 
 ### 微調整
 
-#### パス自動補完がサポートされました
+#### パス自動補完のサポート
 
     1.音声パスを入力する
 
