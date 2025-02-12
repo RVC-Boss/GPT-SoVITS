@@ -285,7 +285,8 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
     with open("./weight.json","w")as f:f.write(json.dumps(data))
 
 
-change_sovits_weights(sovits_path)
+try:next(change_sovits_weights(sovits_path))
+except:pass
 
 def change_gpt_weights(gpt_path):
     global hz, max_sec, t2s_model, config
