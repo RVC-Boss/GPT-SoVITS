@@ -175,3 +175,14 @@
 5. [Commit 8a10147](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3) 広東語ASRのサポートを追加しました。
 6. GPT-SoVITS v2 のサポートを追加しました。
 7. [PR 1387](https://github.com/RVC-Boss/GPT-SoVITS/pull/1387) タイミングロジックを最適化しました。
+
+### 20240821 更新
+
+1. [PR 1490](https://github.com/RVC-Boss/GPT-SoVITS/pull/1490) `fast_inference` ブランチをメインブランチにマージしました。
+2. [Issue 1508](https://github.com/RVC-Boss/GPT-SoVITS/issues/1508) SSMLタグを使用して数字、電話番号、日付、時間などの最適化をサポートしました。
+3. [PR 1503](https://github.com/RVC-Boss/GPT-SoVITS/pull/1503) APIの修正と最適化を行いました。
+4. [PR 1422](https://github.com/RVC-Boss/GPT-SoVITS/pull/1422) 参照音声のミキシングで1つしかアップロードできないバグを修正し、データセットの各種チェックを追加してファイルが欠落している場合に警告を表示するようにしました。
+
+### 20250211 更新
+
+1. [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) GPT-SoVITS v3 モデルを追加しました。

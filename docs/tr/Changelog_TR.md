@@ -130,7 +130,7 @@
 
 #### Büyük Düzeltmeler:
 
-4. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) WebUI'nin GPT ince ayarının, Çince giriş metinlerinin BERT özelliğini okumaması sorununu düzeltti, bu da çıkarım ile tutarsızlığa ve potansiyel kalite düşüşüne neden oluyordu. 
+4. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) WebUI'nin GPT ince ayarının, Çince giriş metinlerinin BERT özelliğini okumaması sorununu düzeltti, bu da çıkarım ile tutarsızlığa ve potansiyel kalite düşüşüne neden oluyordu.
    **Dikkat: Daha önce büyük miktarda veri ile ince ayar yaptıysanız, modelin kalitesini artırmak için yeniden ayar yapmanız önerilir.**
 
 ### 20240706 Güncellemesi
@@ -160,7 +160,7 @@
 
 #### Büyük Düzeltmeler:
 
-4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) sentez için konuşma hızı ayarlamasını destekledi. 
+4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) sentez için konuşma hızı ayarlamasını destekledi.
    Konuşma hızını ayarlarken rastgeleliği dondurmayı etkinleştirdi.
 
 ### 20240806 Güncellemesi
@@ -176,3 +176,14 @@
 5. [Commit 8a10147](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3) Kantonca ASR desteği ekledi.
 6. GPT-SoVITS v2 desteği eklendi.
 7. [PR 1387](https://github.com/RVC-Boss/GPT-SoVITS/pull/1387) zamanlama mantığını optimize etti.
+
+### 20240821 Güncelleme
+
+1. [PR 1490](https://github.com/RVC-Boss/GPT-SoVITS/pull/1490) `fast_inference` dalını ana dala birleştir.
+2. [Issue 1508](https://github.com/RVC-Boss/GPT-SoVITS/issues/1508) SSML etiketlerini kullanarak sayıları, telefon numaralarını, tarihleri ve saatleri optimize etme desteği.
+3. [PR 1503](https://github.com/RVC-Boss/GPT-SoVITS/pull/1503) API düzeltildi ve optimize edildi.
+4. [PR 1422](https://github.com/RVC-Boss/GPT-SoVITS/pull/1422) Karıştırmak için yalnızca bir referans sesi yüklenebiliyordu hatası düzeltildi, çeşitli veri seti kontrolleri eklendi ve eksik dosyalar için uyarılar çıkar.
+
+### 20250211 Güncelleme
+
+1. [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) GPT-SoVITS v3 Modeli eklendi.

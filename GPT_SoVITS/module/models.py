@@ -243,7 +243,7 @@ class TextEncoder(nn.Module):
         )
 
         y = self.ssl_proj(y * y_mask) * y_mask
-     
+
         y = self.encoder_ssl(y * y_mask, y_mask)
 
         text_mask = torch.unsqueeze(
@@ -1139,8 +1139,8 @@ class CFM(torch.nn.Module):
 
 class SynthesizerTrnV3(nn.Module):
     """
-  Synthesizer for Training
-  """
+    Synthesizer for Training
+    """
 
     def __init__(self,
                  spec_channels,
@@ -1187,8 +1187,8 @@ class SynthesizerTrnV3(nn.Module):
         self.model_dim=512
         self.use_sdp = use_sdp
         self.enc_p = TextEncoder(inter_channels,hidden_channels,filter_channels,n_heads,n_layers,kernel_size,p_dropout)
-        # self.ref_enc = modules.MelStyleEncoder(spec_channels, style_vector_dim=gin_channels)###回滚。。。
-        self.ref_enc = modules.MelStyleEncoder(704, style_vector_dim=gin_channels)###回滚。。。
+        # self.ref_enc = modules.MelStyleEncoder(spec_channels, style_vector_dim=gin_channels)###Rollback
+        self.ref_enc = modules.MelStyleEncoder(704, style_vector_dim=gin_channels)###Rollback
         # self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates,
         #                      upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
         # self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, 16,
@@ -1238,7 +1238,7 @@ class SynthesizerTrnV3(nn.Module):
         x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
         fea=self.bridge(x)
         fea = F.interpolate(fea, scale_factor=1.875, mode="nearest")##BCT
-        fea, y_mask_ = self.wns1(fea, mel_lengths, ge)###如果1min微调没问题就不需要微操学习率了
+        fea, y_mask_ = self.wns1(fea, mel_lengths, ge)##If the 1-minute fine-tuning works fine, no need to manually adjust the learning rate.
         B=ssl.shape[0]
         prompt_len_max = mel_lengths*2/3
         prompt_len = (torch.rand([B], device=fea.device) * prompt_len_max).floor().to(dtype=torch.long)
