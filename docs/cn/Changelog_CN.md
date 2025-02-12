@@ -160,9 +160,9 @@
 1-修复无参考文本模式问题
 
 2-优化中英文文本前端
-	
+
 3-api格式优化
-	
+
 4-cmd格式问题修复
 
 5-训练数据处理阶段不支持的语言提示报错
@@ -235,13 +235,15 @@
 ### 20240821
 
 1-fast_inference分支合并进main：https://github.com/RVC-Boss/GPT-SoVITS/pull/1490
- 
+
 2-支持通过ssml标签优化数字、电话、时间日期等：https://github.com/RVC-Boss/GPT-SoVITS/issues/1508
- 
+
 3-api修复优化：https://github.com/RVC-Boss/GPT-SoVITS/pull/1503
- 
+
 4-修复了参考音频混合只能上传一条的bug:https://github.com/RVC-Boss/GPT-SoVITS/pull/1422
- 
+
 5-增加了各种数据集检查,若缺失会弹出warning:https://github.com/RVC-Boss/GPT-SoVITS/pull/1422
 
+### 20250211
 
+1-增加gpt-sovits-v3模型

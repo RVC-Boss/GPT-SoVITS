@@ -75,7 +75,7 @@ def run(rank, n_gpus, hps):
 
     dist.init_process_group(
         backend = "gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
-        init_method="env://",
+        init_method="env://?use_libuv=False",
         world_size=n_gpus,
         rank=rank,
     )
@@ -193,7 +193,7 @@ def run(rank, n_gpus, hps):
 
     try:  # 如果能加载自动resume
         _, _, _, epoch_str = utils.load_checkpoint(
-            utils.latest_checkpoint_path("%s/logs_s2" % hps.data.exp_dir, "D_*.pth"),
+            utils.latest_checkpoint_path("%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "D_*.pth"),
             net_d,
             optim_d,
         )  # D多半加载没事
@@ -201,7 +201,7 @@ def run(rank, n_gpus, hps):
             logger.info("loaded D")
         # _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g,load_opt=0)
         _, _, _, epoch_str = utils.load_checkpoint(
-            utils.latest_checkpoint_path("%s/logs_s2" % hps.data.exp_dir, "G_*.pth"),
+            utils.latest_checkpoint_path("%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "G_*.pth"),
             net_g,
             optim_g,
         )
@@ -455,7 +455,7 @@ def train_and_evaluate(
                 hps.train.learning_rate,
                 epoch,
                 os.path.join(
-                    "%s/logs_s2" % hps.data.exp_dir, "G_{}.pth".format(global_step)
+                    "%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "G_{}.pth".format(global_step)
                 ),
             )
             utils.save_checkpoint(
@@ -464,7 +464,7 @@ def train_and_evaluate(
                 hps.train.learning_rate,
                 epoch,
                 os.path.join(
-                    "%s/logs_s2" % hps.data.exp_dir, "D_{}.pth".format(global_step)
+                    "%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "D_{}.pth".format(global_step)
                 ),
             )
         else:
@@ -474,7 +474,7 @@ def train_and_evaluate(
                 hps.train.learning_rate,
                 epoch,
                 os.path.join(
-                    "%s/logs_s2" % hps.data.exp_dir, "G_{}.pth".format(233333333333)
+                    "%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "G_{}.pth".format(233333333333)
                 ),
             )
             utils.save_checkpoint(
@@ -483,7 +483,7 @@ def train_and_evaluate(
                 hps.train.learning_rate,
                 epoch,
                 os.path.join(
-                    "%s/logs_s2" % hps.data.exp_dir, "D_{}.pth".format(233333333333)
+                    "%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "D_{}.pth".format(233333333333)
                 ),
             )
         if rank == 0 and hps.train.if_save_every_weights == True:
