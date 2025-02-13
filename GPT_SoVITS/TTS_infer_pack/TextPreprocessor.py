@@ -20,7 +20,7 @@ from tools.i18n.i18n import I18nAuto, scan_language_list
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
-punctuation = set(['!', '?', '…', ',', '.', '-'," "])
+punctuation = set(['!', '?', '…', ',', '.', '-'])
 
 def get_first(text:str) -> str:
     pattern = "[" + "".join(re.escape(sep) for sep in splits) + "]"
@@ -119,12 +119,8 @@ class TextPreprocessor:
     def get_phones_and_bert(self, text:str, language:str, version:str, final:bool=False):
         if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
             language = language.replace("all_","")
-            if language == "en":
-                LangSegment.setfilters(["en"])
-                formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
-            else:
-                # 因无法区别中日韩文汉字,以用户输入为准
-                formattext = text
+            # 去掉了不必要的过滤器
+            formattext = text
             while "  " in formattext:
                 formattext = formattext.replace("  ", " ")
             if language == "zh":
