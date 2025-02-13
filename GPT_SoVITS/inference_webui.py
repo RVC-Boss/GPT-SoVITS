@@ -242,7 +242,7 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
             visible_inp_refs=True
         yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "value": False,"interactive":True if model_version!="v3"else False}
 
-    dict_s2 = torch.load(sovits_path, map_location="cpu")
+    dict_s2 = torch.load(sovits_path, map_location="cpu", weights_only=False)
     hps = dict_s2["config"]
     hps = DictToAttrRecursive(hps)
     hps.model.semantic_frame_rate = "25hz"
