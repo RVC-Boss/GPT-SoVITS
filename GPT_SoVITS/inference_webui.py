@@ -223,6 +223,7 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         version = "v2"
         model_version="v3"
 
+    dict_language = dict_language_v1 if version =='v1' else dict_language_v2
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
             prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
@@ -277,7 +278,6 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         vq_model = vq_model.to(device)
     vq_model.eval()
     print("loading sovits_%s"%model_version,vq_model.load_state_dict(dict_s2["weight"], strict=False))
-    dict_language = dict_language_v1 if version =='v1' else dict_language_v2
     with open("./weight.json")as f:
         data=f.read()
         data=json.loads(data)
