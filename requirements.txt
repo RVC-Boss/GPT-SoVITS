@@ -23,7 +23,7 @@ PyYAML
 psutil
 jieba_fast
 jieba
-LangSegment>=0.2.0
+split-lang
 Faster_Whisper
 wordsegment
 rotary_embedding_torch
