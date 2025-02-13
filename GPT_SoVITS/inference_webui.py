@@ -649,8 +649,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 fea = torch.cat([fea_ref, fea_todo_chunk], 2).transpose(2, 1)
                 cfm_res = vq_model.cfm.inference(fea, torch.LongTensor([fea.size(1)]).to(fea.device), mel2, sample_steps, inference_cfg_rate=0)
                 cfm_res = cfm_res[:, :, mel2.shape[2]:]
-                mel2 = cfm_res[:, :, -468:]
-                fea_ref = fea_todo_chunk[:, :, -468:]
+                mel2 = cfm_res[:, :, -T_min:]
+                fea_ref = fea_todo_chunk[:, :, -T_min:]
                 cfm_resss.append(cfm_res)
             cmf_res = torch.cat(cfm_resss, 2)
             cmf_res = denorm_spec(cmf_res)
