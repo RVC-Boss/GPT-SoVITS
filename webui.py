@@ -112,8 +112,8 @@ def set_default():
     else:
         default_sovits_epoch=2
         default_sovits_save_every_epoch=1
-        max_sovits_epoch=6
-        max_sovits_save_every_epoch=6
+        max_sovits_epoch=3
+        max_sovits_save_every_epoch=3
     default_max_batch_size=default_batch_size*3
 
 set_default()
