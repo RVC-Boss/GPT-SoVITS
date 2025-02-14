@@ -140,8 +140,7 @@ pretrained_model_list = (pretrained_sovits_name[int(version[-1])-1],pretrained_s
 
 _=''
 for i in pretrained_model_list:
-    if os.path.exists(i):...
-    else:_+=f'\n    {i}'
+    if "s2Dv3"not in i and os.path.exists(i)==False:_+=f'\n    {i}'
 if _:
     print("warning:",i18n('以下模型不存在:')+_)
 
