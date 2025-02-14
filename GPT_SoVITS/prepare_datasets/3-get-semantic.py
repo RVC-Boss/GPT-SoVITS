@@ -9,7 +9,21 @@ if "_CUDA_VISIBLE_DEVICES" in os.environ:
 opt_dir = os.environ.get("opt_dir")
 pretrained_s2G = os.environ.get("pretrained_s2G")
 s2config_path = os.environ.get("s2config_path")
-version=os.environ.get("version","v2")
+
+if os.path.exists(pretrained_s2G):...
+else:raise FileNotFoundError(pretrained_s2G)
+# version=os.environ.get("version","v2")
+size = os.path.getsize(pretrained_s2G)
+if size < 82978 * 1024:
+    version = "v1"
+elif size < 100 * 1024 * 1024:
+    version = "v2"
+elif size < 103520 * 1024:
+    version = "v1"
+elif size < 700 * 1024 * 1024:
+    version = "v2"
+else:
+    version = "v3"
 import torch
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 import math, traceback
@@ -23,7 +37,10 @@ import torch.multiprocessing as mp
 from glob import glob
 from tqdm import tqdm
 import logging, librosa, utils
-from module.models import SynthesizerTrn
+if version!="v3":
+    from module.models import SynthesizerTrn
+else:
+    from module.models import SynthesizerTrnV3 as SynthesizerTrn
 from tools.my_utils import clean_path
 logging.getLogger("numba").setLevel(logging.WARNING)
 # from config import pretrained_s2G
@@ -35,8 +52,6 @@ logging.getLogger("numba").setLevel(logging.WARNING)
 # os.environ["CUDA_VISIBLE_DEVICES"]=sys.argv[5]
 # opt_dir="/data/docker/liujing04/gpt-vits/fine_tune_dataset/%s"%exp_name
 
-if os.path.exists(pretrained_s2G):...
-else:raise FileNotFoundError(pretrained_s2G)
 
 hubert_dir = "%s/4-cnhubert" % (opt_dir)
 semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
