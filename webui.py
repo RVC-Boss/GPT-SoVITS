@@ -1,6 +1,12 @@
 import os,sys
-if len(sys.argv)==1:sys.argv.append('v2')
-version="v1"if sys.argv[1]=="v1" else"v2"
+if len(sys.argv) == 1:
+    sys.argv.append('v3')  # 将默认版本修改为 v3
+if sys.argv[1] == 'v1':
+    version = 'v1'
+elif sys.argv[1] == 'v2':
+    version = 'v2'
+else:
+    version = 'v3'
 os.environ["version"]=version
 now_dir = os.getcwd()
 sys.path.insert(0, now_dir)
