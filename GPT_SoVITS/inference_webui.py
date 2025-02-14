@@ -18,9 +18,10 @@ logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 logging.getLogger("multipart.multipart").setLevel(logging.ERROR)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-import LangSegment, os, re, sys, json
+import os, re, sys, json
 import pdb
 import torch
+from text.LangSegmenter import LangSegmenter
 
 try:
     import gradio.analytics as analytics
@@ -380,8 +381,7 @@ def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")
         if language == "en":
-            LangSegment.setfilters(["en"])
-            formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
+            formattext = text
         else:
             # 因无法区别中日韩文汉字,以用户输入为准
             formattext = text
@@ -408,19 +408,18 @@ def get_phones_and_bert(text,language,version,final=False):
     elif language in {"zh", "ja", "ko", "yue", "auto", "auto_yue"}:
         textlist=[]
         langlist=[]
-        LangSegment.setfilters(["zh","ja","en","ko"])
         if language == "auto":
-            for tmp in LangSegment.getTexts(text):
+            for tmp in LangSegmenter.getTexts(text):
                 langlist.append(tmp["lang"])
                 textlist.append(tmp["text"])
         elif language == "auto_yue":
-            for tmp in LangSegment.getTexts(text):
+            for tmp in LangSegmenter.getTexts(text):
                 if tmp["lang"] == "zh":
                     tmp["lang"] = "yue"
                 langlist.append(tmp["lang"])
                 textlist.append(tmp["text"])
         else:
-            for tmp in LangSegment.getTexts(text):
+            for tmp in LangSegmenter.getTexts(text):
                 if tmp["lang"] == "en":
                     langlist.append(tmp["lang"])
                 else:
