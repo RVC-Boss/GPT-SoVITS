@@ -7,7 +7,7 @@ sys.path.append(now_dir)
 
 import re
 import torch
-import LangSegment
+from text.LangSegmenter import LangSegmenter
 from text import chinese
 from typing import Dict, List, Tuple
 from text.cleaner import clean_text
@@ -20,7 +20,7 @@ from tools.i18n.i18n import I18nAuto, scan_language_list
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
-punctuation = set(['!', '?', '…', ',', '.', '-'," "])
+punctuation = set(['!', '?', '…', ',', '.', '-'])
 
 def get_first(text:str) -> str:
     pattern = "[" + "".join(re.escape(sep) for sep in splits) + "]"
@@ -119,12 +119,7 @@ class TextPreprocessor:
     def get_phones_and_bert(self, text:str, language:str, version:str, final:bool=False):
         if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
             language = language.replace("all_","")
-            if language == "en":
-                LangSegment.setfilters(["en"])
-                formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
-            else:
-                # 因无法区别中日韩文汉字,以用户输入为准
-                formattext = text
+            formattext = text
             while "  " in formattext:
                 formattext = formattext.replace("  ", " ")
             if language == "zh":
@@ -148,19 +143,18 @@ class TextPreprocessor:
         elif language in {"zh", "ja", "ko", "yue", "auto", "auto_yue"}:
             textlist=[]
             langlist=[]
-            LangSegment.setfilters(["zh","ja","en","ko"])
             if language == "auto":
-                for tmp in LangSegment.getTexts(text):
+                for tmp in LangSegmenter.getTexts(text):
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "auto_yue":
-                for tmp in LangSegment.getTexts(text):
+                for tmp in LangSegmenter.getTexts(text):
                     if tmp["lang"] == "zh":
                         tmp["lang"] = "yue"
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             else:
-                for tmp in LangSegment.getTexts(text):
+                for tmp in LangSegmenter.getTexts(text):
                     if tmp["lang"] == "en":
                         langlist.append(tmp["lang"])
                     else:

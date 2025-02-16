@@ -135,7 +135,7 @@ def cut3(inp):
 @register_method("cut4")
 def cut4(inp):
     inp = inp.strip("\n")
-    opts = ["%s" % item for item in inp.strip(".").split(".")]
+    opts = re.split(r'(?<!\d)\.(?!\d)', inp.strip("."))
     opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
