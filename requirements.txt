@@ -35,3 +35,4 @@ opencc==1.1.1; sys_platform == 'linux'
 python_mecab_ko; sys_platform != 'win32'
 fastapi<0.112.2
 x_transformers
+torchmetrics<=1.5
