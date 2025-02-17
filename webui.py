@@ -103,7 +103,7 @@ def set_default():
         gpu_info = ("%s\t%s" % ("0", "CPU"))
         gpu_infos.append("%s\t%s" % ("0", "CPU"))
         set_gpu_numbers.add(0)
-        default_batch_size = default_batch_size_s1 = max(1, int(psutil.virtual_memory().total / 1024 / 1024 / 1024 / 4))
+        default_batch_size = default_batch_size_s1 = int(psutil.virtual_memory().total/ 1024 / 1024 / 1024 / 4)
     if version!="v3":
         default_sovits_epoch=8
         default_sovits_save_every_epoch=4
@@ -114,6 +114,9 @@ def set_default():
         default_sovits_save_every_epoch=1
         max_sovits_epoch=3
         max_sovits_save_every_epoch=3
+    
+    default_batch_size = max(1, default_batch_size)
+    default_batch_size_s1 = max(1, default_batch_size_s1)
     default_max_batch_size=default_batch_size*3
 
 set_default()
