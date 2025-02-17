@@ -380,11 +380,7 @@ from text import chinese
 def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         language = language.replace("all_","")
-        if language == "en":
-            formattext = text
-        else:
-            # 因无法区别中日韩文汉字,以用户输入为准
-            formattext = text
+        formattext = text
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
         if language == "zh":
@@ -738,7 +734,7 @@ def cut3(inp):
 
 def cut4(inp):
     inp = inp.strip("\n")
-    opts = ["%s" % item for item in inp.strip(".").split(".")]
+    opts = re.split(r'(?<!\d)\.(?!\d)', inp.strip("."))
     opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 

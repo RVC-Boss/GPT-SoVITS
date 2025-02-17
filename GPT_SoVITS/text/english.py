@@ -10,7 +10,7 @@ from text.symbols2 import symbols
 
 import unicodedata
 from builtins import str as unicode
-from g2p_en.expand import normalize_numbers
+from text.en_normalization.expend import normalize
 from nltk.tokenize import TweetTokenizer
 word_tokenize = TweetTokenizer().tokenize
 from nltk import pos_tag
@@ -21,6 +21,17 @@ CMU_DICT_FAST_PATH = os.path.join(current_file_path, "cmudict-fast.rep")
 CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
 CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
 NAMECACHE_PATH = os.path.join(current_file_path, "namedict_cache.pickle")
+
+
+# 适配中文及 g2p_en 标点
+rep_map = {
+    "[;:：，；]": ",",
+    '["’]': "'",
+    "。": ".",
+    "！": "!",
+    "？": "?",
+}
+
 
 arpa = {
     "AH0",
@@ -220,32 +231,16 @@ def get_namedict():
 
 def text_normalize(text):
     # todo: eng text normalize
-    # 适配中文及 g2p_en 标点
-    rep_map = {
-        "[;:：，；]": ",",
-        '["’]': "'",
-        "。": ".",
-        "！": "!",
-        "？": "?",
-    }
-    for p, r in rep_map.items():
-        text = re.sub(p, r, text)
 
-    # 来自 g2p_en 文本格式化处理
-    # 增加大写兼容
-    # 增加纯大写单词拆分
+    # 效果相同，和 chinese.py 保持一致
+    pattern = re.compile("|".join(re.escape(p) for p in rep_map.keys()))
+    text = pattern.sub(lambda x: rep_map[x.group()], text)
+
     text = unicode(text)
-    text = normalize_numbers(text)
-    text = ''.join(char for char in unicodedata.normalize('NFD', text)
-                    if unicodedata.category(char) != 'Mn')  # Strip accents
-    text = re.sub("[^ A-Za-z'.,?!\-]", "", text)
-    text = re.sub(r"(?i)i\.e\.", "that is", text)
-    text = re.sub(r"(?i)e\.g\.", "for example", text)
-    text = re.sub(r'(?<!^)(?<![\s])([A-Z])', r' \1', text)
+    text = normalize(text)
 
     # 避免重复标点引起的参考泄露
     text = replace_consecutive_punctuation(text)
-
     return text
 
 
