@@ -2,6 +2,7 @@ from functools import wraps
 from packaging import version
 from collections import namedtuple
 
+import os
 import torch
 from torch import nn, einsum
 import torch.nn.functional as F
@@ -59,12 +60,17 @@ class Attend(nn.Module):
             return
 
         device_properties = torch.cuda.get_device_properties(torch.device('cuda'))
+        device_version = version.parse(f'{device_properties.major}.{device_properties.minor}')
 
-        if device_properties.major == 8 and device_properties.minor == 0:
-            print_once('A100 GPU detected, using flash attention if input tensor is on cuda')
-            self.cuda_config = FlashAttentionConfig(True, False, False)
+        if device_version >= version.parse('8.0'):
+            if os.name == 'nt':
+                print_once('Windows OS detected, using math or mem efficient attention if input tensor is on cuda')
+                self.cuda_config = FlashAttentionConfig(False, True, True)
+            else:
+                print_once('GPU Compute Capability equal or above 8.0, using flash attention if input tensor is on cuda')
+                self.cuda_config = FlashAttentionConfig(True, False, False)
         else:
-            print_once('Non-A100 GPU detected, using math or mem efficient attention if input tensor is on cuda')
+            print_once('GPU Compute Capability below 8.0, using math or mem efficient attention if input tensor is on cuda')
             self.cuda_config = FlashAttentionConfig(False, True, True)
 
     def flash_attn(self, q, k, v):
