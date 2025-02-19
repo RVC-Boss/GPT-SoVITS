@@ -9,7 +9,7 @@ echo "Installing ffmpeg and cmake..."
 conda install ffmpeg cmake
 
 echo "Checking for CUDA installation..."
-if command -v nvcc &> /dev/null; then
+if command -v nvidia-smi &> /dev/null; then
     USE_CUDA=true
     echo "CUDA found."
 else
