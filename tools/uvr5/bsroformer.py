@@ -210,16 +210,9 @@ class Roformer_Loader:
             print('Error message: {}'.format(str(e)))
             return
 
-        # in case if model only supports mono or stereo
+        # in case if model only supports mono tracks
         isstereo = self.config["model"].get("stereo", True)
-        if isstereo and len(mix.shape) == 1:
-            mix = np.stack([mix, mix], axis=0)
-            print("Warning: Track is mono, but model is stereo, adding a second channel.")
-        elif isstereo and len(mix.shape) > 2:
-            mix = np.mean(mix, axis=0) # if more than 2 channels, take mean
-            mix = np.stack([mix, mix], axis=0)
-            print("Warning: Track has more than 2 channels, taking mean of all channels and adding a second channel.")
-        elif not isstereo and len(mix.shape) != 1:
+        if not isstereo and len(mix.shape) != 1:
             mix = np.mean(mix, axis=0) # if more than 2 channels, take mean
             print("Warning: Track has more than 1 channels, but model is mono, taking mean of all channels.")
 
