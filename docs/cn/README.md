@@ -112,15 +112,6 @@ brew install ffmpeg
 pip install -r requirements.txt
 ```
 
-##### 使用AMD显卡
-
-在安装完依赖以后
-
-```bash
-pip3 uninstall torch torchvision torchaudio
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2.4
-```
-
 ### 在 Docker 中使用
 
 #### docker-compose.yaml 设置
