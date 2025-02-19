@@ -115,15 +115,6 @@ brew install ffmpeg
 pip install -r requirements.txt
 ```
 
-##### AMD GPU only
-
-After installed the dependences above 
-
-```bash
-pip3 uninstall torch torchvision torchaudio
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2.4
-```
-
 ### Using Docker
 
 #### docker-compose.yaml configuration
