@@ -250,7 +250,7 @@ class Roformer_Loader:
             sf.write(path, data, sr)
         else:
             sf.write(path, data, sr)
-            os.system("ffmpeg -i '{}' -vn '{}' -q:a 2 -y".format(path, path[:-3] + format))
+            os.system("ffmpeg -i \"{}\" -vn \"{}\" -q:a 2 -y".format(path, path[:-3] + format))
             try: os.remove(path)
             except: pass
 
