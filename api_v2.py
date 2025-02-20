@@ -22,7 +22,7 @@ POST:
 ```json
 {
     "text": "",                   # str.(required) text to be synthesized
-    "text_lang: "",               # str.(required) language of the text to be synthesized
+    "text_lang": "",              # str.(required) language of the text to be synthesized
     "ref_audio_path": "",         # str.(required) reference audio path
     "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
     "prompt_text": "",            # str.(optional) prompt text for the reference audio
@@ -33,7 +33,7 @@ POST:
     "text_split_method": "cut0",  # str. text split method, see text_segmentation_method.py for details.
     "batch_size": 1,              # int. batch size for inference
     "batch_threshold": 0.75,      # float. threshold for batch splitting.
-    "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
+    "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
     "speed_factor":1.0,           # float. control the speed of the synthesized audio.
     "streaming_mode": False,      # bool. whether to return a streaming response.
     "seed": -1,                   # int. random seed for reproducibility.
@@ -276,7 +276,7 @@ async def tts_handle(req:dict):
         req (dict): 
             {
                 "text": "",                   # str.(required) text to be synthesized
-                "text_lang: "",               # str.(required) language of the text to be synthesized
+                "text_lang": "",              # str.(required) language of the text to be synthesized
                 "ref_audio_path": "",         # str.(required) reference audio path
                 "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker synthesis
                 "prompt_text": "",            # str.(optional) prompt text for the reference audio
@@ -287,7 +287,7 @@ async def tts_handle(req:dict):
                 "text_split_method": "cut5",  # str. text split method, see text_segmentation_method.py for details.
                 "batch_size": 1,              # int. batch size for inference
                 "batch_threshold": 0.75,      # float. threshold for batch splitting.
-                "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
+                "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
                 "speed_factor":1.0,           # float. control the speed of the synthesized audio.
                 "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
                 "seed": -1,                   # int. random seed for reproducibility.
