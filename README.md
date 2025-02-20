@@ -265,6 +265,11 @@ Use v2 from v1 environment:
   - [x] Localization in Japanese and English.
   - [x] User guide.
   - [x] Japanese and English dataset fine tune training.
+  - [ ] Appending other languages
+    - [ ] 'fa': Persian
+    - [ ] 'pt': Pashto
+    - [ ] 'tr': Turkish
+    - [ ] 'ar': Arebic
 
 - [ ] **Features:**
   - [x] Zero-shot voice conversion (5s) / few-shot voice conversion (1min).
