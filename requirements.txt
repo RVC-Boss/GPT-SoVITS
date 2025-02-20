@@ -35,6 +35,7 @@ ko_pron
 opencc; sys_platform != 'linux'
 opencc==1.1.1; sys_platform == 'linux'
 python_mecab_ko; sys_platform != 'win32'
+gradio-i18n
 fastapi<0.112.2
 x_transformers
 torchmetrics<=1.5

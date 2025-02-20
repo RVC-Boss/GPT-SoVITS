@@ -32,12 +32,12 @@ is_share=eval(sys.argv[4])
 
 def html_left(text, label='p'):
     return f"""<div style="text-align: left; margin: 0; padding: 0;">
-                <{label} style="margin: 0; padding: 0;">{text}</{label}>
+                <{label} style="margin: 0; padding: 0;">""" + text + f"""</{label}>
                 </div>"""
 
 def html_center(text, label='p'):
     return f"""<div style="text-align: center; margin: 100; padding: 50;">
-                <{label} style="margin: 0; padding: 0;">{text}</{label}>
+                <{label} style="margin: 0; padding: 0;">""" + text + f"""</{label}>
                 </div>"""
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
@@ -199,6 +199,8 @@ with gr.Blocks(title="UVR5 WebUI") as app:
                         [vc_output4],
                         api_name="uvr_convert",
                     )
+
+    i18n.translate_blocks(app)
 app.queue().launch(#concurrency_count=511, max_size=1022
     server_name="0.0.0.0",
     inbrowser=True,
