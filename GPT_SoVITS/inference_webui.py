@@ -28,8 +28,11 @@ try:
     analytics.version_check = lambda:None
 except:...
 version=model_version=os.environ.get("version","v2")
-pretrained_sovits_name=["GPT_SoVITS/pretrained_models/s2G488k.pth", "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth","GPT_SoVITS/pretrained_models/s2Gv3.pth"]
+path_sovits_v3="GPT_SoVITS/pretrained_models/s2Gv3.pth"
+is_exist_s2gv3=os.path.exists(path_sovits_v3)
+pretrained_sovits_name=["GPT_SoVITS/pretrained_models/s2G488k.pth", "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",path_sovits_v3]
 pretrained_gpt_name=["GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt","GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt", "GPT_SoVITS/pretrained_models/s1v3.ckpt"]
+
 
 
 _ =[[],[]]
@@ -73,6 +76,7 @@ is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+# is_half=False
 punctuation = set(['!', '?', '…', ',', '.', '-'," "])
 import gradio as gr
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -83,13 +87,26 @@ from feature_extractor import cnhubert
 cnhubert.cnhubert_base_path = cnhubert_base_path
 
 from GPT_SoVITS.module.models import SynthesizerTrn,SynthesizerTrnV3
+import numpy as np
+import random
+def set_seed(seed):
+    if seed == -1:
+        seed = random.randint(0, 1000000)
+    seed = int(seed)
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+# set_seed(42)
+
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from time import time as ttime
-from module.mel_processing import spectrogram_torch
 from tools.my_utils import load_audio
 from tools.i18n.i18n import I18nAuto, scan_language_list
+from peft import LoraConfig, PeftModel, get_peft_model
 
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -192,38 +209,17 @@ def resample(audio_tensor, sr0):
         ).to(device)
     return resample_transform_dict[sr0](audio_tensor)
 
+###todo:put them to process_ckpt and modify my_save func (save sovits weights), gpt save weights use my_save in process_ckpt
+#symbol_version-model_version-if_lora_v3
+from process_ckpt import get_sovits_version_from_path_fast,load_sovits_new
 def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
-    global vq_model, hps, version, model_version, dict_language
-    '''
-        v1:about 82942KB
-        half thr:82978KB
-        v2:about 83014KB
-        half thr:100MB
-        v1base:103490KB
-        half thr:103520KB
-        v2base:103551KB
-        v3:about 750MB
-        
-        ~82978K~100M~103420~700M
-        v1-v2-v1base-v2base-v3
-        version:
-            symbols version and timebre_embedding version
-        model_version:
-            sovits is v1/2 (VITS) or v3 (shortcut CFM DiT)
-    '''
-    size=os.path.getsize(sovits_path)
-    if size<82978*1024:
-        model_version=version="v1"
-    elif size<100*1024*1024:
-        model_version=version="v2"
-    elif size<103520*1024:
-        model_version=version="v1"
-    elif size<700*1024*1024:
-        model_version = version = "v2"
-    else:
-        version = "v2"
-        model_version="v3"
-
+    global vq_model, hps, version, model_version, dict_language,if_lora_v3
+    version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
+    # print(sovits_path,version, model_version, if_lora_v3)
+    if if_lora_v3==True and is_exist_s2gv3==False:
+        info=i18n("GPT_SoVITS/pretrained_models/s2Gv3.pth v3sovits的底模没下载对，识别为v3sovits的lora没法加载")
+        gr.Warning(info)
+        raise FileExistsError(info)
     dict_language = dict_language_v1 if version =='v1' else dict_language_v2
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
@@ -244,11 +240,13 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
             visible_inp_refs=True
         yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "value": False,"interactive":True if model_version!="v3"else False}
 
-    dict_s2 = torch.load(sovits_path, map_location="cpu", weights_only=False)
+    dict_s2 = load_sovits_new(sovits_path)
     hps = dict_s2["config"]
     hps = DictToAttrRecursive(hps)
     hps.model.semantic_frame_rate = "25hz"
-    if dict_s2['weight']['enc_p.text_embedding.weight'].shape[0] == 322:
+    if 'enc_p.text_embedding.weight'not in dict_s2['weight']:
+        hps.model.version = "v2"#v3model,v2sybomls
+    elif dict_s2['weight']['enc_p.text_embedding.weight'].shape[0] == 322:
         hps.model.version = "v1"
     else:
         hps.model.version = "v2"
@@ -278,7 +276,23 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
     else:
         vq_model = vq_model.to(device)
     vq_model.eval()
-    print("loading sovits_%s"%model_version,vq_model.load_state_dict(dict_s2["weight"], strict=False))
+    if if_lora_v3==False:
+        print("loading sovits_%s"%model_version,vq_model.load_state_dict(dict_s2["weight"], strict=False))
+    else:
+        print("loading sovits_v3pretrained_G", vq_model.load_state_dict(load_sovits_new(path_sovits_v3)["weight"], strict=False))
+        lora_rank=dict_s2["lora_rank"]
+        lora_config = LoraConfig(
+            target_modules=["to_k", "to_q", "to_v", "to_out.0"],
+            r=lora_rank,
+            lora_alpha=lora_rank,
+            init_lora_weights=True,
+        )
+        vq_model.cfm = get_peft_model(vq_model.cfm, lora_config)
+        print("loading sovits_v3_lora%s"%(lora_rank),vq_model.load_state_dict(dict_s2["weight"], strict=False))
+        vq_model.cfm = vq_model.cfm.merge_and_unload()
+        # torch.save(vq_model.state_dict(),"merge_win.pth")
+        vq_model.eval()
+
     with open("./weight.json")as f:
         data=f.read()
         data=json.loads(data)
@@ -333,7 +347,8 @@ else:init_bigvgan()
 
 
 def get_spepc(hps, filename):
-    audio = load_audio(filename, int(hps.data.sampling_rate))
+    # audio = load_audio(filename, int(hps.data.sampling_rate))
+    audio, sampling_rate = librosa.load(filename, sr=int(hps.data.sampling_rate))
     audio = torch.FloatTensor(audio)
     maxx=audio.abs().max()
     if(maxx>1):audio/=min(2,maxx)
@@ -443,11 +458,7 @@ def get_phones_and_bert(text,language,version,final=False):
 
     return phones,bert.to(dtype),norm_text
 
-from module.mel_processing import spectrogram_torch,spec_to_mel_torch
-def mel_spectrogram(y, n_fft, num_mels, sampling_rate, hop_size, win_size, fmin, fmax, center=False):
-    spec=spectrogram_torch(y,n_fft,sampling_rate,hop_size,win_size,center)
-    mel=spec_to_mel_torch(spec,n_fft,num_mels,sampling_rate,fmin,fmax)
-    return mel
+from module.mel_processing import spectrogram_torch,mel_spectrogram_torch
 mel_fn_args = {
     "n_fft": 1024,
     "win_size": 1024,
@@ -465,7 +476,7 @@ def norm_spec(x):
     return (x - spec_min) / (spec_max - spec_min) * 2 - 1
 def denorm_spec(x):
     return (x + 1) / 2 * (spec_max - spec_min) + spec_min
-mel_fn=lambda x: mel_spectrogram(x, **mel_fn_args)
+mel_fn=lambda x: mel_spectrogram_torch(x, **mel_fn_args)
 
 
 def merge_short_text_in_array(texts, threshold):
@@ -617,6 +628,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
             refer = get_spepc(hps, ref_wav_path).to(device).to(dtype)#######这里要重采样切到32k,因为src是24k的，没有单独的32k的src，所以不能改成2个路径
             phoneme_ids0=torch.LongTensor(phones1).to(device).unsqueeze(0)
             phoneme_ids1=torch.LongTensor(phones2).to(device).unsqueeze(0)
+            # print(11111111, phoneme_ids0, phoneme_ids1)
             fea_ref,ge = vq_model.decode_encp(prompt.unsqueeze(0), phoneme_ids0, refer)
             ref_audio, sr = torchaudio.load(ref_wav_path)
             ref_audio=ref_audio.to(device).float()
@@ -624,7 +636,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 ref_audio = ref_audio.mean(0).unsqueeze(0)
             if sr!=24000:
                 ref_audio=resample(ref_audio,sr)
-            mel2 = mel_fn(ref_audio.to(dtype))
+            # print("ref_audio",ref_audio.abs().mean())
+            mel2 = mel_fn(ref_audio)
             mel2 = norm_spec(mel2)
             T_min = min(mel2.shape[2], fea_ref.shape[2])
             mel2 = mel2[:, :, :T_min]
@@ -634,7 +647,12 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 fea_ref = fea_ref[:, :, -468:]
                 T_min = 468
             chunk_len = 934 - T_min
+            # print("fea_ref",fea_ref,fea_ref.shape)
+            # print("mel2",mel2)
+            mel2=mel2.to(dtype)
             fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge)
+            # print("fea_todo",fea_todo)
+            # print("ge",ge.abs().mean())
             cfm_resss = []
             idx = 0
             while (1):
@@ -642,9 +660,12 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 if (fea_todo_chunk.shape[-1] == 0): break
                 idx += chunk_len
                 fea = torch.cat([fea_ref, fea_todo_chunk], 2).transpose(2, 1)
+                # set_seed(123)
                 cfm_res = vq_model.cfm.inference(fea, torch.LongTensor([fea.size(1)]).to(fea.device), mel2, sample_steps, inference_cfg_rate=0)
                 cfm_res = cfm_res[:, :, mel2.shape[2]:]
                 mel2 = cfm_res[:, :, -T_min:]
+                # print("fea", fea)
+                # print("mel2in", mel2)
                 fea_ref = fea_todo_chunk[:, :, -T_min:]
                 cfm_resss.append(cfm_res)
             cmf_res = torch.cat(cfm_resss, 2)
@@ -653,8 +674,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
             with torch.inference_mode():
                 wav_gen = model(cmf_res)
                 audio=wav_gen[0][0].cpu().detach().numpy()
-            max_audio=np.abs(audio).max()#简单防止16bit爆音
-            if max_audio>1:audio/=max_audio
+        max_audio=np.abs(audio).max()#简单防止16bit爆音
+        if max_audio>1:audio/=max_audio
         audio_opt.append(audio)
         audio_opt.append(zero_wav)
         t4 = ttime()
