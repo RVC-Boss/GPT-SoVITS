@@ -98,25 +98,25 @@ def set_default():
     if if_gpu_ok and len(gpu_infos) > 0:
         gpu_info = "\n".join(gpu_infos)
         minmem = min(mem)
-        if version == "v3" and minmem < 14:
-            # API读取不到共享显存,直接填充确认
-            try:
-                torch.zeros((1024,1024,1024,14),dtype=torch.int8,device="cuda")
-                torch.cuda.empty_cache()
-                minmem = 14
-            except RuntimeError as _:
-                # 强制梯度检查只需要12G显存
-                if minmem >= 12 :
-                    if_force_ckpt = True
-                    minmem = 14
-                else:
-                    try:
-                        torch.zeros((1024,1024,1024,12),dtype=torch.int8,device="cuda")
-                        torch.cuda.empty_cache()
-                        if_force_ckpt = True
-                        minmem = 14
-                    except RuntimeError as _:  
-                        print("显存不足以开启V3训练")
+        # if version == "v3" and minmem < 14:
+        #     # API读取不到共享显存,直接填充确认
+        #     try:
+        #         torch.zeros((1024,1024,1024,14),dtype=torch.int8,device="cuda")
+        #         torch.cuda.empty_cache()
+        #         minmem = 14
+        #     except RuntimeError as _:
+        #         # 强制梯度检查只需要12G显存
+        #         if minmem >= 12 :
+        #             if_force_ckpt = True
+        #             minmem = 14
+        #         else:
+        #             try:
+        #                 torch.zeros((1024,1024,1024,12),dtype=torch.int8,device="cuda")
+        #                 torch.cuda.empty_cache()
+        #                 if_force_ckpt = True
+        #                 minmem = 14
+        #             except RuntimeError as _:
+        #                 print("显存不足以开启V3训练")
         default_batch_size = minmem // 2 if version!="v3"else minmem//14
         default_batch_size_s1=minmem // 2
     else:
@@ -127,13 +127,13 @@ def set_default():
     if version!="v3":
         default_sovits_epoch=8
         default_sovits_save_every_epoch=4
-        max_sovits_epoch=25
-        max_sovits_save_every_epoch=25
+        max_sovits_epoch=25#40
+        max_sovits_save_every_epoch=25#10
     else:
         default_sovits_epoch=2
         default_sovits_save_every_epoch=1
-        max_sovits_epoch=3
-        max_sovits_save_every_epoch=3
+        max_sovits_epoch=3#40
+        max_sovits_save_every_epoch=3#10
     
     default_batch_size = max(1, default_batch_size)
     default_batch_size_s1 = max(1, default_batch_size_s1)
@@ -350,7 +350,7 @@ def close_denoise():
     return "已终止语音降噪进程", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
 
 p_train_SoVITS=None
-def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt):
+def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt,lora_rank):
     global p_train_SoVITS
     if(p_train_SoVITS==None):
         with open("GPT_SoVITS/configs/s2.json")as f:
@@ -373,6 +373,7 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         data["train"]["save_every_epoch"]=save_every_epoch
         data["train"]["gpu_numbers"]=gpu_numbers1Ba
         data["train"]["grad_ckpt"]=if_grad_ckpt
+        data["train"]["lora_rank"]=lora_rank
         data["model"]["version"]=version
         data["data"]["exp_dir"]=data["s2_ckpt_dir"]=s2_dir
         data["save_weight_dir"]=SoVITS_weight_root[int(version[-1])-1]
@@ -383,7 +384,7 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         if version in ["v1","v2"]:
             cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
         else:
-            cmd = '"%s" GPT_SoVITS/s2_train_v3.py --config "%s"'%(python_exec,tmp_config_path)
+            cmd = '"%s" GPT_SoVITS/s2_train_v3_lora.py --config "%s"'%(python_exec,tmp_config_path)
         yield "SoVITS训练开始：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
@@ -803,7 +804,7 @@ def switch_version(version_):
     else:
         gr.Warning(i18n(f'未下载{version.upper()}模型'))
     set_default()
-    return  {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]},{'__type__':'update',"value":default_batch_size,"maximum":default_max_batch_size},{'__type__':'update',"value":default_sovits_epoch,"maximum":max_sovits_epoch},{'__type__':'update',"value":default_sovits_save_every_epoch,"maximum":max_sovits_save_every_epoch},{'__type__':'update',"interactive":True if version!="v3"else False},{'__type__':'update',"value":False if not if_force_ckpt else True, "interactive":True if not if_force_ckpt else False},{'__type__':'update',"interactive":False if version == "v3" else True,"value":False}
+    return  {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1].replace("s2G","s2D")}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_gpt_name[int(version[-1])-1]}, {'__type__':'update', 'value':pretrained_sovits_name[int(version[-1])-1]},{'__type__':'update',"value":default_batch_size,"maximum":default_max_batch_size},{'__type__':'update',"value":default_sovits_epoch,"maximum":max_sovits_epoch},{'__type__':'update',"value":default_sovits_save_every_epoch,"maximum":max_sovits_save_every_epoch},{'__type__':'update',"visible":True if version!="v3"else False},{'__type__':'update',"value":False if not if_force_ckpt else True, "interactive":True if not if_force_ckpt else False},{'__type__':'update',"interactive":False if version == "v3" else True,"value":False},{'__type__':'update',"visible":True if version=="v3"else False}
 
 if os.path.exists('GPT_SoVITS/text/G2PWModel'):...
 else:
@@ -1034,7 +1035,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             batch_size = gr.Slider(minimum=1,maximum=default_max_batch_size,step=1,label=i18n("每张显卡的batch_size"),value=default_batch_size,interactive=True)
                             total_epoch = gr.Slider(minimum=1,maximum=max_sovits_epoch,step=1,label=i18n("总训练轮数total_epoch，不建议太高"),value=default_sovits_epoch,interactive=True)
                         with gr.Row():
-                            text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,interactive=True if version!="v3"else False)#v3 not need
+                            text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,visible=True if version!="v3"else False)#v3 not need
+                            lora_rank = gr.Radio(label=i18n("lora_rank"), value="32", choices=['16', '32', '64', '128'],visible=True if version=="v3"else False)#v1v2 not need
                             save_every_epoch = gr.Slider(minimum=1,maximum=max_sovits_save_every_epoch,step=1,label=i18n("保存频率save_every_epoch"),value=default_sovits_save_every_epoch,interactive=True)
                     with gr.Column():     
                         with gr.Column():                   
@@ -1070,7 +1072,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         button1Bb_close = gr.Button(i18n("终止GPT训练"), variant="primary",visible=False)
                     with gr.Row():
                         info1Bb=gr.Textbox(label=i18n("GPT训练进程输出信息"))
-            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt], [info1Ba,button1Ba_open,button1Ba_close])
+            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt,lora_rank], [info1Ba,button1Ba_open,button1Ba_close])
             button1Ba_close.click(close1Ba, [], [info1Ba,button1Ba_open,button1Ba_close])
             button1Bb_open.click(open1Bb, [batch_size1Bb,total_epoch1Bb,exp_name,if_dpo,if_save_latest1Bb,if_save_every_weights1Bb,save_every_epoch1Bb,gpu_numbers1Bb,pretrained_s1],   [info1Bb,button1Bb_open,button1Bb_close])
             button1Bb_close.click(close1Bb, [], [info1Bb,button1Bb_open,button1Bb_close])
@@ -1094,7 +1096,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         tts_info = gr.Textbox(label=i18n("TTS推理WebUI进程输出信息"))
                     open_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
                     close_tts.click(change_tts_inference, [bert_pretrained_dir,cnhubert_base_dir,gpu_number_1C,GPT_dropdown,SoVITS_dropdown, batched_infer_enabled], [tts_info,open_tts,close_tts])
-            version_checkbox.change(switch_version,[version_checkbox],[pretrained_s2G,pretrained_s2D,pretrained_s1,GPT_dropdown,SoVITS_dropdown,batch_size,total_epoch,save_every_epoch,text_low_lr_rate, if_grad_ckpt, batched_infer_enabled])
+            version_checkbox.change(switch_version,[version_checkbox],[pretrained_s2G,pretrained_s2D,pretrained_s1,GPT_dropdown,SoVITS_dropdown,batch_size,total_epoch,save_every_epoch,text_low_lr_rate, if_grad_ckpt, batched_infer_enabled, lora_rank])
         with gr.TabItem(i18n("2-GPT-SoVITS-变声")):gr.Markdown(value=i18n("施工中，请静候佳音"))
     app.queue().launch(#concurrency_count=511, max_size=1022
         server_name="0.0.0.0",
