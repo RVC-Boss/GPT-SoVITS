@@ -117,7 +117,7 @@ def set_default():
         #                 minmem = 14
         #             except RuntimeError as _:
         #                 print("显存不足以开启V3训练")
-        default_batch_size = minmem // 2 if version!="v3"else minmem//14
+        default_batch_size = minmem // 2 if version!="v3"else minmem//8
         default_batch_size_s1=minmem // 2
     else:
         gpu_info = ("%s\t%s" % ("0", "CPU"))
