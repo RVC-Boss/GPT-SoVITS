@@ -251,8 +251,8 @@ def run(rank, n_gpus, hps):
 
     scaler = GradScaler(enabled=hps.train.fp16_run)
 
+    print("start training from epoch %s" % epoch_str)
     for epoch in range(epoch_str, hps.train.epochs + 1):
-        print("start training from epoch %s"%epoch)
         if rank == 0:
             train_and_evaluate(
                 rank,
@@ -282,7 +282,7 @@ def run(rank, n_gpus, hps):
             )
         scheduler_g.step()
         scheduler_d.step()
-        print("training done")
+    print("training done")
 
 
 def train_and_evaluate(
