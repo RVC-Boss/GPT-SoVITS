@@ -142,6 +142,10 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 3. UVR5（ボーカル/伴奏（BGM等）分離 & リバーブ除去の追加機能）の場合は、[UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) からモデルをダウンロードし、`tools/uvr5/uvr5_weights` ディレクトリに配置してください。
 
+    - UVR5でbs_roformerまたはmel_band_roformerモデルを使用する場合、モデルと対応する設定ファイルを手動でダウンロードし、`tools/UVR5/UVR5_weights`フォルダに配置することができます。**モデルファイルと設定ファイルの名前は、拡張子を除いて同じであることを確認してください**。さらに、モデルと設定ファイルの名前には**「roformer」が含まれている必要があります**。これにより、roformerクラスのモデルとして認識されます。
+
+    - モデル名と設定ファイル名には、**直接モデルタイプを指定することをお勧めします**。例：mel_mand_roformer、bs_roformer。指定しない場合、設定文から特徴を照合して、モデルの種類を特定します。例えば、モデル`bs_roformer_ep_368_sdr_12.9628.ckpt`と対応する設定ファイル`bs_roformer_ep_368_sdr_12.9628.yaml`はペアです。同様に、`kim_mel_band_roformer.ckpt`と`kim_mel_band_roformer.yaml`もペアです。
+
 4. 中国語ASR（追加機能）の場合は、[Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files)、[Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files)、および [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください。
 
 5. 英語または日本語のASR（追加機能）を使用する場合は、[Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください。また、[他のモデル](https://huggingface.co/Systran) は、より小さいサイズで高クオリティな可能性があります。
