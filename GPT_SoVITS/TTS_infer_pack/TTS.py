@@ -285,10 +285,11 @@ class TTS:
     def init_cnhuhbert_weights(self, base_path: str):
         print(f"Loading CNHuBERT weights from {base_path}")
         self.cnhuhbert_model = CNHubert(base_path)
-        self.cnhuhbert_model=self.cnhuhbert_model.eval()
+        self.cnhuhbert_model = self.cnhuhbert_model.eval()
         self.cnhuhbert_model = self.cnhuhbert_model.to(self.configs.device)
-        if self.configs.is_half and str(self.configs.device)!="cpu":
+        if self.configs.is_half and str(self.configs.device) != "cpu":
             self.cnhuhbert_model = self.cnhuhbert_model.half()
+        self.cnhuhbert_model = torch.compile(self.cnhuhbert_model)
 
 
 
@@ -296,10 +297,11 @@ class TTS:
         print(f"Loading BERT weights from {base_path}")
         self.bert_tokenizer = AutoTokenizer.from_pretrained(base_path)
         self.bert_model = AutoModelForMaskedLM.from_pretrained(base_path)
-        self.bert_model=self.bert_model.eval()
+        self.bert_model = self.bert_model.eval()
         self.bert_model = self.bert_model.to(self.configs.device)
-        if self.configs.is_half and str(self.configs.device)!="cpu":
+        if self.configs.is_half and str(self.configs.device) != "cpu":
             self.bert_model = self.bert_model.half()
+        self.bert_model = torch.compile(self.bert_model)
 
     def init_vits_weights(self, weights_path: str):
         print(f"Loading VITS weights from {weights_path}")
@@ -334,26 +336,28 @@ class TTS:
         vits_model = vits_model.to(self.configs.device)
         vits_model = vits_model.eval()
         vits_model.load_state_dict(dict_s2["weight"], strict=False)
+        vits_model = torch.compile(vits_model)
         self.vits_model = vits_model
-        if self.configs.is_half and str(self.configs.device)!="cpu":
+        if self.configs.is_half and str(self.configs.device) != "cpu":
             self.vits_model = self.vits_model.half()
 
 
     def init_t2s_weights(self, weights_path: str):
-        print(f"Loading Text2Semantic weights from {weights_path}")
-        self.configs.t2s_weights_path = weights_path
-        self.configs.save_configs()
-        self.configs.hz = 50
-        dict_s1 = torch.load(weights_path, map_location=self.configs.device)
-        config = dict_s1["config"]
-        self.configs.max_sec = config["data"]["max_sec"]
-        t2s_model = Text2SemanticLightningModule(config, "****", is_train=False)
-        t2s_model.load_state_dict(dict_s1["weight"])
-        t2s_model = t2s_model.to(self.configs.device)
-        t2s_model = t2s_model.eval()
-        self.t2s_model = t2s_model
-        if self.configs.is_half and str(self.configs.device)!="cpu":
-            self.t2s_model = self.t2s_model.half()
+       print(f"Loading Text2Semantic weights from {weights_path}")
+       self.configs.t2s_weights_path = weights_path
+       self.configs.save_configs()
+       self.configs.hz = 50
+       dict_s1 = torch.load(weights_path, map_location=self.configs.device)
+       config = dict_s1["config"]
+       self.configs.max_sec = config["data"]["max_sec"]
+       t2s_model = Text2SemanticLightningModule(config, "****", is_train=False)
+       t2s_model.load_state_dict(dict_s1["weight"])
+       t2s_model = t2s_model.to(self.configs.device)
+       t2s_model = t2s_model.eval()
+       t2s_model = torch.compile(t2s_model)
+       self.t2s_model = t2s_model
+       if self.configs.is_half and str(self.configs.device) != "cpu":
+           self.t2s_model = self.t2s_model.half()
 
     def enable_half_precision(self, enable: bool = True, save: bool = True):
         '''
