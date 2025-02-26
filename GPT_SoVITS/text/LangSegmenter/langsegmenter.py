@@ -122,7 +122,6 @@ class LangSegmenter():
 
     
     def getTexts(text):
-        LangSplitter._special_merge_for_zh_ja = _special_merge_for_zh_ja
         lang_splitter = LangSplitter(lang_map=LangSegmenter.DEFAULT_LANG_MAP)
         substr = lang_splitter.split_by_lang(text=text)
 
