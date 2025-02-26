@@ -50,7 +50,7 @@ def load_fasttext_model(
             model = fast_langdetect.ft_detect.infer.fasttext.load_model(str(model_path))
         else:
             python_dir = os.getcwd()
-            if (str(model_path)[:len(python_dir)] == python_dir):
+            if (str(model_path)[:len(python_dir)].upper() == python_dir.upper()):
                 model = fast_langdetect.ft_detect.infer.fasttext.load_model(os.path.relpath(model_path, python_dir))
             else:
                 import tempfile

@@ -28,14 +28,18 @@ if os.name == 'nt':
                             if not (re.match(r'^[A-Za-z0-9_/\\:.]*$', installpath)):
                                 import shutil
                                 python_dir = os.getcwd()
-                                if (installpath[:len(python_dir)] == python_dir):
+                                if (installpath[:len(python_dir)].upper() == python_dir.upper()):
                                     dicpath = os.path.join(os.path.relpath(installpath,python_dir),'data','mecabrc')
                                 else:
-                                    if os.path.exists(os.path.join('komecabdata')):
-                                        shutil.rmtree(os.path.join('komecabdata'))
+                                    if not os.path.exists('TEMP'):
+                                        os.mkdir('TEMP')
+                                    if not os.path.exists(os.path.join('TEMP', 'ko')):
+                                        os.mkdir(os.path.join('TEMP', 'ko'))
+                                    if os.path.exists(os.path.join('TEMP', 'ko', 'ko_dict')):
+                                        shutil.rmtree(os.path.join('TEMP', 'ko', 'ko_dict'))
 
-                                    shutil.copytree(os.path.join(installpath, 'data'), 'komecabdata')
-                                    dicpath = os.path.join('komecabdata', 'mecabrc')
+                                    shutil.copytree(os.path.join(installpath, 'data'), os.path.join('TEMP', 'ko', 'ko_dict'))
+                                    dicpath = os.path.join('TEMP', 'ko', 'ko_dict', 'mecabrc')
                             else:
                                 dicpath=os.path.abspath(os.path.join(installpath, 'data/mecabrc'))
                             return dicpath
