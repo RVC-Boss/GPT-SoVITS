@@ -5,7 +5,9 @@
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
 
-<img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
+<a href="https://trendshift.io/repositories/7033" target="_blank"><img src="https://trendshift.io/api/badge/repositories/7033" alt="RVC-Boss%2FGPT-SoVITS | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
+<!-- img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br> -->
 
 [![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
@@ -259,6 +261,19 @@ python webui.py
 3. 需要从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) 下载预训练模型文件放到GPT_SoVITS\pretrained_models\gsv-v2final-pretrained下
 
     中文额外需要下载[G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（下载G2PW模型,解压并重命名为`G2PWModel`,将其放到`GPT_SoVITS/text`目录下）
+
+从v2环境迁移至v3
+
+Use v3 from v2 environment: 
+
+1. 需要pip安装requirements.txt更新环境
+
+2. 需要克隆github上的最新代码
+
+3. 从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)下载这些v3新增预训练模型 (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder)将他们放到`GPT_SoVITS\pretrained_models`目录下
+
+    如果想用音频超分功能缓解v3模型生成24k音频觉得闷的问题，需要下载额外的模型参数，参考[how to download](./tools/AP_BWE_main/24kto48k/readme.txt)
+
 
 ## 待办事项清单
 
