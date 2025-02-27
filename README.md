@@ -262,6 +262,16 @@ Use v2 from v1 environment:
 
     Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models,  unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS/text`.
 
+ ## V3 Release Notes
+
+New Features:
+
+1. The timbre similarity is higher, requiring less training data to approximate the target speaker (the timbre similarity is significantly improved using the base model directly without fine-tuning).
+
+2. GPT model is more stable, with fewer repetitions and omissions, and it is easier to generate speech with richer emotional expression.
+
+    [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7) ) 
+
 Use v3 from v2 environment: 
 
 1. `pip install -r requirements.txt` to update some packages
@@ -356,6 +366,7 @@ Special thanks to the following projects and contributors:
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+- [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
 Thankful to @Naozumi520 for providing the Cantonese training set and for the guidance on Cantonese-related knowledge.
 
