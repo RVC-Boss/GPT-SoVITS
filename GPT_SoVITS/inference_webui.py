@@ -519,7 +519,10 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     t = []
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
-    if model_version=="v3":ref_free=False#s2v3暂不支持ref_free
+    if model_version=="v3":
+        ref_free=False#s2v3暂不支持ref_free
+    else:
+        if_sr=False
     t0 = ttime()
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
@@ -636,7 +639,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                     except:
                         traceback.print_exc()
             if(len(refers)==0):refers = [get_spepc(hps, ref_wav_path).to(dtype).to(device)]
-            audio = (vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers,speed=speed).detach().cpu().numpy()[0, 0])
+            audio = vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers,speed=speed)[0][0]#.cpu().detach().numpy()
         else:
             refer = get_spepc(hps, ref_wav_path).to(device).to(dtype)#######这里要重采样切到32k,因为src是24k的，没有单独的32k的src，所以不能改成2个路径
             phoneme_ids0=torch.LongTensor(phones1).to(device).unsqueeze(0)
