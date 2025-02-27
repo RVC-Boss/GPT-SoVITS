@@ -357,7 +357,7 @@ def close_denoise():
     return "已终止语音降噪进程", {"__type__":"update","visible":True}, {"__type__":"update","visible":False}
 
 p_train_SoVITS=None
-def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt,lora_rank):
+def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt,lora_rank,lora_enable=False):
     global p_train_SoVITS
     if(p_train_SoVITS==None):
         with open("GPT_SoVITS/configs/s2.json")as f:
@@ -381,6 +381,7 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         data["train"]["gpu_numbers"]=gpu_numbers1Ba
         data["train"]["grad_ckpt"]=if_grad_ckpt
         data["train"]["lora_rank"]=lora_rank
+        data["train"]["lora_enable"]=lora_enable
         data["model"]["version"]=version
         data["data"]["exp_dir"]=data["s2_ckpt_dir"]=s2_dir
         data["save_weight_dir"]=SoVITS_weight_root[int(version[-1])-1]
@@ -391,7 +392,10 @@ def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_s
         if version in ["v1","v2"]:
             cmd = '"%s" GPT_SoVITS/s2_train.py --config "%s"'%(python_exec,tmp_config_path)
         else:
-            cmd = '"%s" GPT_SoVITS/s2_train_v3_lora.py --config "%s"'%(python_exec,tmp_config_path)
+            if lora_enable:
+                cmd = '"%s" GPT_SoVITS/s2_train_v3_lora.py --config "%s"'%(python_exec,tmp_config_path)
+            else:
+                cmd = '"%s" GPT_SoVITS/s2_train_v3.py --config "%s"'%(python_exec,tmp_config_path)
         yield "SoVITS训练开始：%s"%cmd, {"__type__":"update","visible":False}, {"__type__":"update","visible":True}
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
@@ -1052,6 +1056,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             text_low_lr_rate = gr.Slider(minimum=0.2,maximum=0.6,step=0.05,label=i18n("文本模块学习率权重"),value=0.4,visible=True if version!="v3"else False)#v3 not need
                             lora_rank = gr.Radio(label=i18n("lora_rank"), value="32", choices=['16', '32', '64', '128'],visible=True if version=="v3"else False)#v1v2 not need
                             save_every_epoch = gr.Slider(minimum=1,maximum=max_sovits_save_every_epoch,step=1,label=i18n("保存频率save_every_epoch"),value=default_sovits_save_every_epoch,interactive=True)
+                            lora_enable = gr.Checkbox(label=i18n("是否启用lora"), value=False, interactive=True, show_label=True)#v1v2 not need
                     with gr.Column():     
                         with gr.Column():                   
                             if_save_latest = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
@@ -1086,7 +1091,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         button1Bb_close = gr.Button(i18n("终止GPT训练"), variant="primary",visible=False)
                     with gr.Row():
                         info1Bb=gr.Textbox(label=i18n("GPT训练进程输出信息"))
-            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt,lora_rank], [info1Ba,button1Ba_open,button1Ba_close])
+            button1Ba_open.click(open1Ba, [batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,gpu_numbers1Ba,pretrained_s2G,pretrained_s2D,if_grad_ckpt,lora_rank,lora_enable], [info1Ba,button1Ba_open,button1Ba_close])
             button1Ba_close.click(close1Ba, [], [info1Ba,button1Ba_open,button1Ba_close])
             button1Bb_open.click(open1Bb, [batch_size1Bb,total_epoch1Bb,exp_name,if_dpo,if_save_latest1Bb,if_save_every_weights1Bb,save_every_epoch1Bb,gpu_numbers1Bb,pretrained_s1],   [info1Bb,button1Bb_open,button1Bb_close])
             button1Bb_close.click(close1Bb, [], [info1Bb,button1Bb_open,button1Bb_close])
