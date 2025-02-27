@@ -246,4 +246,33 @@
 
 ### 20250211
 
-1-增加gpt-sovits-v3模型
+增加gpt-sovits-v3模型，需要14G显存可以微调
+
+### 20250212
+
+sovits-v3微调支持开启梯度检查点，需要12G显存可以微调https://github.com/RVC-Boss/GPT-SoVITS/pull/2040
+
+### 20250214
+
+优化多语种混合文本切分策略a https://github.com/RVC-Boss/GPT-SoVITS/pull/2047
+
+### 20250217
+
+优化文本里的数字和英文处理逻辑https://github.com/RVC-Boss/GPT-SoVITS/pull/2062
+
+### 20250218
+
+优化多语种混合文本切分策略b https://github.com/RVC-Boss/GPT-SoVITS/pull/2073
+
+### 20250223
+
+1-sovits-v3微调支持lora训练，需要8G显存可以微调，效果比全参微调更好
+
+2-人声背景音分离增加mel band roformer模型支持https://github.com/RVC-Boss/GPT-SoVITS/pull/2078
+
+### 20250226
+
+https://github.com/RVC-Boss/GPT-SoVITS/pull/2112 https://github.com/RVC-Boss/GPT-SoVITS/pull/2114
+
+修复中文路径下mecab的报错（具体表现为日文韩文、文本混合语种切分可能会遇到的报错）
+
