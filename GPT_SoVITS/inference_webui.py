@@ -288,7 +288,8 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
             init_lora_weights=True,
         )
         vq_model.cfm = get_peft_model(vq_model.cfm, lora_config)
-        print("loading sovits_v3_lora%s"%(lora_rank),vq_model.load_state_dict(dict_s2["weight"], strict=False))
+        print("loading sovits_v3_lora%s"%(lora_rank))
+        vq_model.load_state_dict(dict_s2["weight"], strict=False)##
         vq_model.cfm = vq_model.cfm.merge_and_unload()
         # torch.save(vq_model.state_dict(),"merge_win.pth")
         vq_model.eval()
