@@ -5,11 +5,13 @@ Güçlü Birkaç Örnekli Ses Dönüştürme ve Metinden Konuşmaya Web Arayüz�
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
 
-<img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
+<a href="https://trendshift.io/repositories/7033" target="_blank"><img src="https://trendshift.io/api/badge/repositories/7033" alt="RVC-Boss%2FGPT-SoVITS | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
+<!-- img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br> -->
 
 [![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
+[![Huggingface](https://img.shields.io/badge/🤗%20-online%20demo-yellow.svg?style=for-the-badge)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
 [![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
 
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | [**日本語**](../ja/README.md) | [**한국어**](../ko/README.md) | **Türkçe**
@@ -113,9 +115,7 @@ pip install -r requirements.txt
 
 0. Görüntü etiketleri hakkında: Kod tabanındaki hızlı güncellemeler ve görüntüleri paketleme ve test etme işleminin yavaş olması nedeniyle, lütfen şu anda paketlenmiş en son görüntüleri kontrol etmek için [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) adresini kontrol edin ve durumunuza göre seçim yapın veya alternatif olarak, kendi ihtiyaçlarınıza göre bir Dockerfile kullanarak yerel olarak oluşturun.
 1. Ortam Değişkenleri：
-
-- is_half: Yarım hassasiyet/çift hassasiyeti kontrol eder. Bu genellikle "SSL çıkarma" adımı sırasında 4-cnhubert/5-wav32k dizinleri altındaki içeriğin doğru şekilde oluşturulmamasının nedenidir. Gerçek durumunuza göre True veya False olarak ayarlayın.
-
+   - is_half: Yarım hassasiyet/çift hassasiyeti kontrol eder. Bu genellikle "SSL çıkarma" adımı sırasında 4-cnhubert/5-wav32k dizinleri altındaki içeriğin doğru şekilde oluşturulmamasının nedenidir. Gerçek durumunuza göre True veya False olarak ayarlayın.
 2. Birim Yapılandırması，Kapsayıcı içindeki uygulamanın kök dizini /workspace olarak ayarlanmıştır. Varsayılan docker-compose.yaml, içerik yükleme/indirme için bazı pratik örnekler listeler.
 3. shm_size： Windows üzerinde Docker Desktop için varsayılan kullanılabilir bellek çok küçüktür, bu da anormal işlemlere neden olabilir. Kendi durumunuza göre ayarlayın.
 4. Dağıtım bölümü altında, GPU ile ilgili ayarlar sisteminize ve gerçek koşullara göre dikkatlice ayarlanmalıdır.
@@ -163,6 +163,8 @@ Dil sözlüğü:
 - 'zh': Çince
 - 'ja': Japonca
 - 'en': İngilizce
+- 'ko': Korece
+- 'yue': Kantonca
 
 Örnek:
 
@@ -197,15 +199,10 @@ veya WebUI'de manuel olarak sürüm değiştirin.
 #### Yol Otomatik Doldurma artık destekleniyor
 
     1. Ses yolunu doldurun
-
     2. Sesi küçük parçalara ayırın
-
     3. Gürültü azaltma (isteğe bağlı)
-
     4. ASR
-
     5. ASR transkripsiyonlarını düzeltin
-
     6. Bir sonraki sekmeye geçin ve modeli ince ayar yapın
 
 ### Çıkarım WebUI'sini Açın
@@ -250,6 +247,26 @@ V1 ortamından V2'yi kullanmak için:
 
     Ek olarak Çince V2: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW modellerini indirip, zipten çıkarıp, `G2PWModel` olarak yeniden adlandırıp `GPT_SoVITS/text` dizinine yerleştirin.)
 
+## V3 Sürüm Notları
+
+### Yeni Özellikler:
+
+1. **Tını benzerliği** daha yüksek olup, hedef konuşmacıyı yakınsamak için daha az eğitim verisi gerekmektedir (tını benzerliği, base model doğrudan kullanılacak şekilde fine-tuning yapılmadan önemli ölçüde iyileştirilmiştir).
+
+2. GPT modeli daha **kararlı** hale geldi, tekrarlar ve atlamalar azaldı ve **daha zengin duygusal ifadeler** ile konuşma üretmek daha kolay hale geldi.
+
+    [daha fazla detay](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+
+### v2 ortamında v3 kullanımı:
+
+1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin.
+
+2. GitHub’dan en son kodları klonlayın.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS\pretrained_models` dizinine yerleştirin.
+
+    ek: Ses Süper Çözünürlük modeli için [nasıl indirileceği](../../tools/AP_BWE_main/24kto48k/readme.txt) hakkında bilgi alabilirsiniz.
+
 ## Yapılacaklar Listesi
 
 - [x] **Yüksek Öncelikli:**
@@ -275,10 +292,10 @@ UVR5 için Web Arayüzünü açmak için komut satırını kullanın
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
-Bir tarayıcı açamıyorsanız, UVR işleme için aşağıdaki formatı izleyin,Bu ses işleme için mdxnet kullanıyor
+<!-- Bir tarayıcı açamıyorsanız, UVR işleme için aşağıdaki formatı izleyin,Bu ses işleme için mdxnet kullanıyor
 ```
-python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
-```
+python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
+``` -->
 Veri setinin ses segmentasyonu komut satırı kullanılarak bu şekilde yapılır
 ```
 python audio_slicer.py \
@@ -286,7 +303,7 @@ python audio_slicer.py \
     --output_root "<alt_bölümlere_ayrılmış_ses_kliplerinin_kaydedileceği_dizin>" \
     --threshold <ses_eşiği> \
     --min_length <her_bir_alt_klibin_minimum_süresi> \
-    --min_interval <bitişik_alt_klipler_arasındaki_en_kısa_zaman_aralığı> 
+    --min_interval <bitişik_alt_klipler_arasındaki_en_kısa_zaman_aralığı>
     --hop_size <ses_eğrisini_hesaplamak_için_adım_boyutu>
 ```
 Veri seti ASR işleme komut satırı kullanılarak bu şekilde yapılır (Yalnızca Çince)
@@ -313,12 +330,18 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [contentvec](https://github.com/auspicious3000/contentvec/)
 - [hifi-gan](https://github.com/jik876/hifi-gan)
 - [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
+- [f5-TTS](https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/backbones/dit.py)
+- [shortcut flow matching](https://github.com/kvfrans/shortcut-models/blob/main/targets_shortcut.py)
 ### Önceden Eğitilmiş Modeller
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
+- [BigVGAN](https://github.com/NVIDIA/BigVGAN)
 ### Tahmin İçin Metin Ön Ucu
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
-- [LangSegment](https://github.com/juntaosun/LangSegment)
+- [split-lang](https://github.com/DoodleBears/split-lang)
+- [g2pW](https://github.com/GitYCC/g2pW)
+- [pypinyin-g2pW](https://github.com/mozillazg/pypinyin-g2pW)
+- [paddlespeech g2pw](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw)
 ### WebUI Araçları
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)
@@ -327,9 +350,10 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+- [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
 @Naozumi520’ye Kantonca eğitim setini sağladığı ve Kantonca ile ilgili bilgiler konusunda rehberlik ettiği için minnettarım.
-  
+
 ## Tüm katkıda bulunanlara çabaları için teşekkürler
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">

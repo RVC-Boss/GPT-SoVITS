@@ -11,7 +11,7 @@
 
 [![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
+[![Huggingface](https://img.shields.io/badge/🤗%20-online%20demo-yellow.svg?style=for-the-badge)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
 [![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
 
 [**English**](../../README.md) | **中文简体** | [**日本語**](../ja/README.md) | [**한국어**](../ko/README.md) | [**Türkçe**](../tr/README.md)
@@ -208,17 +208,12 @@ python webui.py v1 <language(optional)>
 
 #### 现已支持自动填充路径
 
-    1.填入训练音频路径
-
-    2.切割音频
-
-    3.进行降噪(可选)
-
-    4.进行ASR
-
-    5.校对标注
-
-    6.前往下一个窗口,点击训练
+    1. 填入训练音频路径
+    2. 切割音频
+    3. 进行降噪(可选)
+    4. 进行ASR
+    5. 校对标注
+    6. 前往下一个窗口,点击训练
 
 ### 打开推理WebUI
 
@@ -271,7 +266,7 @@ python webui.py
 2. GPT合成更稳定，重复漏字更少，也更容易跑出丰富情感
 
     详见[wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
-   
+
 从v2环境迁移至v3
 
 1. 需要pip安装requirements.txt更新环境
@@ -280,7 +275,7 @@ python webui.py
 
 3. 从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)下载这些v3新增预训练模型 (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder)将他们放到`GPT_SoVITS\pretrained_models`目录下
 
-    如果想用音频超分功能缓解v3模型生成24k音频觉得闷的问题，需要下载额外的模型参数，参考[how to download](./tools/AP_BWE_main/24kto48k/readme.txt)
+    如果想用音频超分功能缓解v3模型生成24k音频觉得闷的问题，需要下载额外的模型参数，参考[how to download](../../tools/AP_BWE_main/24kto48k/readme.txt)
 
 
 ## 待办事项清单
@@ -310,7 +305,7 @@ python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ````
 <!-- 如果打不开浏览器，请按照下面的格式进行UVR处理，这是使用mdxnet进行音频处理的方式
 ````
-python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
+python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
 ```` -->
 这是使用命令行完成数据集的音频切分的方式
 ````
@@ -319,7 +314,7 @@ python audio_slicer.py \
     --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
     --threshold <volume_threshold> \
     --min_length <minimum_duration_of_each_subclip> \
-    --min_interval <shortest_time_gap_between_adjacent_subclips> 
+    --min_interval <shortest_time_gap_between_adjacent_subclips>
     --hop_size <step_size_for_computing_volume_curve>
 ````
 这是使用命令行完成数据集ASR处理的方式（仅限中文）
