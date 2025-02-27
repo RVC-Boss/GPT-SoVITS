@@ -276,3 +276,7 @@ https://github.com/RVC-Boss/GPT-SoVITS/pull/2112 https://github.com/RVC-Boss/GPT
 
 修复中文路径下mecab的报错（具体表现为日文韩文、文本混合语种切分可能会遇到的报错）
 
+### 20250227
+
+针对v3生成24k音频感觉闷的问题https://github.com/RVC-Boss/GPT-SoVITS/issues/2085 https://github.com/RVC-Boss/GPT-SoVITS/issues/2117 ,支持使用24k to 48k的音频超分模型缓解。
+
