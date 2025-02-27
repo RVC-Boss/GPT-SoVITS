@@ -690,7 +690,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
             with torch.inference_mode():
                 wav_gen = bigvgan_model(cmf_res)
                 audio=wav_gen[0][0]#.cpu().detach().numpy()
-        max_audio=torch.abs(audio).max()#简单防止16bit爆音#np.abs(audio).max()
+        max_audio=torch.abs(audio).max()#简单防止16bit爆音
         if max_audio>1:audio/=max_audio
         audio_opt.append(audio)
         audio_opt.append(zero_wav_torch)#zero_wav
@@ -703,6 +703,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     if if_sr==True and sr==24000:
         print(i18n("音频超分中"))
         audio_opt,sr=audio_sr(audio_opt.unsqueeze(0),sr)
+        max_audio=np.abs(audio).max()
+        if max_audio > 1: audio /= max_audio
     else:
         audio_opt=audio_opt.cpu().detach().numpy()
     yield sr, (audio_opt * 32767).astype(np.int16)
