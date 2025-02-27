@@ -366,6 +366,7 @@ def get_spepc(hps, filename):
     return spec
 
 def clean_text_inf(text, language, version):
+    language = language.replace("all_","")
     phones, word2ph, norm_text = clean_text(text, language, version)
     phones = cleaned_text_to_sequence(phones, version)
     return phones, word2ph, norm_text
@@ -395,11 +396,10 @@ def get_first(text):
 from text import chinese
 def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
-        language = language.replace("all_","")
         formattext = text
         while "  " in formattext:
             formattext = formattext.replace("  ", " ")
-        if language == "zh":
+        if language == "all_zh":
             if re.search(r'[A-Za-z]', formattext):
                 formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
                 formattext = chinese.mix_text_normalize(formattext)
@@ -407,7 +407,7 @@ def get_phones_and_bert(text,language,version,final=False):
             else:
                 phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
                 bert = get_bert_feature(norm_text, word2ph).to(device)
-        elif language == "yue" and re.search(r'[A-Za-z]', formattext):
+        elif language == "all_yue" and re.search(r'[A-Za-z]', formattext):
                 formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
                 formattext = chinese.mix_text_normalize(formattext)
                 return get_phones_and_bert(formattext,"yue",version)
