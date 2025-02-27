@@ -503,7 +503,7 @@ def audio_sr(audio,sr):
             sr_model=AP_BWE(device)
         except FileNotFoundError:
             gr.Warning(i18n("你没有下载超分模型的参数，因此不进行超分。如想超分请先参照教程把文件下载好"))
-            return audio,sr
+            return audio.cpu().detach().numpy(),sr
     return sr_model(audio,sr)
 
 
