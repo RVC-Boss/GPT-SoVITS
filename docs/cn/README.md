@@ -262,9 +262,17 @@ python webui.py
 
     中文额外需要下载[G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（下载G2PW模型,解压并重命名为`G2PWModel`,将其放到`GPT_SoVITS/text`目录下）
 
-从v2环境迁移至v3
+## V3更新说明
 
-Use v3 from v2 environment: 
+新模型特点:
+
+1. 音色相似度更像，需要更少训练集来逼近本人（不训练直接使用底模模式下音色相似性提升更大）
+
+2. GPT合成更稳定，重复漏字更少，也更容易跑出丰富情感
+
+    详见[wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+   
+从v2环境迁移至v3
 
 1. 需要pip安装requirements.txt更新环境
 
@@ -291,7 +299,7 @@ Use v3 from v2 environment:
   - [x] 改进英语和日语文本前端。
   - [ ] 开发体积小和更大的 TTS 模型。
   - [x] Colab 脚本。
-  - [ ] 扩展训练数据集（从 2k 小时到 10k 小时）。
+  - [x] 扩展训练数据集（从 2k 小时到 10k 小时）。
   - [x] 更好的 sovits 基础模型（增强的音频质量）。
   - [ ] 模型混合。
 
@@ -338,12 +346,15 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 - [contentvec](https://github.com/auspicious3000/contentvec/)
 - [hifi-gan](https://github.com/jik876/hifi-gan)
 - [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
+- [f5-TTS](https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/backbones/dit.py)
+- [shortcut flow matching](https://github.com/kvfrans/shortcut-models/blob/main/targets_shortcut.py)
 ### 预训练模型
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
+- [BigVGAN](https://github.com/NVIDIA/BigVGAN)
 ### 推理用文本前端
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
-- [LangSegment](https://github.com/juntaosun/LangSegment)
+- [split-lang](https://github.com/DoodleBears/split-lang)
 - [g2pW](https://github.com/GitYCC/g2pW)
 - [pypinyin-g2pW](https://github.com/mozillazg/pypinyin-g2pW)
 - [paddlespeech g2pw](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw)
@@ -355,6 +366,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+- [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
 感谢 @Naozumi520 提供粤语训练集，并在粤语相关知识方面给予指导。
 
