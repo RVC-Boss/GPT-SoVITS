@@ -1042,7 +1042,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         with gr.Column():                   
                             if_save_latest = gr.Checkbox(label=i18n("是否仅保存最新的ckpt文件以节省硬盘空间"), value=True, interactive=True, show_label=True)
                             if_save_every_weights = gr.Checkbox(label=i18n("是否在每次保存时间点将最终小模型保存至weights文件夹"), value=True, interactive=True, show_label=True)
-                            if_grad_ckpt = gr.Checkbox(label="v3是否开启梯度检查点节省显存占用", value=False, interactive=True if version == "v3" else False, show_label=True) # 只有V3s2可以用
+                            if_grad_ckpt = gr.Checkbox(label="v3是否开启梯度检查点节省显存占用", value=False, interactive=True if version == "v3" else False, show_label=True,visible=False) # 只有V3s2可以用
                         with gr.Row():
                             gpu_numbers1Ba = gr.Textbox(label=i18n("GPU卡号以-分割，每个卡号一个进程"), value="%s" % (gpus), interactive=True)
                 with gr.Row():
