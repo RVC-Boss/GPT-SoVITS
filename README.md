@@ -121,9 +121,7 @@ pip install -r requirements.txt
 
 0. Regarding image tags: Due to rapid updates in the codebase and the slow process of packaging and testing images, please check [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) for the currently packaged latest images and select as per your situation, or alternatively, build locally using a Dockerfile according to your own needs.
 1. Environment Variables：
-
-- is_half: Controls half-precision/double-precision. This is typically the cause if the content under the directories 4-cnhubert/5-wav32k is not generated correctly during the "SSL extracting" step. Adjust to True or False based on your actual situation.
-
+   - is_half: Controls half-precision/double-precision. This is typically the cause if the content under the directories 4-cnhubert/5-wav32k is not generated correctly during the "SSL extracting" step. Adjust to True or False based on your actual situation.
 2. Volumes Configuration，The application's root directory inside the container is set to /workspace. The default docker-compose.yaml lists some practical examples for uploading/downloading content.
 3. shm_size： The default available memory for Docker Desktop on Windows is too small, which can cause abnormal operations. Adjust according to your own situation.
 4. Under the deploy section, GPU-related settings should be adjusted cautiously according to your system and actual circumstances.
@@ -158,7 +156,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 4. For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/asr/models`.
 
-5. For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint. 
+5. For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint.
 
 ## Dataset Format
 
@@ -175,7 +173,7 @@ Language dictionary:
 - 'en': English
 - 'ko': Korean
 - 'yue': Cantonese
-  
+
 Example:
 
 ```
@@ -184,61 +182,56 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 
 ## Finetune and inference
 
- ### Open WebUI
+### Open WebUI
 
- #### Integrated Package Users
+#### Integrated Package Users
 
- Double-click `go-webui.bat`or use `go-webui.ps1`
- if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-v1.ps1`
+Double-click `go-webui.bat`or use `go-webui.ps1`
+if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-v1.ps1`
 
- #### Others
+#### Others
 
- ```bash
- python webui.py <language(optional)>
- ```
+```bash
+python webui.py <language(optional)>
+```
 
- if you want to switch to V1,then
+if you want to switch to V1,then
 
- ```bash
- python webui.py v1 <language(optional)>
- ```
+```bash
+python webui.py v1 <language(optional)>
+```
 Or maunally switch version in WebUI
 
- ### Finetune
+### Finetune
 
- #### Path Auto-filling is now supported
+#### Path Auto-filling is now supported
 
-     1.Fill in the audio path
+    1. Fill in the audio path
+    2. Slice the audio into small chunks
+    3. Denoise(optinal)
+    4. ASR
+    5. Proofreading ASR transcriptions
+    6. Go to the next Tab, then finetune the model
 
-     2.Slice the audio into small chunks
+### Open Inference WebUI
 
-     3.Denoise(optinal)
+#### Integrated Package Users
 
-     4.ASR
+Double-click `go-webui-v2.bat` or use `go-webui-v2.ps1` ,then open the inference webui at  `1-GPT-SoVITS-TTS/1C-inference`
 
-     5.Proofreading ASR transcriptions
+#### Others
 
-     6.Go to the next Tab, then finetune the model
+```bash
+python GPT_SoVITS/inference_webui.py <language(optional)>
+```
+OR
 
- ### Open Inference WebUI
-
- #### Integrated Package Users
-
- Double-click `go-webui-v2.bat` or use `go-webui-v2.ps1` ,then open the inference webui at  `1-GPT-SoVITS-TTS/1C-inference` 
-
- #### Others
-
- ```bash
- python GPT_SoVITS/inference_webui.py <language(optional)>
- ```
- OR
-
- ```bash
- python webui.py
- ```
+```bash
+python webui.py
+```
 then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
 
- ## V2 Release Notes
+## V2 Release Notes
 
 New Features:
 
@@ -248,11 +241,11 @@ New Features:
 
 3. Pre-trained model extended from 2k hours to 5k hours
 
-4. Improved synthesis quality for low-quality reference audio 
+4. Improved synthesis quality for low-quality reference audio
 
-    [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7) ) 
+    [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
 
-Use v2 from v1 environment: 
+Use v2 from v1 environment:
 
 1. `pip install -r requirements.txt` to update some packages
 
@@ -262,7 +255,7 @@ Use v2 from v1 environment:
 
     Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models,  unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS/text`.
 
- ## V3 Release Notes
+## V3 Release Notes
 
 New Features:
 
@@ -270,9 +263,9 @@ New Features:
 
 2. GPT model is more stable, with fewer repetitions and omissions, and it is easier to generate speech with richer emotional expression.
 
-    [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7) ) 
+    [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
 
-Use v3 from v2 environment: 
+Use v3 from v2 environment:
 
 1. `pip install -r requirements.txt` to update some packages
 
@@ -310,7 +303,7 @@ python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
 <!-- If you can't open a browser, follow the format below for UVR processing,This is using mdxnet for audio processing
 ```
-python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
+python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
 ``` -->
 This is how the audio segmentation of the dataset is done using the command line
 ```
@@ -319,7 +312,7 @@ python audio_slicer.py \
     --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
     --threshold <volume_threshold> \
     --min_length <minimum_duration_of_each_subclip> \
-    --min_interval <shortest_time_gap_between_adjacent_subclips> 
+    --min_interval <shortest_time_gap_between_adjacent_subclips>
     --hop_size <step_size_for_computing_volume_curve>
 ```
 This is how dataset ASR processing is done using the command line(Only Chinese)

@@ -185,4 +185,37 @@
 
 ### 20250211 更新
 
-1. [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) GPT-SoVITS v3 モデルを追加しました。
+1. [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) GPT-SoVITS v3 モデルを追加しました。SoVITS v3のファインチューニングには14GBのGPUメモリが必要です。
+
+### 20250212 更新
+
+- [PR 2040](https://github.com/RVC-Boss/GPT-SoVITS/pull/2040) SoVITS v3のファインチューニングにグラデーションチェックポイントを追加、12GBのGPUメモリが必要です。
+
+### 20250214 更新
+
+- [PR 2047](https://github.com/RVC-Boss/GPT-SoVITS/pull/2047) 多言語混合テキスト分割戦略の最適化 **A**。
+  - `split-lang`を言語分割ツールとして追加し、多言語混合テキストの分割能力を向上させました。
+
+### 20250217 更新
+
+- [PR 2062](https://github.com/RVC-Boss/GPT-SoVITS/pull/2062) テキスト内の数字と英語の処理ロジックを最適化。
+
+### 20250218 更新
+
+- [PR 2073](https://github.com/RVC-Boss/GPT-SoVITS/pull/2073) 多言語混合テキスト分割戦略の最適化 **B**。
+
+### 20250223 更新
+
+1. LoRAトレーニングがSoVITS V3のファインチューニングに対応しました。8GBのGPUメモリが必要で、結果はフルパラメータファインチューニングより優れています。
+2. [PR 2078](https://github.com/RVC-Boss/GPT-SoVITS/pull/2078) ボーカルと楽器分離のためにMel Band RoFormerモデルを追加しました。
+
+### 20250226 更新
+
+1. [PR 2112](https://github.com/RVC-Boss/GPT-SoVITS/pull/2112) Windowsでの非英語ディレクトリによる問題を修正しました。
+   - `langsegmenter`を使用して韓国語の問題を修正。
+2. [PR 2113](https://github.com/RVC-Boss/GPT-SoVITS/pull/2114) Windowsでの非英語ディレクトリによる問題を修正しました。
+   - `langsegmenter`を使用して韓国語/日本語の問題を修正。
+
+### 20250227 更新
+
+- V3モデルで24Kオーディオを生成する際に発生するこもった音の問題を緩和するために、24Kから48Kのオーディオ超解像モデルを追加しました。[Issue 2085](https://github.com/RVC-Boss/GPT-SoVITS/issues/2085)、[Issue 2117](https://github.com/RVC-Boss/GPT-SoVITS/issues/2117)で報告されています。

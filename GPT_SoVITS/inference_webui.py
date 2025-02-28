@@ -217,13 +217,13 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
     version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
     if if_lora_v3==True and is_exist_s2gv3==False:
-        info=i18n("GPT_SoVITS/pretrained_models/s2Gv3.pth v3sovits的底模没下载对，识别为v3sovits的lora没法加载")
+        info= "GPT_SoVITS/pretrained_models/s2Gv3.pth" + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version =='v1' else dict_language_v2
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
-            prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
+            prompt_text_update, prompt_language_update = {'__type__':'update'}, {'__type__':'update', 'value':prompt_language}
         else:
             prompt_text_update = {'__type__':'update', 'value':''}
             prompt_language_update = {'__type__':'update', 'value':i18n("中文")}
@@ -534,7 +534,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         print(i18n("实际输入的参考文本:"), prompt_text)
     text = text.strip("\n")
     # if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
-    
+
     print(i18n("实际输入的目标文本:"), text)
     zero_wav = np.zeros(
         int(hps.data.sampling_rate * pause_second),
@@ -864,7 +864,7 @@ def html_left(text, label='p'):
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
-        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
+        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.") + "<br>" + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
     )
     with gr.Group():
         gr.Markdown(html_center(i18n("模型切换"),'h3'))
@@ -877,8 +877,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath", scale=13)
             with gr.Column(scale=13):
-                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。v3暂不支持该模式，使用了会报错。"), value=False, interactive=True, show_label=True,scale=1)
-                gr.Markdown(html_left(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开。<br>开启后无视填写的参考文本。")))
+                ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。")+i18n("v3暂不支持该模式，使用了会报错。"), value=False, interactive=True, show_label=True,scale=1)
+                gr.Markdown(html_left(i18n("使用无参考文本模式时建议使用微调的GPT")+"<br>"+i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。")))
                 prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=5, max_lines=5,scale=1)
             with gr.Column(scale=14):
                 prompt_language = gr.Dropdown(
@@ -909,7 +909,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 gr.Markdown(html_center(i18n("GPT采样参数(无参考文本时不要太低。不懂就用默认)：")))
                 top_k = gr.Slider(minimum=1,maximum=100,step=1,label=i18n("top_k"),value=15,interactive=True, scale=1)
                 top_p = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("top_p"),value=1,interactive=True, scale=1)
-                temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True,  scale=1) 
+                temperature = gr.Slider(minimum=0,maximum=1,step=0.05,label=i18n("temperature"),value=1,interactive=True, scale=1)
             # with gr.Column():
             #     gr.Markdown(value=i18n("手工调整音素。当音素框不为空时使用手工音素输入推理，无视目标文本框。"))
             #     phoneme=gr.Textbox(label=i18n("音素框"), value="")

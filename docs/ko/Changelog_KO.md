@@ -186,4 +186,37 @@
 
 ### 20250211 업데이트
 
-1. [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) GPT-SoVITS v3 모델 추가.
+- [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) GPT-SoVITS v3 모델 추가, SoVITS v3의 파인튜닝에는 14GB GPU 메모리가 필요합니다.
+
+### 20250212 업데이트
+
+- [PR 2040](https://github.com/RVC-Boss/GPT-SoVITS/pull/2040) SoVITS v3의 파인튜닝에 그라디언트 체크포인트 추가, 12GB GPU 메모리가 필요합니다.
+
+### 20250214 업데이트
+
+- [PR 2047](https://github.com/RVC-Boss/GPT-SoVITS/pull/2047) 다국어 혼합 텍스트 분할 전략 **A** 최적화.
+  - `split-lang`을 언어 분할 도구로 추가하여 다국어 혼합 텍스트의 분할 능력을 향상시켰습니다.
+
+### 20250217 업데이트
+
+- [PR 2062](https://github.com/RVC-Boss/GPT-SoVITS/pull/2062) 텍스트 내 숫자와 영어 처리 로직 최적화.
+
+### 20250218 업데이트
+
+- [PR 2073](https://github.com/RVC-Boss/GPT-SoVITS/pull/2073) 다국어 혼합 텍스트 분할 전략 **B** 최적화.
+
+### 20250223 업데이트
+
+1. SoVITS V3의 파인튜닝에 LoRA 훈련이 지원됩니다. 8GB GPU 메모리가 필요하며, 전체 매개변수 파인튜닝보다 더 나은 결과를 제공합니다.
+2. [PR 2078](https://github.com/RVC-Boss/GPT-SoVITS/pull/2078) 보컬 및 악기 분리를 위해 Mel Band RoFormer 모델 추가.
+
+### 20250226 업데이트
+
+1. [PR 2112](https://github.com/RVC-Boss/GPT-SoVITS/pull/2112) Windows에서 비영어 디렉토리로 인한 문제 수정.
+   - 한국어에 대한 `langsegmenter` 사용 문제 수정.
+2. [PR 2113](https://github.com/RVC-Boss/GPT-SoVITS/pull/2114) Windows에서 비영어 디렉토리로 인한 문제 수정.
+   - 한국어/일본어에 대한 `langsegmenter` 사용 문제 수정.
+
+### 20250227 업데이트
+
+- V3 모델로 24K 오디오를 생성할 때 발생하는 음성 뭉침 문제를 완화하기 위해, 24K에서 48K로의 오디오 초해상도 모델을 추가했습니다. [Issue 2085](https://github.com/RVC-Boss/GPT-SoVITS/issues/2085), [Issue 2117](https://github.com/RVC-Boss/GPT-SoVITS/issues/2117)에서 보고된 문제입니다.
