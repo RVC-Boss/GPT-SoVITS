@@ -641,7 +641,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
             if(len(refers)==0):refers = [get_spepc(hps, ref_wav_path).to(dtype).to(device)]
             audio = vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers,speed=speed)[0][0]#.cpu().detach().numpy()
         else:
-            refer = get_spepc(hps, ref_wav_path).to(device).to(dtype)#######这里要重采样切到32k,因为src是24k的，没有单独的32k的src，所以不能改成2个路径
+            refer = get_spepc(hps, ref_wav_path).to(device).to(dtype)
             phoneme_ids0=torch.LongTensor(phones1).to(device).unsqueeze(0)
             phoneme_ids1=torch.LongTensor(phones2).to(device).unsqueeze(0)
             # print(11111111, phoneme_ids0, phoneme_ids1)
@@ -666,7 +666,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
             # print("fea_ref",fea_ref,fea_ref.shape)
             # print("mel2",mel2)
             mel2=mel2.to(dtype)
-            fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge)
+            fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge,speed)
             # print("fea_todo",fea_todo)
             # print("ge",ge.abs().mean())
             cfm_resss = []
