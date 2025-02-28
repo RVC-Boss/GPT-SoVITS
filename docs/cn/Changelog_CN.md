@@ -280,3 +280,9 @@ https://github.com/RVC-Boss/GPT-SoVITS/pull/2112 https://github.com/RVC-Boss/GPT
 
 针对v3生成24k音频感觉闷的问题https://github.com/RVC-Boss/GPT-SoVITS/issues/2085 https://github.com/RVC-Boss/GPT-SoVITS/issues/2117 ,支持使用24k to 48k的音频超分模型缓解。
 
+
+### 20250228
+
+修复短文本语种选择出错 https://github.com/RVC-Boss/GPT-SoVITS/pull/2122
+
+修复v3sovits未传参以支持调节语速
