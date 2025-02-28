@@ -78,6 +78,32 @@ def full_en(text):
     return bool(re.match(pattern, text))
 
 
+def full_cjk(text):
+    # 来自wiki
+    cjk_ranges = [
+        (0x4E00, 0x9FFF),        # CJK Unified Ideographs
+        (0x3400, 0x4DB5),        # CJK Extension A
+        (0x20000, 0x2A6DD),      # CJK Extension B
+        (0x2A700, 0x2B73F),      # CJK Extension C
+        (0x2B740, 0x2B81F),      # CJK Extension D
+        (0x2B820, 0x2CEAF),      # CJK Extension E
+        (0x2CEB0, 0x2EBEF),      # CJK Extension F
+        (0x30000, 0x3134A),      # CJK Extension G
+        (0x31350, 0x323AF),      # CJK Extension H
+        (0x2EBF0, 0x2EE5D),      # CJK Extension H
+    ]
+
+    pattern = r'[0-9、-〜。！？.!?… ]+$'
+
+    cjk_text = ""
+    for char in text:
+        code_point = ord(char)
+        in_cjk = any(start <= code_point <= end for start, end in cjk_ranges)
+        if in_cjk or re.match(pattern, char):
+            cjk_text += char
+    return cjk_text
+
+
 def split_jako(tag_lang,item):
     if tag_lang == "ja":
         pattern = r"([\u3041-\u3096\u3099\u309A\u30A1-\u30FA\u30FC]+(?:[0-9、-〜。！？.!?… ]+[\u3041-\u3096\u3099\u309A\u30A1-\u30FA\u30FC]*)*)"
@@ -158,8 +184,12 @@ class LangSegmenter():
 
             # 未存在非日韩文夹日韩文
             if len(temp_list) == 1:
-                # 跳过未知语言
+                # 未知语言检查是否为CJK
                 if dict_item['lang'] == 'x':
+                    cjk_text = full_cjk(dict_item['text'])
+                    if cjk_text:
+                        dict_item = {'lang':'zh','text':cjk_text}
+                        lang_list = merge_lang(lang_list,dict_item)
                     continue
                 else:
                     lang_list = merge_lang(lang_list,dict_item)
@@ -167,12 +197,14 @@ class LangSegmenter():
 
             # 存在非日韩文夹日韩文
             for _, temp_item in enumerate(temp_list):
-                # 待观察是否会出现带英文或语言为x的中日英韩文
+                # 未知语言检查是否为CJK
                 if temp_item['lang'] == 'x':
-                    continue
-
-                lang_list = merge_lang(lang_list,temp_item)
-
+                    cjk_text = full_cjk(dict_item['text'])
+                    if cjk_text:
+                        dict_item = {'lang':'zh','text':cjk_text}
+                        lang_list = merge_lang(lang_list,dict_item)
+                else:
+                    lang_list = merge_lang(lang_list,temp_item)
         return lang_list
     
 
