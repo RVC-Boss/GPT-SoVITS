@@ -704,7 +704,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         print(i18n("音频超分中"))
         audio_opt,sr=audio_sr(audio_opt.unsqueeze(0),sr)
         max_audio=np.abs(audio_opt).max()
-        if max_audio > 1: audio /= max_audio
+        if max_audio > 1: audio_opt /= max_audio
     else:
         audio_opt=audio_opt.cpu().detach().numpy()
     yield sr, (audio_opt * 32767).astype(np.int16)
