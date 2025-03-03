@@ -42,7 +42,7 @@ sovits_path = os.environ.get("sovits_path", None)
 cnhubert_base_path = os.environ.get("cnhubert_base_path", None)
 bert_path = os.environ.get("bert_path", None)
 version=os.environ.get("version","v2")
-        
+
 import gradio as gr
 from TTS_infer_pack.TTS import TTS, TTS_Config
 from TTS_infer_pack.text_segmentation_method import get_method
@@ -61,7 +61,7 @@ if torch.cuda.is_available():
 #     device = "mps"
 else:
     device = "cpu"
-    
+
 dict_language_v1 = {
     i18n("中文"): "all_zh",#全部按中文识别
     i18n("英文"): "en",#全部按英文识别#######不变
@@ -106,20 +106,20 @@ if cnhubert_base_path is not None:
     tts_config.cnhuhbert_base_path = cnhubert_base_path
 if bert_path is not None:
     tts_config.bert_base_path = bert_path
-    
+
 print(tts_config)
 tts_pipeline = TTS(tts_config)
 gpt_path = tts_config.t2s_weights_path
 sovits_path = tts_config.vits_weights_path
 version = tts_config.version
 
-def inference(text, text_lang, 
-              ref_audio_path, 
+def inference(text, text_lang,
+              ref_audio_path,
               aux_ref_audio_paths,
-              prompt_text, 
-              prompt_lang, top_k, 
-              top_p, temperature, 
-              text_split_method, batch_size, 
+              prompt_text,
+              prompt_lang, top_k,
+              top_p, temperature,
+              text_split_method, batch_size,
               speed_factor, ref_text_free,
               split_bucket,fragment_interval,
               seed, keep_random, parallel_infer,
@@ -150,7 +150,7 @@ def inference(text, text_lang,
     }
     for item in tts_pipeline.run(inputs):
         yield item, actual_seed
-        
+
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
     parts = re.split('(\d+)', s)
@@ -201,7 +201,7 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
     dict_language = dict_language_v1 if tts_pipeline.configs.version =='v1' else dict_language_v2
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
-            prompt_text_update, prompt_language_update = {'__type__':'update'},  {'__type__':'update', 'value':prompt_language}
+            prompt_text_update, prompt_language_update = {'__type__':'update'}, {'__type__':'update', 'value':prompt_language}
         else:
             prompt_text_update = {'__type__':'update', 'value':''}
             prompt_language_update = {'__type__':'update', 'value':i18n("中文")}
@@ -216,9 +216,9 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
 
 with gr.Blocks(title="GPT-SoVITS WebUI") as app:
     gr.Markdown(
-        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
+        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.") + "<br>" + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
     )
-    
+
     with gr.Column():
         # with gr.Group():
         gr.Markdown(value=i18n("模型切换"))
@@ -228,7 +228,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
 
-    
+
     with gr.Row():
         with gr.Column():
             gr.Markdown(value=i18n("*请上传并填写参考信息"))
@@ -242,8 +242,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 )
                 with gr.Column():
                     ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True)
-                    gr.Markdown(i18n("使用无参考文本模式时建议使用微调的GPT，听不清参考音频说的啥(不晓得写啥)可以开，开启后无视填写的参考文本。"))
-    
+                    gr.Markdown(i18n("使用无参考文本模式时建议使用微调的GPT")+"<br>"+i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。"))
+
         with gr.Column():
             gr.Markdown(value=i18n("*请填写需要合成的目标文本和语种模式"))
             text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=20, max_lines=20)
@@ -251,7 +251,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 label=i18n("需要合成的文本的语种"), choices=list(dict_language.keys()), value=i18n("中文")
             )
 
-        
+
     with gr.Group():
         gr.Markdown(value=i18n("推理设置"))
         with gr.Row():
@@ -274,8 +274,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         )
                     parallel_infer = gr.Checkbox(label=i18n("并行推理"), value=True, interactive=True, show_label=True)
                     split_bucket = gr.Checkbox(label=i18n("数据分桶(并行推理时会降低一点计算量)"), value=True, interactive=True, show_label=True)
-                
-                with gr.Row():  
+
+                with gr.Row():
                     seed = gr.Number(label=i18n("随机种子"),value=-1)
                     keep_random = gr.Checkbox(label=i18n("保持随机"), value=True, interactive=True, show_label=True)
 
@@ -283,15 +283,15 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     inference_button = gr.Button(i18n("合成语音"), variant="primary")
                     stop_infer = gr.Button(i18n("终止合成"), variant="primary")
-                
-        
+
+
         inference_button.click(
             inference,
             [
                 text,text_language, inp_ref, inp_refs,
-                prompt_text, prompt_language, 
-                top_k, top_p, temperature, 
-                how_to_cut, batch_size, 
+                prompt_text, prompt_language,
+                top_k, top_p, temperature,
+                how_to_cut, batch_size,
                 speed_factor, ref_text_free,
                 split_bucket,fragment_interval,
                 seed, keep_random, parallel_infer,
@@ -315,13 +315,13 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             interactive=True,
                         )
                 cut_text= gr.Button(i18n("切分"), variant="primary")
-            
+
             def to_cut(text_inp, how_to_cut):
                 if len(text_inp.strip()) == 0 or text_inp==[]:
                     return ""
                 method = get_method(cut_method[how_to_cut])
                 return method(text_inp)
-        
+
             text_opt = gr.Textbox(label=i18n("切分后文本"), value="", lines=4)
             cut_text.click(to_cut, [text_inp, _how_to_cut], [text_opt])
         gr.Markdown(value=i18n("后续将支持转音素、手工修改音素、语音合成分步执行。"))

@@ -5,6 +5,40 @@ import hashlib
 try:
     import pyopenjtalk
     current_file_path = os.path.dirname(__file__)
+
+    # 防止win下无法读取模型
+    if os.name == 'nt':
+        python_dir = os.getcwd()
+        OPEN_JTALK_DICT_DIR = pyopenjtalk.OPEN_JTALK_DICT_DIR.decode("utf-8")
+        if not (re.match(r'^[A-Za-z0-9_/\\:.]*$', OPEN_JTALK_DICT_DIR)):
+            if (OPEN_JTALK_DICT_DIR[:len(python_dir)].upper() == python_dir.upper()):
+                OPEN_JTALK_DICT_DIR = os.path.join(os.path.relpath(OPEN_JTALK_DICT_DIR,python_dir))
+            else:
+                import shutil
+                if not os.path.exists('TEMP'):
+                    os.mkdir('TEMP')
+                if not os.path.exists(os.path.join("TEMP", "ja")):
+                    os.mkdir(os.path.join("TEMP", "ja"))
+                if os.path.exists(os.path.join("TEMP", "ja", "open_jtalk_dic")):
+                    shutil.rmtree(os.path.join("TEMP", "ja", "open_jtalk_dic"))
+                shutil.copytree(pyopenjtalk.OPEN_JTALK_DICT_DIR.decode("utf-8"), os.path.join("TEMP", "ja", "open_jtalk_dic"), )
+                OPEN_JTALK_DICT_DIR = os.path.join("TEMP", "ja", "open_jtalk_dic")
+            pyopenjtalk.OPEN_JTALK_DICT_DIR = OPEN_JTALK_DICT_DIR.encode("utf-8")
+
+        if not (re.match(r'^[A-Za-z0-9_/\\:.]*$', current_file_path)):
+            if (current_file_path[:len(python_dir)].upper() == python_dir.upper()):
+                current_file_path = os.path.join(os.path.relpath(current_file_path,python_dir))
+            else:
+                if not os.path.exists('TEMP'):
+                    os.mkdir('TEMP')
+                if not os.path.exists(os.path.join("TEMP", "ja")):
+                    os.mkdir(os.path.join("TEMP", "ja"))
+                if not os.path.exists(os.path.join("TEMP", "ja", "ja_userdic")):
+                    os.mkdir(os.path.join("TEMP", "ja", "ja_userdic"))
+                    shutil.copyfile(os.path.join(current_file_path, "ja_userdic", "userdict.csv"),os.path.join("TEMP", "ja", "ja_userdic", "userdict.csv"))
+                current_file_path = os.path.join("TEMP", "ja")
+
+
     def get_hash(fp: str) -> str:
         hash_md5 = hashlib.md5()
         with open(fp, "rb") as f:

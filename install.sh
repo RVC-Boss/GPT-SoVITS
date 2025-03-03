@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "Installing GCC..."
-conda install -c conda-forge gcc
+conda install -c conda-forge gcc=14
 
 echo "Installing G++..."
 conda install -c conda-forge gxx

@@ -1,14 +1,74 @@
 import logging
-import jieba
 import re
+
+# jieba静音
+import jieba
 jieba.setLogLevel(logging.CRITICAL)
 
 # 更改fast_langdetect大模型位置
 from pathlib import Path
 import fast_langdetect
 fast_langdetect.ft_detect.infer.CACHE_DIRECTORY = Path(__file__).parent.parent.parent / "pretrained_models" / "fast_langdetect"
-import sys
-sys.modules["fast_langdetect"] = fast_langdetect
+
+# 防止win下无法读取模型
+import os
+from typing import Optional
+def load_fasttext_model(
+        model_path: Path,
+        download_url: Optional[str] = None,
+        proxy: Optional[str] = None,
+):
+    """
+    Load a FastText model, downloading it if necessary.
+    :param model_path: Path to the FastText model file
+    :param download_url: URL to download the model from
+    :param proxy: Proxy URL for downloading the model
+    :return: FastText model
+    :raises DetectError: If model loading fails
+    """
+    if all([
+        fast_langdetect.ft_detect.infer.VERIFY_FASTTEXT_LARGE_MODEL,
+        model_path.exists(),
+        model_path.name == fast_langdetect.ft_detect.infer.FASTTEXT_LARGE_MODEL_NAME,
+    ]):
+        if not fast_langdetect.ft_detect.infer.verify_md5(model_path, fast_langdetect.ft_detect.infer.VERIFY_FASTTEXT_LARGE_MODEL):
+            fast_langdetect.ft_detect.infer.logger.warning(
+                f"fast-langdetect: MD5 hash verification failed for {model_path}, "
+                f"please check the integrity of the downloaded file from {fast_langdetect.ft_detect.infer.FASTTEXT_LARGE_MODEL_URL}. "
+                "\n    This may seriously reduce the prediction accuracy. "
+                "If you want to ignore this, please set `fast_langdetect.ft_detect.infer.VERIFY_FASTTEXT_LARGE_MODEL = None` "
+            )
+    if not model_path.exists():
+        if download_url:
+            fast_langdetect.ft_detect.infer.download_model(download_url, model_path, proxy)
+        if not model_path.exists():
+            raise fast_langdetect.ft_detect.infer.DetectError(f"FastText model file not found at {model_path}")
+
+    try:
+        # Load FastText model
+        if (re.match(r'^[A-Za-z0-9_/\\:.]*$', str(model_path))):
+            model = fast_langdetect.ft_detect.infer.fasttext.load_model(str(model_path))
+        else:
+            python_dir = os.getcwd()
+            if (str(model_path)[:len(python_dir)].upper() == python_dir.upper()):
+                model = fast_langdetect.ft_detect.infer.fasttext.load_model(os.path.relpath(model_path, python_dir))
+            else:
+                import tempfile
+                import shutil
+                with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+                    shutil.copyfile(model_path, tmpfile.name)
+
+                model = fast_langdetect.ft_detect.infer.fasttext.load_model(tmpfile.name)
+                os.unlink(tmpfile.name)
+        return model
+
+    except Exception as e:
+        fast_langdetect.ft_detect.infer.logger.warning(f"fast-langdetect:Failed to load FastText model from {model_path}: {e}")
+        raise fast_langdetect.ft_detect.infer.DetectError(f"Failed to load FastText model: {e}")
+
+if os.name == 'nt':
+    fast_langdetect.ft_detect.infer.load_fasttext_model = load_fasttext_model
+
 
 from split_lang import LangSplitter
 
@@ -16,6 +76,32 @@ from split_lang import LangSplitter
 def full_en(text):
     pattern = r'^[A-Za-z0-9\s\u0020-\u007E\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF]+$'
     return bool(re.match(pattern, text))
+
+
+def full_cjk(text):
+    # 来自wiki
+    cjk_ranges = [
+        (0x4E00, 0x9FFF),        # CJK Unified Ideographs
+        (0x3400, 0x4DB5),        # CJK Extension A
+        (0x20000, 0x2A6DD),      # CJK Extension B
+        (0x2A700, 0x2B73F),      # CJK Extension C
+        (0x2B740, 0x2B81F),      # CJK Extension D
+        (0x2B820, 0x2CEAF),      # CJK Extension E
+        (0x2CEB0, 0x2EBEF),      # CJK Extension F
+        (0x30000, 0x3134A),      # CJK Extension G
+        (0x31350, 0x323AF),      # CJK Extension H
+        (0x2EBF0, 0x2EE5D),      # CJK Extension H
+    ]
+
+    pattern = r'[0-9、-〜。！？.!?… ]+$'
+
+    cjk_text = ""
+    for char in text:
+        code_point = ord(char)
+        in_cjk = any(start <= code_point <= end for start, end in cjk_ranges)
+        if in_cjk or re.match(pattern, char):
+            cjk_text += char
+    return cjk_text
 
 
 def split_jako(tag_lang,item):
@@ -98,8 +184,12 @@ class LangSegmenter():
 
             # 未存在非日韩文夹日韩文
             if len(temp_list) == 1:
-                # 跳过未知语言
+                # 未知语言检查是否为CJK
                 if dict_item['lang'] == 'x':
+                    cjk_text = full_cjk(dict_item['text'])
+                    if cjk_text:
+                        dict_item = {'lang':'zh','text':cjk_text}
+                        lang_list = merge_lang(lang_list,dict_item)
                     continue
                 else:
                     lang_list = merge_lang(lang_list,dict_item)
@@ -107,12 +197,14 @@ class LangSegmenter():
 
             # 存在非日韩文夹日韩文
             for _, temp_item in enumerate(temp_list):
-                # 待观察是否会出现带英文或语言为x的中日英韩文
+                # 未知语言检查是否为CJK
                 if temp_item['lang'] == 'x':
-                    continue
-
-                lang_list = merge_lang(lang_list,temp_item)
-
+                    cjk_text = full_cjk(dict_item['text'])
+                    if cjk_text:
+                        dict_item = {'lang':'zh','text':cjk_text}
+                        lang_list = merge_lang(lang_list,dict_item)
+                else:
+                    lang_list = merge_lang(lang_list,temp_item)
         return lang_list
     
 
@@ -120,5 +212,6 @@ if __name__ == "__main__":
     text = "MyGO?,你也喜欢まいご吗？"
     print(LangSegmenter.getTexts(text))
 
-
+    text = "ねえ、知ってる？最近、僕は天文学を勉強してるんだ。君の瞳が星空みたいにキラキラしてるからさ。"
+    print(LangSegmenter.getTexts(text))
 

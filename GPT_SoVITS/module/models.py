@@ -1099,17 +1099,15 @@ class CFM(torch.nn.Module):
         return x
     def forward(self, x1, x_lens, prompt_lens, mu, use_grad_ckpt):
         b, _, t = x1.shape
-
-        # random timestep
         t = torch.rand([b], device=mu.device, dtype=x1.dtype)
         x0 = torch.randn_like(x1,device=mu.device)
         vt = x1 - x0
         xt = x0 + t[:, None, None] * vt
         dt = torch.zeros_like(t,device=mu.device)
         prompt = torch.zeros_like(x1)
-        for bib in range(b):
-            prompt[bib, :, :prompt_lens[bib]] = x1[bib, :, :prompt_lens[bib]]
-            xt[bib, :, :prompt_lens[bib]] = 0
+        for i in range(b):
+            prompt[i, :, :prompt_lens[i]] = x1[i, :, :prompt_lens[i]]
+            xt[i, :, :prompt_lens[i]] = 0
         gailv=0.3# if ttime()>1736250488 else 0.1
         if random.random() < gailv:
             base = torch.randint(2, 8, (t.shape[0],), device=mu.device)
@@ -1128,14 +1126,15 @@ class CFM(torch.nn.Module):
 
         vt_pred = self.estimator(xt, prompt, x_lens, t,dt, mu, use_grad_ckpt).transpose(2,1)
         loss = 0
-
-        # print(45555555,estimator_out.shape,u.shape,x_lens,prompt_lens)#45555555 torch.Size([7, 465, 100]) torch.Size([7, 100, 465]) tensor([461, 461, 451, 451, 442, 442, 442], device='cuda:0') tensor([ 96,  93, 185,  59, 244, 262, 294], device='cuda:0')
-        for bib in range(b):
-            loss += self.criterion(vt_pred[bib, :, prompt_lens[bib]:x_lens[bib]], vt[bib, :, prompt_lens[bib]:x_lens[bib]])
+        for i in range(b):
+            loss += self.criterion(vt_pred[i, :, prompt_lens[i]:x_lens[i]], vt[i, :, prompt_lens[i]:x_lens[i]])
         loss /= b
 
-        return loss#, estimator_out + (1 - self.sigma_min) * z
+        return loss
 
+def set_no_grad(net_g):
+    for name, param in net_g.named_parameters():
+        param.requires_grad=False
 
 class SynthesizerTrnV3(nn.Module):
     """
@@ -1210,7 +1209,6 @@ class SynthesizerTrnV3(nn.Module):
             bins=1024
         )
         self.freeze_quantizer=freeze_quantizer
-
         inter_channels2=512
         self.bridge=nn.Sequential(
             nn.Conv1d(inter_channels, inter_channels2, 1, stride=1),
@@ -1219,6 +1217,10 @@ class SynthesizerTrnV3(nn.Module):
         self.wns1=Encoder(inter_channels2, inter_channels2, inter_channels2, 5, 1, 8,gin_channels=gin_channels)
         self.linear_mel=nn.Conv1d(inter_channels2,100,1,stride=1)
         self.cfm = CFM(100,DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2, conv_layers=4)),)#text_dim is condition feature dim
+        if self.freeze_quantizer==True:
+            set_no_grad(self.ssl_proj)
+            set_no_grad(self.quantizer)
+            set_no_grad(self.enc_p)
 
     def forward(self, ssl, y, mel,ssl_lengths,y_lengths, text, text_lengths,mel_lengths, use_grad_ckpt):#ssl_lengths no need now
         with autocast(enabled=False):
@@ -1229,13 +1231,13 @@ class SynthesizerTrnV3(nn.Module):
                 if self.freeze_quantizer:
                     self.ssl_proj.eval()#
                     self.quantizer.eval()
+                    self.enc_p.eval()
                 ssl = self.ssl_proj(ssl)
                 quantized, codes, commit_loss, quantized_list = self.quantizer(
                     ssl, layers=[0]
                 )
-        with maybe_no_grad:
-            quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")##BCT
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
+                quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")##BCT
+                x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
         fea=self.bridge(x)
         fea = F.interpolate(fea, scale_factor=1.875, mode="nearest")##BCT
         fea, y_mask_ = self.wns1(fea, mel_lengths, ge)##If the 1-minute fine-tuning works fine, no need to manually adjust the learning rate.
@@ -1247,6 +1249,155 @@ class SynthesizerTrnV3(nn.Module):
         fea=fea[:,:,:minn]
         cfm_loss= self.cfm(mel, mel_lengths, prompt_len, fea, use_grad_ckpt)
         return cfm_loss
+
+    @torch.no_grad()
+    def decode_encp(self, codes,text, refer,ge=None,speed=1):
+        # print(2333333,refer.shape)
+        # ge=None
+        if(ge==None):
+            refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
+            refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, refer.size(2)), 1).to(refer.dtype)
+            ge = self.ref_enc(refer[:,:704] * refer_mask, refer_mask)
+        y_lengths = torch.LongTensor([int(codes.size(2)*2)]).to(codes.device)
+        if speed==1:
+            sizee=int(codes.size(2)*2.5*1.5)
+        else:
+            sizee=int(codes.size(2)*2.5*1.5/speed)+1
+        y_lengths1 = torch.LongTensor([sizee]).to(codes.device)
+        text_lengths = torch.LongTensor([text.size(-1)]).to(text.device)
+
+        quantized = self.quantizer.decode(codes)
+        if self.semantic_frame_rate == '25hz':
+            quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")##BCT
+        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge,speed)
+        fea=self.bridge(x)
+        fea = F.interpolate(fea, scale_factor=1.875, mode="nearest")##BCT
+        ####more wn paramter to learn mel
+        fea, y_mask_ = self.wns1(fea, y_lengths1, ge)
+        return fea,ge
+
+    def extract_latent(self, x):
+        ssl =  self.ssl_proj(x)
+        quantized, codes, commit_loss, quantized_list = self.quantizer(ssl)
+        return codes.transpose(0,1)
+
+class SynthesizerTrnV3b(nn.Module):
+    """
+    Synthesizer for Training
+    """
+
+    def __init__(self,
+                 spec_channels,
+                 segment_size,
+                 inter_channels,
+                 hidden_channels,
+                 filter_channels,
+                 n_heads,
+                 n_layers,
+                 kernel_size,
+                 p_dropout,
+                 resblock,
+                 resblock_kernel_sizes,
+                 resblock_dilation_sizes,
+                 upsample_rates,
+                 upsample_initial_channel,
+                 upsample_kernel_sizes,
+                 n_speakers=0,
+                 gin_channels=0,
+                 use_sdp=True,
+                 semantic_frame_rate=None,
+                 freeze_quantizer=None,
+                 **kwargs):
+
+        super().__init__()
+        self.spec_channels = spec_channels
+        self.inter_channels = inter_channels
+        self.hidden_channels = hidden_channels
+        self.filter_channels = filter_channels
+        self.n_heads = n_heads
+        self.n_layers = n_layers
+        self.kernel_size = kernel_size
+        self.p_dropout = p_dropout
+        self.resblock = resblock
+        self.resblock_kernel_sizes = resblock_kernel_sizes
+        self.resblock_dilation_sizes = resblock_dilation_sizes
+        self.upsample_rates = upsample_rates
+        self.upsample_initial_channel = upsample_initial_channel
+        self.upsample_kernel_sizes = upsample_kernel_sizes
+        self.segment_size = segment_size
+        self.n_speakers = n_speakers
+        self.gin_channels = gin_channels
+
+        self.model_dim=512
+        self.use_sdp = use_sdp
+        self.enc_p = TextEncoder(inter_channels,hidden_channels,filter_channels,n_heads,n_layers,kernel_size,p_dropout)
+        # self.ref_enc = modules.MelStyleEncoder(spec_channels, style_vector_dim=gin_channels)###Rollback
+        self.ref_enc = modules.MelStyleEncoder(704, style_vector_dim=gin_channels)###Rollback
+        self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates,
+                             upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
+        self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, 16,
+                                      gin_channels=gin_channels)
+        self.flow = ResidualCouplingBlock(inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels)
+
+
+        ssl_dim = 768
+        assert semantic_frame_rate in ['25hz', "50hz"]
+        self.semantic_frame_rate = semantic_frame_rate
+        if semantic_frame_rate == '25hz':
+            self.ssl_proj = nn.Conv1d(ssl_dim, ssl_dim, 2, stride=2)
+        else:
+            self.ssl_proj = nn.Conv1d(ssl_dim, ssl_dim, 1, stride=1)
+
+        self.quantizer = ResidualVectorQuantizer(
+            dimension=ssl_dim,
+            n_q=1,
+            bins=1024
+        )
+        self.freeze_quantizer=freeze_quantizer
+
+        inter_channels2=512
+        self.bridge=nn.Sequential(
+            nn.Conv1d(inter_channels, inter_channels2, 1, stride=1),
+            nn.LeakyReLU()
+        )
+        self.wns1=Encoder(inter_channels2, inter_channels2, inter_channels2, 5, 1, 8,gin_channels=gin_channels)
+        self.linear_mel=nn.Conv1d(inter_channels2,100,1,stride=1)
+        self.cfm = CFM(100,DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2, conv_layers=4)),)#text_dim is condition feature dim
+
+
+    def forward(self, ssl, y, mel,ssl_lengths,y_lengths, text, text_lengths,mel_lengths):#ssl_lengths no need now
+        with autocast(enabled=False):
+            y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(y.dtype)
+            ge = self.ref_enc(y[:,:704] * y_mask, y_mask)
+            # ge = self.ref_enc(y * y_mask, y_mask)#change back, new spec setting is whole 24k
+            # ge=None
+            maybe_no_grad = torch.no_grad() if self.freeze_quantizer else contextlib.nullcontext()
+            with maybe_no_grad:
+                if self.freeze_quantizer:
+                    self.ssl_proj.eval()
+                    self.quantizer.eval()
+                ssl = self.ssl_proj(ssl)
+                quantized, codes, commit_loss, quantized_list = self.quantizer(
+                    ssl, layers=[0]
+                )
+                quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")##BCT
+                x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
+        z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=ge)
+        z_p = self.flow(z, y_mask, g=ge)
+        z_slice, ids_slice = commons.rand_slice_segments(z, y_lengths, self.segment_size)
+        o = self.dec(z_slice, g=ge)
+        fea=self.bridge(x)
+        fea = F.interpolate(fea, scale_factor=1.875, mode="nearest")##BCT
+        fea, y_mask_ = self.wns1(fea, mel_lengths, ge)
+        learned_mel = self.linear_mel(fea)
+        B=ssl.shape[0]
+        prompt_len_max = mel_lengths*2/3
+        prompt_len = (torch.rand([B], device=fea.device) * prompt_len_max).floor().to(dtype=torch.long)#
+        minn=min(mel.shape[-1],fea.shape[-1])
+        mel=mel[:,:,:minn]
+        fea=fea[:,:,:minn]
+        cfm_loss= self.cfm(mel, mel_lengths, prompt_len, fea)#fea==cond,y_lengths==target_mel_lengths#ge not need
+        return commit_loss,cfm_loss,F.mse_loss(learned_mel, mel),o, ids_slice, y_mask, y_mask, (z, z_p, m_p, logs_p, m_q, logs_q), quantized
 
     @torch.no_grad()
     def decode_encp(self, codes,text, refer,ge=None):

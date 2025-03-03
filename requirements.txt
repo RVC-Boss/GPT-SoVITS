@@ -17,13 +17,15 @@ g2p_en
 torchaudio
 modelscope==1.10.0
 sentencepiece
-transformers
+transformers>=4.43
+peft
 chardet
 PyYAML
 psutil
 jieba_fast
 jieba
 split-lang
+fast_langdetect
 Faster_Whisper
 wordsegment
 rotary_embedding_torch
@@ -36,3 +38,4 @@ python_mecab_ko; sys_platform != 'win32'
 fastapi<0.112.2
 x_transformers
 torchmetrics<=1.5
+attrdict

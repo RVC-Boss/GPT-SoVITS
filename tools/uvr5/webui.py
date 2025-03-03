@@ -12,7 +12,7 @@ import torch
 import sys
 from mdxnet import MDXNetDereverb
 from vr import AudioPre, AudioPreDeEcho
-from bsroformer import BsRoformer_Loader
+from bsroformer import Roformer_Loader
 
 try:
     import gradio.analytics as analytics
@@ -49,13 +49,17 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         is_hp3 = "HP3" in model_name
         if model_name == "onnx_dereverb_By_FoxJoy":
             pre_fun = MDXNetDereverb(15)
-        elif model_name == "Bs_Roformer" or "bs_roformer" in model_name.lower():
-            func = BsRoformer_Loader
+        elif "roformer" in model_name.lower():
+            func = Roformer_Loader
             pre_fun = func(
                 model_path = os.path.join(weight_uvr5_root, model_name + ".ckpt"),
+                config_path = os.path.join(weight_uvr5_root, model_name + ".yaml"),
                 device = device,
                 is_half=is_half
             )
+            if not os.path.exists(os.path.join(weight_uvr5_root, model_name + ".yaml")):
+                infos.append("Warning: You are using a model without a configuration file. The program will automatically use the default configuration file. However, the default configuration file cannot guarantee that all models will run successfully. You can manually place the model configuration file into 'tools/uvr5/uvr5w_weights' and ensure that the configuration file is named as '<model_name>.yaml' then try it again. (For example, the configuration file corresponding to the model 'bs_roformer_ep_368_sdr_12.9628.ckpt' should be 'bs_roformer_ep_368_sdr_12.9628.yaml'.) Or you can just ignore this warning.")
+                yield "\n".join(infos)
         else:
             func = AudioPre if "DeEcho" not in model_name else AudioPreDeEcho
             pre_fun = func(
@@ -129,7 +133,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
 with gr.Blocks(title="UVR5 WebUI") as app:
     gr.Markdown(
         value=
-            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责. <br>如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录<b>LICENSE</b>.")
+            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.") + "<br>" + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
     )
     with gr.Group():
         gr.Markdown(html_center(i18n("伴奏人声分离&去混响&去回声"),'h2'))

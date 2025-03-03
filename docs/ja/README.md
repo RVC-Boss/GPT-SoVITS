@@ -9,7 +9,7 @@
 
 [![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-Models%20Repo-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)
+[![Huggingface](https://img.shields.io/badge/🤗%20-online%20demo-yellow.svg?style=for-the-badge)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
 [![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
 
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | **日本語** | [**한국어**](../ko/README.md) | [**Türkçe**](../tr/README.md)
@@ -142,6 +142,10 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 3. UVR5（ボーカル/伴奏（BGM等）分離 & リバーブ除去の追加機能）の場合は、[UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) からモデルをダウンロードし、`tools/uvr5/uvr5_weights` ディレクトリに配置してください。
 
+    - UVR5でbs_roformerまたはmel_band_roformerモデルを使用する場合、モデルと対応する設定ファイルを手動でダウンロードし、`tools/UVR5/UVR5_weights`フォルダに配置することができます。**モデルファイルと設定ファイルの名前は、拡張子を除いて同じであることを確認してください**。さらに、モデルと設定ファイルの名前には**「roformer」が含まれている必要があります**。これにより、roformerクラスのモデルとして認識されます。
+
+    - モデル名と設定ファイル名には、**直接モデルタイプを指定することをお勧めします**。例：mel_mand_roformer、bs_roformer。指定しない場合、設定文から特徴を照合して、モデルの種類を特定します。例えば、モデル`bs_roformer_ep_368_sdr_12.9628.ckpt`と対応する設定ファイル`bs_roformer_ep_368_sdr_12.9628.yaml`はペアです。同様に、`kim_mel_band_roformer.ckpt`と`kim_mel_band_roformer.yaml`もペアです。
+
 4. 中国語ASR（追加機能）の場合は、[Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files)、[Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files)、および [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください。
 
 5. 英語または日本語のASR（追加機能）を使用する場合は、[Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください。また、[他のモデル](https://huggingface.co/Systran) は、より小さいサイズで高クオリティな可能性があります。
@@ -191,17 +195,12 @@ python webui.py v1 <言語(オプション)>
 
 #### パス自動補完のサポート
 
-    1.音声パスを入力する
-
-    2.音声を小さなチャンクに分割する
-
-    3.ノイズ除去（オプション）
-
-    4.ASR
-
-    5.ASR転写を校正する
-
-    6.次のタブに移動し、モデルを微調整する
+    1. 音声パスを入力する
+    2. 音声を小さなチャンクに分割する
+    3. ノイズ除去（オプション）
+    4. ASR
+    5. ASR転写を校正する
+    6. 次のタブに移動し、モデルを微調整する
 
 ### 推論WebUIを開く
 
@@ -245,7 +244,25 @@ V1環境からV2を使用するには:
 
     中国語V2追加: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（G2PWモデルをダウンロードし、解凍して`G2PWModel`にリネームし、`GPT_SoVITS/text`に配置します）
 
+## V3 リリースノート
 
+新機能:
+
+1. 音色の類似性が向上し、ターゲットスピーカーを近似するために必要な学習データが少なくなりました（音色の類似性は、ファインチューニングなしでベースモデルを直接使用することで顕著に改善されます）。
+
+2. GPTモデルがより安定し、繰り返しや省略が減少し、より豊かな感情表現を持つ音声の生成が容易になりました。
+
+    [詳細情報はこちら](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+
+v2 環境から v3 を使用する方法:
+
+1. `pip install -r requirements.txt` を実行して、いくつかのパッケージを更新します。
+
+2. GitHubから最新のコードをクローンします。
+
+3. v3の事前学習済みモデル（s1v3.ckpt、s2Gv3.pth、models--nvidia--bigvgan_v2_24khz_100band_256x フォルダ）を[Huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) からダウンロードし、GPT_SoVITS\pretrained_models フォルダに配置します。
+
+    追加: 音声超解像モデルについては、[ダウンロード方法](../../tools/AP_BWE_main/24kto48k/readme.txt)を参照してください。
 
 ## Todo リスト
 
@@ -272,10 +289,10 @@ V1環境からV2を使用するには:
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
-ブラウザを開けない場合は、以下の形式に従って UVR 処理を行ってください。これはオーディオ処理に mdxnet を使用しています。
+<!-- ブラウザを開けない場合は、以下の形式に従って UVR 処理を行ってください。これはオーディオ処理に mdxnet を使用しています。
 ```
-python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision 
-```
+python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
+``` -->
 コマンド ラインを使用してデータセットのオーディオ セグメンテーションを行う方法は次のとおりです。
 ```
 python audio_slicer.py \
@@ -283,7 +300,7 @@ python audio_slicer.py \
     --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
     --threshold <volume_threshold> \
     --min_length <minimum_duration_of_each_subclip> \
-    --min_interval <shortest_time_gap_between_adjacent_subclips> 
+    --min_interval <shortest_time_gap_between_adjacent_subclips>
     --hop_size <step_size_for_computing_volume_curve>
 ```
 コマンドラインを使用してデータセット ASR 処理を行う方法です (中国語のみ)
@@ -310,12 +327,18 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 - [contentvec](https://github.com/auspicious3000/contentvec/)
 - [hifi-gan](https://github.com/jik876/hifi-gan)
 - [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
+- [f5-TTS](https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/backbones/dit.py)
+- [shortcut flow matching](https://github.com/kvfrans/shortcut-models/blob/main/targets_shortcut.py)
 ### 事前学習モデル
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
+- [BigVGAN](https://github.com/NVIDIA/BigVGAN)
 ### 推論用テキストフロントエンド
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
-- [LangSegment](https://github.com/juntaosun/LangSegment)
+- [split-lang](https://github.com/DoodleBears/split-lang)
+- [g2pW](https://github.com/GitYCC/g2pW)
+- [pypinyin-g2pW](https://github.com/mozillazg/pypinyin-g2pW)
+- [paddlespeech g2pw](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw)
 ### WebUI ツール
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)
@@ -324,6 +347,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+- [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
 @Naozumi520 さん、広東語のトレーニングセットの提供と、広東語に関する知識のご指導をいただき、感謝申し上げます。
 

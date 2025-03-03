@@ -26,12 +26,7 @@ from AR.utils import get_newest_ckpt
 from collections import OrderedDict
 from time import time as ttime
 import shutil
-def my_save(fea,path):#####fix issue: torch.save doesn't support chinese path
-    dir=os.path.dirname(path)
-    name=os.path.basename(path)
-    tmp_path="%s.pth"%(ttime())
-    torch.save(fea,tmp_path)
-    shutil.move(tmp_path,"%s/%s"%(dir,name))
+from process_ckpt import my_save
 
 
 class my_model_ckpt(ModelCheckpoint):

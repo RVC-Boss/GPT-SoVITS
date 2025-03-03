@@ -145,7 +145,7 @@ def mel_spectrogram_torch(
         return_complex=False,
     )
 
-    spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
+    spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-9)
 
     spec = torch.matmul(mel_basis[fmax_dtype_device], spec)
     spec = spectral_normalize_torch(spec)
