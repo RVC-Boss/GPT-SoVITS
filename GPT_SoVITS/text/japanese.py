@@ -10,7 +10,7 @@ try:
     if os.name == 'nt':
         python_dir = os.getcwd()
         OPEN_JTALK_DICT_DIR = pyopenjtalk.OPEN_JTALK_DICT_DIR.decode("utf-8")
-        if not (re.match(r'^[A-Za-z0-9_/\\:.]*$', OPEN_JTALK_DICT_DIR)):
+        if not (re.match(r'^[A-Za-z0-9_/\\:.\-]*$', OPEN_JTALK_DICT_DIR)):
             if (OPEN_JTALK_DICT_DIR[:len(python_dir)].upper() == python_dir.upper()):
                 OPEN_JTALK_DICT_DIR = os.path.join(os.path.relpath(OPEN_JTALK_DICT_DIR,python_dir))
             else:
@@ -25,7 +25,7 @@ try:
                 OPEN_JTALK_DICT_DIR = os.path.join("TEMP", "ja", "open_jtalk_dic")
             pyopenjtalk.OPEN_JTALK_DICT_DIR = OPEN_JTALK_DICT_DIR.encode("utf-8")
 
-        if not (re.match(r'^[A-Za-z0-9_/\\:.]*$', current_file_path)):
+        if not (re.match(r'^[A-Za-z0-9_/\\:.\-]*$', current_file_path)):
             if (current_file_path[:len(python_dir)].upper() == python_dir.upper()):
                 current_file_path = os.path.join(os.path.relpath(current_file_path,python_dir))
             else:

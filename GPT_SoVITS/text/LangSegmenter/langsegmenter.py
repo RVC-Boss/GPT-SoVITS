@@ -8,66 +8,7 @@ jieba.setLogLevel(logging.CRITICAL)
 # 更改fast_langdetect大模型位置
 from pathlib import Path
 import fast_langdetect
-fast_langdetect.ft_detect.infer.CACHE_DIRECTORY = Path(__file__).parent.parent.parent / "pretrained_models" / "fast_langdetect"
-
-# 防止win下无法读取模型
-import os
-from typing import Optional
-def load_fasttext_model(
-        model_path: Path,
-        download_url: Optional[str] = None,
-        proxy: Optional[str] = None,
-):
-    """
-    Load a FastText model, downloading it if necessary.
-    :param model_path: Path to the FastText model file
-    :param download_url: URL to download the model from
-    :param proxy: Proxy URL for downloading the model
-    :return: FastText model
-    :raises DetectError: If model loading fails
-    """
-    if all([
-        fast_langdetect.ft_detect.infer.VERIFY_FASTTEXT_LARGE_MODEL,
-        model_path.exists(),
-        model_path.name == fast_langdetect.ft_detect.infer.FASTTEXT_LARGE_MODEL_NAME,
-    ]):
-        if not fast_langdetect.ft_detect.infer.verify_md5(model_path, fast_langdetect.ft_detect.infer.VERIFY_FASTTEXT_LARGE_MODEL):
-            fast_langdetect.ft_detect.infer.logger.warning(
-                f"fast-langdetect: MD5 hash verification failed for {model_path}, "
-                f"please check the integrity of the downloaded file from {fast_langdetect.ft_detect.infer.FASTTEXT_LARGE_MODEL_URL}. "
-                "\n    This may seriously reduce the prediction accuracy. "
-                "If you want to ignore this, please set `fast_langdetect.ft_detect.infer.VERIFY_FASTTEXT_LARGE_MODEL = None` "
-            )
-    if not model_path.exists():
-        if download_url:
-            fast_langdetect.ft_detect.infer.download_model(download_url, model_path, proxy)
-        if not model_path.exists():
-            raise fast_langdetect.ft_detect.infer.DetectError(f"FastText model file not found at {model_path}")
-
-    try:
-        # Load FastText model
-        if (re.match(r'^[A-Za-z0-9_/\\:.]*$', str(model_path))):
-            model = fast_langdetect.ft_detect.infer.fasttext.load_model(str(model_path))
-        else:
-            python_dir = os.getcwd()
-            if (str(model_path)[:len(python_dir)].upper() == python_dir.upper()):
-                model = fast_langdetect.ft_detect.infer.fasttext.load_model(os.path.relpath(model_path, python_dir))
-            else:
-                import tempfile
-                import shutil
-                with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-                    shutil.copyfile(model_path, tmpfile.name)
-
-                model = fast_langdetect.ft_detect.infer.fasttext.load_model(tmpfile.name)
-                os.unlink(tmpfile.name)
-        return model
-
-    except Exception as e:
-        fast_langdetect.ft_detect.infer.logger.warning(f"fast-langdetect:Failed to load FastText model from {model_path}: {e}")
-        raise fast_langdetect.ft_detect.infer.DetectError(f"Failed to load FastText model: {e}")
-
-if os.name == 'nt':
-    fast_langdetect.ft_detect.infer.load_fasttext_model = load_fasttext_model
+fast_langdetect.infer._default_detector = fast_langdetect.infer.LangDetector(fast_langdetect.infer.LangDetectConfig(cache_dir=Path(__file__).parent.parent.parent / "pretrained_models" / "fast_langdetect"))
 
 
 from split_lang import LangSplitter
