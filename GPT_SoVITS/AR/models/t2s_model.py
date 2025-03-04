@@ -622,12 +622,39 @@ class Text2SemanticDecoder(nn.Module):
         )
         
         causal_mask = torch.concat([x_mask, y_mask], dim=0).view(1 , src_len, src_len).repeat(bsz, 1, 1).to(x.device)
-        padding_mask = padding_mask.unsqueeze(1) * padding_mask.unsqueeze(2) ### [b, x+y, x+y]
-        
-            
+        # padding_mask = padding_mask.unsqueeze(1) * padding_mask.unsqueeze(2) ### [b, x+y, x+y]
+        ### 上面是错误的，会导致padding的token被"看见"
+
+        # 正确的padding_mask应该是：
+        # |   pad_len   |  x_len  |  y_len  |
+        # [[PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
+        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
+        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],  前3行按理说也应该被mask掉，但是为了防止计算attention时不出现nan，还是保留了，不影响结果
+        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
+        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
+        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
+        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
+        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
+        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6]]
+
+        padding_mask = padding_mask.view(bsz, 1, src_len).repeat(1, src_len, 1)
+
         attn_mask:torch.Tensor = causal_mask.logical_or(padding_mask)
         attn_mask = attn_mask.unsqueeze(1).expand(-1, self.num_head, -1, -1).bool()
-        # padding_mask = padding_mask.view(bsz, src_len, 1)
+
+
+        # 正确的attn_mask应该是这样的：
+        # |   pad_len   |  x_len  |  y_len  |
+        # [[PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
+        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
+        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],  前3行按理说也应该被mask掉，但是为了防止计算attention时不出现nan，还是保留了，不影响结果
+        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
+        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
+        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
+        # [PAD, PAD, PAD, 1, 2, 3,   4, EOS, EOS],
+        # [PAD, PAD, PAD, 1, 2, 3,   4,   5, EOS],
+        # [PAD, PAD, PAD, 1, 2, 3,   4,   5,   6]]
+
 
         ###### decode #####
         y_list = [None]*y.shape[0]
