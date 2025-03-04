@@ -194,10 +194,20 @@ def get_weights_names(GPT_weight_root, SoVITS_weight_root):
 SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
 
 
-
+from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
-    tts_pipeline.init_vits_weights(sovits_path)
     global version, dict_language
+    version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
+    # print(sovits_path,version, model_version, if_lora_v3)
+    path_sovits_v3="GPT_SoVITS/pretrained_models/s2Gv3.pth"
+
+    if if_lora_v3 and not os.path.exists(path_sovits_v3):
+        info= path_sovits_v3 + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
+        gr.Warning(info)
+        raise FileExistsError(info)
+
+    tts_pipeline.init_vits_weights(sovits_path)
+
     dict_language = dict_language_v1 if tts_pipeline.configs.version =='v1' else dict_language_v2
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
@@ -210,7 +220,13 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         else:
             text_update = {'__type__':'update', 'value':''}
             text_language_update = {'__type__':'update', 'value':i18n("中文")}
-        return  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update
+        if model_version=="v3":
+            visible_sample_steps=True
+            visible_inp_refs=False
+        else:
+            visible_sample_steps=False
+            visible_inp_refs=True
+        yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "value": False,"interactive":True if model_version!="v3"else False},{"__type__": "update", "visible":True if model_version=="v3"else False}
 
 
 
