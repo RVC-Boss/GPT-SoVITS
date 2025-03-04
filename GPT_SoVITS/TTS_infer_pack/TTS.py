@@ -145,7 +145,11 @@ class TTS_Config:
 
 
         self.device = self.configs.get("device", torch.device("cpu"))
-        self.is_half = self.configs.get("is_half", False)
+        if str(self.device) == "cpu":
+            print(f"Warning: Half precision is not supported on CPU, set is_half to False.")
+            self.is_half = False
+        else:
+            self.is_half = self.configs.get("is_half", False)
         self.version = version
         self.t2s_weights_path = self.configs.get("t2s_weights_path", None)
         self.vits_weights_path = self.configs.get("vits_weights_path", None)
