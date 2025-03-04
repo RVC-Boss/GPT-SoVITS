@@ -39,6 +39,39 @@ def make_pad_mask(lengths: torch.Tensor, max_len: int = 0) -> torch.Tensor:
     return expaned_lengths >= lengths.unsqueeze(-1)
 
 
+def make_pad_mask_left(lengths: torch.Tensor, max_len: int = 0) -> torch.Tensor:
+    """
+    Args:
+      lengths:
+        A 1-D tensor containing sentence lengths.
+      max_len:
+        The length of masks.
+    Returns:
+      Return a 2-D bool tensor, where masked positions
+      are filled with `True` and non-masked positions are
+      filled with `False`.
+
+    #>>> lengths = torch.tensor([1, 3, 2, 5])
+    #>>> make_pad_mask(lengths)
+    tensor(
+        [
+            [True,  True,  False],
+            [True, False, False],
+            [True,  True,  False],
+            ...
+        ]
+    )
+    """
+    assert lengths.ndim == 1, lengths.ndim
+    max_len = max(max_len, lengths.max())
+    n = lengths.size(0)
+    seq_range = torch.arange(0, max_len, device=lengths.device)
+    expaned_lengths = seq_range.unsqueeze(0).repeat(n, 1)
+    expaned_lengths -= (max_len-lengths).unsqueeze(-1)
+
+    return expaned_lengths<0
+
+
 # https://github.com/microsoft/unilm/blob/master/xtune/src/transformers/modeling_utils.py
 def top_k_top_p_filtering(
     logits, top_k=0, top_p=1.0, filter_value=-float("Inf"), min_tokens_to_keep=1
