@@ -412,6 +412,7 @@ def get_bert_inf(phones, word2ph, norm_text, language):
 
 from text import chinese
 def get_phones_and_bert(text,language,version,final=False):
+    LangSegment.setKeepPinyin(True) #用于保留切分后的中文拼音
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         formattext = text
         while "  " in formattext:
