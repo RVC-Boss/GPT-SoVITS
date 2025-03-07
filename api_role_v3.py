@@ -17,7 +17,7 @@
    - 确保 GPT 和 SoVITS 模型文件已准备好。
    - 可选：设置默认参考音频路径、文本和语言。
 3. 运行服务：
-   python api.py -s "path/to/sovits.pth" -g "path/to/gpt.ckpt" -dr "ref.wav" -dt "参考文本" -dl "zh" -p 9880
+   python api_role_v3.py -s "path/to/sovits.pth" -g "path/to/gpt.ckpt" -dr "ref.wav" -dt "参考文本" -dl "zh" -p 9880
 
 参数说明：
 命令行参数：
@@ -117,7 +117,7 @@
 
 ### 目录结构
 GPT-SoVITS-roleapi/
-├── api.py                         # 本文件, API 主程序
+├── api_role_v3.py                         # 本文件, API 主程序
 ├── GPT_SoVITS/                    # GPT-SoVITS 核心库
 │   └── configs/
 │       └── tts_infer.yaml         # 默认配置文件
@@ -201,7 +201,7 @@ GPT-SoVITS-roleapi/
    - 成功时返回音频流 (Response 或 StreamingResponse)
    - 失败时返回 JSON，包含错误消息和可能的异常详情
 6. 运行:
-   - python api.py -a 127.0.0.1 -p 9880
+   - python api_role_v3.py -a 127.0.0.1 -p 9880
    - 检查启动日志确认设备
 7. 模型版本切换:
    - POST 请求中通过 "version" 参数指定 "v2" 或 "v3"，动态影响推理逻辑。
