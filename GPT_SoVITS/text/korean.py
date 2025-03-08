@@ -19,13 +19,13 @@ if os.name == 'nt':
                 print(f'you have to install eunjeon. install it...')
             else:
                 installpath = spam_spec.submodule_search_locations[0]
-                if not (re.match(r'^[A-Za-z0-9_/\\:.]*$', installpath)):
+                if not (re.match(r'^[A-Za-z0-9_/\\:.\-]*$', installpath)):
 
                     import sys
                     from eunjeon import Mecab as _Mecab
                     class Mecab(_Mecab):
                         def get_dicpath(installpath):
-                            if not (re.match(r'^[A-Za-z0-9_/\\:.]*$', installpath)):
+                            if not (re.match(r'^[A-Za-z0-9_/\\:.\-]*$', installpath)):
                                 import shutil
                                 python_dir = os.getcwd()
                                 if (installpath[:len(python_dir)].upper() == python_dir.upper()):

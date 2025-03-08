@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# 安装构建工具
+# Install build tools
 echo "Installing GCC..."
 conda install -c conda-forge gcc=14
 
@@ -7,6 +10,12 @@ conda install -c conda-forge gxx
 
 echo "Installing ffmpeg and cmake..."
 conda install ffmpeg cmake
+
+# 设置编译环境
+# Set up build environment
+export CMAKE_MAKE_PROGRAM="$CONDA_PREFIX/bin/cmake"
+export CC="$CONDA_PREFIX/bin/gcc"
+export CXX="$CONDA_PREFIX/bin/g++"
 
 echo "Checking for CUDA installation..."
 if command -v nvidia-smi &> /dev/null; then
@@ -49,6 +58,10 @@ fi
 
 
 echo "Installing Python dependencies from requirements.txt..."
+
+# 刷新环境
+# Refresh environment
+hash -r
 pip install -r requirements.txt
 
 if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ] ; then
@@ -60,3 +73,4 @@ if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ] ; then
 fi
 
 echo "Installation completed successfully!"
+

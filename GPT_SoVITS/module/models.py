@@ -1162,6 +1162,7 @@ class SynthesizerTrnV3(nn.Module):
                  use_sdp=True,
                  semantic_frame_rate=None,
                  freeze_quantizer=None,
+                 version="v3",
                  **kwargs):
 
         super().__init__()
@@ -1182,6 +1183,7 @@ class SynthesizerTrnV3(nn.Module):
         self.segment_size = segment_size
         self.n_speakers = n_speakers
         self.gin_channels = gin_channels
+        self.version = version
 
         self.model_dim=512
         self.use_sdp = use_sdp
