@@ -15,6 +15,9 @@ bert_path = "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
 pretrained_sovits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
 pretrained_gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
 
+# 部分模型的启用
+enable_costum_langdetect = False
+
 exp_root = "logs"
 python_exec = sys.executable or "python"
 if torch.cuda.is_available():
@@ -53,6 +56,8 @@ class Config:
         self.bert_path = bert_path
         self.pretrained_sovits_path = pretrained_sovits_path
         self.pretrained_gpt_path = pretrained_gpt_path
+
+        self.enable_costum_langdetect = enable_costum_langdetect
 
         self.exp_root = exp_root
         self.python_exec = python_exec
