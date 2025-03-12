@@ -1,14 +1,22 @@
 import logging
 import re
 
+from pathlib import Path
+
 # jieba静音
 import jieba
 jieba.setLogLevel(logging.CRITICAL)
 
-# 更改fast_langdetect大模型位置
-from pathlib import Path
+# 加载配置
+import sys
+sys.path.append("..")
+from config import Config
+config = Config()
+
 import fast_langdetect
-fast_langdetect.infer._default_detector = fast_langdetect.infer.LangDetector(fast_langdetect.infer.LangDetectConfig(cache_dir=Path(__file__).parent.parent.parent / "pretrained_models" / "fast_langdetect"))
+# 更改fast_langdetect大模型位置
+if config.enable_costum_langdetect:
+    fast_langdetect.infer._default_detector = fast_langdetect.infer.LangDetector(fast_langdetect.infer.LangDetectConfig(cache_dir=Path(__file__).parent.parent.parent / "pretrained_models" / "fast_langdetect"))
 
 
 from split_lang import LangSplitter

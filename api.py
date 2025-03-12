@@ -172,6 +172,8 @@ from tools.my_utils import load_audio
 import config as global_config
 import logging
 import subprocess
+from pathlib import Path
+import tqdm
 
 
 class DefaultRefer:
@@ -199,6 +201,12 @@ def is_full(*items):  # 任意一项为空返回False
 
 
 def init_bigvgan():
+    # 判断是否存在bigvgan模型 `nvidia/bigvgan_v2_24khz_100band_256x` 不存在则下载
+    if not (Path(__file__).parent / "GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x").exists():
+        print("Downloading bigvgan model... from [nvidia/bigvgan_v2_24khz_100band_256x]")
+        from huggingface_hub import snapshot_download
+        snapshot_download(repo_id="nvidia/bigvgan_v2_24khz_100band_256x", repo_type="model", revision="main", cache_dir="GPT_SoVITS/pretrained_models")
+        
     global bigvgan_model
     from BigVGAN import bigvgan
     bigvgan_model = bigvgan.BigVGAN.from_pretrained("%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,), use_cuda_kernel=False)  # if True, RuntimeError: Ninja is required to load C++ extensions
@@ -363,7 +371,7 @@ def get_gpt_weights(gpt_path):
     gpt = Gpt(max_sec, t2s_model)
     return gpt
 
-def change_gpt_sovits_weights(gpt_path,sovits_path):
+def change_gpt_sovits_weights(gpt_path, sovits_path):
     try:
         gpt = get_gpt_weights(gpt_path)
         sovits = get_sovits_weights(sovits_path)
