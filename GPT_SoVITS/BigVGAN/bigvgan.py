@@ -14,6 +14,12 @@ import torch.nn as nn
 from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn.utils import weight_norm, remove_weight_norm
 
+import sys
+
+# 确保工作目录包含该目录，否则无法导入 activations
+now_dir = os.getcwd()
+sys.path.append("%s/GPT_SoVITS/BigVGAN" % (now_dir))
+
 import activations
 from utils0 import init_weights, get_padding
 from alias_free_activation.torch.act import Activation1d as TorchActivation1d
@@ -431,7 +437,8 @@ class BigVGAN(
         """Load Pytorch pretrained weights and return the loaded model."""
 
         # Download and load hyperparameters (h) used by BigVGAN
-        if os.path.isdir(model_id):
+        isLocal = os.path.isdir(model_id)
+        if isLocal:
             # print("Loading config.json from local directory")
             config_file = os.path.join(model_id, "config.json")
         else:
