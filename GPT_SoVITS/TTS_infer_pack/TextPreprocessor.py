@@ -199,6 +199,7 @@ class TextPreprocessor:
         return phone_level_feature.T
 
     def clean_text_inf(self, text:str, language:str, version:str="v2"):
+        language = language.replace("all_","")
         phones, word2ph, norm_text = clean_text(text, language, version)
         phones = cleaned_text_to_sequence(phones, version)
         return phones, word2ph, norm_text
