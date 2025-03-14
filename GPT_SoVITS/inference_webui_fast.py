@@ -44,7 +44,7 @@ bert_path = os.environ.get("bert_path", None)
 version=os.environ.get("version","v2")
 
 import gradio as gr
-from TTS_infer_pack.TTS import TTS, TTS_Config
+from TTS_infer_pack.TTS import TTS, TTS_Config, NO_PROMPT_ERROR
 from TTS_infer_pack.text_segmentation_method import get_method
 from tools.i18n.i18n import I18nAuto, scan_language_list
 
@@ -153,8 +153,11 @@ def inference(text, text_lang,
         "sample_steps": int(sample_steps),
         "super_sampling": super_sampling,
     }
-    for item in tts_pipeline.run(inputs):
-        yield item, actual_seed
+    try:
+        for item in tts_pipeline.run(inputs):
+            yield item, actual_seed
+    except NO_PROMPT_ERROR:
+        gr.Warning(i18n('V3不支持无参考文本模式，请填写参考文本！'))
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分

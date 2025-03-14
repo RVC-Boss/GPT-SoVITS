@@ -3,9 +3,9 @@ custom:
   cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
   device: cuda
   is_half: true
-  t2s_weights_path: GPT_SoVITS/pretrained_models/s1v3.ckpt
-  version: v3
-  vits_weights_path: GPT_SoVITS/pretrained_models/s2Gv3.pth
+  t2s_weights_path: GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
+  version: v2
+  vits_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
 v1:
   bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
   cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
