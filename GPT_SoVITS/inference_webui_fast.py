@@ -130,7 +130,7 @@ def inference(text, text_lang,
               ):
 
     seed = -1 if keep_random else seed
-    actual_seed = seed if seed not in [-1, "", None] else random.randrange(1 << 32)
+    actual_seed = seed if seed not in [-1, "", None] else random.randint(0, 2**32 - 1)
     inputs={
         "text": text,
         "text_lang": dict_language[text_lang],

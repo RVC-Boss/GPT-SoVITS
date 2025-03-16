@@ -158,7 +158,7 @@ default_v3:
 
 def set_seed(seed:int):
     seed = int(seed)
-    seed = seed if seed != -1 else random.randrange(1 << 32)
+    seed = seed if seed != -1 else random.randint(0, 2**32 - 1)
     print(f"Set seed to {seed}")
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
@@ -428,7 +428,8 @@ class TTS:
             info= path_sovits_v3 + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
             raise FileExistsError(info)
 
-        dict_s2 = torch.load(weights_path, map_location=self.configs.device,weights_only=False)
+        # dict_s2 = torch.load(weights_path, map_location=self.configs.device,weights_only=False)
+        dict_s2 = load_sovits_new(weights_path)
         hps = dict_s2["config"]
 
         hps["model"]["semantic_frame_rate"] = "25hz"
