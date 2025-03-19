@@ -8,8 +8,8 @@ from time import time as ttime
 
 import torch
 from text.cleaner import clean_text
-from transformers import AutoModelForMaskedLM, AutoTokenizer
 from tqdm import tqdm
+from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 from tools.my_utils import clean_path
 
