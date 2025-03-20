@@ -427,7 +427,7 @@ class T2SModel(nn.Module):
         self.top_k = int(raw_t2s.config["inference"]["top_k"])
         self.early_stop_num = torch.LongTensor([self.hz * self.max_sec])
     
-    def forward(self,prompts:LongTensor, ref_seq:LongTensor, text_seq:LongTensor, ref_bert:torch.Tensor, text_bert:torch.Tensor):
+    def forward(self,prompts:LongTensor, ref_seq:LongTensor, text_seq:LongTensor, ref_bert:torch.Tensor, text_bert:torch.Tensor,top_k:LongTensor):
         bert = torch.cat([ref_bert.T, text_bert.T], 1)
         all_phoneme_ids = torch.cat([ref_seq, text_seq], 1)
         bert = bert.unsqueeze(0)
@@ -472,12 +472,13 @@ class T2SModel(nn.Module):
                                                 .to(device=x.device, dtype=torch.bool)
         
         idx = 0
+        top_k = int(top_k)
         
         xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask, None)
 
         logits = self.ar_predict_layer(xy_dec[:, -1])
         logits = logits[:, :-1]
-        samples = sample(logits, y, top_k=self.top_k, top_p=1, repetition_penalty=1.35, temperature=1.0)[0]
+        samples = sample(logits, y, top_k=top_k, top_p=1, repetition_penalty=1.35, temperature=1.0)[0]
         y = torch.concat([y, samples], dim=1)
         y_emb = self.ar_audio_embedding(y[:, -1:])
         xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[:, y_len + idx].to(dtype=y_emb.dtype,device=y_emb.device)
@@ -493,7 +494,7 @@ class T2SModel(nn.Module):
             if(idx<11):###至少预测出10个token不然不给停止（0.4s）
                 logits = logits[:, :-1]
             
-            samples = sample(logits, y, top_k=self.top_k, top_p=1, repetition_penalty=1.35, temperature=1.0)[0]
+            samples = sample(logits, y, top_k=top_k, top_p=1, repetition_penalty=1.35, temperature=1.0)[0]
 
             y = torch.concat([y, samples], dim=1)
             
