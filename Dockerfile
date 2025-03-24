@@ -122,7 +122,7 @@ RUN git clone --recursive https://github.com/ivy-consulting/GPT-SoVITS.git /app/
     && git lfs pull
 
 # Copy local pretrained models (overwrite if necessary)
-COPY GPT_SoVITS/pretrained_models/* /app/GPT-SoVITS/GPT_SoVITS/pretrained_models/
+COPY GPT_SoVITS/pretrained_models/ /app/GPT-SoVITS/GPT_SoVITS/pretrained_models/
 
 # Ensure LFS files are pulled again (to verify all files are present)
 RUN cd /app/GPT-SoVITS && git lfs pull
