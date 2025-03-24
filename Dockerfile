@@ -119,7 +119,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-Linux-x86
 COPY . .
 
 # Ensure LFS files are pulled (if repository is cloned here; optional)
-# RUN git lfs pull  # Uncomment if you clone the repo inside the container instead of using COPY
+RUN git lfs pull  # Uncomment if you clone the repo inside the container instead of using COPY
 
 # Install Conda dependencies
 RUN conda install -y -q -c pytorch -c nvidia cudatoolkit \
