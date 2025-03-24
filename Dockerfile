@@ -97,7 +97,7 @@ WORKDIR /app/GPT-SoVITS
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/usr/local/bin:/opt/conda/bin:${PATH}"
+ENV PATH="/opt/conda/bin:${PATH}"
 
 # Install basic dependencies including git-lfs
 RUN apt-get update && apt-get install -y \
@@ -115,18 +115,22 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-Linux-x86
     && bash miniconda.sh -b -p /opt/conda \
     && rm miniconda.sh
 
+# Use Conda's shell properly
+SHELL ["/opt/conda/bin/conda", "run", "-n", "base", "/bin/bash", "-c"]
+
 # Copy the current directory contents (GPT-SoVITS) into the container
 COPY . .
 
-# Ensure LFS files are pulled (if repository is cloned here; optional)
-# RUN git lfs pull  # Uncomment if you clone the repo inside the container instead of using COPY
+# Ensure LFS files are pulled
+RUN git lfs pull
 
 # Install Conda dependencies
 RUN conda install -y -q -c pytorch -c nvidia cudatoolkit \
     && conda install -y -q -c conda-forge gcc gxx ffmpeg cmake
 
-# Install Python requirements
-RUN pip install -r requirements.txt
+# Upgrade pip and install Python requirements
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt
 
 # Install additional Python packages
 RUN pip install ipykernel
