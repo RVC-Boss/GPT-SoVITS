@@ -115,14 +115,17 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-Linux-x86
     && bash miniconda.sh -b -p /opt/conda \
     && rm miniconda.sh
 
-# Use Conda's shell properly
-SHELL ["/opt/conda/bin/conda", "run", "-n", "base", "/bin/bash", "-c"]
+# Clone the repository inside the container (Fixes Git LFS issue)
+RUN git clone --recursive https://github.com/ivy-consulting/GPT-SoVITS.git /app/GPT-SoVITS \
+    && cd /app/GPT-SoVITS \
+    && git lfs install \
+    && git lfs pull
 
-# Copy the current directory contents (GPT-SoVITS) into the container
-COPY . .
+# Copy local pretrained models (overwrite if necessary)
+COPY GPT_SoVITS/pretrained_models/* /app/GPT-SoVITS/GPT_SoVITS/pretrained_models/
 
-# Ensure LFS files are pulled
-RUN git lfs pull
+# Ensure LFS files are pulled again (to verify all files are present)
+RUN cd /app/GPT-SoVITS && git lfs pull
 
 # Install Conda dependencies
 RUN conda install -y -q -c pytorch -c nvidia cudatoolkit \
@@ -138,8 +141,8 @@ RUN pip install ipykernel
 # Modify config.py to enable WebUI
 RUN sed -i '10s/False/True/' config.py
 
-# Expose port for WebUI
+# Expose port for 
 EXPOSE 5000
 
-# Set entrypoint to launch WebUI
+# Set entrypoint to launch 
 CMD ["python", "api.py"]
