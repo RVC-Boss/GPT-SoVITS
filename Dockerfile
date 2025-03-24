@@ -41,6 +41,55 @@
 # CMD ["python", "webui.py"]
 
 # Use official Ubuntu 22.04 as base image
+# FROM ubuntu:22.04
+
+# # Set working directory
+# WORKDIR /app/GPT-SoVITS
+
+# # Set environment variables
+# ENV DEBIAN_FRONTEND=noninteractive
+# ENV PATH="/usr/local/bin:${PATH}"
+
+# # Install basic dependencies
+# RUN apt-get update && apt-get install -y \
+#     git \
+#     wget \
+#     curl \
+#     cmake \
+#     ffmpeg \
+#     && rm -rf /var/lib/apt/lists/*
+
+# # Install Miniconda
+# RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-Linux-x86_64.sh -O miniconda.sh \
+#     && bash miniconda.sh -b -p /opt/conda \
+#     && rm miniconda.sh
+
+# # Add conda to PATH
+# ENV PATH="/opt/conda/bin:${PATH}"
+
+# # Copy the current directory contents (GPT-SoVITS) into the container
+# COPY . .
+
+# # Install Conda dependencies
+# RUN conda install -y -q -c pytorch -c nvidia cudatoolkit \
+#     && conda install -y -q -c conda-forge gcc gxx ffmpeg cmake -c pytorch -c nvidia
+
+# # Install Python requirements
+# RUN pip install -r requirements.txt
+
+# # Install additional Python packages
+# RUN pip install ipykernel
+
+# # Modify config.py to enable WebUI
+# RUN sed -i '10s/False/True/' config.py
+
+# # Expose port for WebUI
+# EXPOSE 5000
+
+# # Set entrypoint to launch WebUI
+# CMD ["python", "api.py"]
+
+# Use official Ubuntu 22.04 as base image
 FROM ubuntu:22.04
 
 # Set working directory
@@ -48,15 +97,17 @@ WORKDIR /app/GPT-SoVITS
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/usr/local/bin:${PATH}"
+ENV PATH="/usr/local/bin:/opt/conda/bin:${PATH}"
 
-# Install basic dependencies
+# Install basic dependencies including git-lfs
 RUN apt-get update && apt-get install -y \
     git \
+    git-lfs \
     wget \
     curl \
     cmake \
     ffmpeg \
+    && git lfs install \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Miniconda
@@ -64,15 +115,15 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-Linux-x86
     && bash miniconda.sh -b -p /opt/conda \
     && rm miniconda.sh
 
-# Add conda to PATH
-ENV PATH="/opt/conda/bin:${PATH}"
-
 # Copy the current directory contents (GPT-SoVITS) into the container
 COPY . .
 
+# Ensure LFS files are pulled (if repository is cloned here; optional)
+# RUN git lfs pull  # Uncomment if you clone the repo inside the container instead of using COPY
+
 # Install Conda dependencies
 RUN conda install -y -q -c pytorch -c nvidia cudatoolkit \
-    && conda install -y -q -c conda-forge gcc gxx ffmpeg cmake -c pytorch -c nvidia
+    && conda install -y -q -c conda-forge gcc gxx ffmpeg cmake
 
 # Install Python requirements
 RUN pip install -r requirements.txt
