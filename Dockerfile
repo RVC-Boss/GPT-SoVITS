@@ -87,4 +87,4 @@ RUN sed -i '10s/False/True/' config.py
 EXPOSE 5000
 
 # Set entrypoint to launch WebUI
-CMD ["python", "webui.py"]
+CMD ["python", "api.py"]
