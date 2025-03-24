@@ -10,6 +10,7 @@ onnxruntime; sys_platform == 'darwin'
 onnxruntime-gpu; sys_platform != 'darwin'
 tqdm
 funasr==1.0.27
+torch<2.4
 cn2an
 pypinyin
 pyopenjtalk>=0.3.4
