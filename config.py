@@ -27,7 +27,7 @@ webui_port_uvr5 = 9873
 webui_port_infer_tts = 9872
 webui_port_subfix = 9871
 
-api_port = 5000
+api_port = 9880
 
 if infer_device == "cuda":
     gpu_name = torch.cuda.get_device_name(0)
