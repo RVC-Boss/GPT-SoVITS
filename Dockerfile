@@ -39,4 +39,4 @@ COPY . /workspace
 
 EXPOSE 9871 9872 9873 9874 9880
 
-CMD ["python", "webui.py"]
+CMD ["python", "app.py"]
