@@ -1104,4 +1104,5 @@ async def tts_endpoint(
 
 
 if __name__ == "__main__":
+    logging.info("the server is running")
     uvicorn.run(app, host=host, port=port, workers=1)
