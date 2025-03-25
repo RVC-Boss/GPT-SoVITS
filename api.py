@@ -173,6 +173,9 @@ import config as global_config
 import logging
 import subprocess
 
+import nltk
+nltk.download('averaged_perceptron_tagger_eng')
+
 
 class DefaultRefer:
     def __init__(self, path, text, language):
