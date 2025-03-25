@@ -1087,9 +1087,9 @@ async def tts_endpoint(request: Request):
 
 @app.get("/")
 async def tts_endpoint(
-        refer_wav_path: str = None,
-        prompt_text: str = None,
-        prompt_language: str = None,
+        refer_wav_path: str = "saotome/saotome-6s.wav",
+        prompt_text: str = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。",
+        prompt_language: str = "all_ja",
         text: str = None,
         text_language: str = None,
         cut_punc: str = None,
@@ -1097,7 +1097,7 @@ async def tts_endpoint(
         top_p: float = 1.0,
         temperature: float = 1.0,
         speed: float = 1.0,
-        inp_refs: list = Query(default=[]),
+        inp_refs: list = Query(default=["saotome/saotome-10s.wav", "saotome/refs/ref1.wav", "saotome/refs/ref2.wav", "saotome/refs/ref3.wav", "saotome/refs/ref4.wav"]),
         sample_steps: int = 32,
         if_sr: bool = False
 ):
