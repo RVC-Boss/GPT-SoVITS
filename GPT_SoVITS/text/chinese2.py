@@ -133,13 +133,32 @@ def _merge_erhua(initials: list[str],
         new_finals.append(phn)
 
     return new_initials, new_finals
-
+def remove_brackets(s):
+    if s.startswith('(') and s.endswith(')'):
+        return s[1:-1]
+    return s
+def custom_pinyin(seg:str):
+    '''
+    自定义拼音，格式：这个字的读音是角(jue2)色，而不是角(jiao3)色
+    拼音格式符合 pinyin.Style.TON3(声调风格3，即拼音声调在各个拼音之后，用数字 [1-4] 进行表示。如： 中国 -> ``zhong1 guo2``)
+    逻辑：使用正则截取原字符串中指定的拼音，符合截取拼音后的纯汉字字符串和自定义拼音列表，无自定义拼音的返回空： return:这个字的读音是角色，而不是角色 ["","","","","","","","jue2","","","","","","jiao3",""]
+    '''
+    reg=re.compile('\([a-zA-Z]+\d\)')
+    custom_pys=reg.findall(seg)
+    result=["" for s in range(len(seg))]
+    for custom_py in custom_pys:
+        index=seg.index(custom_py)
+        result[index-1]=remove_brackets(custom_py)
+        seg=seg.replace(custom_py,"",1)
+    result=result[:len(seg)]
+    return seg,result
 
 def _g2p(segments):
     phones_list = []
     word2ph = []
     for seg in segments:
         pinyins = []
+        seg, customer_pinyin = custom_pinyin(seg)
         # Replace all English words in the sentence
         seg = re.sub("[a-zA-Z]+", "", seg)
         seg_cut = psg.lcut(seg)
@@ -160,11 +179,15 @@ def _g2p(segments):
                 # assert len(sub_initials) == len(sub_finals) == len(word)
             initials = sum(initials, [])
             finals = sum(finals, [])
+            initials=[to_initials(customer_pinyin[index]) if customer_pinyin[index] != "" else item for index,item in enumerate(initials)]
+            finals=[to_finals_tone3(customer_pinyin[index]) if customer_pinyin[index] != "" else item for index,item in enumerate(finals)]
+            print("customer_pinyin:",customer_pinyin)
             print("pypinyin结果",initials,finals)
         else:
             # g2pw采用整句推理
             pinyins = g2pw.lazy_pinyin(seg, neutral_tone_with_five=True, style=Style.TONE3)
-
+            pinyins = [customer_pinyin[index] if customer_pinyin[index] != "" else item for index,item in enumerate(pinyins) ]
+            print(f"g2pw seg:{seg} pinyins:{pinyins}")
             pre_word_length = 0
             for word, pos in seg_cut:
                 sub_initials = []
@@ -178,7 +201,7 @@ def _g2p(segments):
                 word_pinyins = pinyins[pre_word_length:now_word_length]
 
                 # 多音字消歧
-                word_pinyins = correct_pronunciation(word,word_pinyins)
+                # word_pinyins = correct_pronunciation(word,word_pinyins) # 拿缓存
 
                 for pinyin in word_pinyins:
                     if pinyin[0].isalpha():
@@ -197,7 +220,7 @@ def _g2p(segments):
 
             initials = sum(initials, [])
             finals = sum(finals, [])
-            # print("g2pw结果",initials,finals)
+            print("g2pw结果",initials,finals)
 
         for c, v in zip(initials, finals):
             raw_pinyin = c + v
@@ -274,6 +297,7 @@ def replace_consecutive_punctuation(text):
 def text_normalize(text):
     # https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization
     tx = TextNormalizer()
+    text, custom_py = custom_pinyin(text)
     sentences = tx.normalize(text)
     dest_text = ""
     for sentence in sentences:
@@ -281,8 +305,19 @@ def text_normalize(text):
 
     # 避免重复标点引起的参考泄露
     dest_text = replace_consecutive_punctuation(dest_text)
+    if len(dest_text)==len(text):
+        result=""
+        for index,rune in enumerate(dest_text):
+            result=result+rune
+            if text[index]==dest_text[index] and custom_py[index]!="":
+                result=result+"("+custom_py[index]+")"
+        dest_text=result
+    else:
+        print("text_normalize 后长度不一致")
     return dest_text
-
+def clean_custom_pinyin(text):
+    text, _ = custom_pinyin(text)
+    return text
 # 不排除英文的文本格式化
 def mix_text_normalize(text):
     # https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization
@@ -298,11 +333,8 @@ def mix_text_normalize(text):
 
 
 if __name__ == "__main__":
-    text = "啊——但是《原神》是由,米哈\游自主，研发的一款全.新开放世界.冒险游戏"
-    text = "呣呣呣～就是…大人的鼹鼠党吧？"
-    text = "你好"
-    text = text_normalize(text)
-    print(g2p(text))
+    text = "这个字的读音是角(jue2)色，而不是角(jiao3)色"
+    print(custom_pinyin(text))
 
 
 # # 示例用法
