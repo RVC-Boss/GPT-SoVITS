@@ -118,11 +118,11 @@ class TextPreprocessor:
 
     def get_phones_and_bert(self, text:str, language:str, version:str, final:bool=False):
         if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
-            language = language.replace("all_","")
+            # language = language.replace("all_","")
             formattext = text
             while "  " in formattext:
                 formattext = formattext.replace("  ", " ")
-            if language == "zh":
+            if language == "all_zh":
                 if re.search(r'[A-Za-z]', formattext):
                     formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
                     formattext = chinese.mix_text_normalize(formattext)
@@ -130,7 +130,7 @@ class TextPreprocessor:
                 else:
                     phones, word2ph, norm_text = self.clean_text_inf(formattext, language, version)
                     bert = self.get_bert_feature(norm_text, word2ph).to(self.device)
-            elif language == "yue" and re.search(r'[A-Za-z]', formattext):
+            elif language == "all_yue" and re.search(r'[A-Za-z]', formattext):
                     formattext = re.sub(r'[a-z]', lambda x: x.group(0).upper(), formattext)
                     formattext = chinese.mix_text_normalize(formattext)
                     return self.get_phones_and_bert(formattext,"yue",version)
@@ -199,6 +199,7 @@ class TextPreprocessor:
         return phone_level_feature.T
 
     def clean_text_inf(self, text:str, language:str, version:str="v2"):
+        language = language.replace("all_","")
         phones, word2ph, norm_text = clean_text(text, language, version)
         phones = cleaned_text_to_sequence(phones, version)
         return phones, word2ph, norm_text
