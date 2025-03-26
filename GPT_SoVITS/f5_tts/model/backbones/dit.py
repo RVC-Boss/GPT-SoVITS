@@ -138,7 +138,7 @@ class DiT(nn.Module):
         time: float["b"] | float[""],  # time step  # noqa: F821 F722
             dt_base_bootstrap,
         text0,  # : int["b nt"]  # noqa: F722#####condition feature
-        use_grad_ckpt,  # bool
+        use_grad_ckpt=False,  # bool
         ###no-use
         drop_audio_cond=False,  # cfg for cond audio
         drop_text=False,  # cfg for text
