@@ -72,8 +72,8 @@ bash install.sh
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-
-pip install -r requirements.txt -c constraints.txt
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
 ```
 
 ### El ile Yükleme
@@ -99,6 +99,7 @@ conda install -c conda-forge 'ffmpeg<7'
 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) ve [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) dosyalarını indirin ve GPT-SoVITS kök dizinine yerleştirin.
 
 ##### MacOS Kullanıcıları
+
 ```bash
 brew install ffmpeg
 ```
@@ -106,7 +107,8 @@ brew install ffmpeg
 #### Bağımlılıkları Yükleme
 
 ```bash
-pip install -r requirements.txt -c constraints.txt
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
 ```
 
 ### Docker Kullanarak
@@ -142,9 +144,9 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 3. UVR5 (Vokal/Enstrümantal Ayrımı & Yankı Giderme) için, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) üzerinden modelleri indirip `tools/uvr5/uvr5_weights` dizinine yerleştirin.
 
-    - UVR5'te bs_roformer veya mel_band_roformer modellerini kullanıyorsanız, modeli ve ilgili yapılandırma dosyasını manuel olarak indirip `tools/UVR5/UVR5_weights` klasörüne yerleştirebilirsiniz. **Model dosyası ve yapılandırma dosyasının adı, uzantı dışında aynı olmalıdır**. Ayrıca, model ve yapılandırma dosyasının adlarında **“roformer”** kelimesi yer almalıdır, böylece roformer sınıfındaki bir model olarak tanınır.
+   - UVR5'te bs_roformer veya mel_band_roformer modellerini kullanıyorsanız, modeli ve ilgili yapılandırma dosyasını manuel olarak indirip `tools/UVR5/UVR5_weights` klasörüne yerleştirebilirsiniz. **Model dosyası ve yapılandırma dosyasının adı, uzantı dışında aynı olmalıdır**. Ayrıca, model ve yapılandırma dosyasının adlarında **“roformer”** kelimesi yer almalıdır, böylece roformer sınıfındaki bir model olarak tanınır.
 
-    - Model adı ve yapılandırma dosyası adı içinde **doğrudan model tipini belirtmek önerilir**. Örneğin: mel_mand_roformer, bs_roformer. Belirtilmezse, yapılandırma dosyasından özellikler karşılaştırılarak model tipi belirlenir. Örneğin, `bs_roformer_ep_368_sdr_12.9628.ckpt` modeli ve karşılık gelen yapılandırma dosyası `bs_roformer_ep_368_sdr_12.9628.yaml` bir çifttir. Aynı şekilde, `kim_mel_band_roformer.ckpt` ve `kim_mel_band_roformer.yaml` da bir çifttir.
+   - Model adı ve yapılandırma dosyası adı içinde **doğrudan model tipini belirtmek önerilir**. Örneğin: mel_mand_roformer, bs_roformer. Belirtilmezse, yapılandırma dosyasından özellikler karşılaştırılarak model tipi belirlenir. Örneğin, `bs_roformer_ep_368_sdr_12.9628.ckpt` modeli ve karşılık gelen yapılandırma dosyası `bs_roformer_ep_368_sdr_12.9628.yaml` bir çifttir. Aynı şekilde, `kim_mel_band_roformer.ckpt` ve `kim_mel_band_roformer.yaml` da bir çifttir.
 
 4. Çince ASR için, [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) ve [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) üzerinden modelleri indirip `tools/asr/models` dizinine yerleştirin.
 
@@ -192,6 +194,7 @@ V1'e geçmek istiyorsanız,
 ```bash
 python webui.py v1 <dil(isteğe bağlı)>
 ```
+
 veya WebUI'de manuel olarak sürüm değiştirin.
 
 ### İnce Ayar
@@ -216,11 +219,13 @@ veya WebUI'de manuel olarak sürüm değiştirin.
 ```bash
 python GPT_SoVITS/inference_webui.py <dil(isteğe bağlı)>
 ```
+
 VEYA
 
 ```bash
 python webui.py
 ```
+
 ardından çıkarım webui'sini `1-GPT-SoVITS-TTS/1C-inference` adresinde açın.
 
 ## V2 Sürüm Notları
@@ -235,17 +240,17 @@ Yeni Özellikler:
 
 4. Düşük kaliteli referans sesler için geliştirilmiş sentez kalitesi
 
-    [detaylar burada](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+   [detaylar burada](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
 V1 ortamından V2'yi kullanmak için:
 
-1. `pip install -r requirements.txt -c constraints.txt` ile bazı paketleri güncelleyin
+1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin
 
 2. github'dan en son kodları klonlayın.
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) adresinden v2 önceden eğitilmiş modelleri indirin ve bunları `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained` dizinine yerleştirin.
 
-    Ek olarak Çince V2: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW modellerini indirip, zipten çıkarıp, `G2PWModel` olarak yeniden adlandırıp `GPT_SoVITS/text` dizinine yerleştirin.)
+   Ek olarak Çince V2: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW modellerini indirip, zipten çıkarıp, `G2PWModel` olarak yeniden adlandırıp `GPT_SoVITS/text` dizinine yerleştirin.)
 
 ## V3 Sürüm Notları
 
@@ -255,17 +260,17 @@ V1 ortamından V2'yi kullanmak için:
 
 2. GPT modeli daha **kararlı** hale geldi, tekrarlar ve atlamalar azaldı ve **daha zengin duygusal ifadeler** ile konuşma üretmek daha kolay hale geldi.
 
-    [daha fazla detay](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+   [daha fazla detay](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
 ### v2 ortamında v3 kullanımı:
 
-1. `pip install -r requirements.txt -c constraints.txt` ile bazı paketleri güncelleyin.
+1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin.
 
 2. GitHub’dan en son kodları klonlayın.
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS\pretrained_models` dizinine yerleştirin.
 
-    ek: Ses Süper Çözünürlük modeli için [nasıl indirileceği](../../tools/AP_BWE_main/24kto48k/readme.txt) hakkında bilgi alabilirsiniz.
+   ek: Ses Süper Çözünürlük modeli için [nasıl indirileceği](../../tools/AP_BWE_main/24kto48k/readme.txt) hakkında bilgi alabilirsiniz.
 
 ## Yapılacaklar Listesi
 
@@ -288,15 +293,20 @@ V1 ortamından V2'yi kullanmak için:
   - [ ] model karışımı
 
 ## (Ekstra) Komut satırından çalıştırma yöntemi
+
 UVR5 için Web Arayüzünü açmak için komut satırını kullanın
+
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
+
 <!-- Bir tarayıcı açamıyorsanız, UVR işleme için aşağıdaki formatı izleyin,Bu ses işleme için mdxnet kullanıyor
 ```
 python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
 ``` -->
+
 Veri setinin ses segmentasyonu komut satırı kullanılarak bu şekilde yapılır
+
 ```
 python audio_slicer.py \
     --input_path "<orijinal_ses_dosyası_veya_dizininin_yolu>" \
@@ -306,16 +316,21 @@ python audio_slicer.py \
     --min_interval <bitişik_alt_klipler_arasındaki_en_kısa_zaman_aralığı>
     --hop_size <ses_eğrisini_hesaplamak_için_adım_boyutu>
 ```
+
 Veri seti ASR işleme komut satırı kullanılarak bu şekilde yapılır (Yalnızca Çince)
+
 ```
 python tools/asr/funasr_asr.py -i <girdi> -o <çıktı>
 ```
+
 ASR işleme Faster_Whisper aracılığıyla gerçekleştirilir (Çince dışındaki ASR işaretleme)
 
 (İlerleme çubukları yok, GPU performansı zaman gecikmelerine neden olabilir)
+
 ```
 python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 ```
+
 Özel bir liste kaydetme yolu etkinleştirildi
 
 ## Katkı Verenler
@@ -323,6 +338,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 Özellikle aşağıdaki projelere ve katkıda bulunanlara teşekkür ederiz:
 
 ### Teorik Araştırma
+
 - [ar-vits](https://github.com/innnky/ar-vits)
 - [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
 - [vits](https://github.com/jaywalnut310/vits)
@@ -332,17 +348,23 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
 - [f5-TTS](https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/backbones/dit.py)
 - [shortcut flow matching](https://github.com/kvfrans/shortcut-models/blob/main/targets_shortcut.py)
+
 ### Önceden Eğitilmiş Modeller
+
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
 - [BigVGAN](https://github.com/NVIDIA/BigVGAN)
+
 ### Tahmin İçin Metin Ön Ucu
+
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
 - [split-lang](https://github.com/DoodleBears/split-lang)
 - [g2pW](https://github.com/GitYCC/g2pW)
 - [pypinyin-g2pW](https://github.com/mozillazg/pypinyin-g2pW)
 - [paddlespeech g2pw](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw)
+
 ### WebUI Araçları
+
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)
 - [SubFix](https://github.com/cronrpc/SubFix)

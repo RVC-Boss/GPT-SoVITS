@@ -70,8 +70,8 @@ bash install.sh
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-
-pip install -r requirements.txt -c constraints.txt
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
 ```
 
 ### 수동 설치
@@ -99,6 +99,7 @@ conda install -c conda-forge 'ffmpeg<7'
 [Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) 설치 (Korean TTS 전용)
 
 ##### MacOS 사용자
+
 ```bash
 brew install ffmpeg
 ```
@@ -106,7 +107,8 @@ brew install ffmpeg
 #### 의존성 설치
 
 ```bash
-pip install -r requirements.txt -c constraints.txt
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
 ```
 
 ### Docker에서 사용
@@ -147,9 +149,9 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 3. UVR5 (보컬/반주 분리 & 잔향 제거 추가 기능)의 경우, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 에서 모델을 다운로드하고 `tools/uvr5/uvr5_weights` 디렉토리에 배치하세요.
 
-    - UVR5에서 bs_roformer 또는 mel_band_roformer 모델을 사용할 경우, 모델과 해당 설정 파일을 수동으로 다운로드하여 `tools/UVR5/UVR5_weights` 폴더에 저장할 수 있습니다. **모델 파일과 설정 파일의 이름은 확장자를 제외하고 동일한 이름을 가지도록 해야 합니다**. 또한, 모델과 설정 파일 이름에는 **“roformer”**가 포함되어야 roformer 클래스의 모델로 인식됩니다.
+   - UVR5에서 bs_roformer 또는 mel_band_roformer 모델을 사용할 경우, 모델과 해당 설정 파일을 수동으로 다운로드하여 `tools/UVR5/UVR5_weights` 폴더에 저장할 수 있습니다. **모델 파일과 설정 파일의 이름은 확장자를 제외하고 동일한 이름을 가지도록 해야 합니다**. 또한, 모델과 설정 파일 이름에는 **“roformer”**가 포함되어야 roformer 클래스의 모델로 인식됩니다.
 
-    - 모델 이름과 설정 파일 이름에 **모델 유형을 직접 지정하는 것이 좋습니다**. 예: mel_mand_roformer, bs_roformer. 지정하지 않으면 설정 파일을 기준으로 특성을 비교하여 어떤 유형의 모델인지를 판단합니다. 예를 들어, 모델 `bs_roformer_ep_368_sdr_12.9628.ckpt`와 해당 설정 파일 `bs_roformer_ep_368_sdr_12.9628.yaml`은 한 쌍입니다. `kim_mel_band_roformer.ckpt`와 `kim_mel_band_roformer.yaml`도 한 쌍입니다.
+   - 모델 이름과 설정 파일 이름에 **모델 유형을 직접 지정하는 것이 좋습니다**. 예: mel_mand_roformer, bs_roformer. 지정하지 않으면 설정 파일을 기준으로 특성을 비교하여 어떤 유형의 모델인지를 판단합니다. 예를 들어, 모델 `bs_roformer_ep_368_sdr_12.9628.ckpt`와 해당 설정 파일 `bs_roformer_ep_368_sdr_12.9628.yaml`은 한 쌍입니다. `kim_mel_band_roformer.ckpt`와 `kim_mel_band_roformer.yaml`도 한 쌍입니다.
 
 4. 중국어 ASR (추가 기능)의 경우, [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files) 및 [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) 에서 모델을 다운로드하고, `tools/asr/models` 디렉토리에 배치하세요.
 
@@ -195,6 +197,7 @@ V1으로 전환하려면,
 ```bash
 python webui.py v1 <언어(옵션)>
 ```
+
 또는 WebUI에서 수동으로 버전을 전환하십시오.
 
 ### 미세 조정
@@ -219,11 +222,13 @@ python webui.py v1 <언어(옵션)>
 ```bash
 python GPT_SoVITS/inference_webui.py <언어(옵션)>
 ```
+
 또는
 
 ```bash
 python webui.py
 ```
+
 그런 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.
 
 ## V2 릴리스 노트
@@ -238,17 +243,17 @@ python webui.py
 
 4. 저품질 참조 오디오에 대한 합성 품질 향상
 
-    [자세한 내용](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+   [자세한 내용](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
 V1 환경에서 V2를 사용하려면:
 
-1. `pip install -r requirements.txt -c constraints.txt`를 사용하여 일부 패키지 업데이트
+1. `pip install -r requirements.txt`를 사용하여 일부 패키지 업데이트
 
 2. github에서 최신 코드를 클론하십시오.
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)에서 V2 사전 학습 모델을 다운로드하여 `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`에 넣으십시오.
 
-    중국어 V2 추가: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다.)
+   중국어 V2 추가: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다.)
 
 ## V3 릴리스 노트
 
@@ -258,18 +263,17 @@ V1 환경에서 V2를 사용하려면:
 
 2. GPT 모델이 더 안정적이며 반복 및 생략이 적고, 더 풍부한 감정 표현을 가진 음성을 생성하기가 더 쉽습니다.
 
-    [자세한 내용](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+   [자세한 내용](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
 v2 환경에서 v3 사용하기:
 
-1. `pip install -r requirements.txt -c constraints.txt`로 일부 패키지를 업데이트합니다.
+1. `pip install -r requirements.txt`로 일부 패키지를 업데이트합니다.
 
 2. 최신 코드를 github 에서 클론합니다.
 
 3. v3 사전 훈련된 모델(s1v3.ckpt, s2Gv3.pth, 그리고 models--nvidia--bigvgan_v2_24khz_100band_256x 폴더)을 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 다운로드하여 `GPT_SoVITS\pretrained_models` 폴더에 넣습니다.
 
-    추가: 오디오 슈퍼 해상도 모델에 대해서는 [다운로드 방법](../../tools/AP_BWE_main/24kto48k/readme.txt)을 참고하세요.
-
+   추가: 오디오 슈퍼 해상도 모델에 대해서는 [다운로드 방법](../../tools/AP_BWE_main/24kto48k/readme.txt)을 참고하세요.
 
 ## 할 일 목록
 
@@ -293,15 +297,20 @@ v2 환경에서 v3 사용하기:
   - [ ] 모델 블렌딩.
 
 ## (추가적인) 명령줄에서 실행하는 방법
+
 명령줄을 사용하여 UVR5용 WebUI 열기
+
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
+
 <!-- 브라우저를 열 수 없는 경우 UVR 처리를 위해 아래 형식을 따르십시오. 이는 오디오 처리를 위해 mdxnet을 사용하는 것입니다.
 ```
 python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
 ``` -->
+
 명령줄을 사용하여 데이터세트의 오디오 분할을 수행하는 방법은 다음과 같습니다.
+
 ```
 python audio_slicer.py \
     --input_path "<path_to_original_audio_file_or_directory>" \
@@ -311,16 +320,21 @@ python audio_slicer.py \
     --min_interval <shortest_time_gap_between_adjacent_subclips>
     --hop_size <step_size_for_computing_volume_curve>
 ```
+
 명령줄을 사용하여 데이터 세트 ASR 처리를 수행하는 방법입니다(중국어만 해당).
+
 ```
 python tools/asr/funasr_asr.py -i <input> -o <output>
 ```
+
 ASR 처리는 Faster_Whisper(중국어를 제외한 ASR 마킹)를 통해 수행됩니다.
 
 (진행률 표시줄 없음, GPU 성능으로 인해 시간 지연이 발생할 수 있음)
+
 ```
 python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
+
 사용자 정의 목록 저장 경로가 활성화되었습니다.
 
 ## 감사의 말
@@ -328,6 +342,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 다음 프로젝트와 기여자들에게 특별히 감사드립니다:
 
 ### 이론 연구
+
 - [ar-vits](https://github.com/innnky/ar-vits)
 - [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
 - [vits](https://github.com/jaywalnut310/vits)
@@ -337,17 +352,23 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 - [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
 - [f5-TTS](https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/backbones/dit.py)
 - [shortcut flow matching](https://github.com/kvfrans/shortcut-models/blob/main/targets_shortcut.py)
+
 ### 사전 학습 모델
+
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
 - [BigVGAN](https://github.com/NVIDIA/BigVGAN)
+
 ### 추론용 텍스트 프론트엔드
+
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
 - [split-lang](https://github.com/DoodleBears/split-lang)
 - [g2pW](https://github.com/GitYCC/g2pW)
 - [pypinyin-g2pW](https://github.com/mozillazg/pypinyin-g2pW)
 - [paddlespeech g2pw](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw)
+
 ### WebUI 도구
+
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)
 - [SubFix](https://github.com/cronrpc/SubFix)
