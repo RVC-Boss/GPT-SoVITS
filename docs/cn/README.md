@@ -76,7 +76,7 @@ bash install.sh
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 ### 手动安装
@@ -111,7 +111,7 @@ brew install ffmpeg
 #### 安装依赖
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 ### 在 Docker 中使用
