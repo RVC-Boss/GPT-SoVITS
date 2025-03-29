@@ -26,7 +26,6 @@ jieba_fast
 jieba
 split-lang
 fast_langdetect>=0.3.0
-Faster_Whisper
 wordsegment
 rotary_embedding_torch
 ToJyutping 
