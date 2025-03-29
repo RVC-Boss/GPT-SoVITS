@@ -71,7 +71,7 @@ bash install.sh
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
 
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 ### 수동 설치
@@ -106,7 +106,7 @@ brew install ffmpeg
 #### 의존성 설치
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 ### Docker에서 사용
@@ -242,7 +242,7 @@ python webui.py
 
 V1 환경에서 V2를 사용하려면:
 
-1. `pip install -r requirements.txt`를 사용하여 일부 패키지 업데이트
+1. `pip install -r requirements.txt -c constraints.txt`를 사용하여 일부 패키지 업데이트
 
 2. github에서 최신 코드를 클론하십시오.
 
@@ -262,7 +262,7 @@ V1 환경에서 V2를 사용하려면:
 
 v2 환경에서 v3 사용하기:
 
-1. `pip install -r requirements.txt`로 일부 패키지를 업데이트합니다.
+1. `pip install -r requirements.txt -c constraints.txt`로 일부 패키지를 업데이트합니다.
 
 2. 최신 코드를 github 에서 클론합니다.
 
