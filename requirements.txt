@@ -6,6 +6,7 @@ numba==0.56.4
 pytorch-lightning>2.0
 gradio>=4.0,<=4.24.0
 ffmpeg-python
+onnxruntime; sys_platform == 'darwin'
 onnxruntime-gpu; sys_platform != 'darwin'
 tqdm
 funasr==1.0.27

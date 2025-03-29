@@ -18,14 +18,13 @@ export CC="$CONDA_PREFIX/bin/gcc"
 export CXX="$CONDA_PREFIX/bin/g++"
 
 echo "Checking for CUDA installation..."
-if command -v nvidia-smi &> /dev/null; then
+if command -v nvidia-smi &>/dev/null; then
     USE_CUDA=true
     echo "CUDA found."
 else
     echo "CUDA not found."
     USE_CUDA=false
 fi
-
 
 if [ "$USE_CUDA" = false ]; then
     echo "Checking for ROCm installation..."
@@ -48,14 +47,13 @@ fi
 if [ "$USE_CUDA" = true ]; then
     echo "Installing PyTorch with CUDA support..."
     conda install pytorch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 pytorch-cuda=11.8 -c pytorch -c nvidia
-elif [ "$USE_ROCM" = true ] ; then
+elif [ "$USE_ROCM" = true ]; then
     echo "Installing PyTorch with ROCm support..."
     pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/rocm6.2
 else
     echo "Installing PyTorch for CPU..."
     conda install pytorch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 cpuonly -c pytorch
 fi
-
 
 echo "Installing Python dependencies from requirements.txt..."
 
@@ -82,7 +80,7 @@ rm "$TAR_FILE"
 
 CMAKE_FILE="$DIR_NAME/lib/open_jtalk/src/CMakeLists.txt"
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if [[ "$OS_TYPE" == "darwin"* ]]; then
     sed -i '' -E 's/cmake_minimum_required\(VERSION[^\)]*\)/cmake_minimum_required(VERSION 2.8.12...3.31)/' "$CMAKE_FILE"
 else
     sed -i -E 's/cmake_minimum_required\(VERSION[^\)]*\)/cmake_minimum_required(VERSION 2.8.12...3.31)/' "$CMAKE_FILE"
@@ -94,15 +92,16 @@ pip install "$TAR_FILE"
 
 rm -rf "$TAR_FILE" "$DIR_NAME"
 
-pip install -r requirements.txt -c constraints.txt
+pip install -r extra-req.txt --no-deps
 
-if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ] ; then
+pip install -r requirements.txt
+
+if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ]; then
     echo "Update to WSL compatible runtime lib..."
-    location=`pip show torch | grep Location | awk -F ": " '{print $2}'`
+    location=$(pip show torch | grep Location | awk -F ": " '{print $2}')
     cd ${location}/torch/lib/
     rm libhsa-runtime64.so*
     cp /opt/rocm/lib/libhsa-runtime64.so.1.2 libhsa-runtime64.so
 fi
 
 echo "Installation completed successfully!"
-
