@@ -3,13 +3,13 @@
 # 安装构建工具
 # Install build tools
 echo "Installing GCC..."
-conda install -c conda-forge gcc=14
+conda install -c conda-forge gcc=14 -y
 
 echo "Installing G++..."
-conda install -c conda-forge gxx
+conda install -c conda-forge gxx -y
 
 echo "Installing ffmpeg and cmake..."
-conda install ffmpeg cmake
+conda install ffmpeg cmake -y
 
 # 设置编译环境
 # Set up build environment
@@ -99,7 +99,7 @@ pip install -r requirements.txt
 if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ]; then
     echo "Update to WSL compatible runtime lib..."
     location=$(pip show torch | grep Location | awk -F ": " '{print $2}')
-    cd ${location}/torch/lib/
+    cd "${location}"/torch/lib/ || exit
     rm libhsa-runtime64.so*
     cp /opt/rocm/lib/libhsa-runtime64.so.1.2 libhsa-runtime64.so
 fi
