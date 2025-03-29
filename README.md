@@ -77,7 +77,7 @@ bash install.sh
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 ### Install Manually
@@ -112,7 +112,7 @@ brew install ffmpeg
 #### Install Dependences
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 ### Using Docker
@@ -247,7 +247,7 @@ New Features:
 
 Use v2 from v1 environment:
 
-1. `pip install -r requirements.txt` to update some packages
+1. `pip install -r requirements.txt -c constraints.txt` to update some packages
 
 2. Clone the latest codes from github.
 
@@ -267,7 +267,7 @@ New Features:
 
 Use v3 from v2 environment:
 
-1. `pip install -r requirements.txt` to update some packages
+1. `pip install -r requirements.txt -c constraints.txt` to update some packages
 
 2. Clone the latest codes from github.
 
