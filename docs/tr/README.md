@@ -73,7 +73,7 @@ bash install.sh
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
 
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 ### El ile Yükleme
@@ -106,7 +106,7 @@ brew install ffmpeg
 #### Bağımlılıkları Yükleme
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 ### Docker Kullanarak
@@ -239,7 +239,7 @@ Yeni Özellikler:
 
 V1 ortamından V2'yi kullanmak için:
 
-1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin
+1. `pip install -r requirements.txt -c constraints.txt` ile bazı paketleri güncelleyin
 
 2. github'dan en son kodları klonlayın.
 
@@ -259,7 +259,7 @@ V1 ortamından V2'yi kullanmak için:
 
 ### v2 ortamında v3 kullanımı:
 
-1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin.
+1. `pip install -r requirements.txt -c constraints.txt` ile bazı paketleri güncelleyin.
 
 2. GitHub’dan en son kodları klonlayın.
 
