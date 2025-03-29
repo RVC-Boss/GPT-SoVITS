@@ -1,6 +1,5 @@
 <div align="center">
 
-
 <h1>GPT-SoVITS-WebUI</h1>
 A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
@@ -77,6 +76,7 @@ bash install.sh
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
+pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
 ```
 
@@ -105,6 +105,7 @@ Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWeb
 Install [Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) (Korean TTS Only)
 
 ##### MacOS Users
+
 ```bash
 brew install ffmpeg
 ```
@@ -112,6 +113,7 @@ brew install ffmpeg
 #### Install Dependences
 
 ```bash
+pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
 ```
 
@@ -150,9 +152,9 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 3. For UVR5 (Vocals/Accompaniment Separation & Reverberation Removal, additionally), download models from [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) and place them in `tools/uvr5/uvr5_weights`.
 
-    - If you want to use `bs_roformer` or `mel_band_roformer` models for UVR5, you can manually download the model and corresponding configuration file, and put them in `tools/uvr5/uvr5_weights`. **Rename the model file and configuration file, ensure that the model and configuration files have the same and corresponding names except for the suffix**. In addition, the model and configuration file names **must include `roformer`** in order to be recognized as models of the roformer class.
+   - If you want to use `bs_roformer` or `mel_band_roformer` models for UVR5, you can manually download the model and corresponding configuration file, and put them in `tools/uvr5/uvr5_weights`. **Rename the model file and configuration file, ensure that the model and configuration files have the same and corresponding names except for the suffix**. In addition, the model and configuration file names **must include `roformer`** in order to be recognized as models of the roformer class.
 
-    - The suggestion is to **directly specify the model type** in the model name and configuration file name, such as `mel_mand_roformer`, `bs_roformer`. If not specified, the features will be compared from the configuration file to determine which type of model it is. For example, the model `bs_roformer_ep_368_sdr_12.9628.ckpt` and its corresponding configuration file `bs_roformer_ep_368_sdr_12.9628.yaml` are a pair, `kim_mel_band_roformer.ckpt` and `kim_mel_band_roformer.yaml` are also a pair.
+   - The suggestion is to **directly specify the model type** in the model name and configuration file name, such as `mel_mand_roformer`, `bs_roformer`. If not specified, the features will be compared from the configuration file to determine which type of model it is. For example, the model `bs_roformer_ep_368_sdr_12.9628.ckpt` and its corresponding configuration file `bs_roformer_ep_368_sdr_12.9628.yaml` are a pair, `kim_mel_band_roformer.ckpt` and `kim_mel_band_roformer.yaml` are also a pair.
 
 4. For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/asr/models`.
 
@@ -200,6 +202,7 @@ if you want to switch to V1,then
 ```bash
 python webui.py v1 <language(optional)>
 ```
+
 Or maunally switch version in WebUI
 
 ### Finetune
@@ -217,18 +220,20 @@ Or maunally switch version in WebUI
 
 #### Integrated Package Users
 
-Double-click `go-webui-v2.bat` or use `go-webui-v2.ps1` ,then open the inference webui at  `1-GPT-SoVITS-TTS/1C-inference`
+Double-click `go-webui-v2.bat` or use `go-webui-v2.ps1` ,then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
 
 #### Others
 
 ```bash
 python GPT_SoVITS/inference_webui.py <language(optional)>
 ```
+
 OR
 
 ```bash
 python webui.py
 ```
+
 then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
 
 ## V2 Release Notes
@@ -243,7 +248,7 @@ New Features:
 
 4. Improved synthesis quality for low-quality reference audio
 
-    [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+   [more details](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
 Use v2 from v1 environment:
 
@@ -253,7 +258,7 @@ Use v2 from v1 environment:
 
 3. Download v2 pretrained models from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) and put them into `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`.
 
-    Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models,  unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS/text`.
+   Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models, unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS/text`.
 
 ## V3 Release Notes
 
@@ -263,7 +268,7 @@ New Features:
 
 2. GPT model is more stable, with fewer repetitions and omissions, and it is easier to generate speech with richer emotional expression.
 
-    [more details](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+   [more details](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
 Use v3 from v2 environment:
 
@@ -273,8 +278,7 @@ Use v3 from v2 environment:
 
 3. Download v3 pretrained models (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS\pretrained_models`.
 
-    additional: for Audio Super Resolution model, you can read [how to download](./tools/AP_BWE_main/24kto48k/readme.txt)
-
+   additional: for Audio Super Resolution model, you can read [how to download](./tools/AP_BWE_main/24kto48k/readme.txt)
 
 ## Todo List
 
@@ -297,15 +301,20 @@ Use v3 from v2 environment:
   - [ ] model mix
 
 ## (Additional) Method for running from the command line
+
 Use the command line to open the WebUI for UVR5
+
 ```
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
+
 <!-- If you can't open a browser, follow the format below for UVR processing,This is using mdxnet for audio processing
 ```
 python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
 ``` -->
+
 This is how the audio segmentation of the dataset is done using the command line
+
 ```
 python audio_slicer.py \
     --input_path "<path_to_original_audio_file_or_directory>" \
@@ -315,16 +324,21 @@ python audio_slicer.py \
     --min_interval <shortest_time_gap_between_adjacent_subclips>
     --hop_size <step_size_for_computing_volume_curve>
 ```
+
 This is how dataset ASR processing is done using the command line(Only Chinese)
+
 ```
 python tools/asr/funasr_asr.py -i <input> -o <output>
 ```
+
 ASR processing is performed through Faster_Whisper(ASR marking except Chinese)
 
 (No progress bars, GPU performance may cause time delays)
+
 ```
 python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
+
 A custom list save path is enabled
 
 ## Credits
@@ -332,6 +346,7 @@ A custom list save path is enabled
 Special thanks to the following projects and contributors:
 
 ### Theoretical Research
+
 - [ar-vits](https://github.com/innnky/ar-vits)
 - [SoundStorm](https://github.com/yangdongchao/SoundStorm/tree/master/soundstorm/s1/AR)
 - [vits](https://github.com/jaywalnut310/vits)
@@ -341,17 +356,23 @@ Special thanks to the following projects and contributors:
 - [fish-speech](https://github.com/fishaudio/fish-speech/blob/main/tools/llama/generate.py#L41)
 - [f5-TTS](https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/model/backbones/dit.py)
 - [shortcut flow matching](https://github.com/kvfrans/shortcut-models/blob/main/targets_shortcut.py)
+
 ### Pretrained Models
+
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
 - [BigVGAN](https://github.com/NVIDIA/BigVGAN)
+
 ### Text Frontend for Inference
+
 - [paddlespeech zh_normalization](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization)
 - [split-lang](https://github.com/DoodleBears/split-lang)
 - [g2pW](https://github.com/GitYCC/g2pW)
 - [pypinyin-g2pW](https://github.com/mozillazg/pypinyin-g2pW)
 - [paddlespeech g2pw](https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw)
+
 ### WebUI Tools
+
 - [ultimatevocalremovergui](https://github.com/Anjok07/ultimatevocalremovergui)
 - [audio-slicer](https://github.com/openvpi/audio-slicer)
 - [SubFix](https://github.com/cronrpc/SubFix)
