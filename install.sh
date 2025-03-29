@@ -92,6 +92,8 @@ tar -czf "$TAR_FILE" "$DIR_NAME"
 
 pip install "$TAR_FILE"
 
+rm -rf "$TAR_FILE" "$DIR_NAME"
+
 pip install -r requirements.txt -c constraints.txt
 
 if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ] ; then
