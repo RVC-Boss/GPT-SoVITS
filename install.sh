@@ -62,7 +62,37 @@ echo "Installing Python dependencies from requirements.txt..."
 # 刷新环境
 # Refresh environment
 hash -r
-pip install -r requirements.txt
+
+# pyopenjtalk Installation
+conda install jq -y
+
+OS_TYPE=$(uname)
+
+PACKAGE_NAME="pyopenjtalk"
+
+VERSION=$(curl -s https://pypi.org/pypi/$PACKAGE_NAME/json | jq -r .info.version)
+
+wget "https://files.pythonhosted.org/packages/source/${PACKAGE_NAME:0:1}/$PACKAGE_NAME/$PACKAGE_NAME-$VERSION.tar.gz"
+
+TAR_FILE=$(ls ${PACKAGE_NAME}-*.tar.gz)
+DIR_NAME="${TAR_FILE%.tar.gz}"
+
+tar -xzf "$TAR_FILE"
+rm "$TAR_FILE"
+
+CMAKE_FILE="$DIR_NAME/lib/open_jtalk/src/CMakeLists.txt"
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' -E 's/cmake_minimum_required\(VERSION[^\)]*\)/cmake_minimum_required(VERSION 2.8.12...3.31)/' "$CMAKE_FILE"
+else
+    sed -i -E 's/cmake_minimum_required\(VERSION[^\)]*\)/cmake_minimum_required(VERSION 2.8.12...3.31)/' "$CMAKE_FILE"
+fi
+
+tar -czf "$TAR_FILE" "$DIR_NAME"
+
+pip install "$TAR_FILE"
+
+pip install -r requirements.txt -c constraints.txt
 
 if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ] ; then
     echo "Update to WSL compatible runtime lib..."
