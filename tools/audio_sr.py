@@ -39,6 +39,11 @@ class AP_BWE():
         self.model=model
         self.h=h
 
+    def to(self, *arg, **kwargs):
+        self.model.to(*arg, **kwargs)
+        self.device = self.model.conv_pre_mag.weight.device
+        return self
+
     def __call__(self, audio,orig_sampling_rate):
         with torch.no_grad():
             # audio, orig_sampling_rate = torchaudio.load(inp_path)

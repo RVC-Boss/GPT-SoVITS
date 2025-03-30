@@ -49,7 +49,7 @@ _참고: numba==0.56.4 는 python<3.11 을 필요로 합니다._
 
 ### Windows
 
-Windows 사용자라면 (win>=10에서 테스트됨), [통합 패키지를 다운로드](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)한 후 압축을 풀고 _go-webui.bat_ 파일을 더블 클릭하면 GPT-SoVITS-WebUI를 시작할 수 있습니다.
+Windows 사용자라면 (win>=10에서 테스트됨), [통합 패키지를 다운로드](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-v3lora-20250228.7z?download=true)한 후 압축을 풀고 _go-webui.bat_ 파일을 더블 클릭하면 GPT-SoVITS-WebUI를 시작할 수 있습니다.
 
 ### Linux
 
@@ -143,7 +143,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 에서 사전 학습된 모델을 다운로드하고, `GPT_SoVITS/pretrained_models` 디렉토리에 배치하세요.
 
-2. [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) 에서 모델을 다운로드하고 압축을 풀어 `G2PWModel`로 이름을 변경한 후, `GPT_SoVITS/text` 디렉토리에 배치하세요. (중국어 TTS 전용)
+2. [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) 에서 모델을 다운로드하고 압축을 풀어 `G2PWModel`로 이름을 변경한 후, `GPT_SoVITS/text` 디렉토리에 배치하세요. (중국어 TTS 전용)
 
 3. UVR5 (보컬/반주 분리 & 잔향 제거 추가 기능)의 경우, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 에서 모델을 다운로드하고 `tools/uvr5/uvr5_weights` 디렉토리에 배치하세요.
 
@@ -248,7 +248,7 @@ V1 환경에서 V2를 사용하려면:
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)에서 V2 사전 학습 모델을 다운로드하여 `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`에 넣으십시오.
 
-    중국어 V2 추가: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다.)
+    중국어 V2 추가: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다.)
 
 ## V3 릴리스 노트
 

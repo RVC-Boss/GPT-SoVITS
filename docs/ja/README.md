@@ -49,7 +49,7 @@ _注記: numba==0.56.4 は py<3.11 が必要です_
 
 ### Windows
 
-Windows ユーザー:（Windows 10 以降でテスト済み）、[統合パッケージをダウンロード](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-beta.7z?download=true)し、解凍後に _go-webui.bat_ をダブルクリックすると、GPT-SoVITS-WebUI が起動します。
+Windows ユーザー:（Windows 10 以降でテスト済み）、[統合パッケージをダウンロード](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-v3lora-20250228.7z?download=true)し、解凍後に _go-webui.bat_ をダブルクリックすると、GPT-SoVITS-WebUI が起動します。
 
 ### Linux
 
@@ -138,7 +138,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) から事前訓練済みモデルをダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリに配置してください。
 
-2. [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) からモデルをダウンロードし、解凍して `G2PWModel` にリネームし、`GPT_SoVITS/text` ディレクトリに配置してください。（中国語TTSのみ）
+2. [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) からモデルをダウンロードし、解凍して `G2PWModel` にリネームし、`GPT_SoVITS/text` ディレクトリに配置してください。（中国語TTSのみ）
 
 3. UVR5（ボーカル/伴奏（BGM等）分離 & リバーブ除去の追加機能）の場合は、[UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) からモデルをダウンロードし、`tools/uvr5/uvr5_weights` ディレクトリに配置してください。
 
@@ -242,7 +242,7 @@ V1環境からV2を使用するには:
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)からV2の事前学習モデルをダウンロードし、それらを`GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`に配置
 
-    中国語V2追加: [G2PWModel_1.1.zip](https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（G2PWモデルをダウンロードし、解凍して`G2PWModel`にリネームし、`GPT_SoVITS/text`に配置します）
+    中国語V2追加: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（G2PWモデルをダウンロードし、解凍して`G2PWModel`にリネームし、`GPT_SoVITS/text`に配置します）
 
 ## V3 リリースノート
 

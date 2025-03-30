@@ -81,7 +81,7 @@ if os.path.exists(semantic_path) == False:
     # utils.load_checkpoint(pretrained_s2G, vq_model, None, True)
     print(
         vq_model.load_state_dict(
-            torch.load(pretrained_s2G, map_location="cpu")["weight"], strict=False
+            torch.load(pretrained_s2G, map_location="cpu", weights_only=False)["weight"], strict=False
         )
     )
 
