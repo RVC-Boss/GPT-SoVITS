@@ -1124,9 +1124,6 @@ class TTS:
                 else:
                     if parallel_infer:
                         print(f"{i18n('并行合成中')}...")
-                        # for i, idx in enumerate(tqdm(idx_list)):
-                            # phones = batch_phones[i].unsqueeze(0).to(self.configs.device)
-                            # _pred_semantic = (pred_semantic_list[i][-idx:].unsqueeze(0).unsqueeze(0))   # .unsqueeze(0)#mq要多unsqueeze一次
                         audio_fragments = self.v3_synthesis_batched_infer(
                                                                         idx_list,
                                                                         pred_semantic_list, 
@@ -1278,7 +1275,7 @@ class TTS:
             ref_audio = ref_audio.mean(0).unsqueeze(0)
         if ref_sr!=24000:
             ref_audio=resample(ref_audio, ref_sr, self.configs.device)
-        # print("ref_audio",ref_audio.abs().mean())W
+
         mel2 = mel_fn(ref_audio)
         mel2 = norm_spec(mel2)
         T_min = min(mel2.shape[2], fea_ref.shape[2])
