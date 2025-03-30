@@ -15,6 +15,7 @@ SoVITS_weights_v2
 GPT_weights_v3
 SoVITS_weights_v3
 TEMP
+weight.json
 ffmpeg*
 ffprobe*
 cfg.json
