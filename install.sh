@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # 安装构建工具
 # Install build tools
 echo "Installing GCC..."
