@@ -38,3 +38,8 @@ fastapi<0.112.2
 x_transformers
 torchmetrics<=1.5
 pydantic<=2.10.6
+ctranslate2>=4.0,<5
+huggingface_hub>=0.13
+tokenizers>=0.13,<1
+av>=11
+tqdm
