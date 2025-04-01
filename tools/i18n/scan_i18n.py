@@ -116,7 +116,7 @@ def update_i18n_json(json_file, standard_keys):
     if num_miss_translation > 0:
         print(f"\033[31m{'[Failed] Missing Translation'.ljust(KEY_LEN)}: {num_miss_translation}\033[0m")
     else:
-        print(f"\033[32m[Passed] All Keys Translated\033[0m")
+        print("\033[32m[Passed] All Keys Translated\033[0m")
     # 将处理后的结果写入 JSON 文件
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(json_data, f, ensure_ascii=False, indent=4, sort_keys=SORT_KEYS)

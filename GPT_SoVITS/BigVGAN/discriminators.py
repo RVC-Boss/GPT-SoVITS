@@ -15,7 +15,7 @@ from torchaudio.transforms import Spectrogram, Resample
 from env import AttrDict
 from utils import get_padding
 import typing
-from typing import Optional, List, Union, Dict, Tuple
+from typing import List, Tuple
 
 
 class DiscriminatorP(torch.nn.Module):
@@ -508,7 +508,7 @@ class DiscriminatorCQT(nn.Module):
         self.cqtd_normalize_volume = self.cfg.get("cqtd_normalize_volume", False)
         if self.cqtd_normalize_volume:
             print(
-                f"[INFO] cqtd_normalize_volume set to True. Will apply DC offset removal & peak volume normalization in CQTD!"
+                "[INFO] cqtd_normalize_volume set to True. Will apply DC offset removal & peak volume normalization in CQTD!"
             )
 
     def get_2d_padding(

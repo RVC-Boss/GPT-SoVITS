@@ -58,7 +58,7 @@ try:
 
     if os.path.exists(USERDIC_BIN_PATH):
         pyopenjtalk.update_global_jtalk_with_user_dict(USERDIC_BIN_PATH)   
-except Exception as e:
+except Exception:
     # print(e)
     import pyopenjtalk
     # failed to load user dictionary, ignore.

@@ -26,17 +26,13 @@ else:
     version = "v3"
 import torch
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
-import math, traceback
-import multiprocessing
-import sys, pdb
+import traceback
+import sys
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-from random import shuffle
-import torch.multiprocessing as mp
-from glob import glob
-from tqdm import tqdm
-import logging, librosa, utils
+import logging
+import utils
 if version!="v3":
     from module.models import SynthesizerTrn
 else:

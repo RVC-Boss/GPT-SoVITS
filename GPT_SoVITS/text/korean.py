@@ -16,7 +16,7 @@ if os.name == 'nt':
             spam_spec = importlib.util.find_spec("eunjeon")
             non_found = spam_spec is None
             if non_found:
-                print(f'you have to install eunjeon. install it...')
+                print('you have to install eunjeon. install it...')
             else:
                 installpath = spam_spec.submodule_search_locations[0]
                 if not (re.match(r'^[A-Za-z0-9_/\\:.\-]*$', installpath)):

@@ -3,7 +3,6 @@
 import argparse
 from typing import Optional
 from my_utils import load_audio
-from text import cleaned_text_to_sequence
 import torch
 import torchaudio
 
@@ -813,11 +812,11 @@ import json
 def export_symbel(version='v2'):
     if version=='v1':
         symbols = text._symbol_to_id_v1
-        with open(f"onnx/symbols_v1.json", "w") as file:
+        with open("onnx/symbols_v1.json", "w") as file:
             json.dump(symbols, file, indent=4)
     else:
         symbols = text._symbol_to_id_v2
-        with open(f"onnx/symbols_v2.json", "w") as file:
+        with open("onnx/symbols_v2.json", "w") as file:
             json.dump(symbols, file, indent=4)
 
 def main():

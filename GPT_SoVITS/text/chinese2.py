@@ -1,10 +1,9 @@
 import os
-import pdb
 import re
 
 import cn2an
 from pypinyin import lazy_pinyin, Style
-from pypinyin.contrib.tone_convert import to_normal, to_finals_tone3, to_initials, to_finals
+from pypinyin.contrib.tone_convert import to_finals_tone3, to_initials
 
 from text.symbols import punctuation
 from text.tone_sandhi import ToneSandhi
@@ -18,7 +17,8 @@ pinyin_to_symbol_map = {
     for line in open(os.path.join(current_file_path, "opencpop-strict.txt")).readlines()
 }
 
-import jieba_fast, logging
+import jieba_fast
+import logging
 jieba_fast.setLogLevel(logging.CRITICAL)
 import jieba_fast.posseg as psg
 

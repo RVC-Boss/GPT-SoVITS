@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import sys,os
+import sys
+import os
 inp_text=                           os.environ.get("inp_text")
 inp_wav_dir=                        os.environ.get("inp_wav_dir")
 exp_name=                           os.environ.get("exp_name")
@@ -14,7 +15,8 @@ cnhubert.cnhubert_base_path=                os.environ.get("cnhubert_base_dir")
 import torch
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 
-import pdb,traceback,numpy as np,logging
+import traceback
+import numpy as np
 from scipy.io import wavfile
 import librosa
 now_dir = os.getcwd()

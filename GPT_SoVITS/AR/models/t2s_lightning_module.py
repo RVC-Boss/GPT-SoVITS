@@ -1,6 +1,7 @@
 # modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/t2s_lightning_module.py
 # reference: https://github.com/lifeiteng/vall-e
-import os, sys
+import os
+import sys
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)

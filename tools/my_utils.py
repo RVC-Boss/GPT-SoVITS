@@ -1,4 +1,5 @@
-import platform,os,traceback
+import os
+import traceback
 import ffmpeg
 import numpy as np
 import gradio as gr
@@ -21,7 +22,7 @@ def load_audio(file, sr):
             .output("-", format="f32le", acodec="pcm_f32le", ac=1, ar=sr)
             .run(cmd=["ffmpeg", "-nostdin"], capture_stdout=True, capture_stderr=True)
         )
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
         raise RuntimeError(i18n("音频加载失败"))
 

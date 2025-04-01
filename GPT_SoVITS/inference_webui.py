@@ -7,7 +7,9 @@
 全部按日文识别
 '''
 import logging
-import traceback,torchaudio,warnings
+import traceback
+import torchaudio
+import warnings
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("httpcore").setLevel(logging.ERROR)
@@ -18,8 +20,10 @@ logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 logging.getLogger("multipart.multipart").setLevel(logging.ERROR)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-import os, re, sys, json
-import pdb
+import os
+import re
+import sys
+import json
 import torch
 from text.LangSegmenter import LangSegmenter
 
@@ -42,12 +46,12 @@ for i in range(3):
 pretrained_gpt_name,pretrained_sovits_name = _
 
 
-if os.path.exists(f"./weight.json"):
+if os.path.exists("./weight.json"):
     pass
 else:
-    with open(f"./weight.json", 'w', encoding="utf-8") as file:json.dump({'GPT':{},'SoVITS':{}},file)
+    with open("./weight.json", 'w', encoding="utf-8") as file:json.dump({'GPT':{},'SoVITS':{}},file)
 
-with open(f"./weight.json", 'r', encoding="utf-8") as file:
+with open("./weight.json", 'r', encoding="utf-8") as file:
     weight_data = file.read()
     weight_data=json.loads(weight_data)
     gpt_path = os.environ.get(
@@ -87,7 +91,6 @@ from feature_extractor import cnhubert
 cnhubert.cnhubert_base_path = cnhubert_base_path
 
 from GPT_SoVITS.module.models import SynthesizerTrn,SynthesizerTrnV3
-import numpy as np
 import random
 def set_seed(seed):
     if seed == -1:
@@ -104,9 +107,8 @@ from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from time import time as ttime
-from tools.my_utils import load_audio
 from tools.i18n.i18n import I18nAuto, scan_language_list
-from peft import LoraConfig, PeftModel, get_peft_model
+from peft import LoraConfig, get_peft_model
 
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -327,9 +329,8 @@ def change_gpt_weights(gpt_path):
 
 change_gpt_weights(gpt_path)
 os.environ["HF_ENDPOINT"]          = "https://hf-mirror.com"
-import torch,soundfile
+import torch
 now_dir = os.getcwd()
-import soundfile
 
 def init_bigvgan():
     global bigvgan_model

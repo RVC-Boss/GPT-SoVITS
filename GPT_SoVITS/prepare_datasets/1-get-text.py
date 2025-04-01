@@ -14,13 +14,10 @@ bert_pretrained_dir = os.environ.get("bert_pretrained_dir")
 import torch
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 version = os.environ.get('version', None)
-import sys, numpy as np, traceback, pdb
+import traceback
 import os.path
-from glob import glob
-from tqdm import tqdm
 from text.cleaner import clean_text
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-import numpy as np
 from tools.my_utils import clean_path
 
 # inp_text=sys.argv[1]

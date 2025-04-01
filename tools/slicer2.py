@@ -249,7 +249,7 @@ def main():
         soundfile.write(
             os.path.join(
                 out,
-                f"%s_%d.wav"
+                "%s_%d.wav"
                 % (os.path.basename(args.audio).rsplit(".", maxsplit=1)[0], i),
             ),
             chunk,

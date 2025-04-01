@@ -1,6 +1,5 @@
 # modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/train_t2s.py
 import os
-import pdb
 
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
@@ -8,7 +7,8 @@ import argparse
 import logging
 from pathlib import Path
 
-import torch, platform
+import torch
+import platform
 from pytorch_lightning import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -24,8 +24,6 @@ torch.set_float32_matmul_precision("high")
 from AR.utils import get_newest_ckpt
 
 from collections import OrderedDict
-from time import time as ttime
-import shutil
 from process_ckpt import my_save
 
 

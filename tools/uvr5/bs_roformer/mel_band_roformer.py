@@ -1,14 +1,14 @@
 from functools import partial
 
 import torch
-from torch import nn, einsum, Tensor
+from torch import nn
 from torch.nn import Module, ModuleList
 import torch.nn.functional as F
 
 from bs_roformer.attend import Attend
 from torch.utils.checkpoint import checkpoint
 
-from typing import Tuple, Optional, List, Callable
+from typing import Tuple, Optional, Callable
 # from beartype.typing import Tuple, Optional, List, Callable
 # from beartype import beartype
 

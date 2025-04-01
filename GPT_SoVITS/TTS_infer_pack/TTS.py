@@ -1,6 +1,8 @@
 from copy import deepcopy
 import math
-import os, sys, gc
+import os
+import sys
+import gc
 import random
 import traceback
 import time
@@ -10,7 +12,7 @@ now_dir = os.getcwd()
 sys.path.append(now_dir)
 import ffmpeg
 import os
-from typing import Generator, List, Tuple, Union
+from typing import List, Tuple, Union
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -22,14 +24,13 @@ from feature_extractor.cnhubert import CNHubert
 from module.models import SynthesizerTrn, SynthesizerTrnV3
 from peft import LoraConfig, get_peft_model
 import librosa
-from time import time as ttime
 from tools.i18n.i18n import I18nAuto, scan_language_list
 from tools.my_utils import load_audio
 from module.mel_processing import spectrogram_torch
 from TTS_infer_pack.text_segmentation_method import splits
 from TTS_infer_pack.TextPreprocessor import TextPreprocessor
 from BigVGAN.bigvgan import BigVGAN
-from module.mel_processing import spectrogram_torch,mel_spectrogram_torch
+from module.mel_processing import mel_spectrogram_torch
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -250,7 +251,7 @@ class TTS_Config:
 
         self.device = self.configs.get("device", torch.device("cpu"))
         if "cuda" in str(self.device) and not torch.cuda.is_available():
-            print(f"Warning: CUDA is not available, set device to CPU.")
+            print("Warning: CUDA is not available, set device to CPU.")
             self.device = torch.device("cpu")
 
         self.is_half = self.configs.get("is_half", False)

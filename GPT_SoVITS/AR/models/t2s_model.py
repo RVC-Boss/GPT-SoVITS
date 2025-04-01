@@ -9,8 +9,6 @@ from AR.models.utils import make_pad_mask, make_pad_mask_left
 from AR.models.utils import (
     topk_sampling,
     sample,
-    logits_to_probs,
-    multinomial_sample_one_no_sync,
     dpo_loss,
     make_reject_y,
     get_batch_logps
@@ -718,7 +716,7 @@ class Text2SemanticDecoder(nn.Module):
                     idx_list[batch_index] = idx
                     y_list[batch_index] = y[i, :-1]
                 
-            if not (None in idx_list):
+            if None not in idx_list:
                 stop = True
                 
             if stop:

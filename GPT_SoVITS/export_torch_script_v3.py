@@ -6,16 +6,16 @@ from export_torch_script import (
     spectrogram_torch,
 )
 from f5_tts.model.backbones.dit import DiT
-from feature_extractor import cnhubert
 from inference_webui import get_phones_and_bert
 import librosa
 from module import commons
-from module.mel_processing import mel_spectrogram_torch, spectral_normalize_torch
+from module.mel_processing import mel_spectrogram_torch
 from module.models_onnx import CFM, SynthesizerTrnV3
 import numpy as np
 import torch._dynamo.config
 import torchaudio
-import logging, uvicorn
+import logging
+import uvicorn
 import torch
 import soundfile
 from librosa.filters import mel as librosa_mel_fn
@@ -942,7 +942,7 @@ def test_():
     
     cfm.eval()
 
-    logger.info(f"cfm ok")
+    logger.info("cfm ok")
 
     dict_s1 = torch.load("GPT_SoVITS/pretrained_models/s1v3.ckpt")
     # v2 的 gpt 也可以用
@@ -957,7 +957,7 @@ def test_():
     t2s_m = torch.jit.script(t2s_m)
     t2s_m.eval()
     # t2s_m.top_k = 15
-    logger.info(f"t2s_m ok")
+    logger.info("t2s_m ok")
 
 
     vq_model: torch.jit.ScriptModule = torch.jit.load(
@@ -967,7 +967,7 @@ def test_():
     # vq_model = vq_model.half().to(device)
     vq_model.eval()
     # vq_model = sovits.vq_model
-    logger.info(f"vq_model ok")
+    logger.info("vq_model ok")
 
     # gpt_sovits_v3_half = torch.jit.load("onnx/ad/gpt_sovits_v3_half.pt")
     # gpt_sovits_v3_half = torch.jit.optimize_for_inference(gpt_sovits_v3_half)
@@ -975,7 +975,7 @@ def test_():
     # gpt_sovits_v3_half = gpt_sovits_v3_half.cuda()
     # gpt_sovits_v3_half.eval()
     gpt_sovits_v3_half = ExportGPTSovitsHalf(sovits.hps, t2s_m, vq_model)
-    logger.info(f"gpt_sovits_v3_half ok")
+    logger.info("gpt_sovits_v3_half ok")
 
     # init_bigvgan()
     # global bigvgan_model
@@ -985,7 +985,7 @@ def test_():
     bigvgan_model = bigvgan_model.cuda()
     bigvgan_model.eval()
 
-    logger.info(f"bigvgan ok")
+    logger.info("bigvgan ok")
 
     gpt_sovits_v3 = GPTSoVITSV3(gpt_sovits_v3_half, cfm, bigvgan_model)
     gpt_sovits_v3 = torch.jit.script(gpt_sovits_v3)

@@ -142,7 +142,8 @@ RESP: 无
 
 
 import argparse
-import os,re
+import os
+import re
 import sys
 
 now_dir = os.getcwd()
@@ -152,10 +153,11 @@ sys.path.append("%s/GPT_SoVITS" % (now_dir))
 import signal
 from text.LangSegmenter import LangSegmenter
 from time import time as ttime
-import torch, torchaudio
+import torch
+import torchaudio
 import librosa
 import soundfile as sf
-from fastapi import FastAPI, Request, Query, HTTPException
+from fastapi import FastAPI, Request, Query
 from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -163,12 +165,11 @@ import numpy as np
 from feature_extractor import cnhubert
 from io import BytesIO
 from module.models import SynthesizerTrn, SynthesizerTrnV3
-from peft import LoraConfig, PeftModel, get_peft_model
+from peft import LoraConfig, get_peft_model
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 from module.mel_processing import spectrogram_torch
-from tools.my_utils import load_audio
 import config as global_config
 import logging
 import subprocess
@@ -221,7 +222,7 @@ def resample(audio_tensor, sr0):
     return resample_transform_dict[sr0](audio_tensor)
 
 
-from module.mel_processing import spectrogram_torch,mel_spectrogram_torch
+from module.mel_processing import mel_spectrogram_torch
 spec_min = -12
 spec_max = 2
 def norm_spec(x):
@@ -860,7 +861,7 @@ def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cu
         if not default_refer.is_ready():
             return JSONResponse({"code": 400, "message": "未指定参考音频且接口无预设"}, status_code=400)
 
-    if not sample_steps in [4,8,16,32]:
+    if sample_steps not in [4,8,16,32]:
         sample_steps = 32
 
     if cut_punc == None:
@@ -990,10 +991,10 @@ logger.info(f"编码格式: {media_type}")
 # 音频数据类型
 if args.sub_type.lower() == 'int32':
     is_int32 = True
-    logger.info(f"数据类型: int32")
+    logger.info("数据类型: int32")
 else:
     is_int32 = False
-    logger.info(f"数据类型: int16")
+    logger.info("数据类型: int16")
 
 # 初始化模型
 cnhubert.cnhubert_base_path = cnhubert_base_path

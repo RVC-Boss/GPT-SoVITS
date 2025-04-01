@@ -328,7 +328,7 @@ def train(rank, a, h):
 
                 # PESQ calculation. only evaluate PESQ if it's speech signal (nonspeech PESQ will error out)
                 if (
-                    not "nonspeech" in mode
+                    "nonspeech" not in mode
                 ):  # Skips if the name of dataset (in mode string) contains "nonspeech"
 
                     # Resample to 16000 for pesq

@@ -9,9 +9,7 @@ import traceback
 
 import librosa
 import numpy as np
-from scipy.io.wavfile import read
 import torch
-import logging
 
 logging.getLogger("numba").setLevel(logging.ERROR)
 logging.getLogger("matplotlib").setLevel(logging.ERROR)
@@ -132,7 +130,6 @@ def plot_spectrogram_to_numpy(spectrogram):
         mpl_logger = logging.getLogger("matplotlib")
         mpl_logger.setLevel(logging.WARNING)
     import matplotlib.pylab as plt
-    import numpy as np
 
     fig, ax = plt.subplots(figsize=(10, 2))
     im = ax.imshow(spectrogram, aspect="auto", origin="lower", interpolation="none")
@@ -158,7 +155,6 @@ def plot_alignment_to_numpy(alignment, info=None):
         mpl_logger = logging.getLogger("matplotlib")
         mpl_logger.setLevel(logging.WARNING)
     import matplotlib.pylab as plt
-    import numpy as np
 
     fig, ax = plt.subplots(figsize=(6, 4))
     im = ax.imshow(

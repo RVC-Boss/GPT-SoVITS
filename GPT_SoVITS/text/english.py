@@ -8,7 +8,6 @@ from text.symbols import punctuation
 
 from text.symbols2 import symbols
 
-import unicodedata
 from builtins import str as unicode
 from text.en_normalization.expend import normalize
 from nltk.tokenize import TweetTokenizer

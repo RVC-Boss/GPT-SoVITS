@@ -1,7 +1,7 @@
-import argparse,os
+import argparse
+import os
 import copy
 import json
-import os
 import uuid
 
 try:
@@ -70,7 +70,7 @@ def b_change_index(index, batch):
             # )
             {
                 "__type__": "update",
-                "label": f"Text",
+                "label": "Text",
                 "value": ""
             }
         )

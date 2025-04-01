@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
+from torch.nn.utils import weight_norm, spectral_norm
 # from utils import init_weights, get_padding
 def get_padding(kernel_size, dilation=1):
     return int((kernel_size*dilation - dilation)/2)

@@ -1,7 +1,6 @@
 import math
 
 import torch
-from torch.nn import functional as F
 
 
 def feature_loss(fmap_r, fmap_g):

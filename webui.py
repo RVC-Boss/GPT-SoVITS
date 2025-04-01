@@ -1,4 +1,5 @@
-import os,sys
+import os
+import sys
 if len(sys.argv)==1:sys.argv.append('v2')
 version="v1"if sys.argv[1]=="v1" else"v2"
 os.environ["version"]=version
@@ -6,7 +7,11 @@ now_dir = os.getcwd()
 sys.path.insert(0, now_dir)
 import warnings
 warnings.filterwarnings("ignore")
-import json,yaml,torch,pdb,re,shutil
+import json
+import yaml
+import torch
+import re
+import shutil
 import platform
 import psutil
 import signal
@@ -45,21 +50,18 @@ for site_packages_root in site_packages_roots:
                     % (now_dir, now_dir, now_dir, now_dir, now_dir, now_dir)
                 )
             break
-        except PermissionError as e:
+        except PermissionError:
             traceback.print_exc()
 from tools import my_utils
 import shutil
-import pdb
 import subprocess
 from subprocess import Popen
-import signal
 from config import python_exec,infer_device,is_half,exp_root,webui_port_main,webui_port_infer_tts,webui_port_uvr5,webui_port_subfix,is_share
 from tools.i18n.i18n import I18nAuto, scan_language_list
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
 os.environ["language"]=language
 i18n = I18nAuto(language=language)
-from scipy.io import wavfile
-from tools.my_utils import load_audio, check_for_existance, check_details
+from tools.my_utils import check_for_existance, check_details
 from multiprocessing import cpu_count
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
 try:

@@ -5,7 +5,8 @@ import warnings
 warnings.filterwarnings("ignore")
 import json
 import os
-import zipfile,requests
+import zipfile
+import requests
 from typing import Any
 from typing import Dict
 from typing import List

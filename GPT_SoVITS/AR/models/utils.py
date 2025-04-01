@@ -130,7 +130,7 @@ def topk_sampling(logits, top_k=10, top_p=1.0, temperature=1.0):
     return token
 
 
-from typing import Optional, Tuple
+from typing import Optional
 
 
 def multinomial_sample_one_no_sync(

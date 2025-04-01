@@ -7,7 +7,10 @@
 全部按日文识别
 '''
 import random
-import os, re, logging, json
+import os
+import re
+import logging
+import json
 import sys
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -20,7 +23,6 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
-import pdb
 import torch
 
 try:
@@ -182,12 +184,12 @@ for i in range(3):
 pretrained_gpt_name,pretrained_sovits_name = _
 
 
-if os.path.exists(f"./weight.json"):
+if os.path.exists("./weight.json"):
     pass
 else:
-    with open(f"./weight.json", 'w', encoding="utf-8") as file:json.dump({'GPT':{},'SoVITS':{}},file)
+    with open("./weight.json", 'w', encoding="utf-8") as file:json.dump({'GPT':{},'SoVITS':{}},file)
 
-with open(f"./weight.json", 'r', encoding="utf-8") as file:
+with open("./weight.json", 'r', encoding="utf-8") as file:
     weight_data = file.read()
     weight_data=json.loads(weight_data)
     gpt_path = os.environ.get(

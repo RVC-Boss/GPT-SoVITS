@@ -1,7 +1,8 @@
 import traceback
 from collections import OrderedDict
 from time import time as ttime
-import shutil,os
+import shutil
+import os
 import torch
 from tools.i18n.i18n import I18nAuto
 

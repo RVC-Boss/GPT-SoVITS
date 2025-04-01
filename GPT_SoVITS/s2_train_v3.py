@@ -1,18 +1,18 @@
 import warnings
 warnings.filterwarnings("ignore")
-import utils, os
+import utils
+import os
 hps = utils.get_hparams(stage=2)
 os.environ["CUDA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
 import torch
-from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torch.multiprocessing as mp
-import torch.distributed as dist, traceback
+import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
-import logging, traceback
+import logging
 
 logging.getLogger("matplotlib").setLevel(logging.INFO)
 logging.getLogger("h5py").setLevel(logging.INFO)
@@ -27,10 +27,7 @@ from module.data_utils import (
 )
 from module.models import (
     SynthesizerTrnV3 as SynthesizerTrn,
-    MultiPeriodDiscriminator,
 )
-from module.losses import generator_loss, discriminator_loss, feature_loss, kl_loss
-from module.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
 from process_ckpt import savee
 
 torch.backends.cudnn.benchmark = False

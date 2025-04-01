@@ -1,5 +1,4 @@
 import os
-import pdb
 import re
 
 import cn2an
@@ -17,7 +16,8 @@ pinyin_to_symbol_map = {
     for line in open(os.path.join(current_file_path, "opencpop-strict.txt")).readlines()
 }
 
-import jieba_fast, logging
+import jieba_fast
+import logging
 jieba_fast.setLogLevel(logging.CRITICAL)
 import jieba_fast.posseg as psg
 
