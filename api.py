@@ -176,9 +176,9 @@ import subprocess
 
 class DefaultRefer:
     def __init__(self, path, text, language):
-        self.path = args.default_refer_path
-        self.text = args.default_refer_text
-        self.language = args.default_refer_language
+        self.path = path
+        self.text = text
+        self.language = language
 
     def is_ready(self) -> bool:
         return is_full(self.path, self.text, self.language)
@@ -934,15 +934,23 @@ parser.add_argument("-b", "--bert_path", type=str, default=g_config.bert_path, h
 args = parser.parse_args()
 sovits_path = args.sovits_path
 gpt_path = args.gpt_path
+default_refer_path = args.default_refer_path
+default_refer_text = args.default_refer_text
+default_refer_language = args.default_refer_language
 device = args.device
 port = args.port
 host = args.bind_addr
+full_precision = args.full_precision
+half_precision = args.half_precision
+stream_mode = args.stream_mode
+media_type = args.media_type
+sub_type = args.sub_type
+default_cut_punc = args.cut_punc
 cnhubert_base_path = args.hubert_path
 bert_path = args.bert_path
-default_cut_punc = args.cut_punc
 
 # 应用参数配置
-default_refer = DefaultRefer(args.default_refer_path, args.default_refer_text, args.default_refer_language)
+default_refer = DefaultRefer(default_refer_path, default_refer_text, default_refer_language)
 
 # 模型路径检查
 if sovits_path == "":
@@ -963,24 +971,24 @@ else:
 
 # 获取半精度
 is_half = g_config.is_half
-if args.full_precision:
+if full_precision:
     is_half = False
-if args.half_precision:
+if half_precision:
     is_half = True
-if args.full_precision and args.half_precision:
+if full_precision and half_precision:
     is_half = g_config.is_half  # 炒饭fallback
 logger.info(f"半精: {is_half}")
 
 # 流式返回模式
-if args.stream_mode.lower() in ["normal","n"]:
+if stream_mode.lower() in ["normal","n"]:
     stream_mode = "normal"
     logger.info("流式返回已开启")
 else:
     stream_mode = "close"
 
 # 音频编码格式
-if args.media_type.lower() in ["aac","ogg"]:
-    media_type = args.media_type.lower()
+if media_type.lower() in ["aac","ogg"]:
+    media_type = media_type.lower()
 elif stream_mode == "close":
     media_type = "wav"
 else:
@@ -988,7 +996,7 @@ else:
 logger.info(f"编码格式: {media_type}")
 
 # 音频数据类型
-if args.sub_type.lower() == 'int32':
+if sub_type.lower() == 'int32':
     is_int32 = True
     logger.info(f"数据类型: int32")
 else:
