@@ -227,8 +227,8 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
     global version, model_version, dict_language,if_lora_v3
     version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
-    if if_lora_v3==True and is_exist_s2gv3==False:#
-        info= "GPT_SoVITS/pretrained_models/s2Gv3.pth" + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
+    if if_lora_v3 and not os.path.exists(path_sovits_v3):
+        info= path_sovits_v3 + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version =='v1' else dict_language_v2
