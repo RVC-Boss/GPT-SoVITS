@@ -1090,6 +1090,7 @@ async def tts_endpoint(
         refer_wav_path: str = "saotome/saotome-6s.wav",
         prompt_text: str = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。",
         prompt_language: str = "all_ja",
+        character: str = "saotome",
         text: str = None,
         text_language: str = None,
         cut_punc: str = None,
@@ -1101,6 +1102,7 @@ async def tts_endpoint(
         sample_steps: int = 32,
         if_sr: bool = False
 ):
+    print(f"the base path is {refer_wav_path}")
     return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed, inp_refs, sample_steps, if_sr)
 
 
