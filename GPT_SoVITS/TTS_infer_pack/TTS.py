@@ -462,8 +462,6 @@ class TTS:
                 n_speakers=self.configs.n_speakers,
                 **kwargs
             )
-            if hasattr(vits_model, "enc_q"):
-                del vits_model.enc_q
             self.configs.is_v3_synthesizer = False
         else:
             vits_model = SynthesizerTrnV3(
@@ -474,7 +472,8 @@ class TTS:
             )
             self.configs.is_v3_synthesizer = True
             self.init_bigvgan()
-            
+            if "pretrained" not in weights_path and hasattr(vits_model, "enc_q"):
+                del vits_model.enc_q
 
         if if_lora_v3==False:
             print(f"Loading VITS weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
