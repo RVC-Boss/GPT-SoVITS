@@ -10,7 +10,6 @@ LABEL description="Docker image for GPT-SoVITS"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 RUN apt-get update && \
-    apt-get install -y cmake \
     apt-get install -y --no-install-recommends tzdata ffmpeg libsox-dev parallel aria2 git git-lfs && \
     git lfs install && \
     rm -rf /var/lib/apt/lists/*
@@ -18,7 +17,7 @@ RUN apt-get update && \
 # Copy only requirements.txt initially to leverage Docker cache
 WORKDIR /workspace
 COPY requirements.txt /workspace/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN CMAKE_POLICY_VERSION_MINIMUM=3.5 pip install --no-cache-dir -r requirements.txt
 
 # Define a build-time argument for image type
 ARG IMAGE_TYPE=full
