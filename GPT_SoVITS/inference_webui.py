@@ -213,7 +213,6 @@ def resample(audio_tensor, sr0):
 #symbol_version-model_version-if_lora_v3
 from process_ckpt import get_sovits_version_from_path_fast,load_sovits_new
 def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
-    yield [None]*10+[{"__type__": "update", "value":i18n("模型加载中，请等待"),"interactive":False}]
     global vq_model, hps, version, model_version, dict_language,if_lora_v3
     version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
@@ -239,7 +238,7 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         else:
             visible_sample_steps=False
             visible_inp_refs=True
-        yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "value": False,"interactive":True if model_version!="v3"else False},{"__type__": "update", "visible":True if model_version=="v3"else False},None
+        yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps,"value":32},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "value": False,"interactive":True if model_version!="v3"else False},{"__type__": "update", "visible":True if model_version=="v3"else False},{"__type__": "update", "value":i18n("模型加载中，请等待"),"interactive":False}
 
     dict_s2 = load_sovits_new(sovits_path)
     hps = dict_s2["config"]
@@ -295,7 +294,7 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         # torch.save(vq_model.state_dict(),"merge_win.pth")
         vq_model.eval()
 
-    yield [None]*10+[{"__type__": "update", "value":i18n("合成语音"),"interactive":True}]
+    yield {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps,"value":32},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "value": False,"interactive":True if model_version!="v3"else False},{"__type__": "update", "visible":True if model_version=="v3"else False},{"__type__": "update", "value":i18n("合成语音"),"interactive":True}
     with open("./weight.json")as f:
         data=f.read()
         data=json.loads(data)

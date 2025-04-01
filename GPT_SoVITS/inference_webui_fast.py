@@ -224,11 +224,10 @@ SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
 
 from process_ckpt import get_sovits_version_from_path_fast,load_sovits_new
 def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
-    yield [None]*9+[{"__type__": "update", "value":i18n("模型加载中，请等待"),"interactive":False}]
     global version, model_version, dict_language,if_lora_v3
     version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
-    if if_lora_v3==True and is_exist_s2gv3==False:
+    if if_lora_v3==True and is_exist_s2gv3==False:#
         info= "GPT_SoVITS/pretrained_models/s2Gv3.pth" + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
         raise FileExistsError(info)
@@ -251,10 +250,10 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
             visible_sample_steps=False
             visible_inp_refs=True
         #prompt_language,text_language,prompt_text,prompt_language,text,text_language,inp_refs,ref_text_free,
-        yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "interactive": visible_sample_steps},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "interactive": True if model_version!="v3"else False},None
+        yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "interactive": visible_sample_steps,"value":32},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "interactive": True if model_version!="v3"else False},{"__type__": "update", "value":i18n("模型加载中，请等待"),"interactive":False}
 
     tts_pipeline.init_vits_weights(sovits_path)
-    yield [None]*9+[{"__type__": "update", "value":i18n("合成语音"),"interactive":True}]
+    yield {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "interactive": visible_sample_steps,"value":32},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "interactive": True if model_version!="v3"else False},{"__type__": "update", "value":i18n("合成语音"),"interactive":True}
     with open("./weight.json")as f:
         data=f.read()
         data=json.loads(data)
