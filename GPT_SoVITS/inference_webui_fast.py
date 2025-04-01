@@ -50,7 +50,6 @@ bert_path = os.environ.get("bert_path", None)
 version = model_version = os.environ.get("version", "v2")
 
 import gradio as gr
-from inference_webui import DictToAttrRecursive
 from TTS_infer_pack.text_segmentation_method import get_method
 from TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
 
@@ -256,7 +255,7 @@ def get_weights_names(GPT_weight_root, SoVITS_weight_root):
 SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
 
 
-from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
+from process_ckpt import get_sovits_version_from_path_fast
 
 
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):

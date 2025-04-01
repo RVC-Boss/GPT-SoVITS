@@ -7,26 +7,20 @@ warnings.filterwarnings("ignore")
 import json
 import os
 import zipfile
-import requests
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import onnxruntime
+import requests
 
 onnxruntime.set_default_logger_severity(3)
 from opencc import OpenCC
+from pypinyin import Style, pinyin
 from transformers import AutoTokenizer
-from pypinyin import pinyin
-from pypinyin import Style
 
-from .dataset import get_char_phoneme_labels
-from .dataset import get_phoneme_labels
-from .dataset import prepare_onnx_input
-from .utils import load_config
 from ..zh_normalization.char_convert import tranditional_to_simplified
+from .dataset import get_char_phoneme_labels, get_phoneme_labels, prepare_onnx_input
+from .utils import load_config
 
 model_version = "1.1"
 
@@ -63,7 +57,7 @@ def download_and_decompress(model_dir: str = "G2PWModel/"):
         extract_dir = os.path.join(parent_directory, "G2PWModel_1.1")
         extract_dir_new = os.path.join(parent_directory, "G2PWModel")
         print("Downloading g2pw model...")
-        modelscope_url = "https://www.modelscope.cn/models/kamiorinn/g2pw/resolve/master/G2PWModel_1.1.zip"#"https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip"
+        modelscope_url = "https://www.modelscope.cn/models/kamiorinn/g2pw/resolve/master/G2PWModel_1.1.zip"  # "https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip"
         with requests.get(modelscope_url, stream=True) as r:
             r.raise_for_status()
             with open(zip_dir, "wb") as f:
