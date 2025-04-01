@@ -286,3 +286,17 @@ https://github.com/RVC-Boss/GPT-SoVITS/pull/2112 https://github.com/RVC-Boss/GPT
 修复短文本语种选择出错 https://github.com/RVC-Boss/GPT-SoVITS/pull/2122
 
 修复v3sovits未传参以支持调节语速
+
+### 202503
+
+修复一批由依赖的库版本不对导致的问题https://github.com/RVC-Boss/GPT-SoVITS/commit/6c468583c5566e5fbb4fb805e4cc89c403e997b8
+
+修复模型加载异步逻辑https://github.com/RVC-Boss/GPT-SoVITS/commit/03b662a769946b7a6a8569a354860e8eeeb743aa
+
+修复其他若干bug
+
+重点更新：
+
+1-v3支持并行推理 https://github.com/RVC-Boss/GPT-SoVITS/commit/03b662a769946b7a6a8569a354860e8eeeb743aa
+
+2-整合包修复onnxruntime GPU推理的支持，影响：（1）g2pw有个onnx模型原先是CPU推理现在用GPU，显著降低推理的CPU瓶颈 （2）foxjoy去混响模型现在可使用GPU推理
