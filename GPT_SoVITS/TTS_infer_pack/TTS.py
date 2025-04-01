@@ -1,38 +1,40 @@
-from copy import deepcopy
+import gc
 import math
 import os
-import sys
-import gc
 import random
-import traceback
+import sys
 import time
+import traceback
+from copy import deepcopy
+
 import torchaudio
 from tqdm import tqdm
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-import ffmpeg
 import os
 from typing import List, Tuple, Union
+
+import ffmpeg
+import librosa
 import numpy as np
 import torch
 import torch.nn.functional as F
 import yaml
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-from tools.audio_sr import AP_BWE
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from BigVGAN.bigvgan import BigVGAN
 from feature_extractor.cnhubert import CNHubert
+from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
 from module.models import SynthesizerTrn, SynthesizerTrnV3
 from peft import LoraConfig, get_peft_model
-import librosa
+from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+from tools.audio_sr import AP_BWE
 from tools.i18n.i18n import I18nAuto, scan_language_list
 from tools.my_utils import load_audio
-from module.mel_processing import spectrogram_torch
 from TTS_infer_pack.text_segmentation_method import splits
 from TTS_infer_pack.TextPreprocessor import TextPreprocessor
-from BigVGAN.bigvgan import BigVGAN
-from module.mel_processing import mel_spectrogram_torch
-from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -461,8 +463,6 @@ class TTS:
                 n_speakers=self.configs.n_speakers,
                 **kwargs,
             )
-            if hasattr(vits_model, "enc_q"):
-                del vits_model.enc_q
             self.configs.is_v3_synthesizer = False
         else:
             vits_model = SynthesizerTrnV3(
@@ -473,6 +473,8 @@ class TTS:
             )
             self.configs.is_v3_synthesizer = True
             self.init_bigvgan()
+            if "pretrained" not in weights_path and hasattr(vits_model, "enc_q"):
+                del vits_model.enc_q
 
         if if_lora_v3 == False:
             print(
