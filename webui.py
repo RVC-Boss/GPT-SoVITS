@@ -298,9 +298,9 @@ def change_tts_inference(bert_path,cnhubert_base_path,gpu_number,gpt_path,sovits
         cmd = '"%s" GPT_SoVITS/inference_webui_fast.py "%s"'%(python_exec, language)
     else:
         cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
-    #####v3暂不支持加速推理
-    if version=="v3":
-        cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
+    # #####v3暂不支持加速推理
+    # if version=="v3":
+    #     cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
     if p_tts_inference is None:
         os.environ["gpt_path"]=gpt_path if "/" in gpt_path else "%s/%s"%(GPT_weight_root,gpt_path)
         os.environ["sovits_path"]=sovits_path if "/"in sovits_path else "%s/%s"%(SoVITS_weight_root,sovits_path)
@@ -849,8 +849,8 @@ def switch_version(version_):
         {'__type__': 'update', "value": default_sovits_save_every_epoch,"maximum": max_sovits_save_every_epoch}, \
         {'__type__': 'update', "visible": True if version!="v3"else False}, \
         {'__type__': 'update', "value": False if not if_force_ckpt else True, "interactive": True if not if_force_ckpt else False}, \
-        {'__type__': 'update', "interactive": False if version == "v3" else True, "value": False}, \
-        {'__type__': 'update', "visible": True if version== "v3" else False}
+        {'__type__': 'update', "interactive": True, "value": False}, \
+        {'__type__': 'update', "visible": True if version== "v3" else False}        # {'__type__': 'update', "interactive": False if version == "v3" else True, "value": False}, \ ####batch infer
 
 if os.path.exists('GPT_SoVITS/text/G2PWModel'):...
 else:
