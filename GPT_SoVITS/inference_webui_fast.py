@@ -41,12 +41,13 @@ gpt_path = os.environ.get("gpt_path", None)
 sovits_path = os.environ.get("sovits_path", None)
 cnhubert_base_path = os.environ.get("cnhubert_base_path", None)
 bert_path = os.environ.get("bert_path", None)
-version=os.environ.get("version","v2")
+version=model_version=os.environ.get("version","v2")
 
 import gradio as gr
 from TTS_infer_pack.TTS import TTS, TTS_Config, NO_PROMPT_ERROR
 from TTS_infer_pack.text_segmentation_method import get_method
 from tools.i18n.i18n import I18nAuto, scan_language_list
+from inference_webui import DictToAttrRecursive
 
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -221,19 +222,16 @@ def get_weights_names(GPT_weight_root, SoVITS_weight_root):
 SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
 
 
-from process_ckpt import get_sovits_version_from_path_fast
+from process_ckpt import get_sovits_version_from_path_fast,load_sovits_new
 def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
-    global version, dict_language
+    global version, model_version, dict_language,if_lora_v3
     version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
-
+    # print(sovits_path,version, model_version, if_lora_v3)
     if if_lora_v3 and not os.path.exists(path_sovits_v3):
         info= path_sovits_v3 + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
         raise FileExistsError(info)
-
-    tts_pipeline.init_vits_weights(sovits_path)
-
-    dict_language = dict_language_v1 if tts_pipeline.configs.version =='v1' else dict_language_v2
+    dict_language = dict_language_v1 if version =='v1' else dict_language_v2
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
             prompt_text_update, prompt_language_update = {'__type__':'update'}, {'__type__':'update', 'value':prompt_language}
@@ -251,8 +249,11 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None):
         else:
             visible_sample_steps=False
             visible_inp_refs=True
-        yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "visible": visible_sample_steps},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "value": False,"interactive":True if model_version!="v3"else False},{"__type__": "update", "visible":True if model_version=="v3"else False}
+        #prompt_language,text_language,prompt_text,prompt_language,text,text_language,inp_refs,ref_text_free,
+        yield  {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "interactive": visible_sample_steps,"value":32},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "interactive": True if model_version!="v3"else False},{"__type__": "update", "value":i18n("模型加载中，请等待"),"interactive":False}
 
+    tts_pipeline.init_vits_weights(sovits_path)
+    yield {'__type__':'update', 'choices':list(dict_language.keys())}, {'__type__':'update', 'choices':list(dict_language.keys())}, prompt_text_update, prompt_language_update, text_update, text_language_update,{"__type__": "update", "interactive": visible_sample_steps,"value":32},{"__type__": "update", "visible": visible_inp_refs},{"__type__": "update", "interactive": True if model_version!="v3"else False},{"__type__": "update", "value":i18n("合成语音"),"interactive":True}
     with open("./weight.json")as f:
         data=f.read()
         data=json.loads(data)
@@ -279,14 +280,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             gr.Markdown(value=i18n("*请上传并填写参考信息"))
             with gr.Row():
                 inp_ref = gr.Audio(label=i18n("主参考音频(请上传3~10秒内参考音频，超过会报错！)"), type="filepath")
-                inp_refs = gr.File(label=i18n("辅参考音频(可选多个，或不选)"),file_count="multiple")
+                inp_refs = gr.File(label=i18n("辅参考音频(可选多个，或不选)"),file_count="multiple", visible=True if model_version!="v3"else False)
             prompt_text = gr.Textbox(label=i18n("主参考音频的文本"), value="", lines=2)
             with gr.Row():
                 prompt_language = gr.Dropdown(
                     label=i18n("主参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文")
                 )
                 with gr.Column():
-                    ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True, show_label=True)
+                    ref_text_free = gr.Checkbox(label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"), value=False, interactive=True if model_version!="v3"else False, show_label=True)
                     gr.Markdown(i18n("使用无参考文本模式时建议使用微调的GPT")+"<br>"+i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。"))
 
         with gr.Column():
@@ -355,7 +356,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             [output, seed],
         )
         stop_infer.click(tts_pipeline.stop, [], [])
-        SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown,prompt_language,text_language], [prompt_language,text_language,prompt_text,prompt_language,text,text_language])
+        SoVITS_dropdown.change(change_sovits_weights, [SoVITS_dropdown,prompt_language,text_language], [prompt_language,text_language,prompt_text,prompt_language,text,text_language,sample_steps,inp_refs,ref_text_free,inference_button])#
         GPT_dropdown.change(tts_pipeline.init_t2s_weights, [GPT_dropdown], [])
 
     with gr.Group():
