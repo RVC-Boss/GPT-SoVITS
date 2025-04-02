@@ -4,14 +4,11 @@ import itertools
 import math
 import random
 from random import shuffle
-from typing import Iterator
-from typing import Optional
-from typing import TypeVar
+from typing import Iterator, Optional, TypeVar
 
 import torch
 import torch.distributed as dist
-from torch.utils.data import Dataset
-from torch.utils.data import Sampler
+from torch.utils.data import Dataset, Sampler
 
 __all__ = [
     "DistributedBucketSampler",
@@ -50,10 +47,7 @@ class DistributedBucketSampler(Sampler[T_co]):
             if torch.cuda.is_available():
                 torch.cuda.set_device(rank)
         if rank >= num_replicas or rank < 0:
-            raise ValueError(
-                "Invalid rank {}, rank should be in the interval"
-                " [0, {}]".format(rank, num_replicas - 1)
-            )
+            raise ValueError("Invalid rank {}, rank should be in the interval [0, {}]".format(rank, num_replicas - 1))
         self.dataset = dataset
         self.num_replicas = num_replicas
         self.rank = rank
@@ -61,19 +55,16 @@ class DistributedBucketSampler(Sampler[T_co]):
         self.drop_last = drop_last
         # If the dataset length is evenly divisible by # of replicas, then there
         # is no need to drop any data, since the dataset will be split equally.
-        if (
-            self.drop_last and len(self.dataset) % self.num_replicas != 0
-        ):  # type: ignore[arg-type]
+        if self.drop_last and len(self.dataset) % self.num_replicas != 0:  # type: ignore[arg-type]
             # Split to nearest available length that is evenly divisible.
             # This is to ensure each rank receives the same amount of data when
             # using this Sampler.
             self.num_samples = math.ceil(
-                (len(self.dataset) - self.num_replicas)
-                / self.num_replicas  # type: ignore[arg-type]
+                (len(self.dataset) - self.num_replicas) / self.num_replicas,  # type: ignore[arg-type]
             )
         else:
             self.num_samples = math.ceil(
-                len(self.dataset) / self.num_replicas
+                len(self.dataset) / self.num_replicas,
             )  # type: ignore[arg-type]
         self.total_size = self.num_samples * self.num_replicas
         self.shuffle = shuffle
@@ -118,10 +109,7 @@ class DistributedBucketSampler(Sampler[T_co]):
             grouped_batch_size = self.batch_size * self.num_replicas
             shuffled_bucket = list(itertools.chain(*shuffled_bucket))
             n_batch = int(math.ceil(len(shuffled_bucket) / grouped_batch_size))
-            batches = [
-                shuffled_bucket[b * grouped_batch_size : (b + 1) * grouped_batch_size]
-                for b in range(n_batch)
-            ]
+            batches = [shuffled_bucket[b * grouped_batch_size : (b + 1) * grouped_batch_size] for b in range(n_batch)]
             shuffle(batches)
             indices = list(itertools.chain(*batches))
         else:
@@ -134,9 +122,7 @@ class DistributedBucketSampler(Sampler[T_co]):
             if padding_size <= len(indices):
                 indices += indices[:padding_size]
             else:
-                indices += (indices * math.ceil(padding_size / len(indices)))[
-                    :padding_size
-                ]
+                indices += (indices * math.ceil(padding_size / len(indices)))[:padding_size]
         else:
             # remove tail of data to make it evenly divisible.
             indices = indices[: self.total_size]

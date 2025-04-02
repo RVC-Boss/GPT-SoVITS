@@ -30,9 +30,7 @@ class GruutPhonemizer:
             "«": "«",
             "»": "»",
         }
-        self._punctuation_regexp: str = (
-            rf"([{''.join(self._special_cases_dict.keys())}])"
-        )
+        self._punctuation_regexp: str = rf"([{''.join(self._special_cases_dict.keys())}])"
 
     def _normalize_punctuation(self, text: str) -> str:
         text = regex.sub(rf"\pZ+{self._punctuation_regexp}", r"\1", text)
@@ -53,13 +51,8 @@ class GruutPhonemizer:
 
     def phonemize(self, text: str, espeak: bool = False) -> str:
         text_to_phonemize: str = self._normalize_punctuation(text)
-        sents: List[Sentence] = [
-            sent
-            for sent in self._phonemizer(text_to_phonemize, lang="en-us", espeak=espeak)
-        ]
-        words: List[str] = [
-            self._convert_punctuation(word) for word in itertools.chain(*sents)
-        ]
+        sents: List[Sentence] = [sent for sent in self._phonemizer(text_to_phonemize, lang="en-us", espeak=espeak)]
+        words: List[str] = [self._convert_punctuation(word) for word in itertools.chain(*sents)]
         return " ".join(words)
 
     def transform(self, phonemes):

@@ -60,14 +60,11 @@ class SinePositionalEmbedding(nn.Module):
                 return
         pe = torch.zeros(x.size(1), self.embedding_dim)
         if self.reverse:
-            position = torch.arange(
-                x.size(1) - 1, -1, -1.0, dtype=torch.float32
-            ).unsqueeze(1)
+            position = torch.arange(x.size(1) - 1, -1, -1.0, dtype=torch.float32).unsqueeze(1)
         else:
             position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, self.embedding_dim, 2, dtype=torch.float32)
-            * -(math.log(10000.0) / self.embedding_dim)
+            torch.arange(0, self.embedding_dim, 2, dtype=torch.float32) * -(math.log(10000.0) / self.embedding_dim)
         )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)

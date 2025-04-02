@@ -48,13 +48,13 @@ fi
 
 if [ "$USE_CUDA" = true ]; then
     echo "Installing PyTorch with CUDA support..."
-    conda install pytorch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 pytorch-cuda=11.8 -c pytorch -c nvidia
+    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 elif [ "$USE_ROCM" = true ]; then
     echo "Installing PyTorch with ROCm support..."
-    pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/rocm6.2
+    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/rocm6.2
 else
     echo "Installing PyTorch for CPU..."
-    conda install pytorch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 cpuonly -c pytorch
+    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 fi
 
 echo "Installing Python dependencies from requirements.txt..."

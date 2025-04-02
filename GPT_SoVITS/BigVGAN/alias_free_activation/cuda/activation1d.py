@@ -20,9 +20,7 @@ class FusedAntiAliasActivation(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, inputs, up_ftr, down_ftr, alpha, beta):
-        activation_results = anti_alias_activation_cuda.forward(
-            inputs, up_ftr, down_ftr, alpha, beta
-        )
+        activation_results = anti_alias_activation_cuda.forward(inputs, up_ftr, down_ftr, alpha, beta)
 
         return activation_results
 
@@ -61,17 +59,11 @@ class Activation1d(nn.Module):
             if self.act.__class__.__name__ == "Snake":
                 beta = self.act.alpha.data  # Snake uses same params for alpha and beta
             else:
-                beta = (
-                    self.act.beta.data
-                )  # Snakebeta uses different params for alpha and beta
+                beta = self.act.beta.data  # Snakebeta uses different params for alpha and beta
             alpha = self.act.alpha.data
-            if (
-                not self.act.alpha_logscale
-            ):  # Exp baked into cuda kernel, cancel it out with a log
+            if not self.act.alpha_logscale:  # Exp baked into cuda kernel, cancel it out with a log
                 alpha = torch.log(alpha)
                 beta = torch.log(beta)
 
-            x = FusedAntiAliasActivation.apply(
-                x, self.upsample.filter, self.downsample.lowpass.filter, alpha, beta
-            )
+            x = FusedAntiAliasActivation.apply(x, self.upsample.filter, self.downsample.lowpass.filter, alpha, beta)
             return x

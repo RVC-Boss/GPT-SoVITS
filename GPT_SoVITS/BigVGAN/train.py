@@ -77,24 +77,18 @@ def train(rank, a, h):
     # Define additional discriminators. BigVGAN-v1 uses UnivNet's MRD as default
     # New in BigVGAN-v2: option to switch to new discriminators: MultiBandDiscriminator / MultiScaleSubbandCQTDiscriminator
     if h.get("use_mbd_instead_of_mrd", False):  # Switch to MBD
-        print(
-            "[INFO] using MultiBandDiscriminator of BigVGAN-v2 instead of MultiResolutionDiscriminator"
-        )
+        print("[INFO] using MultiBandDiscriminator of BigVGAN-v2 instead of MultiResolutionDiscriminator")
         # Variable name is kept as "mrd" for backward compatibility & minimal code change
         mrd = MultiBandDiscriminator(h).to(device)
     elif h.get("use_cqtd_instead_of_mrd", False):  # Switch to CQTD
-        print(
-            "[INFO] using MultiScaleSubbandCQTDiscriminator of BigVGAN-v2 instead of MultiResolutionDiscriminator"
-        )
+        print("[INFO] using MultiScaleSubbandCQTDiscriminator of BigVGAN-v2 instead of MultiResolutionDiscriminator")
         mrd = MultiScaleSubbandCQTDiscriminator(h).to(device)
     else:  # Fallback to original MRD in BigVGAN-v1
         mrd = MultiResolutionDiscriminator(h).to(device)
 
     # New in BigVGAN-v2: option to switch to multi-scale L1 mel loss
     if h.get("use_multiscale_melloss", False):
-        print(
-            "[INFO] using multi-scale Mel l1 loss of BigVGAN-v2 instead of the original single-scale loss"
-        )
+        print("[INFO] using multi-scale Mel l1 loss of BigVGAN-v2 instead of the original single-scale loss")
         fn_mel_loss_multiscale = MultiScaleMelSpectrogramLoss(
             sampling_rate=h.sampling_rate
         )  # NOTE: accepts waveform as input
@@ -114,9 +108,7 @@ def train(rank, a, h):
 
     if os.path.isdir(a.checkpoint_path):
         # New in v2.1: If the step prefix pattern-based checkpoints are not found, also check for renamed files in Hugging Face Hub to resume training
-        cp_g = scan_checkpoint(
-            a.checkpoint_path, prefix="g_", renamed_file="bigvgan_generator.pt"
-        )
+        cp_g = scan_checkpoint(a.checkpoint_path, prefix="g_", renamed_file="bigvgan_generator.pt")
         cp_do = scan_checkpoint(
             a.checkpoint_path,
             prefix="do_",
@@ -143,9 +135,7 @@ def train(rank, a, h):
         mpd = DistributedDataParallel(mpd, device_ids=[rank]).to(device)
         mrd = DistributedDataParallel(mrd, device_ids=[rank]).to(device)
 
-    optim_g = torch.optim.AdamW(
-        generator.parameters(), h.learning_rate, betas=[h.adam_b1, h.adam_b2]
-    )
+    optim_g = torch.optim.AdamW(generator.parameters(), h.learning_rate, betas=[h.adam_b1, h.adam_b2])
     optim_d = torch.optim.AdamW(
         itertools.chain(mrd.parameters(), mpd.parameters()),
         h.learning_rate,
@@ -156,12 +146,8 @@ def train(rank, a, h):
         optim_g.load_state_dict(state_dict_do["optim_g"])
         optim_d.load_state_dict(state_dict_do["optim_d"])
 
-    scheduler_g = torch.optim.lr_scheduler.ExponentialLR(
-        optim_g, gamma=h.lr_decay, last_epoch=last_epoch
-    )
-    scheduler_d = torch.optim.lr_scheduler.ExponentialLR(
-        optim_d, gamma=h.lr_decay, last_epoch=last_epoch
-    )
+    scheduler_g = torch.optim.lr_scheduler.ExponentialLR(optim_g, gamma=h.lr_decay, last_epoch=last_epoch)
+    scheduler_d = torch.optim.lr_scheduler.ExponentialLR(optim_d, gamma=h.lr_decay, last_epoch=last_epoch)
 
     # Define training and validation datasets
 
@@ -169,9 +155,7 @@ def train(rank, a, h):
     unseen_validation_filelist will contain sample filepaths outside the seen training & validation dataset
     Example: trained on LibriTTS, validate on VCTK
     """
-    training_filelist, validation_filelist, list_unseen_validation_filelist = (
-        get_dataset_filelist(a)
-    )
+    training_filelist, validation_filelist, list_unseen_validation_filelist = get_dataset_filelist(a)
 
     trainset = MelDataset(
         training_filelist,
@@ -324,33 +308,26 @@ def train(rank, a, h):
                     h.fmax_for_loss,
                 )
                 min_t = min(y_mel.size(-1), y_g_hat_mel.size(-1))
-                val_err_tot += F.l1_loss(y_mel[...,:min_t], y_g_hat_mel[...,:min_t]).item()
+                val_err_tot += F.l1_loss(y_mel[..., :min_t], y_g_hat_mel[..., :min_t]).item()
 
                 # PESQ calculation. only evaluate PESQ if it's speech signal (nonspeech PESQ will error out)
-                if (
-                    not "nonspeech" in mode
-                ):  # Skips if the name of dataset (in mode string) contains "nonspeech"
-
+                if "nonspeech" not in mode:  # Skips if the name of dataset (in mode string) contains "nonspeech"
                     # Resample to 16000 for pesq
                     y_16k = pesq_resampler(y)
                     y_g_hat_16k = pesq_resampler(y_g_hat.squeeze(1))
                     y_int_16k = (y_16k[0] * MAX_WAV_VALUE).short().cpu().numpy()
-                    y_g_hat_int_16k = (
-                        (y_g_hat_16k[0] * MAX_WAV_VALUE).short().cpu().numpy()
-                    )
+                    y_g_hat_int_16k = (y_g_hat_16k[0] * MAX_WAV_VALUE).short().cpu().numpy()
                     val_pesq_tot += pesq(16000, y_int_16k, y_g_hat_int_16k, "wb")
 
                 # MRSTFT calculation
                 min_t = min(y.size(-1), y_g_hat.size(-1))
-                val_mrstft_tot += loss_mrstft(y_g_hat[...,:min_t], y[...,:min_t]).item()
+                val_mrstft_tot += loss_mrstft(y_g_hat[..., :min_t], y[..., :min_t]).item()
 
                 # Log audio and figures to Tensorboard
                 if j % a.eval_subsample == 0:  # Subsample every nth from validation set
                     if steps >= 0:
                         sw.add_audio(f"gt_{mode}/y_{j}", y[0], steps, h.sampling_rate)
-                        if (
-                            a.save_audio
-                        ):  # Also save audio to disk if --save_audio is set to True
+                        if a.save_audio:  # Also save audio to disk if --save_audio is set to True
                             save_audio(
                                 y[0],
                                 os.path.join(
@@ -373,9 +350,7 @@ def train(rank, a, h):
                         steps,
                         h.sampling_rate,
                     )
-                    if (
-                        a.save_audio
-                    ):  # Also save audio to disk if --save_audio is set to True
+                    if a.save_audio:  # Also save audio to disk if --save_audio is set to True
                         save_audio(
                             y_g_hat[0, 0],
                             os.path.join(
@@ -487,15 +462,11 @@ def train(rank, a, h):
 
             # MPD
             y_df_hat_r, y_df_hat_g, _, _ = mpd(y, y_g_hat.detach())
-            loss_disc_f, losses_disc_f_r, losses_disc_f_g = discriminator_loss(
-                y_df_hat_r, y_df_hat_g
-            )
+            loss_disc_f, losses_disc_f_r, losses_disc_f_g = discriminator_loss(y_df_hat_r, y_df_hat_g)
 
             # MRD
             y_ds_hat_r, y_ds_hat_g, _, _ = mrd(y, y_g_hat.detach())
-            loss_disc_s, losses_disc_s_r, losses_disc_s_g = discriminator_loss(
-                y_ds_hat_r, y_ds_hat_g
-            )
+            loss_disc_s, losses_disc_s_r, losses_disc_s_g = discriminator_loss(y_ds_hat_r, y_ds_hat_g)
 
             loss_disc_all = loss_disc_s + loss_disc_f
 
@@ -505,17 +476,11 @@ def train(rank, a, h):
             # Whether to freeze D for initial training steps
             if steps >= a.freeze_step:
                 loss_disc_all.backward()
-                grad_norm_mpd = torch.nn.utils.clip_grad_norm_(
-                    mpd.parameters(), clip_grad_norm
-                )
-                grad_norm_mrd = torch.nn.utils.clip_grad_norm_(
-                    mrd.parameters(), clip_grad_norm
-                )
+                grad_norm_mpd = torch.nn.utils.clip_grad_norm_(mpd.parameters(), clip_grad_norm)
+                grad_norm_mrd = torch.nn.utils.clip_grad_norm_(mrd.parameters(), clip_grad_norm)
                 optim_d.step()
             else:
-                print(
-                    f"[WARNING] skipping D training for the first {a.freeze_step} steps"
-                )
+                print(f"[WARNING] skipping D training for the first {a.freeze_step} steps")
                 grad_norm_mpd = 0.0
                 grad_norm_mrd = 0.0
 
@@ -523,9 +488,7 @@ def train(rank, a, h):
             optim_g.zero_grad()
 
             # L1 Mel-Spectrogram Loss
-            lambda_melloss = h.get(
-                "lambda_melloss", 45.0
-            )  # Defaults to 45 in BigVGAN-v1 if not set
+            lambda_melloss = h.get("lambda_melloss", 45.0)  # Defaults to 45 in BigVGAN-v1 if not set
             if h.get("use_multiscale_melloss", False):  # uses wav <y, y_g_hat> for loss
                 loss_mel = fn_mel_loss_multiscale(y, y_g_hat) * lambda_melloss
             else:  # Uses mel <y_mel, y_g_hat_mel> for loss
@@ -542,27 +505,19 @@ def train(rank, a, h):
             loss_gen_s, losses_gen_s = generator_loss(y_ds_hat_g)
 
             if steps >= a.freeze_step:
-                loss_gen_all = (
-                    loss_gen_s + loss_gen_f + loss_fm_s + loss_fm_f + loss_mel
-                )
+                loss_gen_all = loss_gen_s + loss_gen_f + loss_fm_s + loss_fm_f + loss_mel
             else:
-                print(
-                    f"[WARNING] using regression loss only for G for the first {a.freeze_step} steps"
-                )
+                print(f"[WARNING] using regression loss only for G for the first {a.freeze_step} steps")
                 loss_gen_all = loss_mel
 
             loss_gen_all.backward()
-            grad_norm_g = torch.nn.utils.clip_grad_norm_(
-                generator.parameters(), clip_grad_norm
-            )
+            grad_norm_g = torch.nn.utils.clip_grad_norm_(generator.parameters(), clip_grad_norm)
             optim_g.step()
 
             if rank == 0:
                 # STDOUT logging
                 if steps % a.stdout_interval == 0:
-                    mel_error = (
-                        loss_mel.item() / lambda_melloss
-                    )  # Log training mel regression loss to stdout
+                    mel_error = loss_mel.item() / lambda_melloss  # Log training mel regression loss to stdout
                     print(
                         f"Steps: {steps:d}, "
                         f"Gen Loss Total: {loss_gen_all:4.3f}, "
@@ -577,11 +532,7 @@ def train(rank, a, h):
                     checkpoint_path = f"{a.checkpoint_path}/g_{steps:08d}"
                     save_checkpoint(
                         checkpoint_path,
-                        {
-                            "generator": (
-                                generator.module if h.num_gpus > 1 else generator
-                            ).state_dict()
-                        },
+                        {"generator": (generator.module if h.num_gpus > 1 else generator).state_dict()},
                     )
                     checkpoint_path = f"{a.checkpoint_path}/do_{steps:08d}"
                     save_checkpoint(
@@ -598,9 +549,7 @@ def train(rank, a, h):
 
                 # Tensorboard summary logging
                 if steps % a.summary_interval == 0:
-                    mel_error = (
-                        loss_mel.item() / lambda_melloss
-                    )  # Log training mel regression loss to tensorboard
+                    mel_error = loss_mel.item() / lambda_melloss  # Log training mel regression loss to tensorboard
                     sw.add_scalar("training/gen_loss_total", loss_gen_all.item(), steps)
                     sw.add_scalar("training/mel_spec_error", mel_error, steps)
                     sw.add_scalar("training/fm_loss_mpd", loss_fm_f.item(), steps)
@@ -612,12 +561,8 @@ def train(rank, a, h):
                     sw.add_scalar("training/disc_loss_mrd", loss_disc_s.item(), steps)
                     sw.add_scalar("training/grad_norm_mrd", grad_norm_mrd, steps)
                     sw.add_scalar("training/grad_norm_g", grad_norm_g, steps)
-                    sw.add_scalar(
-                        "training/learning_rate_d", scheduler_d.get_last_lr()[0], steps
-                    )
-                    sw.add_scalar(
-                        "training/learning_rate_g", scheduler_g.get_last_lr()[0], steps
-                    )
+                    sw.add_scalar("training/learning_rate_d", scheduler_d.get_last_lr()[0], steps)
+                    sw.add_scalar("training/learning_rate_g", scheduler_g.get_last_lr()[0], steps)
                     sw.add_scalar("training/epoch", epoch + 1, steps)
 
                 # Validation
@@ -660,9 +605,7 @@ def train(rank, a, h):
             scheduler_d.step()
 
         if rank == 0:
-            print(
-                f"Time taken for epoch {epoch + 1} is {int(time.time() - start)} sec\n"
-            )
+            print(f"Time taken for epoch {epoch + 1} is {int(time.time() - start)} sec\n")
 
 
 def main():
@@ -674,12 +617,8 @@ def main():
 
     parser.add_argument("--input_wavs_dir", default="LibriTTS")
     parser.add_argument("--input_mels_dir", default="ft_dataset")
-    parser.add_argument(
-        "--input_training_file", default="tests/LibriTTS/train-full.txt"
-    )
-    parser.add_argument(
-        "--input_validation_file", default="tests/LibriTTS/val-full.txt"
-    )
+    parser.add_argument("--input_training_file", default="tests/LibriTTS/train-full.txt")
+    parser.add_argument("--input_validation_file", default="tests/LibriTTS/val-full.txt")
 
     parser.add_argument(
         "--list_input_unseen_wavs_dir",

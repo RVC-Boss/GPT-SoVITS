@@ -49,13 +49,9 @@ class WarmupCosineLRSchedule(torch.optim.lr_scheduler._LRScheduler):
             lr = self.end_lr
 
         else:
-            decay_ratio = (self._current_step - self.warmup_steps) / (
-                self.total_steps - self.warmup_steps
-            )
+            decay_ratio = (self._current_step - self.warmup_steps) / (self.total_steps - self.warmup_steps)
             if decay_ratio < 0.0 or decay_ratio > 1.0:
-                raise RuntimeError(
-                    "Decay ratio must be in [0.0, 1.0]. Fix LR scheduler settings."
-                )
+                raise RuntimeError("Decay ratio must be in [0.0, 1.0]. Fix LR scheduler settings.")
             coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
             lr = self.end_lr + coeff * (self.peak_lr - self.end_lr)
 
@@ -70,7 +66,13 @@ if __name__ == "__main__":
     m = nn.Linear(10, 10)
     opt = Adam(m.parameters(), lr=1e-4)
     s = WarmupCosineLRSchedule(
-        opt, 1e-6, 2e-4, 1e-6, warmup_steps=2000, total_steps=20000, current_step=0
+        opt,
+        1e-6,
+        2e-4,
+        1e-6,
+        warmup_steps=2000,
+        total_steps=20000,
+        current_step=0,
     )
     lrs = []
     for i in range(25000):

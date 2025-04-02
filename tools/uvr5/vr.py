@@ -1,6 +1,8 @@
-import os,sys
+import os
+
 parent_directory = os.path.dirname(os.path.abspath(__file__))
-import logging,pdb
+import logging
+
 logger = logging.getLogger(__name__)
 
 import librosa
@@ -27,7 +29,7 @@ class AudioPre:
             "agg": agg,
             "high_end_process": "mirroring",
         }
-        mp = ModelParameters("%s/lib/lib_v5/modelparams/4band_v2.json"%parent_directory)
+        mp = ModelParameters("%s/lib/lib_v5/modelparams/4band_v2.json" % parent_directory)
         model = Nets.CascadedASPPNet(mp.param["bins"] * 2)
         cpk = torch.load(model_path, map_location="cpu")
         model.load_state_dict(cpk)
@@ -40,9 +42,7 @@ class AudioPre:
         self.mp = mp
         self.model = model
 
-    def _path_audio_(
-        self, music_file, ins_root=None, vocal_root=None, format="flac", is_hp3=False
-    ):
+    def _path_audio_(self, music_file, ins_root=None, vocal_root=None, format="flac", is_hp3=False):
         if ins_root is None and vocal_root is None:
             return "No save root."
         name = os.path.basename(music_file)
@@ -61,19 +61,19 @@ class AudioPre:
                     _,
                 ) = librosa.core.load(  # 理论上librosa读取可能对某些音频有bug，应该上ffmpeg读取，但是太麻烦了弃坑
                     music_file,
-                    sr       = bp["sr"],
-                    mono     = False,
-                    dtype    = np.float32,
-                    res_type = bp["res_type"],
+                    sr=bp["sr"],
+                    mono=False,
+                    dtype=np.float32,
+                    res_type=bp["res_type"],
                 )
                 if X_wave[d].ndim == 1:
                     X_wave[d] = np.asfortranarray([X_wave[d], X_wave[d]])
             else:  # lower bands
                 X_wave[d] = librosa.core.resample(
                     X_wave[d + 1],
-                    orig_sr   = self.mp.param["band"][d + 1]["sr"],
-                    target_sr = bp["sr"],
-                    res_type  = bp["res_type"],
+                    orig_sr=self.mp.param["band"][d + 1]["sr"],
+                    target_sr=bp["sr"],
+                    res_type=bp["res_type"],
                 )
             # Stft of wave source
             X_spec_s[d] = spec_utils.wave_to_spectrogram_mt(
@@ -89,9 +89,7 @@ class AudioPre:
                 input_high_end_h = (bp["n_fft"] // 2 - bp["crop_stop"]) + (
                     self.mp.param["pre_filter_stop"] - self.mp.param["pre_filter_start"]
                 )
-                input_high_end = X_spec_s[d][
-                    :, bp["n_fft"] // 2 - input_high_end_h : bp["n_fft"] // 2, :
-                ]
+                input_high_end = X_spec_s[d][:, bp["n_fft"] // 2 - input_high_end_h : bp["n_fft"] // 2, :]
 
         X_spec_m = spec_utils.combine_spectrograms(X_spec_s, self.mp)
         aggresive_set = float(self.data["agg"] / 100)
@@ -100,9 +98,7 @@ class AudioPre:
             "split_bin": self.mp.param["band"][1]["crop_stop"],
         }
         with torch.no_grad():
-            pred, X_mag, X_phase = inference(
-                X_spec_m, self.device, self.model, aggressiveness, self.data
-            )
+            pred, X_mag, X_phase = inference(X_spec_m, self.device, self.model, aggressiveness, self.data)
         # Postprocess
         if self.data["postprocess"]:
             pred_inv = np.clip(X_mag - pred, 0, np.inf)
@@ -111,13 +107,11 @@ class AudioPre:
         v_spec_m = X_spec_m - y_spec_m
 
         if is_hp3 == True:
-            ins_root,vocal_root = vocal_root,ins_root
+            ins_root, vocal_root = vocal_root, ins_root
 
         if ins_root is not None:
             if self.data["high_end_process"].startswith("mirroring"):
-                input_high_end_ = spec_utils.mirroring(
-                    self.data["high_end_process"], y_spec_m, input_high_end, self.mp
-                )
+                input_high_end_ = spec_utils.mirroring(self.data["high_end_process"], y_spec_m, input_high_end, self.mp)
                 wav_instrument = spec_utils.cmb_spectrogram_to_wave(
                     y_spec_m, self.mp, input_high_end_h, input_high_end_
                 )
@@ -138,9 +132,7 @@ class AudioPre:
                     self.mp.param["sr"],
                 )  #
             else:
-                path = os.path.join(
-                    ins_root, head + "{}_{}.wav".format(name, self.data["agg"])
-                )
+                path = os.path.join(ins_root, head + "{}_{}.wav".format(name, self.data["agg"]))
                 sf.write(
                     path,
                     (np.array(wav_instrument) * 32768).astype("int16"),
@@ -160,12 +152,8 @@ class AudioPre:
             else:
                 head = "vocal_"
             if self.data["high_end_process"].startswith("mirroring"):
-                input_high_end_ = spec_utils.mirroring(
-                    self.data["high_end_process"], v_spec_m, input_high_end, self.mp
-                )
-                wav_vocals = spec_utils.cmb_spectrogram_to_wave(
-                    v_spec_m, self.mp, input_high_end_h, input_high_end_
-                )
+                input_high_end_ = spec_utils.mirroring(self.data["high_end_process"], v_spec_m, input_high_end, self.mp)
+                wav_vocals = spec_utils.cmb_spectrogram_to_wave(v_spec_m, self.mp, input_high_end_h, input_high_end_)
             else:
                 wav_vocals = spec_utils.cmb_spectrogram_to_wave(v_spec_m, self.mp)
             logger.info("%s vocals done" % name)
@@ -179,9 +167,7 @@ class AudioPre:
                     self.mp.param["sr"],
                 )
             else:
-                path = os.path.join(
-                    vocal_root, head + "{}_{}.wav".format(name, self.data["agg"])
-                )
+                path = os.path.join(vocal_root, head + "{}_{}.wav".format(name, self.data["agg"]))
                 sf.write(
                     path,
                     (np.array(wav_vocals) * 32768).astype("int16"),
@@ -210,7 +196,7 @@ class AudioPreDeEcho:
             "agg": agg,
             "high_end_process": "mirroring",
         }
-        mp = ModelParameters("%s/lib/lib_v5/modelparams/4band_v3.json"%parent_directory)
+        mp = ModelParameters("%s/lib/lib_v5/modelparams/4band_v3.json" % parent_directory)
         nout = 64 if "DeReverb" in model_path else 48
         model = CascadedNet(mp.param["bins"] * 2, nout)
         cpk = torch.load(model_path, map_location="cpu")
@@ -245,19 +231,19 @@ class AudioPreDeEcho:
                     _,
                 ) = librosa.core.load(  # 理论上librosa读取可能对某些音频有bug，应该上ffmpeg读取，但是太麻烦了弃坑
                     music_file,
-                    sr       = bp["sr"],
-                    mono     = False,
-                    dtype    = np.float32,
-                    res_type = bp["res_type"],
+                    sr=bp["sr"],
+                    mono=False,
+                    dtype=np.float32,
+                    res_type=bp["res_type"],
                 )
                 if X_wave[d].ndim == 1:
                     X_wave[d] = np.asfortranarray([X_wave[d], X_wave[d]])
             else:  # lower bands
                 X_wave[d] = librosa.core.resample(
                     X_wave[d + 1],
-                    orig_sr   = self.mp.param["band"][d + 1]["sr"],
-                    target_sr = bp["sr"],
-                    res_type  = bp["res_type"],
+                    orig_sr=self.mp.param["band"][d + 1]["sr"],
+                    target_sr=bp["sr"],
+                    res_type=bp["res_type"],
                 )
             # Stft of wave source
             X_spec_s[d] = spec_utils.wave_to_spectrogram_mt(
@@ -273,9 +259,7 @@ class AudioPreDeEcho:
                 input_high_end_h = (bp["n_fft"] // 2 - bp["crop_stop"]) + (
                     self.mp.param["pre_filter_stop"] - self.mp.param["pre_filter_start"]
                 )
-                input_high_end = X_spec_s[d][
-                    :, bp["n_fft"] // 2 - input_high_end_h : bp["n_fft"] // 2, :
-                ]
+                input_high_end = X_spec_s[d][:, bp["n_fft"] // 2 - input_high_end_h : bp["n_fft"] // 2, :]
 
         X_spec_m = spec_utils.combine_spectrograms(X_spec_s, self.mp)
         aggresive_set = float(self.data["agg"] / 100)
@@ -284,9 +268,7 @@ class AudioPreDeEcho:
             "split_bin": self.mp.param["band"][1]["crop_stop"],
         }
         with torch.no_grad():
-            pred, X_mag, X_phase = inference(
-                X_spec_m, self.device, self.model, aggressiveness, self.data
-            )
+            pred, X_mag, X_phase = inference(X_spec_m, self.device, self.model, aggressiveness, self.data)
         # Postprocess
         if self.data["postprocess"]:
             pred_inv = np.clip(X_mag - pred, 0, np.inf)
@@ -296,9 +278,7 @@ class AudioPreDeEcho:
 
         if ins_root is not None:
             if self.data["high_end_process"].startswith("mirroring"):
-                input_high_end_ = spec_utils.mirroring(
-                    self.data["high_end_process"], y_spec_m, input_high_end, self.mp
-                )
+                input_high_end_ = spec_utils.mirroring(self.data["high_end_process"], y_spec_m, input_high_end, self.mp)
                 wav_instrument = spec_utils.cmb_spectrogram_to_wave(
                     y_spec_m, self.mp, input_high_end_h, input_high_end_
                 )
@@ -315,9 +295,7 @@ class AudioPreDeEcho:
                     self.mp.param["sr"],
                 )  #
             else:
-                path = os.path.join(
-                    ins_root, "vocal_{}_{}.wav".format(name, self.data["agg"])
-                )
+                path = os.path.join(ins_root, "vocal_{}_{}.wav".format(name, self.data["agg"]))
                 sf.write(
                     path,
                     (np.array(wav_instrument) * 32768).astype("int16"),
@@ -333,12 +311,8 @@ class AudioPreDeEcho:
                             pass
         if vocal_root is not None:
             if self.data["high_end_process"].startswith("mirroring"):
-                input_high_end_ = spec_utils.mirroring(
-                    self.data["high_end_process"], v_spec_m, input_high_end, self.mp
-                )
-                wav_vocals = spec_utils.cmb_spectrogram_to_wave(
-                    v_spec_m, self.mp, input_high_end_h, input_high_end_
-                )
+                input_high_end_ = spec_utils.mirroring(self.data["high_end_process"], v_spec_m, input_high_end, self.mp)
+                wav_vocals = spec_utils.cmb_spectrogram_to_wave(v_spec_m, self.mp, input_high_end_h, input_high_end_)
             else:
                 wav_vocals = spec_utils.cmb_spectrogram_to_wave(v_spec_m, self.mp)
             logger.info("%s vocals done" % name)
@@ -352,9 +326,7 @@ class AudioPreDeEcho:
                     self.mp.param["sr"],
                 )
             else:
-                path = os.path.join(
-                    vocal_root, "instrument_{}_{}.wav".format(name, self.data["agg"])
-                )
+                path = os.path.join(vocal_root, "instrument_{}_{}.wav".format(name, self.data["agg"]))
                 sf.write(
                     path,
                     (np.array(wav_vocals) * 32768).astype("int16"),

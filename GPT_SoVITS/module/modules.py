@@ -52,11 +52,7 @@ class ConvReluNorm(nn.Module):
 
         self.conv_layers = nn.ModuleList()
         self.norm_layers = nn.ModuleList()
-        self.conv_layers.append(
-            nn.Conv1d(
-                in_channels, hidden_channels, kernel_size, padding=kernel_size // 2
-            )
-        )
+        self.conv_layers.append(nn.Conv1d(in_channels, hidden_channels, kernel_size, padding=kernel_size // 2))
         self.norm_layers.append(LayerNorm(hidden_channels))
         self.relu_drop = nn.Sequential(nn.ReLU(), nn.Dropout(p_dropout))
         for _ in range(n_layers - 1):
@@ -156,9 +152,7 @@ class WN(torch.nn.Module):
         self.drop = nn.Dropout(p_dropout)
 
         if gin_channels != 0:
-            cond_layer = torch.nn.Conv1d(
-                gin_channels, 2 * hidden_channels * n_layers, 1
-            )
+            cond_layer = torch.nn.Conv1d(gin_channels, 2 * hidden_channels * n_layers, 1)
             self.cond_layer = torch.nn.utils.weight_norm(cond_layer, name="weight")
 
         for i in range(n_layers):
@@ -479,9 +473,7 @@ class ConvFlow(nn.Module):
 
         self.pre = nn.Conv1d(self.half_channels, filter_channels, 1)
         self.convs = DDSConv(filter_channels, kernel_size, n_layers, p_dropout=0.0)
-        self.proj = nn.Conv1d(
-            filter_channels, self.half_channels * (num_bins * 3 - 1), 1
-        )
+        self.proj = nn.Conv1d(filter_channels, self.half_channels * (num_bins * 3 - 1), 1)
         self.proj.weight.data.zero_()
         self.proj.bias.data.zero_()
 
@@ -495,9 +487,7 @@ class ConvFlow(nn.Module):
         h = h.reshape(b, c, -1, t).permute(0, 1, 3, 2)  # [b, cx?, t] -> [b, c, t, ?]
 
         unnormalized_widths = h[..., : self.num_bins] / math.sqrt(self.filter_channels)
-        unnormalized_heights = h[..., self.num_bins : 2 * self.num_bins] / math.sqrt(
-            self.filter_channels
-        )
+        unnormalized_heights = h[..., self.num_bins : 2 * self.num_bins] / math.sqrt(self.filter_channels)
         unnormalized_derivatives = h[..., 2 * self.num_bins :]
 
         x1, logabsdet = piecewise_rational_quadratic_transform(
@@ -616,9 +606,7 @@ class MultiHeadAttention(nn.Module):
         self.w_ks = nn.Linear(d_model, n_head * d_k)
         self.w_vs = nn.Linear(d_model, n_head * d_v)
 
-        self.attention = ScaledDotProductAttention(
-            temperature=np.power(d_model, 0.5), dropout=dropout
-        )
+        self.attention = ScaledDotProductAttention(temperature=np.power(d_model, 0.5), dropout=dropout)
 
         self.fc = nn.Linear(n_head * d_v, d_model)
         self.dropout = nn.Dropout(dropout)
@@ -649,9 +637,7 @@ class MultiHeadAttention(nn.Module):
         output, attn = self.attention(q, k, v, mask=slf_mask)
 
         output = output.view(n_head, sz_b, len_x, d_v)
-        output = (
-            output.permute(1, 2, 0, 3).contiguous().view(sz_b, len_x, -1)
-        )  # b x lq x (n*dv)
+        output = output.permute(1, 2, 0, 3).contiguous().view(sz_b, len_x, -1)  # b x lq x (n*dv)
 
         output = self.fc(output)
 
@@ -741,9 +727,7 @@ class MelStyleEncoder(nn.Module):
         if mask is not None:
             mask = (mask.int() == 0).squeeze(1)
         max_len = x.shape[1]
-        slf_attn_mask = (
-            mask.unsqueeze(1).expand(-1, max_len, -1) if mask is not None else None
-        )
+        slf_attn_mask = mask.unsqueeze(1).expand(-1, max_len, -1) if mask is not None else None
 
         # spectral
         x = self.spectral(x)
@@ -785,9 +769,7 @@ class MelStyleEncoderVAE(nn.Module):
         mu = self.fc1(enc_out)
         logvar = self.fc2(enc_out)
         posterior = D.Normal(mu, torch.exp(logvar))
-        kl_divergence = D.kl_divergence(
-            posterior, D.Normal(torch.zeros_like(mu), torch.ones_like(logvar))
-        )
+        kl_divergence = D.kl_divergence(posterior, D.Normal(torch.zeros_like(mu), torch.ones_like(logvar)))
         loss_kl = kl_divergence.mean()
 
         z = posterior.rsample()
@@ -825,9 +807,7 @@ class ActNorm(nn.Module):
 
     def forward(self, x, x_mask=None, g=None, reverse=False, **kwargs):
         if x_mask is None:
-            x_mask = torch.ones(x.size(0), 1, x.size(2)).to(
-                device=x.device, dtype=x.dtype
-            )
+            x_mask = torch.ones(x.size(0), 1, x.size(2)).to(device=x.device, dtype=x.dtype)
         x_len = torch.sum(x_mask, [1, 2])
         if not self.initialized:
             self.initialize(x, x_mask)
@@ -856,9 +836,7 @@ class ActNorm(nn.Module):
             v = m_sq - (m**2)
             logs = 0.5 * torch.log(torch.clamp_min(v, 1e-6))
 
-            bias_init = (
-                (-m * torch.exp(-logs)).view(*self.bias.shape).to(dtype=self.bias.dtype)
-            )
+            bias_init = (-m * torch.exp(-logs)).view(*self.bias.shape).to(dtype=self.bias.dtype)
             logs_init = (-logs).view(*self.logs.shape).to(dtype=self.logs.dtype)
 
             self.bias.data.copy_(bias_init)
@@ -873,9 +851,7 @@ class InvConvNear(nn.Module):
         self.n_split = n_split
         self.no_jacobian = no_jacobian
 
-        w_init = torch.linalg.qr(
-            torch.FloatTensor(self.n_split, self.n_split).normal_()
-        )[0]
+        w_init = torch.linalg.qr(torch.FloatTensor(self.n_split, self.n_split).normal_())[0]
         if torch.det(w_init) < 0:
             w_init[:, 0] = -1 * w_init[:, 0]
         self.weight = nn.Parameter(w_init)
@@ -890,11 +866,7 @@ class InvConvNear(nn.Module):
             x_len = torch.sum(x_mask, [1, 2])
 
         x = x.view(b, 2, c // self.n_split, self.n_split // 2, t)
-        x = (
-            x.permute(0, 1, 3, 2, 4)
-            .contiguous()
-            .view(b, self.n_split, c // self.n_split, t)
-        )
+        x = x.permute(0, 1, 3, 2, 4).contiguous().view(b, self.n_split, c // self.n_split, t)
 
         if reverse:
             if hasattr(self, "weight_inv"):

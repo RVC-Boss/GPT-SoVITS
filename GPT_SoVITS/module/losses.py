@@ -1,7 +1,6 @@
 import math
 
 import torch
-from torch.nn import functional as F
 
 
 def feature_loss(fmap_r, fmap_g):
@@ -66,8 +65,6 @@ def mle_loss(z, m, logs, logdet, mask):
         torch.exp(-2 * logs) * ((z - m) ** 2)
     )  # neg normal likelihood w/o the constant term
     l = l - torch.sum(logdet)  # log jacobian determinant
-    l = l / torch.sum(
-        torch.ones_like(z) * mask
-    )  # averaging across batch, channel and time axes
+    l = l / torch.sum(torch.ones_like(z) * mask)  # averaging across batch, channel and time axes
     l = l + 0.5 * math.log(2 * math.pi)  # add the remaining constant term
     return l

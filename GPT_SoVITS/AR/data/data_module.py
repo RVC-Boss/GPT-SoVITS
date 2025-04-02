@@ -1,9 +1,10 @@
 # modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/data/data_module.py
 # reference: https://github.com/lifeiteng/vall-e
 from pytorch_lightning import LightningDataModule
+from torch.utils.data import DataLoader
+
 from AR.data.bucket_sampler import DistributedBucketSampler
 from AR.data.dataset import Text2SemanticDataset
-from torch.utils.data import DataLoader
 
 
 class Text2SemanticDataModule(LightningDataModule):
@@ -42,8 +43,12 @@ class Text2SemanticDataModule(LightningDataModule):
         #     pad_val=self.config['data']['pad_val'])
 
     def train_dataloader(self):
-        batch_size=self.config["train"]["batch_size"]//2 if self.config["train"].get("if_dpo",False)==True else self.config["train"]["batch_size"]
-        batch_size = max(min(batch_size,len(self._train_dataset)//4),1)#防止不保存
+        batch_size = (
+            self.config["train"]["batch_size"] // 2
+            if self.config["train"].get("if_dpo", False) is True
+            else self.config["train"]["batch_size"]
+        )
+        batch_size = max(min(batch_size, len(self._train_dataset) // 4), 1)  # 防止不保存
         sampler = DistributedBucketSampler(self._train_dataset, batch_size=batch_size)
         return DataLoader(
             self._train_dataset,
