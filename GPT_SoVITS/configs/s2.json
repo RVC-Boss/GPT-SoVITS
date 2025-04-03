@@ -18,7 +18,8 @@
     "warmup_epochs": 0,
     "c_mel": 45,
     "c_kl": 1.0,
-    "text_low_lr_rate": 0.4
+    "text_low_lr_rate": 0.4, 
+    "grad_ckpt": false
   },
   "data": {
     "max_wav_value": 32768.0,

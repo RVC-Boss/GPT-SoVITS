@@ -26,12 +26,7 @@ from AR.utils import get_newest_ckpt
 from collections import OrderedDict
 from time import time as ttime
 import shutil
-def my_save(fea,path):#####fix issue: torch.save doesn't support chinese path
-    dir=os.path.dirname(path)
-    name=os.path.basename(path)
-    tmp_path="%s.pth"%(ttime())
-    torch.save(fea,tmp_path)
-    shutil.move(tmp_path,"%s/%s"%(dir,name))
+from process_ckpt import my_save
 
 
 class my_model_ckpt(ModelCheckpoint):
@@ -79,15 +74,17 @@ class my_model_ckpt(ModelCheckpoint):
                     to_save_od["config"] = self.config
                     to_save_od["info"] = "GPT-e%s" % (trainer.current_epoch + 1)
                     # torch.save(
-                    my_save(
-                        to_save_od,
-                        "%s/%s-e%s.ckpt"
-                        % (
-                            self.half_weights_save_dir,
-                            self.exp_name,
-                            trainer.current_epoch + 1,
-                        ),
-                    )
+                    # print(os.environ)
+                    if(os.environ.get("LOCAL_RANK","0")=="0"):
+                        my_save(
+                            to_save_od,
+                            "%s/%s-e%s.ckpt"
+                            % (
+                                self.half_weights_save_dir,
+                                self.exp_name,
+                                trainer.current_epoch + 1,
+                            ),
+                        )
             self._save_last_checkpoint(trainer, monitor_candidates)
 
 
@@ -116,6 +113,7 @@ def main(args):
     )
     logger = TensorBoardLogger(name=output_dir.stem, save_dir=output_dir)
     os.environ["MASTER_ADDR"]="localhost"
+    os.environ["USE_LIBUV"] = "0"
     trainer: Trainer = Trainer(
         max_epochs=config["train"]["epochs"],
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
@@ -132,6 +130,7 @@ def main(args):
         logger=logger,
         num_sanity_val_steps=0,
         callbacks=[ckpt_callback],
+        use_distributed_sampler=False,  # 非常简单的修改，但解决了采用自定义的 bucket_sampler 下训练步数不一致的问题！
     )
 
     model: Text2SemanticLightningModule = Text2SemanticLightningModule(

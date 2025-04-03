@@ -39,6 +39,39 @@ def make_pad_mask(lengths: torch.Tensor, max_len: int = 0) -> torch.Tensor:
     return expaned_lengths >= lengths.unsqueeze(-1)
 
 
+def make_pad_mask_left(lengths: torch.Tensor, max_len: int = 0) -> torch.Tensor:
+    """
+    Args:
+      lengths:
+        A 1-D tensor containing sentence lengths.
+      max_len:
+        The length of masks.
+    Returns:
+      Return a 2-D bool tensor, where masked positions
+      are filled with `True` and non-masked positions are
+      filled with `False`.
+
+    #>>> lengths = torch.tensor([1, 3, 2, 5])
+    #>>> make_pad_mask(lengths)
+    tensor(
+        [
+            [True,  True,  False],
+            [True, False, False],
+            [True,  True,  False],
+            ...
+        ]
+    )
+    """
+    assert lengths.ndim == 1, lengths.ndim
+    max_len = max(max_len, lengths.max())
+    n = lengths.size(0)
+    seq_range = torch.arange(0, max_len, device=lengths.device)
+    expaned_lengths = seq_range.unsqueeze(0).repeat(n, 1)
+    expaned_lengths -= (max_len-lengths).unsqueeze(-1)
+
+    return expaned_lengths<0
+
+
 # https://github.com/microsoft/unilm/blob/master/xtune/src/transformers/modeling_utils.py
 def top_k_top_p_filtering(
     logits, top_k=0, top_p=1.0, filter_value=-float("Inf"), min_tokens_to_keep=1
@@ -115,17 +148,17 @@ def logits_to_probs(
     top_p: Optional[int] = None,
     repetition_penalty: float = 1.0,
 ):
-    if previous_tokens is not None:
-        previous_tokens = previous_tokens.squeeze()
+    # if previous_tokens is not None:
+    #     previous_tokens = previous_tokens.squeeze()
     # print(logits.shape,previous_tokens.shape)
     # pdb.set_trace()
     if previous_tokens is not None and repetition_penalty != 1.0:
         previous_tokens = previous_tokens.long()
-        score = torch.gather(logits, dim=0, index=previous_tokens)
+        score = torch.gather(logits, dim=1, index=previous_tokens)
         score = torch.where(
             score < 0, score * repetition_penalty, score / repetition_penalty
         )
-        logits.scatter_(dim=0, index=previous_tokens, src=score)
+        logits.scatter_(dim=1, index=previous_tokens, src=score)
 
     if top_p is not None and top_p < 1.0:
         sorted_logits, sorted_indices = torch.sort(logits, descending=True)
@@ -133,9 +166,9 @@ def logits_to_probs(
             torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1
         )
         sorted_indices_to_remove = cum_probs > top_p
-        sorted_indices_to_remove[0] = False  # keep at least one option
+        sorted_indices_to_remove[:, 0] = False  # keep at least one option
         indices_to_remove = sorted_indices_to_remove.scatter(
-            dim=0, index=sorted_indices, src=sorted_indices_to_remove
+            dim=1, index=sorted_indices, src=sorted_indices_to_remove
         )
         logits = logits.masked_fill(indices_to_remove, -float("Inf"))
 
@@ -143,7 +176,7 @@ def logits_to_probs(
 
     if top_k is not None:
         v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-        pivot = v.select(-1, -1).unsqueeze(-1)
+        pivot = v[: , -1].unsqueeze(-1)
         logits = torch.where(logits < pivot, -float("Inf"), logits)
 
     probs = torch.nn.functional.softmax(logits, dim=-1)

@@ -18,14 +18,16 @@ def check_fw_local_models():
 
 asr_dict = {
     "达摩 ASR (中文)": {
-        'lang': ['zh'],
+        'lang': ['zh','yue'],
         'size': ['large'],
         'path': 'funasr_asr.py',
+        'precision': ['float32']
     },
     "Faster Whisper (多语种)": {
-        'lang': ['auto', 'zh', 'en', 'ja'],
+        'lang': ['auto', 'zh', 'en', 'ja', 'ko', 'yue'],
         'size': check_fw_local_models(),
-        'path': 'fasterwhisper_asr.py'
-    }
+        'path': 'fasterwhisper_asr.py',
+        'precision': ['float32', 'float16', 'int8']
+    },
 }
 

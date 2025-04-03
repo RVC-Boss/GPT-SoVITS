@@ -1,5 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
 import utils, os
-
 hps = utils.get_hparams(stage=2)
 os.environ["CUDA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
 import torch
@@ -74,7 +75,7 @@ def run(rank, n_gpus, hps):
 
     dist.init_process_group(
         backend = "gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
-        init_method="env://",
+        init_method="env://?use_libuv=False",
         world_size=n_gpus,
         rank=rank,
     )
@@ -119,7 +120,7 @@ def run(rank, n_gpus, hps):
         collate_fn=collate_fn,
         batch_sampler=train_sampler,
         persistent_workers=True,
-        prefetch_factor=16,
+        prefetch_factor=4,
     )
     # if rank == 0:
     #     eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps.data, val=True)
@@ -192,7 +193,7 @@ def run(rank, n_gpus, hps):
 
     try:  # 如果能加载自动resume
         _, _, _, epoch_str = utils.load_checkpoint(
-            utils.latest_checkpoint_path("%s/logs_s2" % hps.data.exp_dir, "D_*.pth"),
+            utils.latest_checkpoint_path("%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "D_*.pth"),
             net_d,
             optim_d,
         )  # D多半加载没事
@@ -200,10 +201,11 @@ def run(rank, n_gpus, hps):
             logger.info("loaded D")
         # _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g,load_opt=0)
         _, _, _, epoch_str = utils.load_checkpoint(
-            utils.latest_checkpoint_path("%s/logs_s2" % hps.data.exp_dir, "G_*.pth"),
+            utils.latest_checkpoint_path("%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "G_*.pth"),
             net_g,
             optim_g,
         )
+        epoch_str+=1
         global_step = (epoch_str - 1) * len(train_loader)
         # epoch_str = 1
         # global_step = 0
@@ -211,10 +213,10 @@ def run(rank, n_gpus, hps):
         # traceback.print_exc()
         epoch_str = 1
         global_step = 0
-        if hps.train.pretrained_s2G != "":
+        if hps.train.pretrained_s2G != ""and hps.train.pretrained_s2G != None and os.path.exists(hps.train.pretrained_s2G):
             if rank == 0:
                 logger.info("loaded pretrained %s" % hps.train.pretrained_s2G)
-            print(
+            print("loaded pretrained %s" % hps.train.pretrained_s2G,
                 net_g.module.load_state_dict(
                     torch.load(hps.train.pretrained_s2G, map_location="cpu")["weight"],
                     strict=False,
@@ -223,10 +225,10 @@ def run(rank, n_gpus, hps):
                     strict=False,
                 )
             )  ##测试不加载优化器
-        if hps.train.pretrained_s2D != "":
+        if hps.train.pretrained_s2D != ""and hps.train.pretrained_s2D != None and os.path.exists(hps.train.pretrained_s2D):
             if rank == 0:
                 logger.info("loaded pretrained %s" % hps.train.pretrained_s2D)
-            print(
+            print("loaded pretrained %s" % hps.train.pretrained_s2D,
                 net_d.module.load_state_dict(
                     torch.load(hps.train.pretrained_s2D, map_location="cpu")["weight"]
                 ) if torch.cuda.is_available() else net_d.load_state_dict(
@@ -249,6 +251,7 @@ def run(rank, n_gpus, hps):
 
     scaler = GradScaler(enabled=hps.train.fp16_run)
 
+    print("start training from epoch %s" % epoch_str)
     for epoch in range(epoch_str, hps.train.epochs + 1):
         if rank == 0:
             train_and_evaluate(
@@ -279,6 +282,7 @@ def run(rank, n_gpus, hps):
             )
         scheduler_g.step()
         scheduler_d.step()
+    print("training done")
 
 
 def train_and_evaluate(
@@ -305,7 +309,7 @@ def train_and_evaluate(
         y_lengths,
         text,
         text_lengths,
-    ) in tqdm(enumerate(train_loader)):
+    ) in enumerate(tqdm(train_loader)):
         if torch.cuda.is_available():
             spec, spec_lengths = spec.cuda(rank, non_blocking=True), spec_lengths.cuda(
                 rank, non_blocking=True
@@ -425,26 +429,25 @@ def train_and_evaluate(
                 # scalar_dict.update({"loss/g/{}".format(i): v for i, v in enumerate(losses_gen)})
                 # scalar_dict.update({"loss/d_r/{}".format(i): v for i, v in enumerate(losses_disc_r)})
                 # scalar_dict.update({"loss/d_g/{}".format(i): v for i, v in enumerate(losses_disc_g)})
-                image_dict = {
-                    "slice/mel_org": utils.plot_spectrogram_to_numpy(
-                        y_mel[0].data.cpu().numpy()
-                    ),
-                    "slice/mel_gen": utils.plot_spectrogram_to_numpy(
-                        y_hat_mel[0].data.cpu().numpy()
-                    ),
-                    "all/mel": utils.plot_spectrogram_to_numpy(
-                        mel[0].data.cpu().numpy()
-                    ),
-                    "all/stats_ssl": utils.plot_spectrogram_to_numpy(
-                        stats_ssl[0].data.cpu().numpy()
-                    ),
-                }
-                utils.summarize(
-                    writer=writer,
-                    global_step=global_step,
-                    images=image_dict,
-                    scalars=scalar_dict,
-                )
+                image_dict=None
+                try:###Some people installed the wrong version of matplotlib.
+                    image_dict = {
+                        "slice/mel_org": utils.plot_spectrogram_to_numpy(
+                            y_mel[0].data.cpu().numpy()
+                        ),
+                        "slice/mel_gen": utils.plot_spectrogram_to_numpy(
+                            y_hat_mel[0].data.cpu().numpy()
+                        ),
+                        "all/mel": utils.plot_spectrogram_to_numpy(
+                            mel[0].data.cpu().numpy()
+                        ),
+                        "all/stats_ssl": utils.plot_spectrogram_to_numpy(
+                            stats_ssl[0].data.cpu().numpy()
+                        ),
+                    }
+                except:pass
+                if image_dict:utils.summarize(writer=writer,global_step=global_step,images=image_dict,scalars=scalar_dict,)
+                else:utils.summarize(writer=writer,global_step=global_step,scalars=scalar_dict,)
         global_step += 1
     if epoch % hps.train.save_every_epoch == 0 and rank == 0:
         if hps.train.if_save_latest == 0:
@@ -454,7 +457,7 @@ def train_and_evaluate(
                 hps.train.learning_rate,
                 epoch,
                 os.path.join(
-                    "%s/logs_s2" % hps.data.exp_dir, "G_{}.pth".format(global_step)
+                    "%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "G_{}.pth".format(global_step)
                 ),
             )
             utils.save_checkpoint(
@@ -463,7 +466,7 @@ def train_and_evaluate(
                 hps.train.learning_rate,
                 epoch,
                 os.path.join(
-                    "%s/logs_s2" % hps.data.exp_dir, "D_{}.pth".format(global_step)
+                    "%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "D_{}.pth".format(global_step)
                 ),
             )
         else:
@@ -473,7 +476,7 @@ def train_and_evaluate(
                 hps.train.learning_rate,
                 epoch,
                 os.path.join(
-                    "%s/logs_s2" % hps.data.exp_dir, "G_{}.pth".format(233333333333)
+                    "%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "G_{}.pth".format(233333333333)
                 ),
             )
             utils.save_checkpoint(
@@ -482,7 +485,7 @@ def train_and_evaluate(
                 hps.train.learning_rate,
                 epoch,
                 os.path.join(
-                    "%s/logs_s2" % hps.data.exp_dir, "D_{}.pth".format(233333333333)
+                    "%s/logs_s2_%s" % (hps.data.exp_dir,hps.model.version), "D_{}.pth".format(233333333333)
                 ),
             )
         if rank == 0 and hps.train.if_save_every_weights == True:

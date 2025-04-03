@@ -4,11 +4,28 @@ inp_text = os.environ.get("inp_text")
 exp_name = os.environ.get("exp_name")
 i_part = os.environ.get("i_part")
 all_parts = os.environ.get("all_parts")
-os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("_CUDA_VISIBLE_DEVICES")
+if "_CUDA_VISIBLE_DEVICES" in os.environ:
+     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 opt_dir = os.environ.get("opt_dir")
 pretrained_s2G = os.environ.get("pretrained_s2G")
 s2config_path = os.environ.get("s2config_path")
-is_half = eval(os.environ.get("is_half", "True"))
+
+if os.path.exists(pretrained_s2G):...
+else:raise FileNotFoundError(pretrained_s2G)
+# version=os.environ.get("version","v2")
+size = os.path.getsize(pretrained_s2G)
+if size < 82978 * 1024:
+    version = "v1"
+elif size < 100 * 1024 * 1024:
+    version = "v2"
+elif size < 103520 * 1024:
+    version = "v1"
+elif size < 700 * 1024 * 1024:
+    version = "v2"
+else:
+    version = "v3"
+import torch
+is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 import math, traceback
 import multiprocessing
 import sys, pdb
@@ -19,9 +36,12 @@ from random import shuffle
 import torch.multiprocessing as mp
 from glob import glob
 from tqdm import tqdm
-import logging, librosa, utils, torch
-from module.models import SynthesizerTrn
-
+import logging, librosa, utils
+if version!="v3":
+    from module.models import SynthesizerTrn
+else:
+    from module.models import SynthesizerTrnV3 as SynthesizerTrn
+from tools.my_utils import clean_path
 logging.getLogger("numba").setLevel(logging.WARNING)
 # from config import pretrained_s2G
 
@@ -49,6 +69,7 @@ if os.path.exists(semantic_path) == False:
         hps.data.filter_length // 2 + 1,
         hps.train.segment_size // hps.data.hop_length,
         n_speakers=hps.data.n_speakers,
+        version=version,
         **hps.model
     )
     if is_half == True:
@@ -60,7 +81,7 @@ if os.path.exists(semantic_path) == False:
     # utils.load_checkpoint(pretrained_s2G, vq_model, None, True)
     print(
         vq_model.load_state_dict(
-            torch.load(pretrained_s2G, map_location="cpu")["weight"], strict=False
+            torch.load(pretrained_s2G, map_location="cpu", weights_only=False)["weight"], strict=False
         )
     )
 
@@ -86,6 +107,7 @@ if os.path.exists(semantic_path) == False:
         try:
             # wav_name,text=line.split("\t")
             wav_name, spk_name, language, text = line.split("|")
+            wav_name=clean_path(wav_name)
             wav_name = os.path.basename(wav_name)
             # name2go(name,lines1)
             name2go(wav_name, lines1)
