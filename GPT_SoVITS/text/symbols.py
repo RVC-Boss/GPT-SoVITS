@@ -1,5 +1,3 @@
-import os
-
 # punctuation = ['!', '?', '…', ",", ".","@"]#@是SP停顿
 punctuation = ["!", "?", "…", ",", "."]  # @是SP停顿
 punctuation.append("-")
