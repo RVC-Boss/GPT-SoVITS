@@ -15,7 +15,7 @@ from torch.utils.checkpoint import checkpoint
 
 from x_transformers.x_transformers import RotaryEmbedding
 
-from GPT_SoVITS.f5_tts.model.modules import (
+from f5_tts.model.modules import (
     TimestepEmbedding,
     ConvNeXtV2Block,
     ConvPositionEmbedding,
