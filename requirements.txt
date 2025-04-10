@@ -43,3 +43,4 @@ huggingface_hub>=0.13
 tokenizers>=0.13,<1
 av>=11
 tqdm
+faster-whisper
