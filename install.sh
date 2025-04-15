@@ -22,7 +22,7 @@ conda install ffmpeg cmake -y
 
 echo "Installing git-lfs and zip..."
 conda install git-lfs -y
-conda apt install zip -y
+conda install zip -y
 
 git-lfs install
 
