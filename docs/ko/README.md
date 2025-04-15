@@ -153,7 +153,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 3. UVR5 (보컬/반주 분리 & 잔향 제거 추가 기능)의 경우, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 에서 모델을 다운로드하고 `tools/uvr5/uvr5_weights` 디렉토리에 배치하세요.
 
-   - UVR5에서 bs_roformer 또는 mel_band_roformer 모델을 사용할 경우, 모델과 해당 설정 파일을 수동으로 다운로드하여 `tools/UVR5/UVR5_weights` 폴더에 저장할 수 있습니다. **모델 파일과 설정 파일의 이름은 확장자를 제외하고 동일한 이름을 가지도록 해야 합니다**. 또한, 모델과 설정 파일 이름에는 **“roformer”**가 포함되어야 roformer 클래스의 모델로 인식됩니다.
+   - UVR5에서 bs_roformer 또는 mel_band_roformer 모델을 사용할 경우, 모델과 해당 설정 파일을 수동으로 다운로드하여 `tools/UVR5/UVR5_weights` 폴더에 저장할 수 있습니다. **모델 파일과 설정 파일의 이름은 확장자를 제외하고 동일한 이름을 가지도록 해야 합니다**. 또한, 모델과 설정 파일 이름에는 **"roformer"**가 포함되어야 roformer 클래스의 모델로 인식됩니다.
 
    - 모델 이름과 설정 파일 이름에 **모델 유형을 직접 지정하는 것이 좋습니다**. 예: mel_mand_roformer, bs_roformer. 지정하지 않으면 설정 파일을 기준으로 특성을 비교하여 어떤 유형의 모델인지를 판단합니다. 예를 들어, 모델 `bs_roformer_ep_368_sdr_12.9628.ckpt`와 해당 설정 파일 `bs_roformer_ep_368_sdr_12.9628.yaml`은 한 쌍입니다. `kim_mel_band_roformer.ckpt`와 `kim_mel_band_roformer.yaml`도 한 쌍입니다.
 

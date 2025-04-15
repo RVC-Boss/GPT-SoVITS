@@ -118,10 +118,10 @@ pip install -r requirements.txt
 #### docker-compose.yaml yapılandırması
 
 0. Görüntü etiketleri hakkında: Kod tabanındaki hızlı güncellemeler ve görüntüleri paketleme ve test etme işleminin yavaş olması nedeniyle, lütfen şu anda paketlenmiş en son görüntüleri kontrol etmek için [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(eski sürüm) adresini kontrol edin ve durumunuza göre seçim yapın veya alternatif olarak, kendi ihtiyaçlarınıza göre bir Dockerfile kullanarak yerel olarak oluşturun.
-1. Ortam Değişkenleri：
+1. Ortam Değişkenleri: 
    - is_half: Yarım hassasiyet/çift hassasiyeti kontrol eder. Bu genellikle "SSL çıkarma" adımı sırasında 4-cnhubert/5-wav32k dizinleri altındaki içeriğin doğru şekilde oluşturulmamasının nedenidir. Gerçek durumunuza göre True veya False olarak ayarlayın.
 2. Birim Yapılandırması, Kapsayıcı içindeki uygulamanın kök dizini /workspace olarak ayarlanmıştır. Varsayılan docker-compose.yaml, içerik yükleme/indirme için bazı pratik örnekler listeler.
-3. shm_size： Windows üzerinde Docker Desktop için varsayılan kullanılabilir bellek çok küçüktür, bu da anormal işlemlere neden olabilir. Kendi durumunuza göre ayarlayın.
+3. shm_size: Windows üzerinde Docker Desktop için varsayılan kullanılabilir bellek çok küçüktür, bu da anormal işlemlere neden olabilir. Kendi durumunuza göre ayarlayın.
 4. Dağıtım bölümü altında, GPU ile ilgili ayarlar sisteminize ve gerçek koşullara göre dikkatlice ayarlanmalıdır.
 
 #### docker compose ile çalıştırma
@@ -148,7 +148,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 3. UVR5 (Vokal/Enstrümantal Ayrımı & Yankı Giderme) için, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) üzerinden modelleri indirip `tools/uvr5/uvr5_weights` dizinine yerleştirin.
 
-   - UVR5'te bs_roformer veya mel_band_roformer modellerini kullanıyorsanız, modeli ve ilgili yapılandırma dosyasını manuel olarak indirip `tools/UVR5/UVR5_weights` klasörüne yerleştirebilirsiniz. **Model dosyası ve yapılandırma dosyasının adı, uzantı dışında aynı olmalıdır**. Ayrıca, model ve yapılandırma dosyasının adlarında **“roformer”** kelimesi yer almalıdır, böylece roformer sınıfındaki bir model olarak tanınır.
+   - UVR5'te bs_roformer veya mel_band_roformer modellerini kullanıyorsanız, modeli ve ilgili yapılandırma dosyasını manuel olarak indirip `tools/UVR5/UVR5_weights` klasörüne yerleştirebilirsiniz. **Model dosyası ve yapılandırma dosyasının adı, uzantı dışında aynı olmalıdır**. Ayrıca, model ve yapılandırma dosyasının adlarında **"roformer"** kelimesi yer almalıdır, böylece roformer sınıfındaki bir model olarak tanınır.
 
    - Model adı ve yapılandırma dosyası adı içinde **doğrudan model tipini belirtmek önerilir**. Örneğin: mel_mand_roformer, bs_roformer. Belirtilmezse, yapılandırma dosyasından özellikler karşılaştırılarak model tipi belirlenir. Örneğin, `bs_roformer_ep_368_sdr_12.9628.ckpt` modeli ve karşılık gelen yapılandırma dosyası `bs_roformer_ep_368_sdr_12.9628.yaml` bir çifttir. Aynı şekilde, `kim_mel_band_roformer.ckpt` ve `kim_mel_band_roformer.yaml` da bir çifttir.
 
@@ -270,7 +270,7 @@ V1 ortamından V2'yi kullanmak için:
 
 1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin.
 
-2. GitHub’dan en son kodları klonlayın.
+2. GitHub'dan en son kodları klonlayın.
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS\pretrained_models` dizinine yerleştirin.
 
@@ -378,7 +378,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
 - [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
-@Naozumi520’ye Kantonca eğitim setini sağladığı ve Kantonca ile ilgili bilgiler konusunda rehberlik ettiği için minnettarım.
+@Naozumi520'ye Kantonca eğitim setini sağladığı ve Kantonca ile ilgili bilgiler konusunda rehberlik ettiği için minnettarım.
 
 ## Tüm katkıda bulunanlara çabaları için teşekkürler
 
