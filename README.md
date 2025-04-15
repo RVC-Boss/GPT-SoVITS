@@ -44,12 +44,14 @@ For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/
 
 ### Tested Environments
 
-- Python 3.9, PyTorch 2.0.1, CUDA 11
-- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.2.2, macOS 14.4.1 (Apple silicon)
-- Python 3.9, PyTorch 2.2.2, CPU devices
-
-_Note: numba==0.56.4 requires py<3.11_
+| Python Version | PyTorch Version  | Device          |
+|----------------|------------------|-----------------|
+| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8       |
+| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3       |
+| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4       |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
+| Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
+| Python 3.9     | PyTorch 2.2.2    | CPU             |
 
 ### Windows
 
@@ -121,11 +123,11 @@ pip install -r requirements.txt
 
 #### docker-compose.yaml configuration
 
-0. Regarding image tags: Due to rapid updates in the codebase and the slow process of packaging and testing images, please check [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) for the currently packaged latest images and select as per your situation, or alternatively, build locally using a Dockerfile according to your own needs.
-1. Environment Variables：
+0. Regarding image tags: Due to rapid updates in the codebase and the slow process of packaging and testing images, please check [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(outdated) for the currently packaged latest images and select as per your situation, or alternatively, build locally using a Dockerfile according to your own needs.
+1. Environment Variables: 
    - is_half: Controls half-precision/double-precision. This is typically the cause if the content under the directories 4-cnhubert/5-wav32k is not generated correctly during the "SSL extracting" step. Adjust to True or False based on your actual situation.
-2. Volumes Configuration，The application's root directory inside the container is set to /workspace. The default docker-compose.yaml lists some practical examples for uploading/downloading content.
-3. shm_size： The default available memory for Docker Desktop on Windows is too small, which can cause abnormal operations. Adjust according to your own situation.
+2. Volumes Configuration, The application's root directory inside the container is set to /workspace. The default docker-compose.yaml lists some practical examples for uploading/downloading content.
+3. shm_size: The default available memory for Docker Desktop on Windows is too small, which can cause abnormal operations. Adjust according to your own situation.
 4. Under the deploy section, GPU-related settings should be adjusted cautiously according to your system and actual circumstances.
 
 #### Running with docker compose
@@ -143,6 +145,8 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 ```
 
 ## Pretrained Models
+
+**If `install.sh` runs successfully, you may skip No.1.**
 
 **Users in China can [download all these models here](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/dkxgpiy9zb96hob4#nVNhX).**
 
@@ -258,7 +262,7 @@ Use v2 from v1 environment:
 
 3. Download v2 pretrained models from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) and put them into `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`.
 
-   Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)（Download G2PW models, unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS/text`.
+   Chinese v2 additional: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip)(Download G2PW models, unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS/text`.)
 
 ## V3 Release Notes
 

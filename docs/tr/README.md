@@ -42,12 +42,14 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### Test Edilmiş Ortamlar
 
-- Python 3.9, PyTorch 2.0.1, CUDA 11
-- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.2.2, macOS 14.4.1 (Apple silikon)
-- Python 3.9, PyTorch 2.2.2, CPU cihazları
-
-_Not: numba==0.56.4, py<3.11 gerektirir_
+| Python Version | PyTorch Version  | Device          |
+|----------------|------------------|-----------------|
+| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8       |
+| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3       |
+| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4       |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
+| Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
+| Python 3.9     | PyTorch 2.2.2    | CPU             |
 
 ### Windows
 
@@ -115,11 +117,11 @@ pip install -r requirements.txt
 
 #### docker-compose.yaml yapılandırması
 
-0. Görüntü etiketleri hakkında: Kod tabanındaki hızlı güncellemeler ve görüntüleri paketleme ve test etme işleminin yavaş olması nedeniyle, lütfen şu anda paketlenmiş en son görüntüleri kontrol etmek için [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) adresini kontrol edin ve durumunuza göre seçim yapın veya alternatif olarak, kendi ihtiyaçlarınıza göre bir Dockerfile kullanarak yerel olarak oluşturun.
-1. Ortam Değişkenleri：
+0. Görüntü etiketleri hakkında: Kod tabanındaki hızlı güncellemeler ve görüntüleri paketleme ve test etme işleminin yavaş olması nedeniyle, lütfen şu anda paketlenmiş en son görüntüleri kontrol etmek için [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(eski sürüm) adresini kontrol edin ve durumunuza göre seçim yapın veya alternatif olarak, kendi ihtiyaçlarınıza göre bir Dockerfile kullanarak yerel olarak oluşturun.
+1. Ortam Değişkenleri: 
    - is_half: Yarım hassasiyet/çift hassasiyeti kontrol eder. Bu genellikle "SSL çıkarma" adımı sırasında 4-cnhubert/5-wav32k dizinleri altındaki içeriğin doğru şekilde oluşturulmamasının nedenidir. Gerçek durumunuza göre True veya False olarak ayarlayın.
-2. Birim Yapılandırması，Kapsayıcı içindeki uygulamanın kök dizini /workspace olarak ayarlanmıştır. Varsayılan docker-compose.yaml, içerik yükleme/indirme için bazı pratik örnekler listeler.
-3. shm_size： Windows üzerinde Docker Desktop için varsayılan kullanılabilir bellek çok küçüktür, bu da anormal işlemlere neden olabilir. Kendi durumunuza göre ayarlayın.
+2. Birim Yapılandırması, Kapsayıcı içindeki uygulamanın kök dizini /workspace olarak ayarlanmıştır. Varsayılan docker-compose.yaml, içerik yükleme/indirme için bazı pratik örnekler listeler.
+3. shm_size: Windows üzerinde Docker Desktop için varsayılan kullanılabilir bellek çok küçüktür, bu da anormal işlemlere neden olabilir. Kendi durumunuza göre ayarlayın.
 4. Dağıtım bölümü altında, GPU ile ilgili ayarlar sisteminize ve gerçek koşullara göre dikkatlice ayarlanmalıdır.
 
 #### docker compose ile çalıştırma
@@ -138,13 +140,15 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 ## Önceden Eğitilmiş Modeller
 
+**Eğer `install.sh` başarıyla çalıştırılırsa, No.1 adımını atlayabilirsiniz.**
+
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) üzerinden önceden eğitilmiş modelleri indirip `GPT_SoVITS/pretrained_models` dizinine yerleştirin.
 
 2. [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) üzerinden modeli indirip sıkıştırmayı açın ve `G2PWModel` olarak yeniden adlandırın, ardından `GPT_SoVITS/text` dizinine yerleştirin. (Sadece Çince TTS için)
 
 3. UVR5 (Vokal/Enstrümantal Ayrımı & Yankı Giderme) için, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) üzerinden modelleri indirip `tools/uvr5/uvr5_weights` dizinine yerleştirin.
 
-   - UVR5'te bs_roformer veya mel_band_roformer modellerini kullanıyorsanız, modeli ve ilgili yapılandırma dosyasını manuel olarak indirip `tools/UVR5/UVR5_weights` klasörüne yerleştirebilirsiniz. **Model dosyası ve yapılandırma dosyasının adı, uzantı dışında aynı olmalıdır**. Ayrıca, model ve yapılandırma dosyasının adlarında **“roformer”** kelimesi yer almalıdır, böylece roformer sınıfındaki bir model olarak tanınır.
+   - UVR5'te bs_roformer veya mel_band_roformer modellerini kullanıyorsanız, modeli ve ilgili yapılandırma dosyasını manuel olarak indirip `tools/UVR5/UVR5_weights` klasörüne yerleştirebilirsiniz. **Model dosyası ve yapılandırma dosyasının adı, uzantı dışında aynı olmalıdır**. Ayrıca, model ve yapılandırma dosyasının adlarında **"roformer"** kelimesi yer almalıdır, böylece roformer sınıfındaki bir model olarak tanınır.
 
    - Model adı ve yapılandırma dosyası adı içinde **doğrudan model tipini belirtmek önerilir**. Örneğin: mel_mand_roformer, bs_roformer. Belirtilmezse, yapılandırma dosyasından özellikler karşılaştırılarak model tipi belirlenir. Örneğin, `bs_roformer_ep_368_sdr_12.9628.ckpt` modeli ve karşılık gelen yapılandırma dosyası `bs_roformer_ep_368_sdr_12.9628.yaml` bir çifttir. Aynı şekilde, `kim_mel_band_roformer.ckpt` ve `kim_mel_band_roformer.yaml` da bir çifttir.
 
@@ -266,7 +270,7 @@ V1 ortamından V2'yi kullanmak için:
 
 1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin.
 
-2. GitHub’dan en son kodları klonlayın.
+2. GitHub'dan en son kodları klonlayın.
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS\pretrained_models` dizinine yerleştirin.
 
@@ -374,7 +378,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
 - [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
-@Naozumi520’ye Kantonca eğitim setini sağladığı ve Kantonca ile ilgili bilgiler konusunda rehberlik ettiği için minnettarım.
+@Naozumi520'ye Kantonca eğitim setini sağladığı ve Kantonca ile ilgili bilgiler konusunda rehberlik ettiği için minnettarım.
 
 ## Tüm katkıda bulunanlara çabaları için teşekkürler
 

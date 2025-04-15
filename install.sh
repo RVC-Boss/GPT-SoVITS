@@ -1,6 +1,13 @@
 #!/bin/bash
 
+# cd into GPT-SoVITS Base Path
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
+cd "$SCRIPT_DIR" || exit 1
+
 set -e
+
+trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 
 # 安装构建工具
 # Install build tools
@@ -12,6 +19,47 @@ conda install -c conda-forge gxx -y
 
 echo "Installing ffmpeg and cmake..."
 conda install ffmpeg cmake -y
+
+echo "Installing git-lfs and zip..."
+conda install git-lfs -y
+conda install zip -y
+
+git-lfs install
+
+# Download Pretrained Models
+if find "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
+    echo "Pretrained Model Exists"
+else
+    echo "Download Pretrained Models"
+    wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/pretrained_models.zip"
+
+    unzip pretrained_models.zip
+    rm -rf pretrained_models.zip
+    mv pretrained_models/* GPT_SoVITS/pretrained_models
+    rm -rf pretrained_models
+fi
+
+# Download G2PW Models
+if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
+    echo "Download G2PWModel"
+    wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "https://www.modelscope.cn/models/kamiorinn/g2pw/resolve/master/G2PWModel_1.1.zip"
+
+    unzip G2PWModel_1.1.zip
+    rm -rf G2PWModel_1.1.zip
+    mv G2PWModel_1.1 GPT_SoVITS/text/G2PWModel
+else
+    echo "G2PWModel Exists"
+fi
+
+if [ ! -d "GPT_SoVITS/pretrained_models/fast_langdetect" ]; then
+    echo "Download Fast Langdetect Model"
+    wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin"
+
+    mkdir "GPT_SoVITS/pretrained_models/fast_langdetect"
+    mv "lid.176.bin" "GPT_SoVITS/pretrained_models/fast_langdetect"
+else
+    echo "Fast Langdetect Model Exists"
+fi
 
 # 设置编译环境
 # Set up build environment
@@ -62,37 +110,6 @@ echo "Installing Python dependencies from requirements.txt..."
 # 刷新环境
 # Refresh environment
 hash -r
-
-# pyopenjtalk Installation
-conda install jq -y
-
-OS_TYPE=$(uname)
-
-PACKAGE_NAME="pyopenjtalk"
-
-VERSION=$(curl -s https://pypi.org/pypi/$PACKAGE_NAME/json | jq -r .info.version)
-
-wget "https://files.pythonhosted.org/packages/source/${PACKAGE_NAME:0:1}/$PACKAGE_NAME/$PACKAGE_NAME-$VERSION.tar.gz"
-
-TAR_FILE=$(ls ${PACKAGE_NAME}-*.tar.gz)
-DIR_NAME="${TAR_FILE%.tar.gz}"
-
-tar -xzf "$TAR_FILE"
-rm "$TAR_FILE"
-
-CMAKE_FILE="$DIR_NAME/lib/open_jtalk/src/CMakeLists.txt"
-
-if [[ "$OS_TYPE" == "darwin"* ]]; then
-    sed -i '' -E 's/cmake_minimum_required\(VERSION[^\)]*\)/cmake_minimum_required(VERSION 3.5...3.31)/' "$CMAKE_FILE"
-else
-    sed -i -E 's/cmake_minimum_required\(VERSION[^\)]*\)/cmake_minimum_required(VERSION 3.5...3.31)/' "$CMAKE_FILE"
-fi
-
-tar -czf "$TAR_FILE" "$DIR_NAME"
-
-pip install "$TAR_FILE"
-
-rm -rf "$TAR_FILE" "$DIR_NAME"
 
 pip install -r extra-req.txt --no-deps
 

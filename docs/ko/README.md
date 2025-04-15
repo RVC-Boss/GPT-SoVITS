@@ -40,12 +40,14 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### 테스트 통과 환경
 
-- Python 3.9, PyTorch 2.0.1, CUDA 11
-- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, Pytorch 2.2.2, macOS 14.4.1 (Apple Slilicon)
-- Python 3.9, PyTorch 2.2.2, CPU 장치
-
-_참고: numba==0.56.4 는 python<3.11 을 필요로 합니다._
+| Python Version | PyTorch Version  | Device          |
+|----------------|------------------|-----------------|
+| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8       |
+| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3       |
+| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4       |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
+| Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
+| Python 3.9     | PyTorch 2.2.2    | CPU             |
 
 ### Windows
 
@@ -115,7 +117,7 @@ pip install -r requirements.txt
 
 #### docker-compose.yaml 설정
 
-0. 이미지 태그: 코드 저장소가 빠르게 업데이트되고 패키지가 느리게 빌드되고 테스트되므로, 현재 빌드된 최신 도커 이미지를 [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)에서 확인하고 필요에 따라 Dockerfile을 사용하여 로컬에서 빌드할 수 있습니다.
+0. 이미지 태그: 코드 저장소가 빠르게 업데이트되고 패키지가 느리게 빌드되고 테스트되므로, 현재 빌드된 최신 도커 이미지를 [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(오래된 버전) 에서 확인하고 필요에 따라 Dockerfile을 사용하여 로컬에서 빌드할 수 있습니다.
 
 1. 환경 변수:
 
@@ -143,13 +145,15 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 ## 사전 학습된 모델
 
+**`install.sh`가 성공적으로 실행되면 No.1은 건너뛰어도 됩니다.**
+
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 에서 사전 학습된 모델을 다운로드하고, `GPT_SoVITS/pretrained_models` 디렉토리에 배치하세요.
 
 2. [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) 에서 모델을 다운로드하고 압축을 풀어 `G2PWModel`로 이름을 변경한 후, `GPT_SoVITS/text` 디렉토리에 배치하세요. (중국어 TTS 전용)
 
 3. UVR5 (보컬/반주 분리 & 잔향 제거 추가 기능)의 경우, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) 에서 모델을 다운로드하고 `tools/uvr5/uvr5_weights` 디렉토리에 배치하세요.
 
-   - UVR5에서 bs_roformer 또는 mel_band_roformer 모델을 사용할 경우, 모델과 해당 설정 파일을 수동으로 다운로드하여 `tools/UVR5/UVR5_weights` 폴더에 저장할 수 있습니다. **모델 파일과 설정 파일의 이름은 확장자를 제외하고 동일한 이름을 가지도록 해야 합니다**. 또한, 모델과 설정 파일 이름에는 **“roformer”**가 포함되어야 roformer 클래스의 모델로 인식됩니다.
+   - UVR5에서 bs_roformer 또는 mel_band_roformer 모델을 사용할 경우, 모델과 해당 설정 파일을 수동으로 다운로드하여 `tools/UVR5/UVR5_weights` 폴더에 저장할 수 있습니다. **모델 파일과 설정 파일의 이름은 확장자를 제외하고 동일한 이름을 가지도록 해야 합니다**. 또한, 모델과 설정 파일 이름에는 **"roformer"**가 포함되어야 roformer 클래스의 모델로 인식됩니다.
 
    - 모델 이름과 설정 파일 이름에 **모델 유형을 직접 지정하는 것이 좋습니다**. 예: mel_mand_roformer, bs_roformer. 지정하지 않으면 설정 파일을 기준으로 특성을 비교하여 어떤 유형의 모델인지를 판단합니다. 예를 들어, 모델 `bs_roformer_ep_368_sdr_12.9628.ckpt`와 해당 설정 파일 `bs_roformer_ep_368_sdr_12.9628.yaml`은 한 쌍입니다. `kim_mel_band_roformer.ckpt`와 `kim_mel_band_roformer.yaml`도 한 쌍입니다.
 
