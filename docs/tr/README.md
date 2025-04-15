@@ -42,12 +42,14 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### Test Edilmiş Ortamlar
 
-- Python 3.9, PyTorch 2.0.1, CUDA 11
-- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.2.2, macOS 14.4.1 (Apple silikon)
-- Python 3.9, PyTorch 2.2.2, CPU cihazları
-
-_Not: numba==0.56.4, py<3.11 gerektirir_
+| Python Version | PyTorch Version  | Device          |
+|----------------|------------------|-----------------|
+| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8       |
+| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3       |
+| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4       |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
+| Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
+| Python 3.9     | PyTorch 2.2.2    | CPU             |
 
 ### Windows
 
@@ -115,10 +117,10 @@ pip install -r requirements.txt
 
 #### docker-compose.yaml yapılandırması
 
-0. Görüntü etiketleri hakkında: Kod tabanındaki hızlı güncellemeler ve görüntüleri paketleme ve test etme işleminin yavaş olması nedeniyle, lütfen şu anda paketlenmiş en son görüntüleri kontrol etmek için [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) adresini kontrol edin ve durumunuza göre seçim yapın veya alternatif olarak, kendi ihtiyaçlarınıza göre bir Dockerfile kullanarak yerel olarak oluşturun.
+0. Görüntü etiketleri hakkında: Kod tabanındaki hızlı güncellemeler ve görüntüleri paketleme ve test etme işleminin yavaş olması nedeniyle, lütfen şu anda paketlenmiş en son görüntüleri kontrol etmek için [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(eski sürüm) adresini kontrol edin ve durumunuza göre seçim yapın veya alternatif olarak, kendi ihtiyaçlarınıza göre bir Dockerfile kullanarak yerel olarak oluşturun.
 1. Ortam Değişkenleri：
    - is_half: Yarım hassasiyet/çift hassasiyeti kontrol eder. Bu genellikle "SSL çıkarma" adımı sırasında 4-cnhubert/5-wav32k dizinleri altındaki içeriğin doğru şekilde oluşturulmamasının nedenidir. Gerçek durumunuza göre True veya False olarak ayarlayın.
-2. Birim Yapılandırması，Kapsayıcı içindeki uygulamanın kök dizini /workspace olarak ayarlanmıştır. Varsayılan docker-compose.yaml, içerik yükleme/indirme için bazı pratik örnekler listeler.
+2. Birim Yapılandırması, Kapsayıcı içindeki uygulamanın kök dizini /workspace olarak ayarlanmıştır. Varsayılan docker-compose.yaml, içerik yükleme/indirme için bazı pratik örnekler listeler.
 3. shm_size： Windows üzerinde Docker Desktop için varsayılan kullanılabilir bellek çok küçüktür, bu da anormal işlemlere neden olabilir. Kendi durumunuza göre ayarlayın.
 4. Dağıtım bölümü altında, GPU ile ilgili ayarlar sisteminize ve gerçek koşullara göre dikkatlice ayarlanmalıdır.
 
@@ -137,6 +139,8 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 ```
 
 ## Önceden Eğitilmiş Modeller
+
+**Eğer `install.sh` başarıyla çalıştırılırsa, No.1 adımını atlayabilirsiniz.**
 
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) üzerinden önceden eğitilmiş modelleri indirip `GPT_SoVITS/pretrained_models` dizinine yerleştirin.
 

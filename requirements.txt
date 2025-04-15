@@ -1,10 +1,10 @@
-numpy==1.23.4
+numpy<2.0
 scipy
 tensorboard
 librosa==0.9.2
-numba==0.56.4
-pytorch-lightning>2.0
-gradio>=4.0,<=4.24.0
+numba
+pytorch-lightning>=2.4
+gradio<5
 ffmpeg-python
 onnxruntime; sys_platform == 'darwin'
 onnxruntime-gpu; sys_platform != 'darwin'
@@ -12,7 +12,7 @@ tqdm
 funasr==1.0.27
 cn2an
 pypinyin
-pyopenjtalk>=0.3.4
+pyopenjtalk>=0.4.1
 g2p_en
 torchaudio
 modelscope==1.10.0
@@ -25,7 +25,7 @@ psutil
 jieba_fast
 jieba
 split-lang
-fast_langdetect>=0.3.0
+fast_langdetect>=0.3.1
 wordsegment
 rotary_embedding_torch
 ToJyutping 
@@ -34,7 +34,7 @@ ko_pron
 opencc; sys_platform != 'linux'
 opencc==1.1.1; sys_platform == 'linux'
 python_mecab_ko; sys_platform != 'win32'
-fastapi<0.112.2
+fastapi>=0.115.1
 x_transformers
 torchmetrics<=1.5
 pydantic<=2.10.6
