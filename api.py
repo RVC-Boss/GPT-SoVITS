@@ -1102,7 +1102,7 @@ async def tts_endpoint(
         sample_steps: int = 32,
         if_sr: bool = False
 ):
-    refer_wav_path = f"idols/{character}.wav"
+    refer_wav_path = f"idols/{character}/{character}.wav"
     inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
 
     
