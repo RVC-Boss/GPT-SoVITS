@@ -1089,7 +1089,6 @@ async def tts_endpoint(request: Request):
 
 @app.get("/")
 async def tts_endpoint(
-        refer_wav_path: str = "saotome/saotome-6s.wav",
         prompt_text: str = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。",
         prompt_language: str = "all_ja",
         character: str = "saotome",
@@ -1100,10 +1099,13 @@ async def tts_endpoint(
         top_p: float = 1.0,
         temperature: float = 1.0,
         speed: float = 1.0,
-        inp_refs: list = Query(default=["saotome/saotome-10s.wav", "saotome/refs/ref1.wav", "saotome/refs/ref2.wav", "saotome/refs/ref3.wav", "saotome/refs/ref4.wav"]),
         sample_steps: int = 32,
         if_sr: bool = False
 ):
+    refer_wav_path = f"idols/{character}.wav"
+    inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
+
+    
     print(f"the base path is {refer_wav_path}")
     return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed, inp_refs, sample_steps, if_sr)
 
