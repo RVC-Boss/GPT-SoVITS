@@ -39,6 +39,19 @@ https://huggingface.co/lj1995/GPT-SoVITS/blob/main/models--nvidia--bigvgan_v2_24
   out=GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x/config.json
 
 
+# whisper 
+https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/model.bin
+  out=tools/asr/models/model.bin
+https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/config.json
+  out=tools/asr/models/config.json
+https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/tokenizer.json
+  out=tools/asr/models/tokenizer.json
+https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/preprocessor_config.json
+  out=tools/asr/models/preprocessor_config.json
+https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/vocabulary.json
+  out=tools/asr/models/ocabulary.json
+
+
 
 # UVR5
 https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/HP2_all_vocals.pth
