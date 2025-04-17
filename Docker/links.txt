@@ -17,6 +17,22 @@ https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/chinese-roberta-wwm-ext-la
   out=GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/pytorch_model.bin
 https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/chinese-roberta-wwm-ext-large/tokenizer.json
   out=GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large/tokenizer.json
+
+# version 2
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch%3D12-step%3D369668.ckpt
+  out=GPT_SoVITS/pretrained_models/v2/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/gsv-v2final-pretrained/s2D2333k.pth
+  out=GPT_SoVITS/pretrained_models/v2/s2D2333k.pth
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/gsv-v2final-pretrained/s2G2333k.pth
+  out==GPT_SoVITS/pretrained_models/v2/s2G2333k.pth
+
+# version 3
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/s1v3.ckpt
+  out=GPT_SoVITS/pretrained_models/v3/s1v3.ckpt
+https://huggingface.co/lj1995/GPT-SoVITS/resolve/main/s2Gv3.pth
+  out=GPT_SoVITS/pretrained_models/v3/s2Gv3.pth
+
+# 
 # UVR5
 https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/HP2_all_vocals.pth
   out=tools/uvr5/uvr5_weights/HP2_all_vocals.pth
