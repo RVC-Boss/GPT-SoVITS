@@ -38,3 +38,4 @@ fastapi==0.112.1 # (since <0.112.2)
 x-transformers==2.1.37  
 torchmetrics==1.5.0  
 attrdict==2.0.1
+activations==0.1.0
