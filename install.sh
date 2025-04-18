@@ -7,6 +7,11 @@ cd "$SCRIPT_DIR" || exit 1
 
 set -e
 
+if ! command -v conda &>/dev/null; then
+    echo "Conda Not Found"
+    exit 1
+fi
+
 trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 
 is_HF=false
@@ -78,27 +83,23 @@ if ! $is_HF && ! $is_HF_MIRROR && ! $is_MODELSCOPE; then
     exit 1
 fi
 
-if $is_HF; then
+if [ "$is_HF" = "true" ]; then
     echo "Download Model From HuggingFace"
     PRETRINED_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
-    LANG_DETECT_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/blob/main/lid.176.bin.zip"
-elif $is_HF_MIRROR; then
+elif [ "$is_HF_MIRROR" = "true" ]; then
     echo "Download Model From HuggingFace-Mirror"
     PRETRINED_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
-    LANG_DETECT_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/blob/main/lid.176.bin.zip"
-elif $is_MODELSCOPE; then
+elif [ "$is_MODELSCOPE" = "true" ]; then
     echo "Download Model From ModelScope"
     PRETRINED_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/pretrained_models.zip"
-    G2PW_URL="https://www.modelscope.cn/models/XXXXRT/GSV-G2PW/resolve/master/G2PWModel.zip"
-    UVR5_URL="https://www.modelscope.cn/models/XXXXRT/UVR5Weights4GSV/resolve/master/uvr5_weights.zip"
-    LANG_DETECT_URL="https://www.modelscope.cn/models/XXXXRT/GSV-Lang-Detect/resolve/master/lid.176.bin.zip"
+    G2PW_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip"
+    UVR5_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/uvr5_weights.zip"
 fi
 
-# Download Pretrained Models
 if find "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
     echo "Pretrained Model Exists"
 else
@@ -111,7 +112,6 @@ else
     rm -rf pretrained_models
 fi
 
-# Download G2PW Models
 if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
     echo "Download G2PWModel"
     wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$G2PW_URL"
@@ -123,28 +123,18 @@ else
     echo "G2PWModel Exists"
 fi
 
-if [ ! -d "GPT_SoVITS/pretrained_models/fast_langdetect" ]; then
-    echo "Download Fast Langdetect Model"
-    wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$LANG_DETECT_URL"
+if [ "$DOWNLOAD_UVR5" = "true" ];then
+    if find "tools/uvr5/uvr5_weights" -mindepth 1 ! -name '.gitignore' | grep -q .; then
+        echo "UVR5 Model Exists"
+    else
+        echo "Download UVR5 Model"
+        wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$UVR5_URL"
 
-    unzip lid.176.bin.zip
-    rm -rf lid.176.bin.zip
-    mkdir "GPT_SoVITS/pretrained_models/fast_langdetect"
-    mv "lid.176.bin" "GPT_SoVITS/pretrained_models/fast_langdetect"
-else
-    echo "Fast Langdetect Model Exists"
-fi
-
-if [ "$DOWNLOAD_UVR5" = "true" ] && find "tools/uvr5/uvr5_weights" -mindepth 1 ! -name '.gitignore' | grep -q .; then
-    echo "Download UVR5 Model"
-    wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$UVR5_URL"
-
-    unzip uvr5_weights.zip
-    rm -rf uvr5_weights.zip
-    mv uvr5_weights/* tools/uvr5/uvr5_weights
-    rm -rf uvr5_weights
-else
-    echo "UVR5 Model Exists"
+        unzip uvr5_weights.zip
+        rm -rf uvr5_weights.zip
+        mv uvr5_weights/* tools/uvr5/uvr5_weights
+        rm -rf uvr5_weights
+    fi
 fi
 
 # 安装构建工具
