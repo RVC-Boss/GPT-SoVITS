@@ -64,7 +64,7 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-bash install.sh
+bash install.sh --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
@@ -72,14 +72,12 @@ bash install.sh
 **注: 在 Mac 上使用 GPU 训练的模型效果显著低于其他设备训练的模型, 所以我们暂时使用 CPU 进行训练.**
 
 1. 运行 `xcode-select --install` 安装 Xcode command-line tools.
-2. 运行 `brew install ffmpeg` 安装 FFmpeg.
-3. 完成上述步骤后, 运行以下的命令来安装本项目: 
+2. 运行以下的命令来安装本项目: 
 
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
+bash install.sh --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### 手动安装
@@ -148,7 +146,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 ## 预训练模型
 
-**若成功运行`install.sh`可跳过 No.1 & No.2**
+**若成功运行`install.sh`可跳过 No.1,2,3**
 
 **中国地区的用户可以[在此处下载这些模型](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/dkxgpiy9zb96hob4#nVNhX).**
 

@@ -58,7 +58,7 @@ Windows ユーザー: (Windows 10 以降でテスト済み)、[統合パッケ�
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-bash install.sh
+bash install.sh --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
@@ -66,14 +66,12 @@ bash install.sh
 **注: Mac で GPU を使用して訓練されたモデルは、他のデバイスで訓練されたモデルと比較して著しく品質が低下するため、当面は CPU を使用して訓練することを強く推奨します.**
 
 1. `xcode-select --install` を実行して、Xcode コマンドラインツールをインストールします.
-2. `brew install ffmpeg` を実行して FFmpeg をインストールします.
-3. 上記の手順を完了した後、以下のコマンドを実行してこのプロジェクトをインストールします.
+2. 以下のコマンドを実行してこのプロジェクトをインストールします.
 
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
+bash install.sh --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### 手動インストール
@@ -140,7 +138,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 ## 事前訓練済みモデル
 
-**`install.sh`が正常に実行された場合、No.1 & No.2 はスキップしてかまいません.**
+**`install.sh`が正常に実行された場合、No.1,2,3 はスキップしてかまいません.**
 
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) から事前訓練済みモデルをダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリに配置してください.
 

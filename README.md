@@ -64,7 +64,7 @@ If you are a Windows user (tested with win>=10), you can [download the integrate
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-bash install.sh
+bash install.sh --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
@@ -72,14 +72,12 @@ bash install.sh
 **Note: The models trained with GPUs on Macs result in significantly lower quality compared to those trained on other devices, so we are temporarily using CPUs instead.**
 
 1. Install Xcode command-line tools by running `xcode-select --install`.
-2. Install FFmpeg by running `brew install ffmpeg`.
-3. Install the program by running the following commands:
+2. Install the program by running the following commands:
 
 ```bash
 conda create -n GPTSoVits python=3.9
 conda activate GPTSoVits
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
+bash install.sh --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### Install Manually
@@ -146,7 +144,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 ## Pretrained Models
 
-**If `install.sh` runs successfully, you may skip No.1 & No.2**
+**If `install.sh` runs successfully, you may skip No.1,2,3**
 
 **Users in China can [download all these models here](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/dkxgpiy9zb96hob4#nVNhX).**
 
