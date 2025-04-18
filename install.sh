@@ -79,38 +79,24 @@ if ! $is_HF && ! $is_HF_MIRROR && ! $is_MODELSCOPE; then
 fi
 
 if $is_HF; then
+    echo "Download Model From HuggingFace"
     PRETRINED_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
     LANG_DETECT_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/blob/main/lid.176.bin.zip"
 elif $is_HF_MIRROR; then
+    echo "Download Model From HuggingFace-Mirror"
     PRETRINED_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
     LANG_DETECT_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/blob/main/lid.176.bin.zip"
 elif $is_MODELSCOPE; then
+    echo "Download Model From ModelScope"
     PRETRINED_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/pretrained_models.zip"
     G2PW_URL="https://www.modelscope.cn/models/XXXXRT/GSV-G2PW/resolve/master/G2PWModel.zip"
     UVR5_URL="https://www.modelscope.cn/models/XXXXRT/UVR5Weights4GSV/resolve/master/uvr5_weights.zip"
     LANG_DETECT_URL="https://www.modelscope.cn/models/XXXXRT/GSV-Lang-Detect/resolve/master/lid.176.bin.zip"
 fi
-
-# 安装构建工具
-# Install build tools
-echo "Installing GCC..."
-conda install -c conda-forge gcc=14 -y
-
-echo "Installing G++..."
-conda install -c conda-forge gxx -y
-
-echo "Installing ffmpeg and cmake..."
-conda install ffmpeg cmake -y
-
-echo "Installing git-lfs and zip..."
-conda install git-lfs -y
-conda install zip -y
-
-git-lfs install
 
 # Download Pretrained Models
 if find "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
@@ -161,11 +147,22 @@ else
     echo "UVR5 Model Exists"
 fi
 
-# 设置编译环境
-# Set up build environment
-export CMAKE_MAKE_PROGRAM="$CONDA_PREFIX/bin/cmake"
-export CC="$CONDA_PREFIX/bin/gcc"
-export CXX="$CONDA_PREFIX/bin/g++"
+# 安装构建工具
+# Install build tools
+echo "Installing GCC..."
+conda install -c conda-forge gcc=14 -y
+
+echo "Installing G++..."
+conda install -c conda-forge gxx -y
+
+echo "Installing ffmpeg and cmake..."
+conda install ffmpeg cmake -y
+
+echo "Installing git-lfs and zip..."
+conda install git-lfs -y
+conda install zip -y
+
+git-lfs install
 
 echo "Checking for CUDA installation..."
 if command -v nvidia-smi &>/dev/null; then
