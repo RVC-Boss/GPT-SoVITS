@@ -142,7 +142,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) から事前訓練済みモデルをダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリに配置してください.
 
-2. [G2PWModel_1.1.zip](https://www.modelscope.cn/models/kamiorinn/g2pw/resolve/master/G2PWModel_1.1.zip) からモデルをダウンロードし、解凍して `G2PWModel` にリネームし、`GPT_SoVITS/text` ディレクトリに配置してください. (中国語 TTS のみ)
+2. [G2PWModel.zip](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip) からモデルをダウンロードし、解凍して `G2PWModel` にリネームし、`GPT_SoVITS/text` ディレクトリに配置してください. (中国語 TTS のみ)
 
 3. UVR5 (ボーカル/伴奏 (BGM 等) 分離 & リバーブ除去の追加機能) の場合は、[UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) からモデルをダウンロードし、`tools/uvr5/uvr5_weights` ディレクトリに配置してください.
 
@@ -250,7 +250,7 @@ V1 環境から V2 を使用するには:
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)から V2 の事前学習モデルをダウンロードし、それらを`GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`に配置
 
-   中国語 V2 追加: [G2PWModel_1.1.zip](https://www.modelscope.cn/models/kamiorinn/g2pw/resolve/master/G2PWModel_1.1.zip) (G2PW モデルをダウンロードし、解凍して`G2PWModel`にリネームし、`GPT_SoVITS/text`に配置します)
+   中国語 V2 追加: [G2PWModel.zip](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip) (G2PW モデルをダウンロードし、解凍して`G2PWModel`にリネームし、`GPT_SoVITS/text`に配置します)
 
 ## V3 リリースノート
 
