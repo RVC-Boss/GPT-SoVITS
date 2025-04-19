@@ -7,19 +7,19 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from module import commons
-from module import modules
-from module import attentions
-from f5_tts.model import DiT
+from GPT_SoVITS.module import commons
+from GPT_SoVITS.module import modules
+from GPT_SoVITS.module import attentions
+from GPT_SoVITS.f5_tts.model import DiT
 from torch.nn import Conv1d, ConvTranspose1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-from module.commons import init_weights, get_padding
-from module.mrte_model import MRTE
-from module.quantize import ResidualVectorQuantizer
+from GPT_SoVITS.module.commons import init_weights, get_padding
+from GPT_SoVITS.module.mrte_model import MRTE
+from GPT_SoVITS.module.quantize import ResidualVectorQuantizer
 
 # from text import symbols
-from text import symbols as symbols_v1
-from text import symbols2 as symbols_v2
+from GPT_SoVITS.text import symbols as symbols_v1
+from GPT_SoVITS.text import symbols2 as symbols_v2
 from torch.cuda.amp import autocast
 import contextlib
 import random
