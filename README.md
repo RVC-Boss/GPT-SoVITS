@@ -52,6 +52,7 @@ For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/
 | Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
 | Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
 | Python 3.9     | PyTorch 2.2.2    | CPU             |
+| Python 3.9     | PyTorch 2.8.0dev | CUDA12.8(for Nvidia50x0)  |
 
 ### Windows
 
@@ -270,7 +271,7 @@ New Features:
 
 2. GPT model is more stable, with fewer repetitions and omissions, and it is easier to generate speech with richer emotional expression.
 
-   [more details](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
+   [more details](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
 Use v3 from v2 environment:
 
@@ -281,6 +282,21 @@ Use v3 from v2 environment:
 3. Download v3 pretrained models (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS\pretrained_models`.
 
    additional: for Audio Super Resolution model, you can read [how to download](./tools/AP_BWE_main/24kto48k/readme.txt)
+
+## V4 Release Notes
+
+New Features:
+
+1. Version 4 fixes the issue of metallic artifacts in Version 3 caused by non-integer multiple upsampling, and natively outputs 48k audio to prevent muffled sound (whereas Version 3 only natively outputs 24k audio). The author considers Version 4 a direct replacement for Version 3, though further testing is still needed.
+   [more details](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
+
+Use v4 from v1/v2/v3 environment:
+
+1. `pip install -r requirements.txt` to update some packages
+
+2. Clone the latest codes from github.
+
+3. Download v4 pretrained models (gsv-v4-pretrained/s2v4.ckpt, and gsv-v4-pretrained/vocoder.pth) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS\pretrained_models`.
 
 ## Todo List
 
