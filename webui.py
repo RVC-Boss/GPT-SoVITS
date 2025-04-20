@@ -147,6 +147,7 @@ if torch.cuda.is_available() or ngpu != 0:
 #     mem.append(psutil.virtual_memory().total/ 1024 / 1024 / 1024) # 实测使用系统内存作为显存不会爆显存
 
 
+v3v4set={"v3","v4"}
 def set_default():
     global \
         default_batch_size, \
@@ -181,14 +182,14 @@ def set_default():
         #                 minmem = 14
         #             except RuntimeError as _:
         #                 print("显存不足以开启V3训练")
-        default_batch_size = minmem // 2 if version != "v3" else minmem // 8
+        default_batch_size = minmem // 2 if version not in v3v4set else minmem // 8
         default_batch_size_s1 = minmem // 2
     else:
         gpu_info = "%s\t%s" % ("0", "CPU")
         gpu_infos.append("%s\t%s" % ("0", "CPU"))
         set_gpu_numbers.add(0)
         default_batch_size = default_batch_size_s1 = int(psutil.virtual_memory().total / 1024 / 1024 / 1024 / 4)
-    if version != "v3":
+    if version not in v3v4set:
         default_sovits_epoch = 8
         default_sovits_save_every_epoch = 4
         max_sovits_epoch = 25  # 40
@@ -196,8 +197,8 @@ def set_default():
     else:
         default_sovits_epoch = 2
         default_sovits_save_every_epoch = 1
-        max_sovits_epoch = 3  # 40
-        max_sovits_save_every_epoch = 3  # 10
+        max_sovits_epoch = 50  # 40 # 3
+        max_sovits_save_every_epoch = 10  # 10 # 3
 
     default_batch_size = max(1, default_batch_size)
     default_batch_size_s1 = max(1, default_batch_size_s1)
@@ -233,10 +234,12 @@ pretrained_sovits_name = [
     "GPT_SoVITS/pretrained_models/s2G488k.pth",
     "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
     "GPT_SoVITS/pretrained_models/s2Gv3.pth",
+    "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
 ]
 pretrained_gpt_name = [
     "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
     "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
+    "GPT_SoVITS/pretrained_models/s1v3.ckpt",
     "GPT_SoVITS/pretrained_models/s1v3.ckpt",
 ]
 
@@ -256,7 +259,7 @@ if _:
     print("warning: ", i18n("以下模型不存在:") + _)
 
 _ = [[], []]
-for i in range(3):
+for i in range(4):
     if os.path.exists(pretrained_gpt_name[i]):
         _[0].append(pretrained_gpt_name[i])
     else:
@@ -267,8 +270,8 @@ for i in range(3):
         _[-1].append("")
 pretrained_gpt_name, pretrained_sovits_name = _
 
-SoVITS_weight_root = ["SoVITS_weights", "SoVITS_weights_v2", "SoVITS_weights_v3"]
-GPT_weight_root = ["GPT_weights", "GPT_weights_v2", "GPT_weights_v3"]
+SoVITS_weight_root = ["SoVITS_weights", "SoVITS_weights_v2", "SoVITS_weights_v3", "SoVITS_weights_v4"]
+GPT_weight_root = ["GPT_weights", "GPT_weights_v2", "GPT_weights_v3", "GPT_weights_v4"]
 for root in SoVITS_weight_root + GPT_weight_root:
     os.makedirs(root, exist_ok=True)
 
@@ -1287,7 +1290,6 @@ def close1abc():
         {"__type__": "update", "visible": False},
     )
 
-
 def switch_version(version_):
     os.environ["version"] = version_
     global version
@@ -1306,15 +1308,15 @@ def switch_version(version_):
         {"__type__": "update", "value": default_batch_size, "maximum": default_max_batch_size},
         {"__type__": "update", "value": default_sovits_epoch, "maximum": max_sovits_epoch},
         {"__type__": "update", "value": default_sovits_save_every_epoch, "maximum": max_sovits_save_every_epoch},
-        {"__type__": "update", "visible": True if version != "v3" else False},
+        {"__type__": "update", "visible": True if version not in v3v4set else False},
         {
             "__type__": "update",
             "value": False if not if_force_ckpt else True,
             "interactive": True if not if_force_ckpt else False,
         },
         {"__type__": "update", "interactive": True, "value": False},
-        {"__type__": "update", "visible": True if version == "v3" else False},
-    )  # {'__type__': 'update', "interactive": False if version == "v3" else True, "value": False}, \ ####batch infer
+        {"__type__": "update", "visible": True if version in v3v4set else False},
+    )  # {'__type__': 'update', "interactive": False if version in v3v4set else True, "value": False}, \ ####batch infer
 
 
 if os.path.exists("GPT_SoVITS/text/G2PWModel"):
@@ -1489,7 +1491,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     exp_name = gr.Textbox(label=i18n("*实验/模型名"), value="xxx", interactive=True)
                     gpu_info = gr.Textbox(label=i18n("显卡信息"), value=gpu_info, visible=True, interactive=False)
-                    version_checkbox = gr.Radio(label=i18n("版本"), value=version, choices=["v1", "v2", "v3"])
+                    version_checkbox = gr.Radio(label=i18n("版本"), value=version, choices=["v1", "v2", "v4"])#, "v3"
                 with gr.Row():
                     pretrained_s2G = gr.Textbox(
                         label=i18n("预训练SoVITS-G模型路径"),
@@ -1716,13 +1718,13 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                                 step=0.05,
                                 label=i18n("文本模块学习率权重"),
                                 value=0.4,
-                                visible=True if version != "v3" else False,
+                                visible=True if version not in v3v4set else False,
                             )  # v3 not need
                             lora_rank = gr.Radio(
                                 label=i18n("LoRA秩"),
                                 value="32",
                                 choices=["16", "32", "64", "128"],
-                                visible=True if version == "v3" else False,
+                                visible=True if version in v3v4set else False,
                             )  # v1v2 not need
                             save_every_epoch = gr.Slider(
                                 minimum=1,
@@ -1749,7 +1751,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                             if_grad_ckpt = gr.Checkbox(
                                 label="v3是否开启梯度检查点节省显存占用",
                                 value=False,
-                                interactive=True if version == "v3" else False,
+                                interactive=True if version in v3v4set else False,
                                 show_label=True,
                                 visible=False,
                             )  # 只有V3s2可以用
