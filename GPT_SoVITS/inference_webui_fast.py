@@ -264,7 +264,7 @@ from process_ckpt import get_sovits_version_from_path_fast
 
 v3v4set={"v3","v4"}
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
-    # global vq_model, hps, version, model_version, dict_language, if_lora_v3
+    global version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
     is_exist=is_exist_s2gv3 if model_version=="v3"else is_exist_s2gv4
