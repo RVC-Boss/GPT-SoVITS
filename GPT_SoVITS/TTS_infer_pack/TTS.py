@@ -1229,7 +1229,7 @@ class TTS:
                 else:
                     if parallel_infer:
                         print(f"{i18n('并行合成中')}...")
-                        audio_fragments = self.useing_vocoder_synthesis_batched_infer(
+                        audio_fragments = self.using_vocoder_synthesis_batched_infer(
                             idx_list, pred_semantic_list, batch_phones, speed=speed_factor, sample_steps=sample_steps
                         )
                         batch_audio_fragment.extend(audio_fragments)
@@ -1239,7 +1239,7 @@ class TTS:
                             _pred_semantic = (
                                 pred_semantic_list[i][-idx:].unsqueeze(0).unsqueeze(0)
                             )  # .unsqueeze(0)#mq要多unsqueeze一次
-                            audio_fragment = self.useing_vocoder_synthesis(
+                            audio_fragment = self.using_vocoder_synthesis(
                                 _pred_semantic, phones, speed=speed_factor, sample_steps=sample_steps
                             )
                             batch_audio_fragment.append(audio_fragment)
