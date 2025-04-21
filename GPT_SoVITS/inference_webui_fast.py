@@ -195,19 +195,24 @@ def change_choices():
 
 
 path_sovits_v3 = "GPT_SoVITS/pretrained_models/s2Gv3.pth"
+path_sovits_v4 = "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth"
+is_exist_s2gv3 = os.path.exists(path_sovits_v3)
+is_exist_s2gv4 = os.path.exists(path_sovits_v4)
 pretrained_sovits_name = [
     "GPT_SoVITS/pretrained_models/s2G488k.pth",
     "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
-    path_sovits_v3,
+    "GPT_SoVITS/pretrained_models/s2Gv3.pth",
+    "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
 ]
 pretrained_gpt_name = [
     "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
     "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
     "GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "GPT_SoVITS/pretrained_models/s1v3.ckpt",
 ]
 
 _ = [[], []]
-for i in range(3):
+for i in range(4):
     if os.path.exists(pretrained_gpt_name[i]):
         _[0].append(pretrained_gpt_name[i])
     if os.path.exists(pretrained_sovits_name[i]):
@@ -257,13 +262,15 @@ SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
 
 from process_ckpt import get_sovits_version_from_path_fast
 
-
+v3v4set={"v3","v4"}
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
     global version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
-    if if_lora_v3 and not os.path.exists(path_sovits_v3):
-        info = path_sovits_v3 + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
+    is_exist=is_exist_s2gv3 if model_version=="v3"else is_exist_s2gv4
+    path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
+    if if_lora_v3 == True and is_exist == False:
+        info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重"%model_version)
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -281,7 +288,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         else:
             text_update = {"__type__": "update", "value": ""}
             text_language_update = {"__type__": "update", "value": i18n("中文")}
-        if model_version == "v3":
+        if model_version in v3v4set:
             visible_sample_steps = True
             visible_inp_refs = False
         else:
@@ -297,7 +304,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             text_language_update,
             {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
             {"__type__": "update", "visible": visible_inp_refs},
-            {"__type__": "update", "interactive": True if model_version != "v3" else False},
+            {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
             {"__type__": "update", "value": i18n("模型加载中，请等待"), "interactive": False},
         )
 
@@ -311,7 +318,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         text_language_update,
         {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
         {"__type__": "update", "visible": visible_inp_refs},
-        {"__type__": "update", "interactive": True if model_version != "v3" else False},
+        {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
         {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
     )
     with open("./weight.json") as f:
