@@ -197,7 +197,7 @@ def set_default():
     else:
         default_sovits_epoch = 2
         default_sovits_save_every_epoch = 1
-        max_sovits_epoch = 50  # 40 # 3
+        max_sovits_epoch = 20  # 40 # 3
         max_sovits_save_every_epoch = 10  # 10 # 3
 
     default_batch_size = max(1, default_batch_size)
@@ -589,7 +589,6 @@ def close_denoise():
 p_train_SoVITS = None
 process_name_sovits = i18n("SoVITS训练")
 
-
 def open1Ba(
     batch_size,
     total_epoch,
@@ -642,22 +641,23 @@ def open1Ba(
         yield (
             process_info(process_name_sovits, "opened"),
             {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
+            {"__type__": "update", "visible": True},{"__type__": "update"},{"__type__": "update"}
         )
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
         p_train_SoVITS.wait()
         p_train_SoVITS = None
+        SoVITS_dropdown_update, GPT_dropdown_update = change_choices()
         yield (
             process_info(process_name_sovits, "finish"),
             {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},
+            {"__type__": "update", "visible": False},SoVITS_dropdown_update,GPT_dropdown_update
         )
     else:
         yield (
             process_info(process_name_sovits, "occupy"),
             {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
+            {"__type__": "update", "visible": True},{"__type__": "update"},{"__type__": "update"}
         )
 
 
@@ -726,22 +726,23 @@ def open1Bb(
         yield (
             process_info(process_name_gpt, "opened"),
             {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
+            {"__type__": "update", "visible": True},{"__type__": "update"},{"__type__": "update"}
         )
         print(cmd)
         p_train_GPT = Popen(cmd, shell=True)
         p_train_GPT.wait()
         p_train_GPT = None
+        SoVITS_dropdown_update, GPT_dropdown_update = change_choices()
         yield (
             process_info(process_name_gpt, "finish"),
             {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},
+            {"__type__": "update", "visible": False},SoVITS_dropdown_update,GPT_dropdown_update
         )
     else:
         yield (
             process_info(process_name_gpt, "occupy"),
             {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
+            {"__type__": "update", "visible": True},{"__type__": "update"},{"__type__": "update"}
         )
 
 
@@ -1719,7 +1720,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                                 label=i18n("文本模块学习率权重"),
                                 value=0.4,
                                 visible=True if version not in v3v4set else False,
-                            )  # v3 not need
+                            )  # v3v4 not need
                             lora_rank = gr.Radio(
                                 label=i18n("LoRA秩"),
                                 value="32",
@@ -1833,40 +1834,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     with gr.Row():
                         info1Bb = gr.Textbox(label=process_info(process_name_gpt, "info"))
 
-            button1Ba_open.click(
-                open1Ba,
-                [
-                    batch_size,
-                    total_epoch,
-                    exp_name,
-                    text_low_lr_rate,
-                    if_save_latest,
-                    if_save_every_weights,
-                    save_every_epoch,
-                    gpu_numbers1Ba,
-                    pretrained_s2G,
-                    pretrained_s2D,
-                    if_grad_ckpt,
-                    lora_rank,
-                ],
-                [info1Ba, button1Ba_open, button1Ba_close],
-            )
             button1Ba_close.click(close1Ba, [], [info1Ba, button1Ba_open, button1Ba_close])
-            button1Bb_open.click(
-                open1Bb,
-                [
-                    batch_size1Bb,
-                    total_epoch1Bb,
-                    exp_name,
-                    if_dpo,
-                    if_save_latest1Bb,
-                    if_save_every_weights1Bb,
-                    save_every_epoch1Bb,
-                    gpu_numbers1Bb,
-                    pretrained_s1,
-                ],
-                [info1Bb, button1Bb_open, button1Bb_close],
-            )
             button1Bb_close.click(close1Bb, [], [info1Bb, button1Bb_open, button1Bb_close])
 
             with gr.TabItem("1C-" + i18n("推理")):
@@ -1931,7 +1899,39 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         ],
                         [tts_info, open_tts, close_tts],
                     )
-
+            button1Ba_open.click(
+                open1Ba,
+                [
+                    batch_size,
+                    total_epoch,
+                    exp_name,
+                    text_low_lr_rate,
+                    if_save_latest,
+                    if_save_every_weights,
+                    save_every_epoch,
+                    gpu_numbers1Ba,
+                    pretrained_s2G,
+                    pretrained_s2D,
+                    if_grad_ckpt,
+                    lora_rank,
+                ],
+                [info1Ba, button1Ba_open, button1Ba_close,SoVITS_dropdown,GPT_dropdown],
+            )
+            button1Bb_open.click(
+                open1Bb,
+                [
+                    batch_size1Bb,
+                    total_epoch1Bb,
+                    exp_name,
+                    if_dpo,
+                    if_save_latest1Bb,
+                    if_save_every_weights1Bb,
+                    save_every_epoch1Bb,
+                    gpu_numbers1Bb,
+                    pretrained_s1,
+                ],
+                [info1Bb, button1Bb_open, button1Bb_close,SoVITS_dropdown,GPT_dropdown],
+            )
             version_checkbox.change(
                 switch_version,
                 [version_checkbox],
