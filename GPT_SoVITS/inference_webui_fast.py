@@ -397,7 +397,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         minimum=1, maximum=200, step=1, label=i18n("batch_size"), value=20, interactive=True
                     )
                     sample_steps = gr.Radio(
-                        label=i18n("采样步数(仅对V3生效)"), value=32, choices=[4, 8, 16, 32], visible=True
+                        label=i18n("采样步数(仅对V3/4生效)"), value=32, choices=[4, 8, 16, 32], visible=True
                     )
                 with gr.Row():
                     fragment_interval = gr.Slider(

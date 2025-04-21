@@ -106,11 +106,12 @@ def speed_change(input_audio: np.ndarray, speed: float, sr: int):
 resample_transform_dict = {}
 
 
-def resample(audio_tensor, sr0, device):
+def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    if sr0 not in resample_transform_dict:
-        resample_transform_dict[sr0] = torchaudio.transforms.Resample(sr0, 24000).to(device)
-    return resample_transform_dict[sr0](audio_tensor)
+    key="%s-%s"%(sr0,sr1)
+    if key not in resample_transform_dict:
+        resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
+    return resample_transform_dict[key](audio_tensor)
 
 
 class DictToAttrRecursive(dict):
@@ -1372,9 +1373,10 @@ class TTS:
         if ref_audio.shape[0] == 2:
             ref_audio = ref_audio.mean(0).unsqueeze(0)
 
-        tgt_sr = self.vocoder_configs["sr"]
+        # tgt_sr = self.vocoder_configs["sr"]
+        tgt_sr = 24000 if self.configs.version == "v3" else 32000
         if ref_sr != tgt_sr:
-            ref_audio = resample(ref_audio, ref_sr, self.configs.device)
+            ref_audio = resample(ref_audio, ref_sr, tgt_sr, self.configs.device)
 
         mel2 = mel_fn(ref_audio) if self.configs.version == "v3" else mel_fn_v4(ref_audio)
         mel2 = norm_spec(mel2)
@@ -1437,12 +1439,11 @@ class TTS:
         ref_audio = ref_audio.to(self.configs.device).float()
         if ref_audio.shape[0] == 2:
             ref_audio = ref_audio.mean(0).unsqueeze(0)
-        if ref_sr != 24000:
-            ref_audio = resample(ref_audio, ref_sr, self.configs.device)
-
-        tgt_sr = self.vocoder_configs["sr"]
+            
+        # tgt_sr = self.vocoder_configs["sr"]
+        tgt_sr = 24000 if self.configs.version == "v3" else 32000
         if ref_sr != tgt_sr:
-            ref_audio = resample(ref_audio, ref_sr, self.configs.device)
+            ref_audio = resample(ref_audio, ref_sr, tgt_sr, self.configs.device)
 
         mel2 = mel_fn(ref_audio) if self.configs.version == "v3" else mel_fn_v4(ref_audio)
         mel2 = norm_spec(mel2)
