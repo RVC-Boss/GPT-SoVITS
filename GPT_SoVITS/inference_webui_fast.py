@@ -211,6 +211,7 @@ pretrained_gpt_name = [
     "GPT_SoVITS/pretrained_models/s1v3.ckpt",
 ]
 
+
 _ = [[], []]
 for i in range(4):
     if os.path.exists(pretrained_gpt_name[i]):
@@ -218,7 +219,6 @@ for i in range(4):
     if os.path.exists(pretrained_sovits_name[i]):
         _[-1].append(pretrained_sovits_name[i])
 pretrained_gpt_name, pretrained_sovits_name = _
-
 
 if os.path.exists("./weight.json"):
     pass
@@ -237,8 +237,8 @@ with open("./weight.json", "r", encoding="utf-8") as file:
         sovits_path = sovits_path[0]
 
 
-SoVITS_weight_root = ["SoVITS_weights", "SoVITS_weights_v2", "SoVITS_weights_v3"]
-GPT_weight_root = ["GPT_weights", "GPT_weights_v2", "GPT_weights_v3"]
+SoVITS_weight_root = ["SoVITS_weights", "SoVITS_weights_v2", "SoVITS_weights_v3", "SoVITS_weights_v4"]
+GPT_weight_root = ["GPT_weights", "GPT_weights_v2", "GPT_weights_v3", "GPT_weights_v4"]
 for path in SoVITS_weight_root + GPT_weight_root:
     os.makedirs(path, exist_ok=True)
 
@@ -294,7 +294,6 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         else:
             visible_sample_steps = False
             visible_inp_refs = True
-        # prompt_language,text_language,prompt_text,prompt_language,text,text_language,inp_refs,ref_text_free,
         yield (
             {"__type__": "update", "choices": list(dict_language.keys())},
             {"__type__": "update", "choices": list(dict_language.keys())},
@@ -399,7 +398,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                         minimum=1, maximum=200, step=1, label=i18n("batch_size"), value=20, interactive=True
                     )
                     sample_steps = gr.Radio(
-                        label=i18n("采样步数(仅对V3生效)"), value=32, choices=[4, 8, 16, 32], visible=True
+                        label=i18n("采样步数(仅对V3/4生效)"), value=32, choices=[4, 8, 16, 32, 64, 128], visible=True
                     )
                 with gr.Row():
                     fragment_interval = gr.Slider(
