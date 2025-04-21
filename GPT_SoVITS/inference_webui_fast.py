@@ -266,10 +266,11 @@ v3v4set={"v3","v4"}
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
     # global vq_model, hps, version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
-    print(sovits_path,version, model_version, if_lora_v3)
+    # print(sovits_path,version, model_version, if_lora_v3)
     is_exist=is_exist_s2gv3 if model_version=="v3"else is_exist_s2gv4
+    path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if if_lora_v3 == True and is_exist == False:
-        info = "GPT_SoVITS/pretrained_models/s2Gv3.pth" + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
+        info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重"%model_version)
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -302,7 +303,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             text_language_update,
             {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
             {"__type__": "update", "visible": visible_inp_refs},
-            {"__type__": "update", "interactive": True if model_version != "v3" else False},
+            {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
             {"__type__": "update", "value": i18n("模型加载中，请等待"), "interactive": False},
         )
 
@@ -316,7 +317,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         text_language_update,
         {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
         {"__type__": "update", "visible": visible_inp_refs},
-        {"__type__": "update", "interactive": True if model_version != "v3" else False},
+        {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
         {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
     )
     with open("./weight.json") as f:
