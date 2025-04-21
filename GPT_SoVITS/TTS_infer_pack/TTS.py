@@ -465,10 +465,10 @@ class TTS:
     def init_vits_weights(self, weights_path: str):
         self.configs.vits_weights_path = weights_path
         version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(weights_path)
-        path_sovits_v3 = self.configs.default_configs["v3"]["vits_weights_path"]
+        path_sovits = self.configs.default_configs[model_version]["vits_weights_path"]
 
-        if if_lora_v3 == True and os.path.exists(path_sovits_v3) == False:
-            info = path_sovits_v3 + i18n("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
+        if if_lora_v3 == True and os.path.exists(path_sovits) == False:
+            info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重"%model_version)
             raise FileExistsError(info)
 
         # dict_s2 = torch.load(weights_path, map_location=self.configs.device,weights_only=False)
@@ -523,7 +523,6 @@ class TTS:
                 f"Loading VITS weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}"
             )
         else:
-            path_sovits = self.configs.default_configs[model_version]["vits_weights_path"]
             print(
                 f"Loading VITS pretrained weights from {weights_path}. {vits_model.load_state_dict(load_sovits_new(path_sovits)['weight'], strict=False)}"
             )
