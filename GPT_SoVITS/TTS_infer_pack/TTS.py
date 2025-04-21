@@ -498,7 +498,7 @@ class TTS:
 
         # print(f"model_version:{model_version}")
         # print(f'hps["model"]["version"]:{hps["model"]["version"]}')
-        if model_version not in ["v3", "v4"]:
+        if model_version not in {"v3", "v4"}:
             vits_model = SynthesizerTrn(
                 self.configs.filter_length // 2 + 1,
                 self.configs.segment_size // self.configs.hop_length,
@@ -507,6 +507,7 @@ class TTS:
             )
             self.configs.use_vocoder = False
         else:
+            kwargs["model"]["version"]=model_version
             vits_model = SynthesizerTrnV3(
                 self.configs.filter_length // 2 + 1,
                 self.configs.segment_size // self.configs.hop_length,
