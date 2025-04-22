@@ -1,8 +1,8 @@
-numpy==1.23.5
+numpy<2.0
 scipy
 tensorboard
-librosa==0.9.2
-numba==0.56.4
+librosa==0.10.2
+numba
 pytorch-lightning>=2.4
 gradio>=4.0,<=4.24.0
 ffmpeg-python
