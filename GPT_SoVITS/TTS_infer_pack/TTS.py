@@ -507,7 +507,7 @@ class TTS:
             )
             self.configs.use_vocoder = False
         else:
-            kwargs["model"]["version"]=model_version
+            kwargs["version"]=model_version
             vits_model = SynthesizerTrnV3(
                 self.configs.filter_length // 2 + 1,
                 self.configs.segment_size // self.configs.hop_length,
