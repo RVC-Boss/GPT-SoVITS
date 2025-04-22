@@ -4,7 +4,7 @@ tensorboard
 librosa==0.10.2
 numba
 pytorch-lightning>=2.4
-gradio>=4.0,<=4.24.0
+gradio<5
 ffmpeg-python
 onnxruntime; sys_platform == 'darwin'
 onnxruntime-gpu; sys_platform != 'darwin'
@@ -34,7 +34,7 @@ ko_pron
 opencc; sys_platform != 'linux'
 opencc==1.1.1; sys_platform == 'linux'
 python_mecab_ko; sys_platform != 'win32'
-fastapi<0.112.2
+fastapi[standard]>=0.115.2
 x_transformers
 torchmetrics<=1.5
 pydantic<=2.10.6
