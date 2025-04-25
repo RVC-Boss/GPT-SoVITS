@@ -1,5 +1,5 @@
 # Jarod's NOTE
-Working on turning this into a package.  Right now, the API *does in fact* work to make requests to and this can be installed.
+4/25/2025 - Synced with original repo to include v3/v4 code and reimplemnted the zeroes-crossing algorithm to run inference in batches
 
 <h1>GPT-SoVITS-WebUI</h1>
 A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
