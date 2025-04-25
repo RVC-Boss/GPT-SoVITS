@@ -130,7 +130,7 @@
 
 #### Major Fixes:
 
-4. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) fixed the issue of WebUI's GPT fine-tuning not reading BERT feature of Chinese input texts, causing inconsistency with inference and potential quality degradation. 
+4. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) fixed the issue of WebUI's GPT fine-tuning not reading BERT feature of Chinese input texts, causing inconsistency with inference and potential quality degradation.
    **Caution: If you have previously fine-tuned with a large amount of data, it is recommended to retune the model to improve quality.**
 
 ### 20240706 Update
@@ -145,8 +145,8 @@
 
 #### Major Fixes:
 
-6. The accelerated inference code from [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) has been validated and merged into the main branch, ensuring consistent inference effects with the base. 
-   It also supports accelerated inference in no-reference text mode. 
+6. The accelerated inference code from [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) has been validated and merged into the main branch, ensuring consistent inference effects with the base.
+   It also supports accelerated inference in no-reference text mode.
 
 **Future updates will continue to verify the consistency of changes in the `fast_inference` branch**.
 
@@ -160,7 +160,7 @@
 
 #### Major Fixes:
 
-4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) supported speech rate adjustment for synthesis. 
+4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) supported speech rate adjustment for synthesis.
    Enabled freezing randomness while only adjusting the speech rate.
 
 ### 20240806 Update
@@ -176,3 +176,47 @@
 5. [Commit 8a10147](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3) added support for Cantonese ASR.
 6. Added support for GPT-SoVITS v2.
 7. [PR 1387](https://github.com/RVC-Boss/GPT-SoVITS/pull/1387) optimized timing logic.
+
+### 20240821 Update
+
+1. [PR 1490](https://github.com/RVC-Boss/GPT-SoVITS/pull/1490) Merge the `fast_inference` branch into the main branch.
+2. [Issue 1508](https://github.com/RVC-Boss/GPT-SoVITS/issues/1508) Support for optimizing numbers, phone numbers, dates, and times using SSML tags.
+3. [PR 1503](https://github.com/RVC-Boss/GPT-SoVITS/pull/1503) Fixed and optimized API.
+4. [PR 1422](https://github.com/RVC-Boss/GPT-SoVITS/pull/1422) Fixed the bug where only one reference audio could be uploaded for mixing, Added various dataset checks with warnings popping up if missing files.
+
+### 20250211 Update
+
+- [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) Added GPT-SoVITS v3 Model, Need 14GB GPU Memory to Fine-tune SoVITS v3.
+
+### 20250212 Update
+
+- [PR 2040](https://github.com/RVC-Boss/GPT-SoVITS/pull/2040) Added gradient checkpointing to Fine-tune SoVITS v3, Need 12GB GPU Memory.
+
+### 20250214 Update
+
+- [PR 2047](https://github.com/RVC-Boss/GPT-SoVITS/pull/2047) Optimize the multilingual mixed text segmentation strategy **A**.
+  -AAdded `split-lang` as a language segmentation tool to improve segmentation capabilities for multi-language mixed text.
+
+### 20250217 Update
+
+- [PR 2062](https://github.com/RVC-Boss/GPT-SoVITS/pull/2062) Optimize the logic for handling numbers and English in the text.
+
+### 20250218 Update
+
+- [PR 2073](https://github.com/RVC-Boss/GPT-SoVITS/pull/2073) Optimize the multilingual mixed text segmentation strategy **B**.
+
+### 20250223 Update
+
+1. LoRA training is supported for fine-tuning with SoVITS V3. It requires 8GB GPU Memory and the results are better than full parameter fine-tuning.
+2. [PR 2078](https://github.com/RVC-Boss/GPT-SoVITS/pull/2078) Added Mel Band RoFormer model for Vocal & Instrument Separation.
+
+### 20250226 Update
+
+1. [PR 2112](https://github.com/RVC-Boss/GPT-SoVITS/pull/2112) Fix issues caused by non-English directories in Windows.
+   - Using `langsegmenter` for Korean.
+2. [PR 2113](https://github.com/RVC-Boss/GPT-SoVITS/pull/2114) Fix issues caused by non-English directories in Windows.
+   - Using `langsegmenter` for Korean/Japanese.
+
+### 20250227 Update
+
+- Added 24K to 48K audio super-resolution models to alleviate the muffled issue when generating 24K audio with V3 model, as reported in [Issue 2085](https://github.com/RVC-Boss/GPT-SoVITS/issues/2085), [Issue 2117](https://github.com/RVC-Boss/GPT-SoVITS/issues/2117).

@@ -31,32 +31,15 @@ class MRTE(nn.Module):
         text_enc = self.text_pre(text * text_mask)
         if test != None:
             if test == 0:
-                x = (
-                    self.cross_attention(
-                        ssl_enc * ssl_mask, text_enc * text_mask, attn_mask
-                    )
-                    + ssl_enc
-                    + ge
-                )
+                x = self.cross_attention(ssl_enc * ssl_mask, text_enc * text_mask, attn_mask) + ssl_enc + ge
             elif test == 1:
                 x = ssl_enc + ge
             elif test == 2:
-                x = (
-                    self.cross_attention(
-                        ssl_enc * 0 * ssl_mask, text_enc * text_mask, attn_mask
-                    )
-                    + ge
-                )
+                x = self.cross_attention(ssl_enc * 0 * ssl_mask, text_enc * text_mask, attn_mask) + ge
             else:
                 raise ValueError("test should be 0,1,2")
         else:
-            x = (
-                self.cross_attention(
-                    ssl_enc * ssl_mask, text_enc * text_mask, attn_mask
-                )
-                + ssl_enc
-                + ge
-            )
+            x = self.cross_attention(ssl_enc * ssl_mask, text_enc * text_mask, attn_mask) + ssl_enc + ge
         x = self.c_post(x * ssl_mask)
         return x
 
@@ -70,9 +53,7 @@ class SpeakerEncoder(torch.nn.Module):
         model_embedding_size=256,
     ):
         super(SpeakerEncoder, self).__init__()
-        self.lstm = nn.LSTM(
-            mel_n_channels, model_hidden_size, model_num_layers, batch_first=True
-        )
+        self.lstm = nn.LSTM(mel_n_channels, model_hidden_size, model_num_layers, batch_first=True)
         self.linear = nn.Linear(model_hidden_size, model_embedding_size)
         self.relu = nn.ReLU()
 

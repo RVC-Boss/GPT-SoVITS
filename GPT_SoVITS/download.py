@@ -1,4 +1,6 @@
-import os, sys
+import os
+import sys
+
 now_dir = os.getcwd()
 sys.path.insert(0, now_dir)
 from GPT_SoVITS.text.g2pw import G2PWPinyin
