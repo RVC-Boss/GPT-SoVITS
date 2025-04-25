@@ -534,7 +534,7 @@ class DictToAttrRecursive(dict):
 
 
 def get_spepc(hps, filename):
-    audio, _ = librosa.load(filename, int(hps.data.sampling_rate))
+    audio, _ = librosa.load(filename, sr=int(hps.data.sampling_rate))
     audio = torch.FloatTensor(audio)
     maxx = audio.abs().max()
     if maxx > 1:
