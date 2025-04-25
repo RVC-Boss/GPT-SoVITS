@@ -1,5 +1,6 @@
 import os
 import logging
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +126,7 @@ class Predictor:
     def demix_base(self, mixes, margin_size):
         chunked_sources = []
         progress_bar = tqdm(total=len(mixes))
-        progress_bar.set_description("Processing")
+        progress_bGPT_SoVITS.AR.set_description("Processing")
         for mix in mixes:
             cmix = mixes[mix]
             sources = []
@@ -161,12 +162,12 @@ class Predictor:
                     end = None
                 sources.append(tar_signal[:, start:end])
 
-                progress_bar.update(1)
+                progress_bGPT_SoVITS.AR.update(1)
 
             chunked_sources.append(sources)
         _sources = np.concatenate(chunked_sources, axis=-1)
         # del self.model
-        progress_bar.close()
+        progress_bGPT_SoVITS.AR.close()
         return _sources
 
     def prediction(self, m, vocal_root, others_root, format):
@@ -190,19 +191,15 @@ class Predictor:
             opt_path_vocal = path_vocal[:-4] + ".%s" % format
             opt_path_other = path_other[:-4] + ".%s" % format
             if os.path.exists(path_vocal):
-                os.system("ffmpeg -i '%s' -vn '%s' -q:a 2 -y" % (path_vocal, opt_path_vocal))
-                if os.path.exists(opt_path_vocal):
-                    try:
-                        os.remove(path_vocal)
-                    except:
-                        pass
+                subprocess.run(
+                    ["ffmpeg", "-i", path_vocal, "-vn", opt_path_vocal, "-q:a", "2", "-y"],
+                    check=True,
+                )
             if os.path.exists(path_other):
-                os.system("ffmpeg -i '%s' -vn '%s' -q:a 2 -y" % (path_other, opt_path_other))
-                if os.path.exists(opt_path_other):
-                    try:
-                        os.remove(path_other)
-                    except:
-                        pass
+                subprocess.run(
+                    ["ffmpeg", "-i", path_other, "-vn", opt_path_other, "-q:a", "2", "-y"],
+                    check=True,
+                )
 
 
 class MDXNetDereverb:

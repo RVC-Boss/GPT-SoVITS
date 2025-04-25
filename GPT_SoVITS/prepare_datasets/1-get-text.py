@@ -17,9 +17,9 @@ is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 version = os.environ.get("version", None)
 import traceback
 import os.path
-from text.cleaner import clean_text
+from GPT_SoVITS.text.cleaner import clean_text
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from tools.my_utils import clean_path
+from GPT_SoVITS.tools.my_utils import clean_path
 
 # inp_text=sys.argv[1]
 # inp_wav_dir=sys.argv[2]

@@ -1,6 +1,7 @@
 # This code is modified from https://github.com/ZFTurbo/
 import os
 import warnings
+import subprocess
 
 import librosa
 import numpy as np
@@ -160,7 +161,7 @@ class Roformer_Loader:
                     batch_data.append(part)
                     batch_locations.append((i, length))
                     i += step
-                    progress_bar.update(1)
+                    progress_bGPT_SoVITS.AR.update(1)
 
                     if len(batch_data) >= batch_size or (i >= mix.shape[1]):
                         arr = torch.stack(batch_data, dim=0)
@@ -189,7 +190,7 @@ class Roformer_Loader:
                     # Remove pad
                     estimated_sources = estimated_sources[..., border:-border]
 
-        progress_bar.close()
+        progress_bGPT_SoVITS.AR.close()
 
         if self.config["training"]["target_instrument"] is None:
             return {k: v for k, v in zip(self.config["training"]["instruments"], estimated_sources)}
@@ -253,7 +254,10 @@ class Roformer_Loader:
             sf.write(path, data, sr)
         else:
             sf.write(path, data, sr)
-            os.system('ffmpeg -i "{}" -vn "{}" -q:a 2 -y'.format(path, path[:-3] + format))
+            subprocess.run(
+                ["ffmpeg", "-i", path, "-vn", path[:-3] + format, "-q:a", "2", "-y"],
+                check=True,
+            )
             try:
                 os.remove(path)
             except:

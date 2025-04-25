@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, Dataset
 
 version = os.environ.get("version", None)
 
-from text import cleaned_text_to_sequence
+from GPT_SoVITS.text import cleaned_text_to_sequence
 
 # from config import exp_dir
 

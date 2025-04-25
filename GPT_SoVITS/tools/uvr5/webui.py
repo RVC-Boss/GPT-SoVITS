@@ -2,9 +2,8 @@ import os
 import traceback
 import gradio as gr
 import logging
-from tools.i18n.i18n import I18nAuto
-from tools.my_utils import clean_path
-
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto
+from GPT_SoVITS.tools.my_utils import clean_path
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
@@ -14,6 +13,7 @@ import sys
 from mdxnet import MDXNetDereverb
 from vr import AudioPre, AudioPreDeEcho
 from bsroformer import Roformer_Loader
+import subprocess
 
 try:
     import gradio.analytics as analytics
@@ -100,7 +100,10 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                     os.path.join(os.environ["TEMP"]),
                     os.path.basename(inp_path),
                 )
-                os.system(f'ffmpeg -i "{inp_path}" -vn -acodec pcm_s16le -ac 2 -ar 44100 "{tmp_path}" -y')
+                subprocess.run(
+                    ["ffmpeg", "-i", inp_path, "-vn", "-acodec", "pcm_s16le", "-ac", "2", "-ar", "44100", tmp_path, "-y"],
+                    check=True,
+                )
                 inp_path = tmp_path
             try:
                 if done == 0:

@@ -124,12 +124,12 @@ def set_seed(seed):
 
 from time import time as ttime
 
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from peft import LoraConfig, get_peft_model
-from text import cleaned_text_to_sequence
-from text.cleaner import clean_text
+from GPT_SoVITS.text import cleaned_text_to_sequence
+from GPT_SoVITS.text.cleaner import clean_text
 
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto, scan_language_list
 
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -165,8 +165,8 @@ dict_language_v2 = {
 }
 dict_language = dict_language_v1 if version == "v1" else dict_language_v2
 
-tokenizer = AutoTokenizer.from_pretrained(bert_path)
-bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
+tokenizer = AutoTokenizer.from_pretrained(bert_path, local_files_only=True)
+bert_model = AutoModelForMaskedLM.from_pretrained(bert_path, local_files_only=True)
 if is_half == True:
     bert_model = bert_model.half().to(device)
 else:
@@ -406,6 +406,7 @@ def init_bigvgan():
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
         "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
         use_cuda_kernel=False,
+        local_files_only=True
     )  # if True, RuntimeError: Ninja is required to load C++ extensions
     # remove weight norm in the model and set to eval mode
     bigvgan_model.remove_weight_norm()
@@ -518,11 +519,8 @@ def get_first(text):
     text = re.split(pattern, text)[0].strip()
     return text
 
-
-from text import chinese
-
-
-def get_phones_and_bert(text, language, version, final=False):
+from GPT_SoVITS.text import chinese
+def get_phones_and_bert(text,language,version,final=False):
     if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
         formattext = text
         while "  " in formattext:

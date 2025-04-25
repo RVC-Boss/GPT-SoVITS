@@ -5,8 +5,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushB
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QWidget, QFileDialog, QStatusBar, QComboBox
 import soundfile as sf
 
-from tools.i18n.i18n import I18nAuto
-
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
 from inference_webui import gpt_path, sovits_path, change_gpt_weights, change_sovits_weights, get_tts_wav
@@ -305,7 +304,7 @@ class GPTSoVITSGUI(QMainWindow):
 
             result = "Audio saved to " + output_wav_path
 
-        self.status_bar.showMessage("合成完成！输出路径：" + output_wav_path, 5000)
+        self.status_bGPT_SoVITS.AR.showMessage("合成完成！输出路径：" + output_wav_path, 5000)
         self.output_text.append("处理结果：\n" + result)
 
 

@@ -163,12 +163,12 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 import numpy as np
 from feature_extractor import cnhubert
 from io import BytesIO
-from module.models import SynthesizerTrn, SynthesizerTrnV3
+from GPT_SoVITS.module.models import SynthesizerTrn, SynthesizerTrnV3
 from peft import LoraConfig, get_peft_model
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from text import cleaned_text_to_sequence
-from text.cleaner import clean_text
-from module.mel_processing import spectrogram_torch
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.text import cleaned_text_to_sequence
+from GPT_SoVITS.text.cleaner import clean_text
+from GPT_SoVITS.module.mel_processing import spectrogram_torch
 import config as global_config
 import logging
 import subprocess
@@ -438,7 +438,7 @@ def get_bert_inf(phones, word2ph, norm_text, language):
     return bert
 
 
-from text import chinese
+from GPT_SoVITS.text import chinese
 
 
 def get_phones_and_bert(text, language, version, final=False):

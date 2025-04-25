@@ -1,4 +1,5 @@
-<div align="center">
+# Jarod's NOTE
+Working on turning this into a package.  Right now, the API *does in fact* work to make requests to and this can be installed.
 
 <h1>GPT-SoVITS-WebUI</h1>
 A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
@@ -142,6 +143,7 @@ As above, modify the corresponding parameters based on your actual situation, th
 ```
 docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
 ```
+Which will bootup local server that you can make requests to.  Checkout `test.py` and `test_streaming.py` to get an idea for how you might be able to use the API.
 
 ## Pretrained Models
 
@@ -163,6 +165,7 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 
 5. For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint.
 
+<<<<<<< HEAD
 ## Dataset Format
 
 The TTS annotation .list file format:
@@ -359,10 +362,13 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 A custom list save path is enabled
 
+=======
+>>>>>>> main
 ## Credits
 
-Special thanks to the following projects and contributors:
+Special thanks to the RVC-Boss for getting this wonderful tool up and going, as well as all of the other attributions used to build it:
 
+<<<<<<< HEAD
 ### Theoretical Research
 
 - [ar-vits](https://github.com/innnky/ar-vits)
@@ -407,3 +413,6 @@ Thankful to @Naozumi520 for providing the Cantonese training set and for the gui
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
   <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
 </a>
+=======
+**Original Repo:** https://github.com/RVC-Boss/GPT-SoVITS
+>>>>>>> main

@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 parent_directory = os.path.dirname(os.path.abspath(__file__))
 import logging
@@ -140,7 +141,10 @@ class AudioPre:
                 )
                 if os.path.exists(path):
                     opt_format_path = path[:-4] + ".%s" % format
-                    os.system("ffmpeg -i %s -vn %s -q:a 2 -y" % (path, opt_format_path))
+                    subprocess.run(
+                        ["ffmpeg", "-i", path, "-vn", opt_format_path, "-q:a", "2", "-y"],
+                        check=True,
+                    )
                     if os.path.exists(opt_format_path):
                         try:
                             os.remove(path)
@@ -175,7 +179,10 @@ class AudioPre:
                 )
                 if os.path.exists(path):
                     opt_format_path = path[:-4] + ".%s" % format
-                    os.system("ffmpeg -i %s -vn %s -q:a 2 -y" % (path, opt_format_path))
+                    subprocess.run(
+                        ["ffmpeg", "-i", path, "-vn", opt_format_path, "-q:a", "2", "-y"],
+                        check=True,
+                    )
                     if os.path.exists(opt_format_path):
                         try:
                             os.remove(path)
@@ -303,7 +310,10 @@ class AudioPreDeEcho:
                 )
                 if os.path.exists(path):
                     opt_format_path = path[:-4] + ".%s" % format
-                    os.system("ffmpeg -i %s -vn %s -q:a 2 -y" % (path, opt_format_path))
+                    subprocess.run(
+                        ["ffmpeg", "-i", path, "-vn", opt_format_path, "-q:a", "2", "-y"],
+                        check=True,
+                    )
                     if os.path.exists(opt_format_path):
                         try:
                             os.remove(path)
@@ -334,7 +344,10 @@ class AudioPreDeEcho:
                 )
                 if os.path.exists(path):
                     opt_format_path = path[:-4] + ".%s" % format
-                    os.system("ffmpeg -i %s -vn %s -q:a 2 -y" % (path, opt_format_path))
+                    subprocess.run(
+                        ["ffmpeg", "-i", path, "-vn", opt_format_path, "-q:a", "2", "-y"],
+                        check=True,
+                    )
                     if os.path.exists(opt_format_path):
                         try:
                             os.remove(path)

@@ -12,8 +12,8 @@ from torch.nn import functional as F
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 from feature_extractor import cnhubert
 
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from module.models_onnx import SynthesizerTrn
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.module.models_onnx import SynthesizerTrn
 
 from inference_webui import get_phones_and_bert
 

@@ -56,7 +56,7 @@ if os.name == "nt":
     G2p = win_G2p
 
 
-from text.symbols2 import symbols
+from GPT_SoVITS.text.symbols2 import symbols
 
 # This is a list of Korean classifiers preceded by pure Korean numerals.
 _korean_classifiers = (

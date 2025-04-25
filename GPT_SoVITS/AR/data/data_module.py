@@ -1,10 +1,9 @@
 # modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/data/data_module.py
 # reference: https://github.com/lifeiteng/vall-e
 from pytorch_lightning import LightningDataModule
+from GPT_SoVITS.AR.data.bucket_sampler import DistributedBucketSampler
+from GPT_SoVITS.AR.data.dataset import Text2SemanticDataset
 from torch.utils.data import DataLoader
-
-from AR.data.bucket_sampler import DistributedBucketSampler
-from AR.data.dataset import Text2SemanticDataset
 
 
 class Text2SemanticDataModule(LightningDataModule):

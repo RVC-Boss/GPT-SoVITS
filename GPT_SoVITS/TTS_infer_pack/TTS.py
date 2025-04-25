@@ -18,27 +18,31 @@ from typing import List, Tuple, Union
 import ffmpeg
 import librosa
 import numpy as np
+import random
 import torch
 import torch.nn.functional as F
+import traceback
 import yaml
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from BigVGAN.bigvgan import BigVGAN
-from feature_extractor.cnhubert import CNHubert
-from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
-from module.models import SynthesizerTrn, SynthesizerTrnV3, Generator
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.BigVGAN.bigvgan import BigVGAN
+from GPT_SoVITS.feature_extractor.cnhubert import CNHubert
+from GPT_SoVITS.module.mel_processing import mel_spectrogram_torch, spectrogram_torch
+from GPT_SoVITS.module.models import SynthesizerTrn, SynthesizerTrnV3, Generator
 from peft import LoraConfig, get_peft_model
-from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
+from GPT_SoVITS.process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 from transformers import AutoModelForMaskedLM, AutoTokenizer
+from huggingface_hub import snapshot_download
 
-from tools.audio_sr import AP_BWE
-from tools.i18n.i18n import I18nAuto, scan_language_list
-from tools.my_utils import load_audio
-from TTS_infer_pack.text_segmentation_method import splits
-from TTS_infer_pack.TextPreprocessor import TextPreprocessor
+from GPT_SoVITS.tools.audio_sr import AP_BWE
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto, scan_language_list
+from GPT_SoVITS.tools.my_utils import load_audio
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import splits
+from GPT_SoVITS.TTS_infer_pack.TextPreprocessor import TextPreprocessor
 
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
+LIBRARY_NAME = "GPT_SoVITS"
 
 
 spec_min = -12
@@ -149,28 +153,28 @@ class NO_PROMPT_ERROR(Exception):
 # configs/tts_infer.yaml
 """
 custom:
-  bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
-  cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
+  bert_base_path: pretrained_models/chinese-roberta-wwm-ext-large
+  cnhuhbert_base_path: pretrained_models/chinese-hubert-base
   device: cpu
   is_half: false
-  t2s_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
-  vits_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
+  t2s_weights_path: pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
+  vits_weights_path: pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
   version: v2
 v1:
   bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
   cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
   device: cpu
   is_half: false
-  t2s_weights_path: GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
-  vits_weights_path: GPT_SoVITS/pretrained_models/s2G488k.pth
+  t2s_weights_path: pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
+  vits_weights_path: pretrained_models/s2G488k.pth
   version: v1
 v2:
   bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
   cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
   device: cpu
   is_half: false
-  t2s_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
-  vits_weights_path: GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
+  t2s_weights_path: pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt
+  vits_weights_path: pretrained_models/gsv-v2final-pretrained/s2G2333k.pth
   version: v2
 v3:
   bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
@@ -323,8 +327,10 @@ class TTS_Config:
         if (self.cnhuhbert_base_path in [None, ""]) or (not os.path.exists(self.cnhuhbert_base_path)):
             self.cnhuhbert_base_path = self.default_configs[version]["cnhuhbert_base_path"]
             print(f"fall back to default cnhuhbert_base_path: {self.cnhuhbert_base_path}")
+            
+        repo_name="lj1995/GPT-SoVITS"
+        snapshot_download(repo_id=repo_name, local_dir=os.path.dirname(self.bert_base_path))
         self.update_configs()
-
         self.max_sec = None
         self.hz: int = 50
         self.semantic_frame_rate: str = "25hz"
@@ -1294,7 +1300,17 @@ class TTS:
             raise e
         finally:
             self.empty_cache()
-
+            
+    def empty_cache(self):
+        try:
+            gc.collect() # 触发gc的垃圾回收。避免内存一直增长。
+            if "cuda" in str(self.configs.device):
+                torch.cuda.empty_cache()
+            elif str(self.configs.device) == "mps":
+                torch.mps.empty_cache()
+        except:
+            pass
+    
     def empty_cache(self):
         try:
             gc.collect()  # 触发gc的垃圾回收。避免内存一直增长。
@@ -1558,3 +1574,160 @@ class TTS:
             audio_fragments[i + 1] = f2_
 
         return torch.cat(audio_fragments, 0)
+
+    @torch.no_grad()
+    def run_generator(self, inputs: dict):
+        """
+        Streaming inference using infer_panel_generator and zero-cross splitting for v1-v4.
+        Yields tuples of (sampling_rate, np.ndarray audio fragment).
+        """
+        # Initialize parameters
+        self.stop_flag = False
+        text = inputs.get("text", "")
+        text_lang = inputs.get("text_lang", "")
+        ref_audio_path = inputs.get("ref_audio_path", "")
+        aux_ref_audio_paths = inputs.get("aux_ref_audio_paths", [])
+        prompt_text = inputs.get("prompt_text", "")
+        prompt_lang = inputs.get("prompt_lang", "")
+        top_k = inputs.get("top_k", 5)
+        top_p = inputs.get("top_p", 1)
+        temperature = inputs.get("temperature", 1)
+        text_split_method = inputs.get("text_split_method", "cut0")
+        batch_threshold = inputs.get("batch_threshold", 0.75)
+        speed_factor = inputs.get("speed_factor", 1.0)
+        seed = inputs.get("seed", -1)
+        seed = -1 if seed in [None, ""] else seed
+        set_seed(seed)
+        repetition_penalty = inputs.get("repetition_penalty", 1.35)
+        sample_steps = inputs.get("sample_steps", 8)
+        super_sampling = inputs.get("super_sampling", False)
+        search_length = inputs.get("search_length", 32000 * 5)
+        num_zeroes = inputs.get("num_zeroes", 5)
+        cumulation_amount = inputs.get("cumulation_amount", 50)
+        # Prepare reference audio
+        if ref_audio_path and ref_audio_path != self.prompt_cache["ref_audio_path"]:
+            if not os.path.exists(ref_audio_path):
+                raise ValueError(f"{ref_audio_path} not exists")
+            self.set_ref_audio(ref_audio_path)
+        # Auxiliary refs
+        self.prompt_cache["aux_ref_audio_paths"] = aux_ref_audio_paths or []
+        self.prompt_cache["refer_spec"] = [self.prompt_cache["refer_spec"][0]]
+        for p in aux_ref_audio_paths or []:
+            if p and os.path.exists(p):
+                self.prompt_cache["refer_spec"].append(self._get_ref_spec(p))
+        # Prompt text handling
+        no_prompt = prompt_text in [None, ""]
+        if not no_prompt:
+            prompt_text = prompt_text.strip("\n")
+            if prompt_text and prompt_text[-1] not in splits:
+                prompt_text += "。" if prompt_lang != "en" else "."
+            phones_p, bert_p, norm_p = self.text_preprocessor.segment_and_extract_feature_for_text(
+                prompt_text, prompt_lang, self.configs.version
+            )
+            self.prompt_cache.update({
+                "prompt_text": prompt_text,
+                "prompt_lang": prompt_lang,
+                "phones": phones_p,
+                "bert_features": bert_p,
+                "norm_text": norm_p,
+            })
+        # Text to semantic preprocessing
+        data = self.text_preprocessor.preprocess(text, text_lang, text_split_method, self.configs.version)
+        if not data:
+            sr = self.vocoder_configs["sr"] if self.configs.use_vocoder else self.configs.sampling_rate
+            yield sr, np.zeros(1, dtype=np.int16)
+            return
+        # Single-batch conversion
+        batches, _ = self.to_batch(
+            data,
+            prompt_data=None if no_prompt else self.prompt_cache,
+            batch_size=1,
+            threshold=batch_threshold,
+            split_bucket=False,
+            device=self.configs.device,
+            precision=self.precision,
+        )
+        item = batches[0]
+        phones = item["phones"][0]
+        all_ids = item["all_phones"][0]
+        all_lens = item["all_phones_len"][0]
+        all_bert = item["all_bert_features"][0]
+        max_len = item["max_len"]
+        # Prepare semantic prompt
+        if not no_prompt:
+            prompt_sem = self.prompt_cache["prompt_semantic"].unsqueeze(0).to(self.configs.device)
+        else:
+            prompt_sem = None
+        # Reference spectrograms
+        refer_spec = [s.to(dtype=self.precision, device=self.configs.device) for s in self.prompt_cache["refer_spec"]]
+        # Streaming via generator
+        from GPT_SoVITS.TTS_infer_pack.zero_crossing import find_zero_zone, find_matching_index
+        zc_idx1 = zc_idx2 = crossing_dir = 0
+        first = True
+        last = False
+        gen_list = []
+        for gen_tokens in self.t2s_model.model.infer_panel_generator(
+            all_ids.unsqueeze(0).to(self.configs.device),
+            all_lens.unsqueeze(0).to(self.configs.device),
+            prompt_sem,
+            all_bert.unsqueeze(0).to(self.configs.device),
+            cumulation_amount=cumulation_amount,
+            top_k=top_k,
+            top_p=top_p,
+            temperature=temperature,
+            early_stop_num=self.configs.hz * self.configs.max_sec,
+            max_len=max_len,
+            repetition_penalty=repetition_penalty,
+        ):
+            gen_list.append(gen_tokens)
+            total = sum([t.size(1) for t in gen_list])
+            toks = torch.cat(gen_list, dim=1)[:, :total]
+            eos = self.t2s_model.model.EOS
+            has_eos = (toks == eos).any()
+            if has_eos:
+                toks = toks.masked_fill(toks == eos, 0)
+                last = True
+                first = False
+            # Decode to waveform
+            pred = toks.unsqueeze(0)
+            phone_t = phones.unsqueeze(0).to(self.configs.device)
+            if not self.configs.use_vocoder:
+                w = self.vits_model.decode(pred, phone_t, refer_spec, speed=speed_factor).detach()[0,0,:]
+            else:
+                w = self.using_vocoder_synthesis(pred, phone_t, speed=speed_factor, sample_steps=sample_steps)
+            w = w.cpu().numpy().astype(np.float32)
+            mv = np.abs(w).max()
+            if mv > 1.0:
+                w /= mv
+            # Zero-cross splitting
+            start = len(w) - search_length
+            if start < 0:
+                search_length = len(w)
+                start = 0
+            center = zc_idx2
+            off = int(search_length // 2)
+            sr = self.vocoder_configs["sr"] if self.configs.use_vocoder else self.configs.sampling_rate
+            if first:
+                zc_idx1, crossing_dir = find_zero_zone(w, start, search_length, num_zeroes)
+                frag = w[:zc_idx1]
+                print(len(frag))
+                frag_int16 = (frag * np.iinfo(np.int16).max).astype(np.int16)
+                yield sr, frag_int16
+                first = False
+                zc_idx2 = zc_idx1
+            elif last:
+                zc1 = find_matching_index(w, center, off, crossing_dir)
+                frag = w[zc1:]
+                print(len(frag))
+                frag_int16 = (frag * np.iinfo(np.int16).max).astype(np.int16)
+                yield sr, frag_int16
+                zc_idx2 = zc_idx1
+            else:
+                zc1 = find_matching_index(w, center, off, crossing_dir)
+                zc_idx1, crossing_dir = find_zero_zone(w, start, search_length, num_zeroes)
+                frag = w[zc1:zc_idx1]
+                print(len(frag))
+                frag_int16 = (frag * np.iinfo(np.int16).max).astype(np.int16)
+                yield sr, frag_int16
+                zc_idx2 = zc_idx1
+        self.empty_cache()

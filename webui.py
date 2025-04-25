@@ -75,15 +75,15 @@ from config import (
     webui_port_subfix,
     webui_port_uvr5,
 )
-from tools import my_utils
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from GPT_SoVITS.tools import my_utils
+from GPT_SoVITS.tools.i18n.i18n import I18nAuto, scan_language_list
 
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
 os.environ["language"] = language
 i18n = I18nAuto(language=language)
 from multiprocessing import cpu_count
 
-from tools.my_utils import check_details, check_for_existance
+from GPT_SoVITS.tools.my_utils import check_details, check_for_existance
 
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
 try:
@@ -345,7 +345,12 @@ def kill_process(pid, process_name=""):
     if system == "Windows":
         cmd = "taskkill /t /f /pid %s" % pid
         # os.system(cmd)
-        subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            ["taskkill", "/t", "/f", "/pid", str(pid)],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     else:
         kill_proc_tree(pid)
     print(process_name + i18n("进程已终止"))

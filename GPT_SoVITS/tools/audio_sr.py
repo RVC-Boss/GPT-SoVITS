@@ -9,8 +9,8 @@ import torch
 import torchaudio.functional as aF
 # from attrdict import AttrDict####will be bug in py3.10
 
-from datasets1.dataset import amp_pha_stft, amp_pha_istft
-from models.model import APNet_BWE_Model
+from GPT_SoVITS.tools.AP_BWE_main.datasets1.dataset import amp_pha_stft, amp_pha_istft
+from GPT_SoVITS.tools.AP_BWE_main.models.model import APNet_BWE_Model
 
 
 class AP_BWE:

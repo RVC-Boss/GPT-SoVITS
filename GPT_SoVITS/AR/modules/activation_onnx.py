@@ -8,7 +8,8 @@ from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 from torch.nn.modules.linear import NonDynamicallyQuantizableLinear
 from torch.nn.parameter import Parameter
 
-from AR.modules.patched_mha_with_cache_onnx import multi_head_attention_forward_patched
+from torch.nn import functional as F
+from GPT_SoVITS.AR.modules.patched_mha_with_cache_onnx import multi_head_attention_forward_patched
 
 
 class MultiheadAttention(Module):
@@ -102,14 +103,14 @@ class MultiheadAttention(Module):
                     bias=bias,
                     **factory_kwargs,
                 )
-                self.in_proj_weight = self.in_proj_linear.weight
+                self.in_proj_weight = self.in_proj_lineGPT_SoVITS.AR.weight
 
                 self.register_parameter("q_proj_weight", None)
                 self.register_parameter("k_proj_weight", None)
                 self.register_parameter("v_proj_weight", None)
 
                 if bias:
-                    self.in_proj_bias = self.in_proj_linear.bias
+                    self.in_proj_bias = self.in_proj_lineGPT_SoVITS.AR.bias
                 else:
                     self.register_parameter("in_proj_bias", None)
 

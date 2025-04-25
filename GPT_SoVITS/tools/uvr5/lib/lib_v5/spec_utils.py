@@ -2,6 +2,8 @@ import hashlib
 import json
 import math
 import os
+import subprocess
+import sys
 
 import librosa
 import numpy as np
@@ -671,6 +673,9 @@ if __name__ == "__main__":
         ]
 
         for i, e in tqdm(enumerate(trackalignment), desc="Performing Alignment..."):
-            os.system(f"python lib/align_tracks.py {e['file1']} {e['file2']}")
+            subprocess.run(
+                [sys.executable, "lib/align_tracks.py", e['file1'].strip('"'), e['file2'].strip('"')],
+                check=True,
+            )
 
     # print('Total time: {0:.{1}f}s'.format(time.time() - start_time, 1))

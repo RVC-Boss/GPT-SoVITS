@@ -9,7 +9,7 @@ from torch.nn import functional as F
 from torchmetrics.classification import MulticlassAccuracy
 from tqdm import tqdm
 
-from AR.models.utils import (
+from GPT_SoVITS.AR.models.utils import (
     dpo_loss,
     get_batch_logps,
     make_pad_mask,
@@ -18,8 +18,8 @@ from AR.models.utils import (
     sample,
     topk_sampling,
 )
-from AR.modules.embedding import SinePositionalEmbedding, TokenEmbedding
-from AR.modules.transformer import LayerNorm, TransformerEncoder, TransformerEncoderLayer
+from GPT_SoVITS.AR.modules.embedding import SinePositionalEmbedding, TokenEmbedding
+from GPT_SoVITS.AR.modules.transformer import LayerNorm, TransformerEncoder, TransformerEncoderLayer
 
 default_config = {
     "embedding_dim": 512,
@@ -933,3 +933,140 @@ class Text2SemanticDecoder(nn.Module):
         return self.infer_panel_naive(
             x, x_lens, prompts, bert_feature, top_k, top_p, early_stop_num, temperature, repetition_penalty, **kwargs
         )
+
+    def infer_panel_generator(
+        self,
+        x: torch.LongTensor,
+        x_lens: torch.LongTensor,
+        prompts: torch.LongTensor,
+        bert_feature: torch.LongTensor,
+        cumulation_amount: int,
+        top_k: int = -100,
+        top_p: int = 100,
+        early_stop_num: int = -1,
+        temperature: float = 1.0,
+        repetition_penalty: float = 1.35,
+        **kwargs,
+    ):
+        """
+        Generator method that yields generated tokens based on a specified cumulative amount.
+
+        Args:
+            x (torch.LongTensor): Input phoneme IDs.
+            x_lens (torch.LongTensor): Lengths of the input sequences.
+            prompts (torch.LongTensor): Initial prompt tokens.
+            bert_feature (torch.LongTensor): BERT features corresponding to the input.
+            cumulation_amount (int): Number of tokens to generate before yielding.
+            top_k (int): Top-k sampling.
+            top_p (int): Top-p sampling.
+            early_stop_num (int): Early stopping number.
+            temperature (float): Sampling temperature.
+            repetition_penalty (float): Repetition penalty.
+        Yields:
+            torch.LongTensor: Generated tokens since the last yield.
+        """
+        x = self.ar_text_embedding(x)
+        x = x + self.bert_proj(bert_feature.transpose(1, 2))
+        x = self.ar_text_position(x)
+
+        # AR Decoder
+        y = prompts
+
+        x_len = x.shape[1]
+        x_attn_mask = torch.zeros((x_len, x_len), dtype=torch.bool, device=x.device)
+        stop = False
+
+        # Initialize cumulative token counter
+        tokens_since_last_yield = 0
+        # Initialize last yield index
+        prefix_len = y.shape[1] if y is not None else 0
+        last_yield_idx = prefix_len
+
+        k_cache = None
+        v_cache = None
+
+        ###################  first step ##########################
+        if y is not None and y.shape[1] > 0:
+            y_emb = self.ar_audio_embedding(y)
+            y_len = y_emb.shape[1]
+            y_pos = self.ar_audio_position(y_emb)
+            xy_pos = torch.concat([x, y_pos], dim=1)
+            ref_free = False
+        else:
+            y_emb = None
+            y_len = 0
+            xy_pos = x
+            y = torch.zeros(x.shape[0], 0, dtype=torch.int64, device=x.device)
+            ref_free = True
+
+        bsz = x.shape[0]
+        src_len = x_len + y_len
+        x_attn_mask_pad = F.pad(x_attn_mask, (0, y_len), value=True)
+        y_attn_mask = F.pad(
+            torch.triu(torch.ones(y_len, y_len, dtype=torch.bool, device=x.device), diagonal=1),
+            (x_len, 0),
+            value=False,
+        )
+        xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0)
+        xy_attn_mask = xy_attn_mask.unsqueeze(0).expand(bsz * self.num_head, -1, -1)
+        xy_attn_mask = xy_attn_mask.view(bsz, self.num_head, src_len, src_len).to(device=x.device, dtype=torch.bool)
+
+        for idx in tqdm(range(1500)):
+            if xy_attn_mask is not None:
+                xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask, None)
+            else:
+                xy_dec, k_cache, v_cache = self.t2s_transformer.decode_next_token(xy_pos, k_cache, v_cache)
+
+            logits = self.ar_predict_layer(xy_dec[:, -1])
+
+            if idx == 0:
+                xy_attn_mask = None
+            if idx < 11:  # Ensure at least 10 tokens are generated before stopping
+                logits = logits[:, :-1]
+
+            samples = sample(
+                logits,
+                y,
+                top_k=top_k,
+                top_p=top_p,
+                repetition_penalty=repetition_penalty,
+                temperature=temperature,
+            )[0]
+
+            y = torch.concat([y, samples], dim=1)
+            tokens_since_last_yield += 1
+
+            if tokens_since_last_yield >= cumulation_amount:
+                generated_tokens = y[:, last_yield_idx:]
+                yield generated_tokens
+                last_yield_idx = y.shape[1]
+                tokens_since_last_yield = 0
+
+            if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
+                print("Using early stop num:", early_stop_num)
+                stop = True
+
+            if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
+                stop = True
+
+            if stop:
+                if y.shape[1] == 0:
+                    y = torch.concat([y, torch.zeros_like(samples)], dim=1)
+                    print("Bad zero prediction")
+                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                break
+
+            # Update for next step
+            y_emb = self.ar_audio_embedding(y[:, -1:])
+            y_len += 1
+            xy_pos = (
+                y_emb * self.ar_audio_position.x_scale
+                + self.ar_audio_position.alpha * self.ar_audio_position.pe[:, y_len - 1].to(
+                    dtype=y_emb.dtype, device=y_emb.device
+                )
+            )
+
+        # After loop ends, yield any remaining tokens
+        if last_yield_idx < y.shape[1]:
+            generated_tokens = y[:, last_yield_idx:]
+            yield generated_tokens
