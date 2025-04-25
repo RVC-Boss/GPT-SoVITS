@@ -31,9 +31,12 @@ if is_g2pw:
     from text.g2pw import G2PWPinyin, correct_pronunciation
 
     parent_directory = os.path.dirname(current_file_path)
+    # 防止作为第三方库导入时，找不到模型文件
+    model_dir = os.path.join(current_file_path, "G2PWModel")
+    model_source = os.path.join(parent_directory, "pretrained_models/chinese-roberta-wwm-ext-large")
     g2pw = G2PWPinyin(
-        model_dir="GPT_SoVITS/text/G2PWModel",
-        model_source=os.environ.get("bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"),
+        model_dir=model_dir,
+        model_source=os.environ.get("bert_path", model_source),
         v_to_u=False,
         neutral_tone_with_five=True,
     )
