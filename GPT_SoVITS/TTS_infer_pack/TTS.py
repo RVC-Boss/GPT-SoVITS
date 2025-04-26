@@ -565,6 +565,8 @@ class TTS:
             self.t2s_model = self.t2s_model.half()
 
     def init_vocoder(self, version: str):
+        # 防止第三方导入时，找不到模型文件
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         if version == "v3":
             if self.vocoder is not None and self.vocoder.__class__.__name__ == "BigVGAN":
                 return
@@ -574,7 +576,7 @@ class TTS:
                 self.empty_cache()
                 
             self.vocoder = BigVGAN.from_pretrained(
-                "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+                f"{root_dir}/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x",
                 use_cuda_kernel=False,
             )  # if True, RuntimeError: Ninja is required to load C++ extensions
             # remove weight norm in the model and set to eval mode
@@ -605,7 +607,7 @@ class TTS:
                         gin_channels=0, is_bias=True
                     )
             self.vocoder.remove_weight_norm()
-            state_dict_g = torch.load("%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu")
+            state_dict_g = torch.load(f"{root_dir}/pretrained_models/gsv-v4-pretrained/vocoder.pth", map_location="cpu")
             print("loading vocoder",self.vocoder.load_state_dict(state_dict_g))
 
             self.vocoder_configs["sr"] = 48000
