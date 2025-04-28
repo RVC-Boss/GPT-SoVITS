@@ -1103,8 +1103,12 @@ async def tts_endpoint(
         sample_steps: int = 32,
         if_sr: bool = False
 ):
-    refer_wav_path = f"idols/{character}/{character}.wav"
-    inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
+    if text_language == "en" and character == "saotome":
+        refer_wav_path = f"idols/{character}_eng/{character}.wav"
+        inp_refs = [f"idols/{character}_eng/refs/{file}" for file in os.listdir(f"idols/{character}_eng/refs") if file.endswith('.wav')]
+    else:
+        refer_wav_path = f"idols/{character}/{character}.wav"
+        inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
 
     
     print(f"the base path is {refer_wav_path}")
