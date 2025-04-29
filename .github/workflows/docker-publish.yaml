@@ -45,8 +45,9 @@ jobs:
       - name: Free up disk space
         run: |
           echo "Before cleanup:"
-          df -h
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          df -h  
+
+          sudo rm -rf /opt/ghc
           sudo rm -rf /opt/hostedtoolcache/CodeQL
           sudo rm -rf /opt/hostedtoolcache/PyPy
           sudo rm -rf /opt/hostedtoolcache/go
@@ -56,24 +57,26 @@ jobs:
           sudo rm -rf /opt/pipx
           sudo rm -rf /opt/az
           sudo rm -rf /opt/google
+
+          
           sudo rm -rf /usr/lib/jvm
           sudo rm -rf /usr/lib/google-cloud-sdk
           sudo rm -rf /usr/lib/dotnet
+
+          sudo rm -rf /usr/local/lib/android
           sudo rm -rf /usr/local/.ghcup
           sudo rm -rf /usr/local/julia1.11.5
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/local/share/chromium
+
           sudo rm -rf /usr/share/swift
           sudo rm -rf /usr/share/miniconda
           sudo rm -rf /usr/share/az_12.1.0
-          sudo apt clean
+          sudo rm -rf /usr/share/dotnet
+          
+
           echo "After cleanup:"
           df -h
-          
-          sudo du -hxd1 / | sort -hr | head -n 20
-          echo 1
-          du -h --max-depth=1 /usr/local/share | sort -hr
-          echo 2
-          du -h --max-depth=1 /usr/local | sort -hr
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
