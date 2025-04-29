@@ -65,7 +65,7 @@ while [[ $# -gt 0 ]]; do
         esac
         shift 2
         ;;
-    --cuda)
+    --device)
         case "$2" in
         CU124)
             CUDA_VERSION=124
