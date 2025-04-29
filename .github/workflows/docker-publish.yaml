@@ -77,7 +77,7 @@ jobs:
 
           echo "After cleanup:"
           df -h
-          
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -103,4 +103,4 @@ jobs:
             xxxxrt666/gpt-sovits:${{ matrix.tag_prefix }}-${{ needs.generate-meta.outputs.tag }}
             xxxxrt666/gpt-sovits:latest-${{ matrix.tag_prefix }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # cache-to: type=gha,mode=max

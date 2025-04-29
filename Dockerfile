@@ -16,7 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     wget \
     curl \
-    bzip2 \
     unzip \
     git \
     vim \
@@ -24,8 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     ca-certificates \
     locales \
-    net-tools \
-    iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace/GPT-SoVITS
@@ -35,9 +32,20 @@ COPY . /workspace/GPT-SoVITS
 ARG WGET_CMD=wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404
 ENV WGET_CMD=${WGET_CMD}
 
+RUN echo "== /usr ==" && du -h --max-depth=1 /usr | sort -hr | head -n 10 && \
+    echo "== /opt ==" && du -h --max-depth=1 /opt | sort -hr | head -n 10 && \
+    echo "== /root ==" && du -h --max-depth=1 /root | sort -hr | head -n 10 && \
+    echo "==workspace==" && du -h --max-depth=1 /workspace/GPTSoVITS | sort -hr | head -n 10
+
 RUN eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
     bash anaconda.sh -b -p /root/anaconda3 && \
     rm anaconda.sh
+
+
+RUN echo "== /usr ==" && du -h --max-depth=1 /usr | sort -hr | head -n 10 && \
+    echo "== /opt ==" && du -h --max-depth=1 /opt | sort -hr | head -n 10 && \
+    echo "== /root ==" && du -h --max-depth=1 /root | sort -hr | head -n 10 && \
+    echo "==workspace==" && du -h --max-depth=1 /workspace/GPTSoVITS | sort -hr | head -n 10
 
 ARG USE_FUNASR=false
 ARG USE_FASTERWHISPER=false
@@ -60,6 +68,11 @@ RUN if [ "$USE_FASTERWHISPER" = "true" ]; then \
     echo "Skipping faster-whisper download" ; \
   fi
 
+RUN echo "== /usr ==" && du -h --max-depth=1 /usr | sort -hr | head -n 10 && \
+  echo "== /opt ==" && du -h --max-depth=1 /opt | sort -hr | head -n 10 && \
+  echo "== /root ==" && du -h --max-depth=1 /root | sort -hr | head -n 10 && \
+  echo "==workspace==" && du -h --max-depth=1 /workspace/GPTSoVITS | sort -hr | head -n 10
+
 ENV PATH="/root/anaconda3/bin:$PATH"
 
 SHELL ["/bin/bash", "-c"]
@@ -78,6 +91,11 @@ RUN source /root/anaconda3/etc/profile.d/conda.sh && \
     bash install.sh --device CU${CUDA_VERSION//./} --source HF --skip-check ${SKIP_CHECK} --download-uvr5 && \
     pip cache purge && \
     pip show torch
+
+RUN echo "== /usr ==" && du -h --max-depth=1 /usr | sort -hr | head -n 10 && \
+    echo "== /opt ==" && du -h --max-depth=1 /opt | sort -hr | head -n 10 && \
+    echo "== /root ==" && du -h --max-depth=1 /root | sort -hr | head -n 10 && \
+    echo "==workspace==" && du -h --max-depth=1 /workspace/GPTSoVITS | sort -hr | head -n 10
 
 RUN rm -rf /root/anaconda3/pkgs
 
