@@ -47,16 +47,25 @@ jobs:
           echo "Before cleanup:"
           df -h
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /opt/hostedtoolcache/PyPy
+          sudo rm -rf /opt/hostedtoolcache/go
+          sudo rm -rf /opt/hostedtoolcache/node
+          sudo rm -rf /opt/hostedtoolcache/Ruby
+          sudo rm -rf /opt/microsoft
+          sudo rm -rf /opt/pipx
+          sudo rm -rf /opt/az
+          sudo rm -rf /opt/google
           sudo apt clean
           echo "After cleanup:"
           df -h
           sudo du -hxd1 / | sort -hr | head -n 20
           echo 1
-          du -h --max-depth=1 /usr 2>/dev/null
+          du -h --max-depth=1 /usr/lib 2>/dev/null
           echo 2
-          du -h --max-depth=1 /opt 2>/dev/null
+          du -h --max-depth=1 /usr/local 2>/dev/null
           echo 3
-          du -h --max-depth=1 /opt/hostedtoolcache
+          du -h --max-depth=1 /usr/share 2>/dev/null
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
