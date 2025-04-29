@@ -32,20 +32,20 @@ COPY . /workspace/GPT-SoVITS
 ARG WGET_CMD=wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404
 ENV WGET_CMD=${WGET_CMD}
 
-RUN echo "== /usr ==" && du -h --max-depth=1 /usr | sort -hr | head -n 10 && \
-    echo "== /opt ==" && du -h --max-depth=1 /opt | sort -hr | head -n 10 && \
-    echo "== /root ==" && du -h --max-depth=1 /root | sort -hr | head -n 10 && \
-    echo "==workspace==" && du -h --max-depth=1 /workspace/GPTSoVITS | sort -hr | head -n 10
+RUN echo "== /usr ==" && du -h --max-depth=2 /usr | sort -hr | head -n 10 && \
+    echo "== /opt ==" && du -h --max-depth=2 /opt | sort -hr | head -n 10 && \
+    echo "== /root ==" && du -h --max-depth=2 /root | sort -hr | head -n 10 && \
+    echo "==workspace==" && du -h --max-depth=2 /workspace/GPT-SoVITS | sort -hr | head -n 10
 
 RUN eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
     bash anaconda.sh -b -p /root/anaconda3 && \
     rm anaconda.sh
 
 
-RUN echo "== /usr ==" && du -h --max-depth=1 /usr | sort -hr | head -n 10 && \
-    echo "== /opt ==" && du -h --max-depth=1 /opt | sort -hr | head -n 10 && \
-    echo "== /root ==" && du -h --max-depth=1 /root | sort -hr | head -n 10 && \
-    echo "==workspace==" && du -h --max-depth=1 /workspace/GPTSoVITS | sort -hr | head -n 10
+RUN echo "== /usr ==" && du -h --max-depth=2 /usr | sort -hr | head -n 10 && \
+    echo "== /opt ==" && du -h --max-depth=2 /opt | sort -hr | head -n 10 && \
+    echo "== /root ==" && du -h --max-depth=2 /root | sort -hr | head -n 10 && \
+    echo "==workspace==" && du -h --max-depth=2 /workspace/GPT-SoVITS | sort -hr | head -n 10
 
 ARG USE_FUNASR=false
 ARG USE_FASTERWHISPER=false
@@ -68,10 +68,10 @@ RUN if [ "$USE_FASTERWHISPER" = "true" ]; then \
     echo "Skipping faster-whisper download" ; \
   fi
 
-RUN echo "== /usr ==" && du -h --max-depth=1 /usr | sort -hr | head -n 10 && \
-  echo "== /opt ==" && du -h --max-depth=1 /opt | sort -hr | head -n 10 && \
-  echo "== /root ==" && du -h --max-depth=1 /root | sort -hr | head -n 10 && \
-  echo "==workspace==" && du -h --max-depth=1 /workspace/GPTSoVITS | sort -hr | head -n 10
+RUN echo "== /usr ==" && du -h --max-depth=2 /usr | sort -hr | head -n 10 && \
+  echo "== /opt ==" && du -h --max-depth=2 /opt | sort -hr | head -n 10 && \
+  echo "== /root ==" && du -h --max-depth=2 /root | sort -hr | head -n 10 && \
+  echo "==workspace==" && du -h --max-depth=2 /workspace/GPT-SoVITS | sort -hr | head -n 10
 
 ENV PATH="/root/anaconda3/bin:$PATH"
 
@@ -92,10 +92,10 @@ RUN source /root/anaconda3/etc/profile.d/conda.sh && \
     pip cache purge && \
     pip show torch
 
-RUN echo "== /usr ==" && du -h --max-depth=1 /usr | sort -hr | head -n 10 && \
-    echo "== /opt ==" && du -h --max-depth=1 /opt | sort -hr | head -n 10 && \
-    echo "== /root ==" && du -h --max-depth=1 /root | sort -hr | head -n 10 && \
-    echo "==workspace==" && du -h --max-depth=1 /workspace/GPTSoVITS | sort -hr | head -n 10
+RUN echo "== /usr ==" && du -h --max-depth=2 /usr | sort -hr | head -n 10 && \
+    echo "== /opt ==" && du -h --max-depth=2 /opt | sort -hr | head -n 10 && \
+    echo "== /root ==" && du -h --max-depth=2 /root | sort -hr | head -n 10 && \
+    echo "==workspace==" && du -h --max-depth=2 /workspace/GPT-SoVITS | sort -hr | head -n 10
 
 RUN rm -rf /root/anaconda3/pkgs
 

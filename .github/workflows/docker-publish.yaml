@@ -92,7 +92,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: true
+          push: false
           build-args: |
             USE_FUNASR=true
             USE_FASTERWHISPER=${{ matrix.use_fasterwhisper }}
