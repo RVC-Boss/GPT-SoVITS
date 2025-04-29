@@ -16,7 +16,6 @@ trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 USE_FUNASR=false
 USE_FASTERWHISPER=false
 CUDA_VERSION=12.4
-WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
 
 print_help() {
     echo "Usage: bash docker_build.sh [OPTIONS]"
@@ -79,6 +78,5 @@ docker build \
     --build-arg CUDA_VERSION=$CUDA_VERSION \
     --build-arg USE_FUNASR=$USE_FUNASR \
     --build-arg USE_FASTERWHISPER=$USE_FASTERWHISPER \
-    --build-arg WGET_CMD="$WGET_CMD" \
     -t "${USER}/gpt-sovits:local" \
     .

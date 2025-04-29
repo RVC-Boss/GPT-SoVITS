@@ -28,7 +28,8 @@ WORKDIR /workspace/GPT-SoVITS
 
 COPY . /workspace/GPT-SoVITS
 
-ARG WGET_CMD
+ARG WGET_CMD=wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404
+ENV WGET_CMD=${WGET_CMD}
 
 RUN eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
     bash anaconda.sh -b -p /root/anaconda3 && \
