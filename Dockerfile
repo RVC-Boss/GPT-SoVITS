@@ -38,7 +38,7 @@ RUN if [ "$WGET_SHOW_PROGRESS" = "0" ]; then \
 
 ENV $(cat /env.list)
 
-RUN $WGET_CMD -O anaconda.sh "https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
+RUN eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
     bash anaconda.sh -b -p /root/anaconda3 && \
     rm anaconda.sh
 
