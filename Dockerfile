@@ -1,42 +1,77 @@
-# Base CUDA image
-FROM cnstark/pytorch:2.0.1-py3.9.17-cuda11.8.0-ubuntu20.04
+ARG CUDA_VERSION=12.4
 
-LABEL maintainer="breakstring@hotmail.com"
-LABEL version="dev-20240209"
+FROM nvidia/cuda:${CUDA_VERSION}.1-cudnn-devel-ubuntu22.04
+
+LABEL maintainer="XXXXRT"
+LABEL version="V4-0429"
 LABEL description="Docker image for GPT-SoVITS"
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    wget \
+    curl \
+    bzip2 \
+    unzip \
+    git \
+    vim \
+    htop \
+    procps \
+    ca-certificates \
+    locales \
+    net-tools \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install 3rd party apps
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Etc/UTC
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends tzdata ffmpeg libsox-dev parallel aria2 git git-lfs && \
-    git lfs install && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace/GPT-SoVITS
 
-# Copy only requirements.txt initially to leverage Docker cache
-WORKDIR /workspace
-COPY requirements.txt /workspace/
-RUN pip install --no-cache-dir -r requirements.txt
+COPY . /workspace/GPT-SoVITS
 
-# Define a build-time argument for image type
-ARG IMAGE_TYPE=full
+RUN wget --tries=25 --wait=3 --read-timeout=40 -O anaconda.sh "https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
+    bash anaconda.sh -b -p /root/anaconda3 && \
+    rm anaconda.sh
 
-# Conditional logic based on the IMAGE_TYPE argument
-# Always copy the Docker directory, but only use it if IMAGE_TYPE is not "elite"
-COPY ./Docker /workspace/Docker 
-# elite 类型的镜像里面不包含额外的模型
-RUN if [ "$IMAGE_TYPE" != "elite" ]; then \
-        chmod +x /workspace/Docker/download.sh && \
-        /workspace/Docker/download.sh && \
-        python /workspace/Docker/download.py && \
-        python -m nltk.downloader averaged_perceptron_tagger cmudict; \
-    fi
+ARG USE_FUNASR=false
+ARG USE_FASTERWHISPER=false
 
+RUN if [ "$USE_FUNASR" = "true" ]; then \
+    echo "Downloading funasr..." && \
+    wget --tries=25 --wait=3 --read-timeout=40 "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/funasr.zip" && \
+    unzip funasr.zip -d tools/asr/models/ && \
+    rm -rf funasr.zip ; \
+  else \
+    echo "Skipping funasr download" ; \
+  fi
 
-# Copy the rest of the application
-COPY . /workspace
+RUN if [ "$USE_FASTERWHISPER" = "true" ]; then \
+    echo "Downloading faster-whisper..." && \
+    wget --tries=25 --wait=3 --read-timeout=40 "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/faster-whisper.zip" && \
+    unzip faster-whisper.zip -d tools/asr/models/ && \
+    rm -rf faster-whisper.zip ; \
+  else \
+    echo "Skipping faster-whisper download" ; \
+  fi
+
+ENV PATH="/root/anaconda3/bin:$PATH"
+
+SHELL ["/bin/bash", "-c"]
+
+RUN conda create -n GPTSoVITS python=3.10 -y
+
+ENV PATH="/usr/local/cuda/bin:$PATH"
+ENV CUDA_HOME="/usr/local/cuda"
+ENV MAKEFLAGS="-j$(nproc)"
+
+RUN source /root/anaconda3/etc/profile.d/conda.sh && \
+    conda activate GPTSoVITS && \
+    bash /workspace/install.sh --source HF --download-uvr5 && \
+    pip cache purge
+
+RUN rm -rf /root/anaconda3/pkgs
 
 EXPOSE 9871 9872 9873 9874 9880
 
-CMD ["python", "webui.py"]
+WORKDIR /workspace/GPT-SoVITS
+
+CMD ["/bin/bash", "-c", "source /root/anaconda3/etc/profile.d/conda.sh && conda activate GPTSoVITS && export PYTHONPATH=$(pwd) && exec bash"]
