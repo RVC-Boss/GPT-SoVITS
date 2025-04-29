@@ -17,6 +17,7 @@ trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 USE_CUDA=false
 USE_ROCM=false
 USE_CPU=false
+SKIP_CHECK=false
 
 USE_HF=false
 USE_HF_MIRROR=false
@@ -61,6 +62,17 @@ while [[ $# -gt 0 ]]; do
             echo "Error: Invalid Download Source: $2"
             echo "Choose From: [HF, HF-Mirror, ModelScope]"
             exit 1
+            ;;
+        esac
+        shift 2
+        ;;
+    --skip-check)
+        case "$2" in
+        true)
+            SKIP_CHECK=true
+            ;;
+        *)
+            :
             ;;
         esac
         shift 2
@@ -195,17 +207,18 @@ conda install zip -y
 
 git-lfs install
 
-if [ "$USE_CUDA" = true ]; then
+if [ "$USE_CUDA" = true ] && [ $SKIP_CHECK = false ]; then
     echo "Checking for CUDA installation..."
     if command -v nvidia-smi &>/dev/null; then
         echo "CUDA found."
     else
         USE_CUDA=false
+        USE_CPU=true
         echo "CUDA not found."
     fi
 fi
 
-if [ "$USE_ROCM" = true ]; then
+if [ "$USE_ROCM" = true ] && [ $SKIP_CHECK = false ]; then
     echo "Checking for ROCm installation..."
     if [ -d "/opt/rocm" ]; then
         echo "ROCm found."
@@ -218,6 +231,7 @@ if [ "$USE_ROCM" = true ]; then
         fi
     else
         USE_ROCM=false
+        USE_CPU=true
         echo "ROCm not found."
     fi
 fi

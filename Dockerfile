@@ -70,9 +70,12 @@ ENV PATH="/usr/local/cuda/bin:$PATH"
 ENV CUDA_HOME="/usr/local/cuda"
 ENV MAKEFLAGS="-j$(nproc)"
 
+ARG SKIP_CHECK = false
+ENV SKIP_CHECK=${SKIP_CHECK}
+
 RUN source /root/anaconda3/etc/profile.d/conda.sh && \
     conda activate GPTSoVITS && \
-    bash install.sh --device CU${CUDA_VERSION//./} --source HF --download-uvr5 && \
+    bash install.sh --device CU${CUDA_VERSION//./} --source HF --skip-check ${SKIP_CHECK} --download-uvr5 && \
     pip cache purge
 
 RUN rm -rf /root/anaconda3/pkgs

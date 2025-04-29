@@ -72,6 +72,7 @@ jobs:
             USE_FASTERWHISPER=${{ matrix.use_fasterwhisper }}
             CUDA_VERSION=${{ matrix.cuda_version }}
             WGET_CMD=wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404
+            SKIP_CHECK=true
           tags: |
             xxxxrt666/gpt-sovits:${{ matrix.tag_prefix }}-${{ needs.generate-meta.outputs.tag }}
             xxxxrt666/gpt-sovits:latest-${{ matrix.tag_prefix }}
