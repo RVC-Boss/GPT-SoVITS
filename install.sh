@@ -41,38 +41,38 @@ fi
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --source)
-            case "$2" in
-                HF)
-                    is_HF=true
-                    ;;
-                HF-Mirror)
-                    is_HF_MIRROR=true
-                    ;;
-                ModelScope)
-                    is_MODELSCOPE=true
-                    ;;
-                *)
-                    echo "Error: Invalid Download Source: $2"
-                    echo "Choose From: [HF, HF-Mirror, ModelScope]"
-                    exit 1
-                    ;;
-            esac
-            shift 2
+    --source)
+        case "$2" in
+        HF)
+            is_HF=true
             ;;
-        --download-uvr5)
-            DOWNLOAD_UVR5=true
-            shift
+        HF-Mirror)
+            is_HF_MIRROR=true
             ;;
-        -h|--help)
-            print_help
-            exit 0
+        ModelScope)
+            is_MODELSCOPE=true
             ;;
         *)
-            echo "Unknown Argument: $1"
-            echo "Use -h or --help to see available options."
+            echo "Error: Invalid Download Source: $2"
+            echo "Choose From: [HF, HF-Mirror, ModelScope]"
             exit 1
             ;;
+        esac
+        shift 2
+        ;;
+    --download-uvr5)
+        DOWNLOAD_UVR5=true
+        shift
+        ;;
+    -h | --help)
+        print_help
+        exit 0
+        ;;
+    *)
+        echo "Unknown Argument: $1"
+        echo "Use -h or --help to see available options."
+        exit 1
+        ;;
     esac
 done
 
@@ -104,7 +104,7 @@ if find "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -
     echo "Pretrained Model Exists"
 else
     echo "Download Pretrained Models"
-    wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$PRETRINED_URL"
+    wget -nv --show-progress --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$PRETRINED_URL"
 
     unzip pretrained_models.zip
     rm -rf pretrained_models.zip
@@ -114,7 +114,7 @@ fi
 
 if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
     echo "Download G2PWModel"
-    wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$G2PW_URL"
+    wget -nv --show-progress --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$G2PW_URL"
 
     unzip G2PWModel.zip
     rm -rf G2PWModel.zip
@@ -123,12 +123,12 @@ else
     echo "G2PWModel Exists"
 fi
 
-if [ "$DOWNLOAD_UVR5" = "true" ];then
+if [ "$DOWNLOAD_UVR5" = "true" ]; then
     if find "tools/uvr5/uvr5_weights" -mindepth 1 ! -name '.gitignore' | grep -q .; then
         echo "UVR5 Model Exists"
     else
         echo "Download UVR5 Model"
-        wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$UVR5_URL"
+        wget -nv --show-progress --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$UVR5_URL"
 
         unzip uvr5_weights.zip
         rm -rf uvr5_weights.zip

@@ -2,9 +2,6 @@ name: Build and Publish Docker Image
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - Docker
 
 jobs:
   build-and-push:
@@ -28,7 +25,7 @@ jobs:
         run: |
             DATE=$(date +'%Y%m%d')
             COMMIT=$(git rev-parse --short=6 HEAD)
-            echo "::set-output name=tag::${DATE}-${COMMIT}"
+            echo "tag=${DATE}-${COMMIT}" >> $GITHUB_OUTPUT
     
       - name: Build and Push Lite Docker Image
         uses: docker/build-push-action@v5
