@@ -37,7 +37,7 @@ jobs:
             USE_FUNASR=true
             USE_FASTERWHISPER=false
             CUDA_VERSION=12.4
-            WGET_SHOW_PROGRESS=0
+            WGET_CMD="wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
           tags: |
             xxxxrt666/gpt-sovits:lite-cu124-${{ steps.meta.outputs.tag }}
             xxxxrt666/gpt-sovits:latest-lite
@@ -54,7 +54,7 @@ jobs:
             USE_FUNASR=true
             USE_FASTERWHISPER=true
             CUDA_VERSION=12.4
-            WGET_SHOW_PROGRESS=0
+            WGET_CMD="wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
           tags: |
             xxxxrt666/gpt-sovits:cu124-${{ steps.meta.outputs.tag }}
             xxxxrt666/gpt-sovits:latest

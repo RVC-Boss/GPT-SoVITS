@@ -28,15 +28,7 @@ WORKDIR /workspace/GPT-SoVITS
 
 COPY . /workspace/GPT-SoVITS
 
-ARG WGET_SHOW_PROGRESS=1
-
-RUN if [ "$WGET_SHOW_PROGRESS" = "0" ]; then \
-      echo 'WGET_CMD=wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404' >> /env.list; \
-    else \
-      echo 'WGET_CMD=wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404' >> /env.list; \
-    fi
-
-ENV $(cat /env.list)
+ARG WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
 
 RUN eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
     bash anaconda.sh -b -p /root/anaconda3 && \
