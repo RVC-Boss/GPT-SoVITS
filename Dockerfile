@@ -2,6 +2,10 @@ ARG CUDA_VERSION=12.4
 
 FROM nvidia/cuda:${CUDA_VERSION}.1-cudnn-runtime-ubuntu22.04
 
+ARG CUDA_VERSION
+
+ENV CUDA_VERSION=${CUDA_VERSION}
+
 LABEL maintainer="XXXXRT"
 LABEL version="V4-0429"
 LABEL description="Docker image for GPT-SoVITS"
@@ -68,7 +72,7 @@ ENV MAKEFLAGS="-j$(nproc)"
 
 RUN source /root/anaconda3/etc/profile.d/conda.sh && \
     conda activate GPTSoVITS && \
-    bash install.sh --source HF --download-uvr5 && \
+    bash install.sh --device CU${CUDA_VERSION//./} --source HF --download-uvr5 && \
     pip cache purge
 
 RUN rm -rf /root/anaconda3/pkgs

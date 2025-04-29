@@ -41,9 +41,6 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
     --cuda)
         case "$2" in
-        12.1)
-            CUDA_VERSION=12.1
-            ;;
         12.4)
             CUDA_VERSION=12.4
             ;;
@@ -52,7 +49,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "Error: Invalid CUDA_VERSION: $2"
-            echo "Choose From: [12.1, 12.4, 12.8]"
+            echo "Choose From: [12.4, 12.8]"
             exit 1
             ;;
         esac

@@ -14,18 +14,23 @@ fi
 
 trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 
-is_HF=false
-is_HF_MIRROR=false
-is_MODELSCOPE=false
+USE_CUDA=false
+USE_ROCM=false
+USE_CPU=false
+
+USE_HF=false
+USE_HF_MIRROR=false
+USE_MODELSCOPE=false
 DOWNLOAD_UVR5=false
 
 print_help() {
     echo "Usage: bash install.sh [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --source HF|HF-Mirror|ModelScope   Specify the model source (REQUIRED)"
-    echo "  --download-uvr5                    Enable downloading the UVR5 model"
-    echo "  -h, --help                         Show this help message and exit"
+    echo "  --device   CU124|CU128|ROCM|MPS|CPU    Specify the Device (REQUIRED)"
+    echo "  --source   HF|HF-Mirror|ModelScope     Specify the model source (REQUIRED)"
+    echo "  --download-uvr5                        Enable downloading the UVR5 model"
+    echo "  -h, --help                             Show this help message and exit"
     echo ""
     echo "Examples:"
     echo "  bash install.sh --source HF --download-uvr5"
@@ -44,17 +49,44 @@ while [[ $# -gt 0 ]]; do
     --source)
         case "$2" in
         HF)
-            is_HF=true
+            USE_HF=true
             ;;
         HF-Mirror)
-            is_HF_MIRROR=true
+            USE_HF_MIRROR=true
             ;;
         ModelScope)
-            is_MODELSCOPE=true
+            USE_MODELSCOPE=true
             ;;
         *)
             echo "Error: Invalid Download Source: $2"
             echo "Choose From: [HF, HF-Mirror, ModelScope]"
+            exit 1
+            ;;
+        esac
+        shift 2
+        ;;
+    --cuda)
+        case "$2" in
+        CU124)
+            CUDA_VERSION=124
+            USE_CUDA=true
+            ;;
+        CU128)
+            CUDA_VERSION=128
+            USE_CUDA=true
+            ;;
+        ROCM)
+            USE_ROCM=true
+            ;;
+        MPS)
+            USE_CPU=true
+            ;;
+        CPU)
+            USE_CPU=true
+            ;;
+        *)
+            echo "Error: Invalid Device: $2"
+            echo "Choose From: [CU124, CU128, ROCM, MPS, CPU]"
             exit 1
             ;;
         esac
@@ -76,24 +108,31 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! $is_HF && ! $is_HF_MIRROR && ! $is_MODELSCOPE; then
+if ! $USE_CUDA && ! $USE_ROCM && ! $USE_CPU; then
+    echo "Error: Device is REQUIRED"
+    echo ""
+    print_help
+    exit 1
+fi
+
+if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
     echo "Error: Download Source is REQUIRED"
     echo ""
     print_help
     exit 1
 fi
 
-if [ "$is_HF" = "true" ]; then
+if [ "$USE_HF" = "true" ]; then
     echo "Download Model From HuggingFace"
     PRETRINED_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
-elif [ "$is_HF_MIRROR" = "true" ]; then
+elif [ "$USE_HF_MIRROR" = "true" ]; then
     echo "Download Model From HuggingFace-Mirror"
     PRETRINED_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
-elif [ "$is_MODELSCOPE" = "true" ]; then
+elif [ "$USE_MODELSCOPE" = "true" ]; then
     echo "Download Model From ModelScope"
     PRETRINED_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/pretrained_models.zip"
     G2PW_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip"
@@ -156,19 +195,19 @@ conda install zip -y
 
 git-lfs install
 
-echo "Checking for CUDA installation..."
-if command -v nvidia-smi &>/dev/null; then
-    USE_CUDA=true
-    echo "CUDA found."
-else
-    echo "CUDA not found."
-    USE_CUDA=false
+if [ "$USE_CUDA" = true ]; then
+    echo "Checking for CUDA installation..."
+    if command -v nvidia-smi &>/dev/null; then
+        echo "CUDA found."
+    else
+        USE_CUDA=false
+        echo "CUDA not found."
+    fi
 fi
 
-if [ "$USE_CUDA" = false ]; then
+if [ "$USE_ROCM" = true ]; then
     echo "Checking for ROCm installation..."
     if [ -d "/opt/rocm" ]; then
-        USE_ROCM=true
         echo "ROCm found."
         if grep -qi "microsoft" /proc/version; then
             echo "You are running WSL."
@@ -178,20 +217,27 @@ if [ "$USE_CUDA" = false ]; then
             IS_WSL=false
         fi
     else
-        echo "ROCm not found."
         USE_ROCM=false
+        echo "ROCm not found."
     fi
 fi
 
 if [ "$USE_CUDA" = true ]; then
     echo "Installing PyTorch with CUDA support..."
-    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+    if [ "$CUDA_VERSION" = 128 ]; then
+        pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+    elif [ "$CUDA_VERSION" = 124 ]; then
+        pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+    fi
 elif [ "$USE_ROCM" = true ]; then
     echo "Installing PyTorch with ROCm support..."
     pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/rocm6.2
-else
+elif [ "$USE_CPU" = true ]; then
     echo "Installing PyTorch for CPU..."
     pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+else
+    echo "Unknown Err"
+    exit 1
 fi
 
 echo "Installing Python dependencies from requirements.txt..."
