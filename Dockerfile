@@ -1,6 +1,6 @@
 ARG CUDA_VERSION=12.4
 
-FROM nvidia/cuda:${CUDA_VERSION}.1-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:${CUDA_VERSION}.1-cudnn-runtime-ubuntu22.04
 
 LABEL maintainer="XXXXRT"
 LABEL version="V4-0429"

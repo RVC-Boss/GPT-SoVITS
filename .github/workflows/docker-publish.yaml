@@ -10,6 +10,15 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        
+      - name: Free up disk space
+        run: |
+          echo "Before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo apt clean
+          echo "After cleanup:"
+          df -h
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -26,7 +35,7 @@ jobs:
             DATE=$(date +'%Y%m%d')
             COMMIT=$(git rev-parse --short=6 HEAD)
             echo "tag=${DATE}-${COMMIT}" >> $GITHUB_OUTPUT
-    
+
       - name: Build and Push Lite Docker Image
         uses: docker/build-push-action@v5
         with:
