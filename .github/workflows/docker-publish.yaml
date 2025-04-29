@@ -61,11 +61,11 @@ jobs:
           df -h
           sudo du -hxd1 / | sort -hr | head -n 20
           echo 1
-          du -h --max-depth=1 /usr/lib 2>/dev/null
+          du -h --max-depth=1 /usr/lib | sort -hr
           echo 2
-          du -h --max-depth=1 /usr/local 2>/dev/null
+          du -h --max-depth=1 /usr/local | sort -hr
           echo 3
-          du -h --max-depth=1 /usr/share 2>/dev/null
+          du -h --max-depth=1 /usr/share | sort -hr
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
