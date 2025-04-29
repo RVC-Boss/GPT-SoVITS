@@ -1,6 +1,6 @@
 name: Build and Publish Docker Image
 
-on:
+on: 
   workflow_dispatch:
 
 jobs:
@@ -37,6 +37,7 @@ jobs:
             USE_FUNASR=true
             USE_FASTERWHISPER=false
             CUDA_VERSION=12.4
+            WGET_SHOW_PROGRESS=0
           tags: |
             xxxxrt666/gpt-sovits:lite-cu124-${{ steps.meta.outputs.tag }}
             xxxxrt666/gpt-sovits:latest-lite
@@ -53,6 +54,7 @@ jobs:
             USE_FUNASR=true
             USE_FASTERWHISPER=true
             CUDA_VERSION=12.4
+            WGET_SHOW_PROGRESS=0
           tags: |
             xxxxrt666/gpt-sovits:cu124-${{ steps.meta.outputs.tag }}
             xxxxrt666/gpt-sovits:latest

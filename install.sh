@@ -100,11 +100,17 @@ elif [ "$is_MODELSCOPE" = "true" ]; then
     UVR5_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/uvr5_weights.zip"
 fi
 
+if [ "$WGET_SHOW_PROGRESS" = "0" ]; then
+    WGET_CMD="wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+else
+    WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+fi
+
 if find "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
     echo "Pretrained Model Exists"
 else
     echo "Download Pretrained Models"
-    wget -nv --show-progress --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$PRETRINED_URL"
+    $WGET_CMD "$PRETRINED_URL"
 
     unzip pretrained_models.zip
     rm -rf pretrained_models.zip
@@ -114,7 +120,7 @@ fi
 
 if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
     echo "Download G2PWModel"
-    wget -nv --show-progress --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$G2PW_URL"
+    $WGET_CMD "$G2PW_URL"
 
     unzip G2PWModel.zip
     rm -rf G2PWModel.zip
@@ -128,7 +134,7 @@ if [ "$DOWNLOAD_UVR5" = "true" ]; then
         echo "UVR5 Model Exists"
     else
         echo "Download UVR5 Model"
-        wget -nv --show-progress --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$UVR5_URL"
+        $WGET_CMD "$UVR5_URL"
 
         unzip uvr5_weights.zip
         rm -rf uvr5_weights.zip

@@ -28,7 +28,17 @@ WORKDIR /workspace/GPT-SoVITS
 
 COPY . /workspace/GPT-SoVITS
 
-RUN wget -nv --show-progress --tries=25 --wait=3 --read-timeout=40 -O anaconda.sh "https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
+ARG WGET_SHOW_PROGRESS=1
+
+RUN if [ "$WGET_SHOW_PROGRESS" = "0" ]; then \
+      echo 'WGET_CMD=wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404' >> /env.list; \
+    else \
+      echo 'WGET_CMD=wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404' >> /env.list; \
+    fi
+
+ENV $(cat /env.list)
+
+RUN $WGET_CMD -O anaconda.sh "https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
     bash anaconda.sh -b -p /root/anaconda3 && \
     rm anaconda.sh
 
@@ -37,7 +47,7 @@ ARG USE_FASTERWHISPER=false
 
 RUN if [ "$USE_FUNASR" = "true" ]; then \
     echo "Downloading funasr..." && \
-    wget -nv --show-progress --tries=25 --wait=3 --read-timeout=40 "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/funasr.zip" && \
+    $WGET_CMD "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/funasr.zip" && \
     unzip funasr.zip -d tools/asr/models/ && \
     rm -rf funasr.zip ; \
   else \
@@ -46,7 +56,7 @@ RUN if [ "$USE_FUNASR" = "true" ]; then \
 
 RUN if [ "$USE_FASTERWHISPER" = "true" ]; then \
     echo "Downloading faster-whisper..." && \
-    wget -nv --show-progress --tries=25 --wait=3 --read-timeout=40 "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/faster-whisper.zip" && \
+    $WGET_CMD "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/faster-whisper.zip" && \
     unzip faster-whisper.zip -d tools/asr/models/ && \
     rm -rf faster-whisper.zip ; \
   else \
