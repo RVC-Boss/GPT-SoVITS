@@ -76,7 +76,8 @@ ENV SKIP_CHECK=${SKIP_CHECK}
 RUN source /root/anaconda3/etc/profile.d/conda.sh && \
     conda activate GPTSoVITS && \
     bash install.sh --device CU${CUDA_VERSION//./} --source HF --skip-check ${SKIP_CHECK} --download-uvr5 && \
-    pip cache purge
+    pip cache purge && \
+    pip show torch
 
 RUN rm -rf /root/anaconda3/pkgs
 

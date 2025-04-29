@@ -134,6 +134,20 @@ if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
     exit 1
 fi
 
+# 安装构建工具
+# Install build tools
+echo "Installing GCC..."
+conda install -c conda-forge gcc=14 -y
+
+echo "Installing G++..."
+conda install -c conda-forge gxx -y
+
+echo "Installing ffmpeg and cmake..."
+conda install ffmpeg cmake make -y
+
+echo "Installing unzip..."
+conda install unzip -y
+
 if [ "$USE_HF" = "true" ]; then
     echo "Download Model From HuggingFace"
     PRETRINED_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
@@ -189,23 +203,6 @@ if [ "$DOWNLOAD_UVR5" = "true" ]; then
         rm -rf uvr5_weights
     fi
 fi
-
-# 安装构建工具
-# Install build tools
-echo "Installing GCC..."
-conda install -c conda-forge gcc=14 -y
-
-echo "Installing G++..."
-conda install -c conda-forge gxx -y
-
-echo "Installing ffmpeg and cmake..."
-conda install ffmpeg cmake -y
-
-echo "Installing git-lfs and zip..."
-conda install git-lfs -y
-conda install zip -y
-
-git-lfs install
 
 if [ "$USE_CUDA" = true ] && [ $SKIP_CHECK = false ]; then
     echo "Checking for CUDA installation..."
