@@ -51,9 +51,12 @@ jobs:
           echo "After cleanup:"
           df -h
           sudo du -hxd1 / | sort -hr | head -n 20
-          du -h --max-depth=1 /usr
-          du -h --max-depth=1 /opt
-          du -h --max-depth=1 /home
+          echo 1
+          du -h --max-depth=1 /usr 2>/dev/null
+          echo 2
+          du -h --max-depth=1 /opt 2>/dev/null
+          echo 3
+          du -h --max-depth=1 /home 2>/dev/null
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
