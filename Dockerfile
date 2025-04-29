@@ -70,7 +70,7 @@ ENV PATH="/usr/local/cuda/bin:$PATH"
 ENV CUDA_HOME="/usr/local/cuda"
 ENV MAKEFLAGS="-j$(nproc)"
 
-ARG SKIP_CHECK = false
+ARG SKIP_CHECK=false
 ENV SKIP_CHECK=${SKIP_CHECK}
 
 RUN source /root/anaconda3/etc/profile.d/conda.sh && \
