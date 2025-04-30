@@ -50,9 +50,7 @@ source "$HOME/anaconda3/etc/profile.d/conda.sh"
 
 conda config --add channels conda-forge
 
-conda config --set channel_priority strict
-
-conda install -n base -c conda-forge conda=25.3.1
+conda update --all -y
 
 if [ "$LITE" = "true" ]; then
     bash install.sh --device "CU${CUDA_VERSION//./}" --source HF

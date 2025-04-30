@@ -26,16 +26,16 @@ jobs:
       matrix:
         include:
           - cuda_version: 12.4
-            lite: false
+            lite: true
             tag_prefix: lite-cu124
           - cuda_version: 12.4
-            lite: true
+            lite: false
             tag_prefix: cu124
           - cuda_version: 12.8
-            lite: false
+            lite: true
             tag_prefix: lite-cu128
           - cuda_version: 12.8
-            lite: true
+            lite: false
             tag_prefix: cu128
 
     steps:
