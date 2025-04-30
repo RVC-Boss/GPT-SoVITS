@@ -41,6 +41,8 @@ rm anaconda.sh
 
 rm $LOG_PATH
 
-rm -rf "$HOME/anaconda3/pkgs/*"
+sudo rm -rf "$HOME/anaconda3/pkgs"
+
+mkdir "$HOME/anaconda3/pkgs"
 
 rm -rf "$HOME/.conda" "$HOME/.cache"

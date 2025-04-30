@@ -52,6 +52,12 @@ conda config --add channels conda-forge
 
 conda update --all -y
 
+if [ "$CUDA_VERSION" = 128 ]; then
+    pip install torch torchaudio --no-cache-dir --index-url https://download.pytorch.org/whl/cu128
+elif [ "$CUDA_VERSION" = 124 ]; then
+    pip install torch==2.5.1 torchaudio==2.5.1 --no-cache-dir --index-url https://download.pytorch.org/whl/cu124
+fi
+
 if [ "$LITE" = "true" ]; then
     bash install.sh --device "CU${CUDA_VERSION//./}" --source HF
 elif [ "$LITE" = "false" ]; then
@@ -66,6 +72,8 @@ pip show torch
 
 rm -rf /tmp/* /var/tmp/*
 
-rm -rf "$HOME/anaconda3/pkgs/*"
+sudo rm -rf "$HOME/anaconda3/pkgs"
+
+mkdir "$HOME/anaconda3/pkgs"
 
 rm -rf /root/.conda /root/.cache

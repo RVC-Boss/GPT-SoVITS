@@ -70,6 +70,6 @@ TARGETPLATFORM=$(uname -m | grep -q 'x86_64' && echo "linux/amd64" || echo "linu
 docker build \
     --build-arg CUDA_VERSION=$CUDA_VERSION \
     --build-arg LITE=$LITE \
-    --build-arg TARGETPLATFORM="$TARGETPLATFORM"
--t "${USER}/gpt-sovits:local" \
+    --build-arg TARGETPLATFORM="$TARGETPLATFORM" \
+    -t "${USER}/gpt-sovits:local" \
     .

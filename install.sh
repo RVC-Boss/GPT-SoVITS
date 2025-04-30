@@ -226,14 +226,14 @@ if [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     fi
 fi
 
-if [ "$USE_CUDA" = true ]; then
+if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Installing PyTorch with CUDA support..."
     if [ "$CUDA_VERSION" = 128 ]; then
         pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
     elif [ "$CUDA_VERSION" = 124 ]; then
         pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
     fi
-elif [ "$USE_ROCM" = true ]; then
+elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Installing PyTorch with ROCm support..."
     pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/rocm6.2
 elif [ "$USE_CPU" = true ]; then
