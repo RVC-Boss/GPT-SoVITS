@@ -11,7 +11,7 @@ ARG CUDA_VERSION=12.4
 ENV CUDA_VERSION=${CUDA_VERSION}
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
-  apt-get install -y -q --no-install-recommends \
+  apt-get install -y -qq --no-install-recommends \
     build-essential \
     gcc \
     g++ \
@@ -36,9 +36,11 @@ ENV LITE=${LITE}
 ARG WORKFLOW=false
 ENV WORKFLOW=${WORKFLOW}
 
-ARG TARGETPLATFORM=linux/amd64
+ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM}
 RUN echo "${TARGETPLATFORM}" && echo ${WORKFLOW}
+
+ENV HOME="/root"
 
 RUN bash Docker/anaconda_install.sh
 

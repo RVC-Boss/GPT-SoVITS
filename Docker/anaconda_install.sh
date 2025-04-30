@@ -25,6 +25,20 @@ else
     exit 1
 fi
 
-bash anaconda.sh -b -p "$HOME/anaconda3"
+LOG_PATH="/tmp/anaconda-install.log"
+
+bash anaconda.sh -b -p "$HOME/anaconda3" >"$LOG_PATH" 2>&1
+
+if [ $? -eq 0 ]; then
+    echo "== Anaconda Installed =="
+else
+    echo "Failed to Install Anaconda"
+    tail -n 50 "$LOG_PATH"
+    exit 1
+fi
 
 rm anaconda.sh
+
+rm $LOG_PATH
+
+"$HOME/anaconda3/bin/conda" clean -p
