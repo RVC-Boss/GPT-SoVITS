@@ -20,7 +20,7 @@ fi
 if [ "$TARGETPLATFORM" = "linux/amd64" ]; then
     eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh"
 elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then
-    eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-aarch.sh"
+    eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-aarch64.sh"
 else
     exit 1
 fi

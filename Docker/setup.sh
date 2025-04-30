@@ -12,9 +12,9 @@ WORKFLOW=${WORKFLOW:-"false"}
 LITE=${LITE:-"false"}
 
 if [ "$WORKFLOW" = "true" ]; then
-    WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
-else
     WGET_CMD="wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+else
+    WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
 fi
 
 USE_FUNASR=false
