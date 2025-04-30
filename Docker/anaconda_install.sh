@@ -41,4 +41,6 @@ rm anaconda.sh
 
 rm $LOG_PATH
 
-"$HOME/anaconda3/bin/conda" clean -p
+rm -rf "$HOME/anaconda3/pkgs"
+
+mkdir "$HOME/anaconda3/pkgs"

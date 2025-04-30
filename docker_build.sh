@@ -13,8 +13,7 @@ fi
 
 trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 
-USE_FUNASR=false
-USE_FASTERWHISPER=false
+LITE=false
 CUDA_VERSION=12.4
 
 print_help() {
@@ -22,8 +21,7 @@ print_help() {
     echo ""
     echo "Options:"
     echo "  --cuda 12.4|12.8    Specify the CUDA VERSION (REQUIRED)"
-    echo "  --funasr            Build with FunASR Paraformer Model"
-    echo "  --faster-whisper    Build with Faster-Whisper-Large-V3 Model"
+    echo "  --lite              Build a Lite Image"
     echo "  -h, --help          Show this help message and exit"
     echo ""
     echo "Examples:"
@@ -55,12 +53,8 @@ while [[ $# -gt 0 ]]; do
         esac
         shift 2
         ;;
-    --funasr)
-        USE_FUNASR=true
-        shift
-        ;;
-    --faster-whisper)
-        USE_FASTERWHISPER=true
+    --lite)
+        LITE=true
         shift
         ;;
     *)
@@ -73,7 +67,6 @@ done
 
 docker build \
     --build-arg CUDA_VERSION=$CUDA_VERSION \
-    --build-arg USE_FUNASR=$USE_FUNASR \
-    --build-arg USE_FASTERWHISPER=$USE_FASTERWHISPER \
+    --build-arg LITE=$LITE \
     -t "${USER}/gpt-sovits:local" \
     .

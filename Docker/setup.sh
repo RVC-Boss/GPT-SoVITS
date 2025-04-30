@@ -31,7 +31,7 @@ fi
 if [ "$USE_FUNASR" = "true" ]; then
     echo "Downloading funasr..." &&
         $WGET_CMD "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/funasr.zip" &&
-        unzip funasr.zip -d tools/asr/models/ &&
+        unzip -q funasr.zip -d tools/asr/models/ &&
         rm -rf funasr.zip
 else
     echo "Skipping funasr download"
@@ -40,7 +40,7 @@ fi
 if [ "$USE_FASTERWHISPER" = "true" ]; then
     echo "Downloading faster-whisper..." &&
         $WGET_CMD "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/faster-whisper.zip" &&
-        unzip faster-whisper.zip -d tools/asr/models/ &&
+        unzip -q faster-whisper.zip -d tools/asr/models/ &&
         rm -rf faster-whisper.zip
 else
     echo "Skipping faster-whisper download"
@@ -49,9 +49,9 @@ fi
 source "$HOME/anaconda3/etc/profile.d/conda.sh"
 
 if [ "$LITE" = "true" ]; then
-    bash install.sh --device "CU${CUDA_VERSION//./}" --source HF --skip-check "$WORKFLOW"
+    bash install.sh --device "CU${CUDA_VERSION//./}" --source HF
 elif [ "$LITE" = "false" ]; then
-    bash install.sh --device "CU${CUDA_VERSION//./}" --source HF --skip-check "$WORKFLOW" --download-uvr5
+    bash install.sh --device "CU${CUDA_VERSION//./}" --source HF --download-uvr5
 else
     exit 1
 fi

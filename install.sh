@@ -162,7 +162,7 @@ else
     echo "Download Pretrained Models"
     $WGET_CMD "$PRETRINED_URL"
 
-    unzip pretrained_models.zip
+    unzip -q pretrained_models.zip
     rm -rf pretrained_models.zip
     mv pretrained_models/* GPT_SoVITS/pretrained_models
     rm -rf pretrained_models
@@ -172,7 +172,7 @@ if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
     echo "Download G2PWModel"
     $WGET_CMD "$G2PW_URL"
 
-    unzip G2PWModel.zip
+    unzip -q G2PWModel.zip
     rm -rf G2PWModel.zip
     mv G2PWModel GPT_SoVITS/text/G2PWModel
 else
@@ -186,7 +186,7 @@ if [ "$DOWNLOAD_UVR5" = "true" ]; then
         echo "Download UVR5 Model"
         $WGET_CMD "$UVR5_URL"
 
-        unzip uvr5_weights.zip
+        unzip -q uvr5_weights.zip
         rm -rf uvr5_weights.zip
         mv uvr5_weights/* tools/uvr5/uvr5_weights
         rm -rf uvr5_weights
