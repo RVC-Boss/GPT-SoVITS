@@ -19,7 +19,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
     curl \
     unzip \
     git \
-    vim \
+    nano \
     htop \
     procps \
     ca-certificates \

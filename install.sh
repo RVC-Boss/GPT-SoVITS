@@ -126,16 +126,16 @@ fi
 # 安装构建工具
 # Install build tools
 echo "Installing GCC..."
-conda install -c conda-forge gcc=14 -y
+conda install -c conda-forge gcc=14 -y --quiet
 
 echo "Installing G++..."
-conda install -c conda-forge gxx -y
+conda install -c conda-forge gxx -y --quiet
 
 echo "Installing ffmpeg and cmake..."
-conda install ffmpeg cmake make -y
+conda install ffmpeg cmake make -y --quiet
 
 echo "Installing unzip..."
-conda install unzip -y
+conda install unzip -y --quiet
 
 if [ "$USE_HF" = "true" ]; then
     echo "Download Model From HuggingFace"
@@ -246,9 +246,9 @@ echo "Installing Python dependencies from requirements.txt..."
 # Refresh environment
 hash -r
 
-pip install -r extra-req.txt --no-deps
+pip install -r extra-req.txt --no-deps --quiet
 
-pip install -r requirements.txt
+pip install -r requirements.txt --quiet
 
 python -c "import nltk; nltk.download(['averaged_perceptron_tagger','averaged_perceptron_tagger_eng','cmudict'])"
 

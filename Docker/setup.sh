@@ -48,6 +48,12 @@ fi
 
 source "$HOME/anaconda3/etc/profile.d/conda.sh"
 
+conda config --add channels conda-forge
+
+conda config --set channel_priority strict
+
+conda update -n base -c conda-forge conda -y
+
 if [ "$LITE" = "true" ]; then
     bash install.sh --device "CU${CUDA_VERSION//./}" --source HF
 elif [ "$LITE" = "false" ]; then
@@ -60,4 +66,8 @@ pip cache purge
 
 pip show torch
 
-rm -rf "$HOME/.cache" /tmp/* /var/tmp/*
+rm -rf /tmp/* /var/tmp/*
+
+rm -rf "$HOME/anaconda3/pkgs/*"
+
+rm -rf /root/.conda /root/.cache
