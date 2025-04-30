@@ -39,6 +39,12 @@ fi
 
 rm anaconda.sh
 
+source "$HOME/anaconda3/etc/profile.d/conda.sh"
+
+"$HOME/anaconda3/bin/conda" config --add channels conda-forge
+
+"$HOME/anaconda3/bin/conda" update --all -y
+
 rm $LOG_PATH
 
 rm -rf "$HOME/anaconda3/pkgs"
