@@ -154,7 +154,11 @@ elif [ "$USE_MODELSCOPE" = "true" ]; then
     UVR5_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/uvr5_weights.zip"
 fi
 
-WGET_CMD="${WGET_CMD:-wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404}"
+if [ "$WORKFLOW" = "true" ]; then
+    WGET_CMD="wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+else
+    WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+fi
 
 if find "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
     echo "Pretrained Model Exists"

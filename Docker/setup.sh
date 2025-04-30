@@ -52,7 +52,7 @@ conda config --add channels conda-forge
 
 conda config --set channel_priority strict
 
-conda update -n base -c conda-forge conda -y
+conda install -n base -c conda-forge conda=25.3.1
 
 if [ "$LITE" = "true" ]; then
     bash install.sh --device "CU${CUDA_VERSION//./}" --source HF
