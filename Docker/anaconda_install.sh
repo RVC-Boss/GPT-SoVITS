@@ -43,7 +43,7 @@ source "$HOME/anaconda3/etc/profile.d/conda.sh"
 
 "$HOME/anaconda3/bin/conda" config --add channels conda-forge
 
-"$HOME/anaconda3/bin/conda" update --all -y
+"$HOME/anaconda3/bin/conda" update -q --all -y
 
 rm $LOG_PATH
 

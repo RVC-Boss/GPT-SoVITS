@@ -126,13 +126,13 @@ fi
 # 安装构建工具
 # Install build tools
 echo "Installing GCC..."
-conda install -c conda-forge gcc=14 -y --quiet
+conda install -c conda-forge gcc=14 -q -y
 
 echo "Installing G++..."
-conda install -c conda-forge gxx -y --quiet
+conda install -c conda-forge gxx -q -y
 
 echo "Installing ffmpeg and cmake..."
-conda install ffmpeg cmake make -y --quiet
+conda install ffmpeg cmake make -q -y
 
 echo "Installing unzip..."
 conda install unzip -y --quiet
