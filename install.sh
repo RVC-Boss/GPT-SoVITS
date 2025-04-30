@@ -236,12 +236,9 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Installing PyTorch with ROCm support..."
     pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/rocm6.2
-elif [ "$USE_CPU" = true ]; then
+elif [ "$USE_CPU" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Installing PyTorch for CPU..."
     pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
-else
-    echo "Unknown Err"
-    exit 1
 fi
 
 echo "Installing Python dependencies from requirements.txt..."
