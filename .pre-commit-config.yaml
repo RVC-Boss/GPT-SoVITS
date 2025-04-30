@@ -13,3 +13,9 @@ repos:
     - id: ruff-format
       types_or: [ python, pyi ]
       args: [--line-length=120]
+
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.1
+  hooks:
+    - id: codespell
+      files: ^.*\.(py|md)$
