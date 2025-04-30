@@ -16,7 +16,6 @@ services:
       - /workspace/tools/asr/models
       - /workspace/tools/uvr5/uvr5_weights
     environment:
-      - PYTHONPATH=/workspace/GPT-SoVITS
       - is_half=true
     tty: true
     stdin_open: true
@@ -38,7 +37,6 @@ services:
       - /workspace/tools/asr/models
       - /workspace/tools/uvr5/uvr5_weights
     environment:
-      - PYTHONPATH=/workspace/GPT-SoVITS
       - is_half=true
     tty: true
     stdin_open: true

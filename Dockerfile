@@ -1,14 +1,14 @@
 ARG CUDA_VERSION=12.4
 
-FROM nvidia/cuda:${CUDA_VERSION}.1-cudnn-runtime-ubuntu22.04
-
-ARG CUDA_VERSION
-
-ENV CUDA_VERSION=${CUDA_VERSION}
+FROM nvidia/cuda:${CUDA_VERSION}.1-cudnn-devel-ubuntu22.04
 
 LABEL maintainer="XXXXRT"
-LABEL version="V4-0429"
+LABEL version="V4-0501"
 LABEL description="Docker image for GPT-SoVITS"
+
+ARG CUDA_VERSION=12.4
+
+ENV CUDA_VERSION=${CUDA_VERSION}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -29,76 +29,35 @@ WORKDIR /workspace/GPT-SoVITS
 
 COPY . /workspace/GPT-SoVITS
 
-ARG WGET_CMD=wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404
-ENV WGET_CMD=${WGET_CMD}
+ARG LITE=false
+ENV LITE=${LITE}
 
-RUN echo "== /usr ==" && du -h --max-depth=2 /usr | sort -hr | head -n 10 && \
-    echo "== /opt ==" && du -h --max-depth=2 /opt | sort -hr | head -n 10 && \
-    echo "== /root ==" && du -h --max-depth=2 /root | sort -hr | head -n 10 && \
-    echo "==workspace==" && du -h --max-depth=2 /workspace/GPT-SoVITS | sort -hr | head -n 10
+ARG WORKFLOW=false
+ENV WORKFLOW=${WORKFLOW}
 
-RUN eval "$WGET_CMD -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh" && \
-    bash anaconda.sh -b -p /root/anaconda3 && \
-    rm anaconda.sh
+ARG TARGETPLATFORM=linux/amd64
+ENV TARGETPLATFORM=${TARGETPLATFORM}
 
+RUN bash Docker/anaconda_install.sh
 
-RUN echo "== /usr ==" && du -h --max-depth=2 /usr | sort -hr | head -n 10 && \
-    echo "== /opt ==" && du -h --max-depth=2 /opt | sort -hr | head -n 10 && \
-    echo "== /root ==" && du -h --max-depth=2 /root | sort -hr | head -n 10 && \
-    echo "==workspace==" && du -h --max-depth=2 /workspace/GPT-SoVITS | sort -hr | head -n 10
+RUN echo "== $HOME/anaconda3/pkgs ==" && du -h --max-depth=2 $HOME/anaconda3/pkgs | sort -hr | head -n 10 && \
+  echo "== $HOME/anaconda3 ==" && du -h --max-depth=2 $HOME/anaconda3 | sort -hr | head -n 10
 
-ARG USE_FUNASR=false
-ARG USE_FASTERWHISPER=false
-
-RUN if [ "$USE_FUNASR" = "true" ]; then \
-    echo "Downloading funasr..." && \
-    $WGET_CMD "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/funasr.zip" && \
-    unzip funasr.zip -d tools/asr/models/ && \
-    rm -rf funasr.zip ; \
-  else \
-    echo "Skipping funasr download" ; \
-  fi
-
-RUN if [ "$USE_FASTERWHISPER" = "true" ]; then \
-    echo "Downloading faster-whisper..." && \
-    $WGET_CMD "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/faster-whisper.zip" && \
-    unzip faster-whisper.zip -d tools/asr/models/ && \
-    rm -rf faster-whisper.zip ; \
-  else \
-    echo "Skipping faster-whisper download" ; \
-  fi
-
-RUN echo "== /usr ==" && du -h --max-depth=2 /usr | sort -hr | head -n 10 && \
-  echo "== /opt ==" && du -h --max-depth=2 /opt | sort -hr | head -n 10 && \
-  echo "== /root ==" && du -h --max-depth=2 /root | sort -hr | head -n 10 && \
-  echo "==workspace==" && du -h --max-depth=2 /workspace/GPT-SoVITS | sort -hr | head -n 10
-
-ENV PATH="/root/anaconda3/bin:$PATH"
+ENV PATH="$HOME/anaconda3/bin:$PATH"
 
 SHELL ["/bin/bash", "-c"]
-
-RUN conda create -n GPTSoVITS python=3.10 -y
 
 ENV PATH="/usr/local/cuda/bin:$PATH"
 ENV CUDA_HOME="/usr/local/cuda"
 ENV MAKEFLAGS="-j$(nproc)"
 
-ARG SKIP_CHECK=false
-ENV SKIP_CHECK=${SKIP_CHECK}
+RUN bash Docker/setup.sh
 
-RUN source /root/anaconda3/etc/profile.d/conda.sh && \
-    conda activate GPTSoVITS && \
-    bash install.sh --device CU${CUDA_VERSION//./} --source HF --skip-check ${SKIP_CHECK} --download-uvr5 && \
-    pip cache purge && \
-    pip show torch
-
-RUN echo "== /usr ==" && du -h --max-depth=2 /usr | sort -hr | head -n 10 && \
-    echo "== /opt ==" && du -h --max-depth=2 /opt | sort -hr | head -n 10 && \
-    echo "== /root ==" && du -h --max-depth=2 /root | sort -hr | head -n 10 && \
-    echo "==workspace==" && du -h --max-depth=2 /workspace/GPT-SoVITS | sort -hr | head -n 10
-
-RUN rm -rf /root/anaconda3/pkgs
+RUN echo "== $HOME/anaconda3/pkgs ==" && du -h --max-depth=2 $HOME/anaconda3/pkgs | sort -hr | head -n 10 && \
+  echo "== $HOME/anaconda3 ==" && du -h --max-depth=2 $HOME/anaconda3 | sort -hr | head -n 10
 
 EXPOSE 9871 9872 9873 9874 9880
 
-CMD ["/bin/bash", "-c", "source /root/anaconda3/etc/profile.d/conda.sh && conda activate GPTSoVITS && export PYTHONPATH=$(pwd) && exec bash"]
+ENV PYTHONPATH="/workspace/GPT-SoVITS"
+
+CMD ["/bin/bash", "-c", "source $HOME/anaconda3/etc/profile.d/conda.sh && exec bash"]

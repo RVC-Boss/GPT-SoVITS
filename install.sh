@@ -17,7 +17,7 @@ trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 USE_CUDA=false
 USE_ROCM=false
 USE_CPU=false
-SKIP_CHECK=false
+WORKFLOW=${WORKFLOW:-"false"}
 
 USE_HF=false
 USE_HF_MIRROR=false
@@ -62,17 +62,6 @@ while [[ $# -gt 0 ]]; do
             echo "Error: Invalid Download Source: $2"
             echo "Choose From: [HF, HF-Mirror, ModelScope]"
             exit 1
-            ;;
-        esac
-        shift 2
-        ;;
-    --skip-check)
-        case "$2" in
-        true)
-            SKIP_CHECK=true
-            ;;
-        *)
-            :
             ;;
         esac
         shift 2
@@ -204,7 +193,7 @@ if [ "$DOWNLOAD_UVR5" = "true" ]; then
     fi
 fi
 
-if [ "$USE_CUDA" = true ] && [ $SKIP_CHECK = false ]; then
+if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Checking for CUDA installation..."
     if command -v nvidia-smi &>/dev/null; then
         echo "CUDA found."
@@ -215,7 +204,7 @@ if [ "$USE_CUDA" = true ] && [ $SKIP_CHECK = false ]; then
     fi
 fi
 
-if [ "$USE_ROCM" = true ] && [ $SKIP_CHECK = false ]; then
+if [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Checking for ROCm installation..."
     if [ -d "/opt/rocm" ]; then
         echo "ROCm found."

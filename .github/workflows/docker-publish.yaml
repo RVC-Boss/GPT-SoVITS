@@ -26,16 +26,16 @@ jobs:
       matrix:
         include:
           - cuda_version: 12.4
-            use_fasterwhisper: false
+            lite: false
             tag_prefix: lite-cu124
           - cuda_version: 12.4
-            use_fasterwhisper: true
+            lite: true
             tag_prefix: cu124
           - cuda_version: 12.8
-            use_fasterwhisper: false
+            lite: false
             tag_prefix: lite-cu128
           - cuda_version: 12.8
-            use_fasterwhisper: true
+            lite: true
             tag_prefix: cu128
 
     steps:
@@ -93,12 +93,11 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
+          platforms: linux/amd64,linux/arm64
           build-args: |
-            USE_FUNASR=true
-            USE_FASTERWHISPER=${{ matrix.use_fasterwhisper }}
+            LITE=${{ matrix.lite }}
             CUDA_VERSION=${{ matrix.cuda_version }}
-            WGET_CMD=wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404
-            SKIP_CHECK=true
+            WORKFLOW=true
           tags: |
             xxxxrt666/gpt-sovits:${{ matrix.tag_prefix }}-${{ needs.generate-meta.outputs.tag }}
             xxxxrt666/gpt-sovits:latest-${{ matrix.tag_prefix }}
