@@ -11,7 +11,7 @@ ARG CUDA_VERSION=12.4
 
 ENV CUDA_VERSION=${CUDA_VERSION}
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq 1>/dev/null && \
   apt-get install -y -qq --no-install-recommends \
     build-essential \
     gcc \
@@ -25,6 +25,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
     procps \
     ca-certificates \
     locales \
+    1>/dev/null \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace/GPT-SoVITS
