@@ -41,7 +41,7 @@ rm anaconda.sh
 
 rm $LOG_PATH
 
-sudo rm -rf "$HOME/anaconda3/pkgs"
+rm -rf "$HOME/anaconda3/pkgs"
 
 mkdir "$HOME/anaconda3/pkgs"
 
