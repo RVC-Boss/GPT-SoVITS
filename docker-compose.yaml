@@ -12,9 +12,9 @@ services:
       - "9880:9880"
     volumes:
       - .:/workspace/GPT-SoVITS
-      - /workspace/GPT-SoVITS/pretrained_models
-      - /workspace/tools/asr/models
-      - /workspace/tools/uvr5/uvr5_weights
+      - /dev/null:/workspace/GPT-SoVITS/pretrained_models
+      - /dev/null:/workspace/tools/asr/models
+      - /dev/null:/workspace/tools/uvr5/uvr5_weights
     environment:
       - is_half=true
     tty: true
@@ -33,9 +33,9 @@ services:
       - "9880:9880"
     volumes:
       - .:/workspace/GPT-SoVITS
-      - /workspace/GPT-SoVITS/pretrained_models
-      - /workspace/tools/asr/models
-      - /workspace/tools/uvr5/uvr5_weights
+      - /dev/null:/workspace/GPT-SoVITS/pretrained_models
+      - /dev/null:/workspace/tools/asr/models
+      - /dev/null:/workspace/tools/uvr5/uvr5_weights
     environment:
       - is_half=true
     tty: true

@@ -44,9 +44,6 @@ ENV HOME="/root"
 
 RUN bash Docker/anaconda_install.sh
 
-RUN echo "== $HOME/anaconda3/pkgs ==" && du -h --max-depth=2 $HOME/anaconda3/pkgs | sort -hr | head -n 10 && \
-  echo "== $HOME/anaconda3 ==" && du -h --max-depth=2 $HOME/anaconda3 | sort -hr | head -n 10
-
 ENV PATH="$HOME/anaconda3/bin:$PATH"
 
 SHELL ["/bin/bash", "-c"]
@@ -57,11 +54,16 @@ ENV MAKEFLAGS="-j$(nproc)"
 
 RUN bash Docker/setup.sh
 
-RUN echo "== $HOME/anaconda3/pkgs ==" && du -h --max-depth=2 $HOME/anaconda3/pkgs | sort -hr | head -n 10 && \
-  echo "== $HOME/anaconda3 ==" && du -h --max-depth=2 $HOME/anaconda3 | sort -hr | head -n 10
-
 EXPOSE 9871 9872 9873 9874 9880
 
 ENV PYTHONPATH="/workspace/GPT-SoVITS"
 
-CMD ["/bin/bash", "-c", "source $HOME/anaconda3/etc/profile.d/conda.sh && exec bash"]
+CMD ["/bin/bash", "-c", "\
+  source $HOME/anaconda3/etc/profile.d/conda.sh && \
+  rm -rf /workspace/GPT-SoVITS/pretrained_models && \
+  rm -rf /workspace/tools/asr/models && \
+  rm -rf /workspace/tools/uvr5/uvr5_weights && \
+  ln -s /workspace/model/pretrained_models /workspace/GPT-SoVITS/pretrained_models && \
+  ln -s /workspace/model/models /workspace/tools/asr/models && \
+  ln -s /workspace/model/uvr5_weights /workspace/tools/uvr5/uvr5_weights && \
+  exec bash"]
