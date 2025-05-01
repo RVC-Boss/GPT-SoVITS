@@ -271,7 +271,7 @@ V1 환경에서 V2를 사용하려면:
 
 2. github에서 최신 코드를 클론하십시오.
 
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)에서 V2 사전 학습 모델을 다운로드하여 `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`에 넣으십시오.
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)에서 V2 사전 학습 모델을 다운로드하여 `GPT_SoVITS/pretrained_models/gsv-v2final-pretrained`에 넣으십시오.
 
    중국어 V2 추가: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다.)
 
@@ -291,7 +291,7 @@ v2 환경에서 v3 사용하기:
 
 2. 최신 코드를 github 에서 클론합니다.
 
-3. v3 사전 훈련된 모델(s1v3.ckpt, s2Gv3.pth, 그리고 models--nvidia--bigvgan_v2_24khz_100band_256x 폴더)을 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 다운로드하여 `GPT_SoVITS\pretrained_models` 폴더에 넣습니다.
+3. v3 사전 훈련된 모델(s1v3.ckpt, s2Gv3.pth, 그리고 models--nvidia--bigvgan_v2_24khz_100band_256x 폴더)을 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 다운로드하여 `GPT_SoVITS/pretrained_models` 폴더에 넣습니다.
 
    추가: 오디오 슈퍼 해상도 모델에 대해서는 [다운로드 방법](../../tools/AP_BWE_main/24kto48k/readme.txt)을 참고하세요.
 

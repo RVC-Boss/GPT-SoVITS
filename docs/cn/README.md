@@ -281,7 +281,7 @@ python webui.py
 
 2. 需要克隆 github 上的最新代码
 
-3. 需要从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) 下载预训练模型文件放到 GPT_SoVITS\pretrained_models\gsv-v2final-pretrained 下
+3. 需要从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) 下载预训练模型文件放到 GPT_SoVITS/pretrained_models/gsv-v2final-pretrained 下
 
    中文额外需要下载[G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (下载 G2PW 模型,解压并重命名为`G2PWModel`,将其放到`GPT_SoVITS/text`目录下)
 
@@ -301,7 +301,7 @@ python webui.py
 
 2. 需要克隆 github 上的最新代码
 
-3. 从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)下载这些 v3 新增预训练模型 (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder)将他们放到`GPT_SoVITS\pretrained_models`目录下
+3. 从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)下载这些 v3 新增预训练模型 (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder)将他们放到`GPT_SoVITS/pretrained_models`目录下
 
    如果想用音频超分功能缓解 v3 模型生成 24k 音频觉得闷的问题, 需要下载额外的模型参数, 参考[how to download](../../tools/AP_BWE_main/24kto48k/readme.txt)
 

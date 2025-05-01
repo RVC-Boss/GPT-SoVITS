@@ -273,7 +273,7 @@ V1 ortamından V2'yi kullanmak için:
 
 2. github'dan en son kodları klonlayın.
 
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) adresinden v2 önceden eğitilmiş modelleri indirin ve bunları `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained` dizinine yerleştirin.
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) adresinden v2 önceden eğitilmiş modelleri indirin ve bunları `GPT_SoVITS/pretrained_models/gsv-v2final-pretrained` dizinine yerleştirin.
 
    Ek olarak Çince V2: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW modellerini indirip, zipten çıkarıp, `G2PWModel` olarak yeniden adlandırıp `GPT_SoVITS/text` dizinine yerleştirin.)
 
@@ -293,7 +293,7 @@ V1 ortamından V2'yi kullanmak için:
 
 2. GitHub'dan en son kodları klonlayın.
 
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS\pretrained_models` dizinine yerleştirin.
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS/pretrained_models` dizinine yerleştirin.
 
    ek: Ses Süper Çözünürlük modeli için [nasıl indirileceği](../../tools/AP_BWE_main/24kto48k/readme.txt) hakkında bilgi alabilirsiniz.
 

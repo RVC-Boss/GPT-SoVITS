@@ -269,7 +269,7 @@ V1 環境から V2 を使用するには:
 
 2. 最新のコードを github からクローン
 
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)から V2 の事前学習モデルをダウンロードし、それらを`GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`に配置
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)から V2 の事前学習モデルをダウンロードし、それらを`GPT_SoVITS/pretrained_models/gsv-v2final-pretrained`に配置
 
    中国語 V2 追加: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW モデルをダウンロードし、解凍して`G2PWModel`にリネームし、`GPT_SoVITS/text`に配置します)
 
@@ -289,7 +289,7 @@ v2 環境から v3 を使用する方法:
 
 2. GitHub から最新のコードをクローンします.
 
-3. v3 の事前学習済みモデル (s1v3.ckpt、s2Gv3.pth、models--nvidia--bigvgan_v2_24khz_100band_256x フォルダ) を[Huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) からダウンロードし、GPT_SoVITS\pretrained_models フォルダに配置します.
+3. v3 の事前学習済みモデル (s1v3.ckpt、s2Gv3.pth、models--nvidia--bigvgan_v2_24khz_100band_256x フォルダ) を[Huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) からダウンロードし、GPT_SoVITS/pretrained_models フォルダに配置します.
 
    追加: 音声超解像モデルについては、[ダウンロード方法](../../tools/AP_BWE_main/24kto48k/readme.txt)を参照してください.
 
