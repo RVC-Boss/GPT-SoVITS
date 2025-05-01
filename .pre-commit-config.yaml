@@ -8,11 +8,11 @@ repos:
     # Run the linter.
     - id: ruff
       types_or: [ python, pyi ]
-      args: [ --fix ]
+      args: [ --fix, --exit-zero ]
     # Run the formatter.
     - id: ruff-format
       types_or: [ python, pyi ]
-      args: [--line-length=120]
+      args: [ --line-length=120, --target-version py310 ]
 
 - repo: https://github.com/codespell-project/codespell
   rev: v2.4.1

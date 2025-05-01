@@ -65,7 +65,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-TARGETPLATFORM=$(uname -m | grep -q 'x86_64' && echo "linux/amd64" || echo "linux/arm64")
+TARGETPLATFORM=$(uname -m | grep -q 'x86' && echo "linux/amd64" || echo "linux/arm64")
 
 if [ $LITE = true ]; then
     CUDA_BASE="runtime"

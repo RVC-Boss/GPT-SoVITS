@@ -61,10 +61,10 @@ ENV PYTHONPATH="/workspace/GPT-SoVITS"
 
 CMD ["/bin/bash", "-c", "\
   source $HOME/anaconda3/etc/profile.d/conda.sh && \
-  rm -rf /workspace/GPT-SoVITS/pretrained_models && \
-  rm -rf /workspace/tools/asr/models && \
-  rm -rf /workspace/tools/uvr5/uvr5_weights && \
-  ln -s /workspace/model/pretrained_models /workspace/GPT-SoVITS/pretrained_models && \
-  ln -s /workspace/model/models /workspace/tools/asr/models && \
-  ln -s /workspace/model/uvr5_weights /workspace/tools/uvr5/uvr5_weights && \
+  rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
+  rm -rf /workspace/GPT-SoVITS/tools/asr/models && \
+  rm -rf /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
+  ln -s /workspace/model/pretrained_models /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
+  ln -s /workspace/model/models /workspace/GPT-SoVITS/tools/asr/models && \
+  ln -s /workspace/model/uvr5_weights /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
   exec bash"]

@@ -63,9 +63,9 @@ else
 fi
 
 mkdir -p /workspace/model
-mv /workspace/GPT-SoVITS/pretrained_models /workspace/model/
-mv /workspace/tools/asr/models /workspace/model/
-mv /workspace/tools/uvr5/uvr5_weights /workspace/model/
+mv /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models /workspace/model/
+mv /workspace/GPT-SoVITS/tools/asr/models /workspace/model/
+mv /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights /workspace/model/
 
 pip cache purge
 
