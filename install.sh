@@ -125,11 +125,13 @@ fi
 
 # 安装构建工具
 # Install build tools
-echo "Installing GCC..."
-conda install -c conda-forge gcc=14 -q -y
+if [ "$(uname)" != "Darwin" ]; then
+    echo "Installing GCC..."
+    conda install -c conda-forge gcc=14 -q -y
 
-echo "Installing G++..."
-conda install -c conda-forge gxx -q -y
+    echo "Installing G++..."
+    conda install -c conda-forge gxx -q -y
+fi
 
 echo "Installing ffmpeg and cmake..."
 conda install ffmpeg cmake make -q -y
