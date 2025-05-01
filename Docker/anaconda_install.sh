@@ -8,6 +8,10 @@ cd "$SCRIPT_DIR" || exit 1
 
 cd .. || exit 1
 
+if [ -d "$HOME/anaconda3" ]; then
+    exit 0
+fi
+
 WORKFLOW=${WORKFLOW:-"false"}
 TARGETPLATFORM=${TARGETPLATFORM:-"linux/amd64"}
 
@@ -46,6 +50,8 @@ source "$HOME/anaconda3/etc/profile.d/conda.sh"
 "$HOME/anaconda3/bin/conda" update -q --all -y 1>/dev/null
 
 "$HOME/anaconda3/bin/conda" install python=3.11 -q -y
+
+"$HOME/anaconda3/bin/conda" install gcc=14 gxx ffmpeg cmake make unzip -q -y
 
 rm $LOG_PATH
 

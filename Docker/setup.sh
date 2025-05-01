@@ -48,16 +48,16 @@ fi
 
 source "$HOME/anaconda3/etc/profile.d/conda.sh"
 
-if [ "$CUDA_VERSION" = 12.8 ]; then
+if [ "$CUDA_VERSION" = 128 ]; then
     pip install torch torchaudio --no-cache-dir --index-url https://download.pytorch.org/whl/cu128
-elif [ "$CUDA_VERSION" = 12.4 ]; then
+elif [ "$CUDA_VERSION" = 124 ]; then
     pip install torch==2.5.1 torchaudio==2.5.1 --no-cache-dir --index-url https://download.pytorch.org/whl/cu124
 fi
 
 if [ "$LITE" = "true" ]; then
-    bash install.sh --device "CU${CUDA_VERSION//./}" --source HF
+    bash install.sh --device "CU${CUDA_VERSION}" --source HF
 elif [ "$LITE" = "false" ]; then
-    bash install.sh --device "CU${CUDA_VERSION//./}" --source HF --download-uvr5
+    bash install.sh --device "CU${CUDA_VERSION}" --source HF --download-uvr5
 else
     exit 1
 fi

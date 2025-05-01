@@ -1,7 +1,7 @@
-ARG CUDA_VERSION=12.4
+ARG CUDA_VERSION=124
 ARG CUDA_BASE=runtime
 
-FROM nvidia/cuda:${CUDA_VERSION}.1-cudnn-${CUDA_BASE}-ubuntu22.04
+FROM xxxxrt666/gpt-sovits:latest-cu{CUDA_VERSION}-${CUDA_BASE}-base
 
 LABEL maintainer="XXXXRT"
 LABEL version="V4-0501"
@@ -10,23 +10,6 @@ LABEL description="Docker image for GPT-SoVITS"
 ARG CUDA_VERSION=12.4
 
 ENV CUDA_VERSION=${CUDA_VERSION}
-
-RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq 1>/dev/null && \
-  apt-get install -y -qq --no-install-recommends \
-    build-essential \
-    gcc \
-    g++ \
-    wget \
-    curl \
-    unzip \
-    git \
-    nano \
-    htop \
-    procps \
-    ca-certificates \
-    locales \
-    1>/dev/null \
-    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace/GPT-SoVITS
 
