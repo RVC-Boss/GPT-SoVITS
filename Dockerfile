@@ -1,7 +1,7 @@
 ARG CUDA_VERSION=124
 ARG CUDA_BASE=runtime
 
-FROM xxxxrt666/gpt-sovits:latest-cu{CUDA_VERSION}-${CUDA_BASE}-base
+FROM xxxxrt666/gpt-sovits:latest-cu${CUDA_VERSION}-${CUDA_BASE}-base
 
 LABEL maintainer="XXXXRT"
 LABEL version="V4-0501"
