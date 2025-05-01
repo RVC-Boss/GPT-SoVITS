@@ -147,7 +147,9 @@ if torch.cuda.is_available() or ngpu != 0:
 #     mem.append(psutil.virtual_memory().total/ 1024 / 1024 / 1024) # 实测使用系统内存作为显存不会爆显存
 
 
-v3v4set={"v3","v4"}
+v3v4set = {"v3", "v4"}
+
+
 def set_default():
     global \
         default_batch_size, \
@@ -589,6 +591,7 @@ def close_denoise():
 p_train_SoVITS = None
 process_name_sovits = i18n("SoVITS训练")
 
+
 def open1Ba(
     batch_size,
     total_epoch,
@@ -641,7 +644,9 @@ def open1Ba(
         yield (
             process_info(process_name_sovits, "opened"),
             {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},{"__type__": "update"},{"__type__": "update"}
+            {"__type__": "update", "visible": True},
+            {"__type__": "update"},
+            {"__type__": "update"},
         )
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
@@ -651,13 +656,17 @@ def open1Ba(
         yield (
             process_info(process_name_sovits, "finish"),
             {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},SoVITS_dropdown_update,GPT_dropdown_update
+            {"__type__": "update", "visible": False},
+            SoVITS_dropdown_update,
+            GPT_dropdown_update,
         )
     else:
         yield (
             process_info(process_name_sovits, "occupy"),
             {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},{"__type__": "update"},{"__type__": "update"}
+            {"__type__": "update", "visible": True},
+            {"__type__": "update"},
+            {"__type__": "update"},
         )
 
 
@@ -726,7 +735,9 @@ def open1Bb(
         yield (
             process_info(process_name_gpt, "opened"),
             {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},{"__type__": "update"},{"__type__": "update"}
+            {"__type__": "update", "visible": True},
+            {"__type__": "update"},
+            {"__type__": "update"},
         )
         print(cmd)
         p_train_GPT = Popen(cmd, shell=True)
@@ -736,13 +747,17 @@ def open1Bb(
         yield (
             process_info(process_name_gpt, "finish"),
             {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},SoVITS_dropdown_update,GPT_dropdown_update
+            {"__type__": "update", "visible": False},
+            SoVITS_dropdown_update,
+            GPT_dropdown_update,
         )
     else:
         yield (
             process_info(process_name_gpt, "occupy"),
             {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},{"__type__": "update"},{"__type__": "update"}
+            {"__type__": "update", "visible": True},
+            {"__type__": "update"},
+            {"__type__": "update"},
         )
 
 
@@ -1291,6 +1306,7 @@ def close1abc():
         {"__type__": "update", "visible": False},
     )
 
+
 def switch_version(version_):
     os.environ["version"] = version_
     global version
@@ -1492,7 +1508,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 with gr.Row():
                     exp_name = gr.Textbox(label=i18n("*实验/模型名"), value="xxx", interactive=True)
                     gpu_info = gr.Textbox(label=i18n("显卡信息"), value=gpu_info, visible=True, interactive=False)
-                    version_checkbox = gr.Radio(label=i18n("版本"), value=version, choices=["v1", "v2", "v4"])#, "v3"
+                    version_checkbox = gr.Radio(label=i18n("版本"), value=version, choices=["v1", "v2", "v4"])  # , "v3"
                 with gr.Row():
                     pretrained_s2G = gr.Textbox(
                         label=i18n("预训练SoVITS-G模型路径"),
@@ -1915,7 +1931,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     if_grad_ckpt,
                     lora_rank,
                 ],
-                [info1Ba, button1Ba_open, button1Ba_close,SoVITS_dropdown,GPT_dropdown],
+                [info1Ba, button1Ba_open, button1Ba_close, SoVITS_dropdown, GPT_dropdown],
             )
             button1Bb_open.click(
                 open1Bb,
@@ -1930,7 +1946,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     gpu_numbers1Bb,
                     pretrained_s1,
                 ],
-                [info1Bb, button1Bb_open, button1Bb_close,SoVITS_dropdown,GPT_dropdown],
+                [info1Bb, button1Bb_open, button1Bb_close, SoVITS_dropdown, GPT_dropdown],
             )
             version_checkbox.change(
                 switch_version,
