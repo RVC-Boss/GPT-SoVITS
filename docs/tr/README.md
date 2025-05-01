@@ -42,14 +42,15 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### Test Edilmiş Ortamlar
 
-| Python Version | PyTorch Version  | Device          |
-|----------------|------------------|-----------------|
-| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8       |
-| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3       |
-| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4       |
-| Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
-| Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
-| Python 3.9     | PyTorch 2.2.2    | CPU             |
+| Python Version | PyTorch Version  | Device               |
+| -------------- | ---------------- | -------------------- |
+| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8            |
+| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3            |
+| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4            |
+| Python 3.9     | PyTorch 2.8.0dev | CUDA12.8 (for sm120) |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon        |
+| Python 3.11    | PyTorch 2.6.0    | Apple silicon        |
+| Python 3.9     | PyTorch 2.2.2    | CPU                  |
 
 ### Windows
 
@@ -111,29 +112,51 @@ pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
 ```
 
-### Docker Kullanarak
+### GPT-SoVITS Çalıştırma (Docker Kullanarak)
 
-#### docker-compose.yaml yapılandırması
+#### Docker İmajı Seçimi
 
-0. Görüntü etiketleri hakkında: Kod tabanındaki hızlı güncellemeler ve görüntüleri paketleme ve test etme işleminin yavaş olması nedeniyle, lütfen şu anda paketlenmiş en son görüntüleri kontrol etmek için [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(eski sürüm) adresini kontrol edin ve durumunuza göre seçim yapın veya alternatif olarak, kendi ihtiyaçlarınıza göre bir Dockerfile kullanarak yerel olarak oluşturun.
-1. Ortam Değişkenleri: 
-   - is_half: Yarım hassasiyet/çift hassasiyeti kontrol eder. Bu genellikle "SSL çıkarma" adımı sırasında 4-cnhubert/5-wav32k dizinleri altındaki içeriğin doğru şekilde oluşturulmamasının nedenidir. Gerçek durumunuza göre True veya False olarak ayarlayın.
-2. Birim Yapılandırması, Kapsayıcı içindeki uygulamanın kök dizini /workspace olarak ayarlanmıştır. Varsayılan docker-compose.yaml, içerik yükleme/indirme için bazı pratik örnekler listeler.
-3. shm_size: Windows üzerinde Docker Desktop için varsayılan kullanılabilir bellek çok küçüktür, bu da anormal işlemlere neden olabilir. Kendi durumunuza göre ayarlayın.
-4. Dağıtım bölümü altında, GPU ile ilgili ayarlar sisteminize ve gerçek koşullara göre dikkatlice ayarlanmalıdır.
+Kod tabanı hızla geliştiği halde Docker imajları daha yavaş yayınlandığı için lütfen şu adımları izleyin:
 
-#### docker compose ile çalıştırma
+- En güncel kullanılabilir imaj etiketlerini görmek için [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) adresini kontrol edin.
+- Ortamınıza uygun bir imaj etiketi seçin.
+- Opsiyonel: En güncel değişiklikleri almak için, sağlanan Dockerfile ile yerel olarak imajı kendiniz oluşturabilirsiniz.
 
+#### Ortam Değişkenleri
+
+- `is_half`: Yarı hassasiyet (fp16) kullanımını kontrol eder. GPU’nuz destekliyorsa, belleği azaltmak için `true` olarak ayarlayın.
+
+#### Paylaşılan Bellek Yapılandırması
+
+Windows (Docker Desktop) ortamında, varsayılan paylaşılan bellek boyutu düşüktür ve bu beklenmedik hatalara neden olabilir. Sistem belleğinize göre Docker Compose dosyasındaki `shm_size` değerini (örneğin `16g`) artırmanız önerilir.
+
+#### Servis Seçimi
+
+`docker-compose.yaml` dosyasında iki tür servis tanımlanmıştır:
+
+- `GPT-SoVITS-CU124` ve `GPT-SoVITS-CU128`: Tüm özellikleri içeren tam sürüm.
+- `GPT-SoVITS-CU124-Lite` ve `GPT-SoVITS-CU128-Lite`: Daha az bağımlılığa ve sınırlı işlevselliğe sahip hafif sürüm.
+
+Belirli bir servisi Docker Compose ile çalıştırmak için şu komutu kullanın:
+
+```bash
+docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128>
 ```
-docker compose -f "docker-compose.yaml" up -d
+
+#### Docker İmajını Yerel Olarak Oluşturma
+
+Docker imajını kendiniz oluşturmak isterseniz şu komutu kullanın:
+
+```bash
+bash docker_build.sh --cuda <12.4|12.8> [--lite]
 ```
 
-#### docker komutu ile çalıştırma
+#### Çalışan Konteynere Erişim (Bash Shell)
 
-Yukarıdaki gibi, ilgili parametreleri gerçek durumunuza göre değiştirin, ardından aşağıdaki komutu çalıştırın:
+Konteyner arka planda çalışırken, aşağıdaki komutla içine girebilirsiniz:
 
-```
-docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
+```bash
+docker exec -it <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128> bash
 ```
 
 ## Önceden Eğitilmiş Modeller
@@ -203,12 +226,12 @@ veya WebUI'de manuel olarak sürüm değiştirin.
 
 #### Yol Otomatik Doldurma artık destekleniyor
 
-    1. Ses yolunu doldurun
-    2. Sesi küçük parçalara ayırın
-    3. Gürültü azaltma (isteğe bağlı)
-    4. ASR
-    5. ASR transkripsiyonlarını düzeltin
-    6. Bir sonraki sekmeye geçin ve modeli ince ayar yapın
+1. Ses yolunu doldurun
+2. Sesi küçük parçalara ayırın
+3. Gürültü azaltma (isteğe bağlı)
+4. ASR
+5. ASR transkripsiyonlarını düzeltin
+6. Bir sonraki sekmeye geçin ve modeli ince ayar yapın
 
 ### Çıkarım WebUI'sini Açın
 
@@ -298,7 +321,7 @@ V1 ortamından V2'yi kullanmak için:
 
 UVR5 için Web Arayüzünü açmak için komut satırını kullanın
 
-```
+```bash
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
 
@@ -309,7 +332,7 @@ python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --
 
 Veri setinin ses segmentasyonu komut satırı kullanılarak bu şekilde yapılır
 
-```
+```bash
 python audio_slicer.py \
     --input_path "<orijinal_ses_dosyası_veya_dizininin_yolu>" \
     --output_root "<alt_bölümlere_ayrılmış_ses_kliplerinin_kaydedileceği_dizin>" \
@@ -321,7 +344,7 @@ python audio_slicer.py \
 
 Veri seti ASR işleme komut satırı kullanılarak bu şekilde yapılır (Yalnızca Çince)
 
-```
+```bash
 python tools/asr/funasr_asr.py -i <girdi> -o <çıktı>
 ```
 
@@ -329,7 +352,7 @@ ASR işleme Faster_Whisper aracılığıyla gerçekleştirilir (Çince dışınd
 
 (İlerleme çubukları yok, GPU performansı zaman gecikmelerine neden olabilir)
 
-```
+```bash
 python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 ```
 

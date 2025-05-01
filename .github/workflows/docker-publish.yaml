@@ -241,7 +241,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y jq
 
-          TOKEN=$(curl -s -u $DOCKER_HUB_USERNAME:$DOCKER_HUB_TOKEN" \
+          TOKEN=$(curl -s -u $DOCKER_HUB_USERNAME:$DOCKER_HUB_TOKEN \
           "https://auth.docker.io/token?service=registry.docker.io&scope=repository:xxxxrt666/gpt-sovits:pull,push,delete" \
           | jq -r .token)
 

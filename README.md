@@ -44,15 +44,15 @@ For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/
 
 ### Tested Environments
 
-| Python Version | PyTorch Version  | Device          |
-|----------------|------------------|-----------------|
-| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8       |
-| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3       |
-| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4       |
-| Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
-| Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
-| Python 3.9     | PyTorch 2.2.2    | CPU             |
-| Python 3.9     | PyTorch 2.8.0dev | CUDA12.8(for Nvidia50x0)  |
+| Python Version | PyTorch Version  | Device               |
+| -------------- | ---------------- | -------------------- |
+| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8            |
+| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3            |
+| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4            |
+| Python 3.9     | PyTorch 2.8.0dev | CUDA12.8 (for sm120) |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon        |
+| Python 3.11    | PyTorch 2.6.0    | Apple silicon        |
+| Python 3.9     | PyTorch 2.2.2    | CPU                  |
 
 ### Windows
 
@@ -118,29 +118,51 @@ pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
 ```
 
-### Using Docker
+### Running GPT-SoVITS with Docker
 
-#### docker-compose.yaml configuration
+#### Docker Image Selection
 
-0. Regarding image tags: Due to rapid updates in the codebase and the slow process of packaging and testing images, please check [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(outdated) for the currently packaged latest images and select as per your situation, or alternatively, build locally using a Dockerfile according to your own needs.
-1. Environment Variables: 
-   - is_half: Controls half-precision/double-precision. This is typically the cause if the content under the directories 4-cnhubert/5-wav32k is not generated correctly during the "SSL extracting" step. Adjust to True or False based on your actual situation.
-2. Volumes Configuration, The application's root directory inside the container is set to /workspace. The default docker-compose.yaml lists some practical examples for uploading/downloading content.
-3. shm_size: The default available memory for Docker Desktop on Windows is too small, which can cause abnormal operations. Adjust according to your own situation.
-4. Under the deploy section, GPU-related settings should be adjusted cautiously according to your system and actual circumstances.
+Due to rapid development in the codebase and a slower Docker image release cycle, please:
 
-#### Running with docker compose
+- Check [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) for the latest available image tags.
+- Choose an appropriate image tag for your environment.
+- Optionally, build the image locally using the provided Dockerfile for the most up-to-date changes.
 
+#### Environment Variables
+
+- `is_half`: Controls whether half-precision (fp16) is enabled. Set to `true` if your GPU supports it to reduce memory usage.
+
+#### Shared Memory Configuration
+
+On Windows (Docker Desktop), the default shared memory size is small and may cause unexpected behavior. Increase `shm_size` (e.g., to `16g`) in your Docker Compose file based on your available system memory.
+
+#### Choosing a Service
+
+The `docker-compose.yaml` defines two services:
+
+- `GPT-SoVITS-CU124` & `GPT-SoVITS-CU128`: Full version with all features.
+- `GPT-SoVITS-CU124-Lite` & `GPT-SoVITS-CU128-Lite`: Lightweight version with reduced dependencies and functionality.
+
+To run a specific service with Docker Compose, use:
+
+```bash
+docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128>
 ```
-docker compose -f "docker-compose.yaml" up -d
+
+#### Building the Docker Image Locally
+
+If you want to build the image yourself, use:
+
+```bash
+bash docker_build.sh --cuda <12.4|12.8> [--lite]
 ```
 
-#### Running with docker command
+#### Accessing the Running Container (Bash Shell)
 
-As above, modify the corresponding parameters based on your actual situation, then run the following command:
+Once the container is running in the background, you can access it using:
 
-```
-docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
+```bash
+docker exec -it <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128> bash
 ```
 
 ## Pretrained Models
@@ -168,7 +190,9 @@ docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-Docker
 The TTS annotation .list file format:
 
 ```
+
 vocal_path|speaker_name|language|text
+
 ```
 
 Language dictionary:
@@ -182,7 +206,9 @@ Language dictionary:
 Example:
 
 ```
+
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
+
 ```
 
 ## Finetune and inference
@@ -212,12 +238,12 @@ Or maunally switch version in WebUI
 
 #### Path Auto-filling is now supported
 
-    1. Fill in the audio path
-    2. Slice the audio into small chunks
-    3. Denoise(optinal)
-    4. ASR
-    5. Proofreading ASR transcriptions
-    6. Go to the next Tab, then finetune the model
+1. Fill in the audio path
+2. Slice the audio into small chunks
+3. Denoise(optinal)
+4. ASR
+5. Proofreading ASR transcriptions
+6. Go to the next Tab, then finetune the model
 
 ### Open Inference WebUI
 
@@ -322,7 +348,7 @@ Use v4 from v1/v2/v3 environment:
 
 Use the command line to open the WebUI for UVR5
 
-```
+```bash
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
 
@@ -333,7 +359,7 @@ python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --
 
 This is how the audio segmentation of the dataset is done using the command line
 
-```
+```bash
 python audio_slicer.py \
     --input_path "<path_to_original_audio_file_or_directory>" \
     --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
@@ -345,7 +371,7 @@ python audio_slicer.py \
 
 This is how dataset ASR processing is done using the command line(Only Chinese)
 
-```
+```bash
 python tools/asr/funasr_asr.py -i <input> -o <output>
 ```
 
@@ -353,7 +379,7 @@ ASR processing is performed through Faster_Whisper(ASR marking except Chinese)
 
 (No progress bars, GPU performance may cause time delays)
 
-```
+```bash
 python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
 

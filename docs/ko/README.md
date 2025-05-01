@@ -40,14 +40,15 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### 테스트 통과 환경
 
-| Python Version | PyTorch Version  | Device          |
-|----------------|------------------|-----------------|
-| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8       |
-| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3       |
-| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4       |
-| Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
-| Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
-| Python 3.9     | PyTorch 2.2.2    | CPU             |
+| Python Version | PyTorch Version  | Device               |
+| -------------- | ---------------- | -------------------- |
+| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8            |
+| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3            |
+| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4            |
+| Python 3.9     | PyTorch 2.8.0dev | CUDA12.8 (for sm120) |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon        |
+| Python 3.11    | PyTorch 2.6.0    | Apple silicon        |
+| Python 3.9     | PyTorch 2.2.2    | CPU                  |
 
 ### Windows
 
@@ -111,34 +112,51 @@ pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
 ```
 
-### Docker에서 사용
+### GPT-SoVITS 실행하기 (Docker 사용)
 
-#### docker-compose.yaml 설정
+#### Docker 이미지 선택
 
-0. 이미지 태그: 코드 저장소가 빠르게 업데이트되고 패키지가 느리게 빌드되고 테스트되므로, 현재 빌드된 최신 도커 이미지를 [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(오래된 버전) 에서 확인하고 필요에 따라 Dockerfile을 사용하여 로컬에서 빌드할 수 있습니다.
+코드베이스가 빠르게 업데이트되는 반면 Docker 이미지 릴리스 주기는 느리기 때문에 다음을 참고하세요:
 
-1. 환경 변수:
+- [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits)에서 최신 이미지 태그를 확인하세요.
+- 환경에 맞는 적절한 이미지 태그를 선택하세요.
+- 선택 사항: 최신 변경사항을 반영하려면 제공된 Dockerfile을 사용하여 로컬에서 직접 이미지를 빌드할 수 있습니다.
 
-- is_half: 반정밀/배정밀 제어. "SSL 추출" 단계에서 4-cnhubert/5-wav32k 디렉토리의 내용을 올바르게 생성할 수 없는 경우, 일반적으로 이것 때문입니다. 실제 상황에 따라 True 또는 False로 조정할 수 있습니다.
+#### 환경 변수
 
-2. 볼륨 설정, 컨테이너 내의 애플리케이션 루트 디렉토리를 /workspace로 설정합니다. 기본 docker-compose.yaml에는 실제 예제가 나열되어 있으므로 업로드/다운로드를 쉽게 할 수 있습니다.
+- `is_half`: 반정밀도(fp16) 사용 여부를 제어합니다. GPU가 지원하는 경우 `true`로 설정하면 메모리 사용량을 줄일 수 있습니다.
 
-3. shm_size: Windows의 Docker Desktop의 기본 사용 가능한 메모리가 너무 작아 오류가 발생할 수 있으므로 실제 상황에 따라 조정합니다.
+#### 공유 메모리 설정
 
-4. deploy 섹션의 gpu 관련 내용은 시스템 및 실제 상황에 따라 조정합니다.
+Windows(Docker Desktop)에서는 기본 공유 메모리 크기가 작아 예기치 않은 동작이 발생할 수 있습니다. 시스템 메모리 상황에 따라 Docker Compose 파일에서 `shm_size`를 (예: `16g`)로 증가시키는 것이 좋습니다.
 
-#### docker compose로 실행
+#### 서비스 선택
 
+`docker-compose.yaml` 파일에는 두 가지 서비스 유형이 정의되어 있습니다:
+
+- `GPT-SoVITS-CU124` 및 `GPT-SoVITS-CU128`: 전체 기능을 포함한 풀 버전
+- `GPT-SoVITS-CU124-Lite` 및 `GPT-SoVITS-CU128-Lite`: 의존성이 줄어든 경량 버전
+
+특정 서비스를 Docker Compose로 실행하려면 다음 명령을 사용하세요:
+
+```bash
+docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128>
 ```
-docker compose -f "docker-compose.yaml" up -d
+
+#### Docker 이미지 직접 빌드하기
+
+직접 이미지를 빌드하려면 다음 명령어를 사용하세요:
+
+```bash
+bash docker_build.sh --cuda <12.4|12.8> [--lite]
 ```
 
-#### docker 명령으로 실행
+#### 실행 중인 컨테이너 접속하기 (Bash Shell)
 
-위와 동일하게 실제 상황에 맞게 매개변수를 수정한 다음 다음 명령을 실행합니다:
+컨테이너가 백그라운드에서 실행 중일 때 다음 명령어로 셸에 접속할 수 있습니다:
 
-```
-docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
+```bash
+docker exec -it <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128> bash
 ```
 
 ## 사전 학습된 모델
@@ -206,12 +224,12 @@ python webui.py v1 <언어(옵션)>
 
 #### 경로 자동 채우기가 지원됩니다
 
-    1. 오디오 경로를 입력하십시오.
-    2. 오디오를 작은 청크로 분할하십시오.
-    3. 노이즈 제거(옵션)
-    4. ASR 수행
-    5. ASR 전사를 교정하십시오.
-    6. 다음 탭으로 이동하여 모델을 미세 조정하십시오.
+1. 오디오 경로를 입력하십시오.
+2. 오디오를 작은 청크로 분할하십시오.
+3. 노이즈 제거(옵션)
+4. ASR 수행
+5. ASR 전사를 교정하십시오.
+6. 다음 탭으로 이동하여 모델을 미세 조정하십시오.
 
 ### 추론 WebUI 열기
 
@@ -302,7 +320,7 @@ v2 환경에서 v3 사용하기:
 
 명령줄을 사용하여 UVR5용 WebUI 열기
 
-```
+```bash
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
 
@@ -313,7 +331,7 @@ python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --
 
 명령줄을 사용하여 데이터세트의 오디오 분할을 수행하는 방법은 다음과 같습니다.
 
-```
+```bash
 python audio_slicer.py \
     --input_path "<path_to_original_audio_file_or_directory>" \
     --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
@@ -325,7 +343,7 @@ python audio_slicer.py \
 
 명령줄을 사용하여 데이터 세트 ASR 처리를 수행하는 방법입니다(중국어만 해당).
 
-```
+```bash
 python tools/asr/funasr_asr.py -i <input> -o <output>
 ```
 
@@ -333,7 +351,7 @@ ASR 처리는 Faster_Whisper(중국어를 제외한 ASR 마킹)를 통해 수행
 
 (진행률 표시줄 없음, GPU 성능으로 인해 시간 지연이 발생할 수 있음)
 
-```
+```bash
 python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
 
