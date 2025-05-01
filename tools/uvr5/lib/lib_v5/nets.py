@@ -3,8 +3,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from . import spec_utils
-
 
 class BaseASPPNet(nn.Module):
     def __init__(self, nin, ch, dilations=(4, 8, 16)):
