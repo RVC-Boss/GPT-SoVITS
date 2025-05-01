@@ -6,8 +6,8 @@ numba
 pytorch-lightning>=2.4
 gradio<5
 ffmpeg-python
-onnxruntime; platform_machine in ("aarch64", "arm64")
-onnxruntime-gpu; platform_machine in ("x86_64", "AMD64")
+onnxruntime; platform_machine == "aarch64" or platform_machine == "arm64"
+onnxruntime-gpu; platform_machine == "x86_64" or platform_machine == "AMD64"
 tqdm
 funasr==1.0.27
 cn2an
