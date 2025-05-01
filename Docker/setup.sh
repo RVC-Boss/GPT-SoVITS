@@ -48,9 +48,13 @@ fi
 
 source "$HOME/anaconda3/etc/profile.d/conda.sh"
 
+echo "CUDA_VERSION: $CUDA_VERSION"
+
 if [ "$CUDA_VERSION" = 128 ]; then
+    echo 1111111
     pip install torch torchaudio --no-cache-dir --index-url https://download.pytorch.org/whl/cu128
 elif [ "$CUDA_VERSION" = 124 ]; then
+    echo 2222222
     pip install torch==2.5.1 torchaudio==2.5.1 --no-cache-dir --index-url https://download.pytorch.org/whl/cu124
 fi
 

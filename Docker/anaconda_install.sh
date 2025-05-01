@@ -45,6 +45,8 @@ source "$HOME/anaconda3/etc/profile.d/conda.sh"
 
 "$HOME/anaconda3/bin/conda" update -q --all -y 1>/dev/null
 
+"$HOME/anaconda3/bin/conda" install python=3.11 -q -y
+
 rm $LOG_PATH
 
 rm -rf "$HOME/anaconda3/pkgs"

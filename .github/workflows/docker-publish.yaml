@@ -27,13 +27,13 @@ jobs:
         include:
           - cuda_version: 12.4
             lite: true
-            tag_prefix: lite-cu124
+            tag_prefix: cu124-lite
           - cuda_version: 12.4
             lite: false
             tag_prefix: cu124
           - cuda_version: 12.8
             lite: true
-            tag_prefix: lite-cu128
+            tag_prefix: cu128-lite
           - cuda_version: 12.8
             lite: false
             tag_prefix: cu128
