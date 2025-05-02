@@ -231,6 +231,12 @@ jobs:
             --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX} \
             ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX}-amd64 \
             ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX}-arm64
+      
+      - name: Create Default Tag
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest \
+            ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-cu124-lite
 
       - name: Delete old platform-specific tags via Docker Hub API
         env:
@@ -242,7 +248,7 @@ jobs:
           sudo apt-get update && sudo apt-get install -y jq
 
           TOKEN=$(curl -s -u $DOCKER_HUB_USERNAME:$DOCKER_HUB_TOKEN \
-          "https://auth.docker.io/token?service=registry.docker.io&scope=repository:xxxxrt666/gpt-sovits:pull,push,delete" \
+          "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$DOCKER_HUB_USERNAME/gpt-sovits:pull,push,delete" \
           | jq -r .token)
 
           for PLATFORM in amd64 arm64; do
