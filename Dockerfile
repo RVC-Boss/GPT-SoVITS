@@ -45,7 +45,6 @@ ENV PYTHONPATH="/workspace/GPT-SoVITS"
 RUN conda init bash && echo "conda activate base" >> ~/.bashrc
 
 CMD ["/bin/bash", "-c", "\
-  echo "echo 111" >> ~/.bashrc && \
   rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
   rm -rf /workspace/GPT-SoVITS/tools/asr/models && \
   rm -rf /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
