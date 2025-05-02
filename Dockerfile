@@ -42,9 +42,10 @@ EXPOSE 9871 9872 9873 9874 9880
 
 ENV PYTHONPATH="/workspace/GPT-SoVITS"
 
-RUN conda init bash && echo "conda activate base" >> ~/.bashrc
+RUN conda init bash >> ~/.bashrc
 
 CMD ["/bin/bash", "-c", "\
+  conda activate base && \
   rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
   rm -rf /workspace/GPT-SoVITS/tools/asr/models && \
   rm -rf /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
