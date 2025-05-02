@@ -1604,6 +1604,8 @@ class TTS:
         search_length = inputs.get("search_length", 32000 * 5)
         num_zeroes = inputs.get("num_zeroes", 5)
         cumulation_amount = inputs.get("cumulation_amount", 50)
+        dynamic_cumulatation = inputs.get("dynamic_cumulatation", False)
+        dynamic_cumulatation_amount = inputs.get("dynamic_cumulatation_amount", 10)
         # Prepare reference audio
         if ref_audio_path and ref_audio_path != self.prompt_cache["ref_audio_path"]:
             if not os.path.exists(ref_audio_path):
@@ -1672,6 +1674,8 @@ class TTS:
             prompt_sem,
             all_bert.unsqueeze(0).to(self.configs.device),
             cumulation_amount=cumulation_amount,
+            dynamic_cumulatation=dynamic_cumulatation,
+            dynamic_cumulatation_amount=dynamic_cumulatation_amount,
             top_k=top_k,
             top_p=top_p,
             temperature=temperature,

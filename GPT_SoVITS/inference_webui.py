@@ -684,8 +684,12 @@ def get_tts_wav(
     sample_steps=8,
     if_sr=False,
     pause_second=0.3,
+    seed_checkbox=False,
+    seed_text_box=None,
 ):
     global cache
+    if seed_checkbox:
+        set_seed(seed_text_box)
     if ref_wav_path:
         pass
     else:
@@ -1204,6 +1208,20 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 temperature = gr.Slider(
                     minimum=0, maximum=1, step=0.05, label=i18n("temperature"), value=1, interactive=True, scale=1
                 )
+                seed_checkbox = gr.Checkbox(
+                    label="Seed",
+                    value=False,
+                    interactive=True,
+                    scale=1,
+                )
+                seed_text_box = gr.Textbox(
+                    label="Seed",
+                    value="-1",
+                    lines=1,
+                    max_lines=1,
+                    scale=1,
+                )
+                
             # with gr.Column():
             #     gr.Markdown(value=i18n("手工调整音素。当音素框不为空时使用手工音素输入推理，无视目标文本框。"))
             #     phoneme=gr.Textbox(label=i18n("音素框"), value="")
@@ -1231,6 +1249,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 sample_steps,
                 if_sr_Checkbox,
                 pause_second_slider,
+                seed_checkbox,
+                seed_text_box,
             ],
             [output],
         )

@@ -21,6 +21,7 @@ ffprobe*
 cfg.json
 speakers.json
 ref_audios
+local_files/
 tools/AP_BWE_main/24kto48k/*
 !tools/AP_BWE_main/24kto48k/readme.txt
 
