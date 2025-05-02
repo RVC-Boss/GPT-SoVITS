@@ -941,6 +941,8 @@ class Text2SemanticDecoder(nn.Module):
         prompts: torch.LongTensor,
         bert_feature: torch.LongTensor,
         cumulation_amount: int,
+        dynamic_cumulatation: bool,
+        dynamic_cumulatation_amount: int,
         top_k: int = -100,
         top_p: int = 100,
         early_stop_num: int = -1,
@@ -1038,6 +1040,8 @@ class Text2SemanticDecoder(nn.Module):
 
             if tokens_since_last_yield >= cumulation_amount:
                 generated_tokens = y[:, last_yield_idx:]
+                if dynamic_cumulatation:
+                    cumulation_amount += dynamic_cumulatation_amount
                 yield generated_tokens
                 last_yield_idx = y.shape[1]
                 tokens_since_last_yield = 0
