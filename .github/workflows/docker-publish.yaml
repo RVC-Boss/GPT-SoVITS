@@ -231,13 +231,6 @@ jobs:
             --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX} \
             ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX}-amd64 \
             ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX}-arm64
-      
-      - name: Create Default Tag
-        run: |
-          docker buildx imagetools create \
-            --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest \
-            ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-cu124-lite
-
       - name: Delete old platform-specific tags via Docker Hub API
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
@@ -261,3 +254,21 @@ jobs:
               curl -X DELETE -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/$DOCKER_HUB_USERNAME/gpt-sovits/manifests/$DEL_TAG
             done
           done
+  create-default:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+        
+    - name: Create Default Tag
+      run: |
+        docker buildx imagetools create \
+          --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest \
+          ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-cu124-lite
+        
