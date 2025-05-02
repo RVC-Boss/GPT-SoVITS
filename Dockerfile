@@ -1,10 +1,10 @@
 ARG CUDA_VERSION=124
 ARG CUDA_BASE=runtime
 
-FROM xxxxrt666/gpt-sovits:latest-cu${CUDA_VERSION}-${CUDA_BASE}-base
+FROM xxxxrt666/cuda-base:cu${CUDA_VERSION}-${CUDA_BASE}
 
 LABEL maintainer="XXXXRT"
-LABEL version="V4-0501"
+LABEL version="V4"
 LABEL description="Docker image for GPT-SoVITS"
 
 ARG CUDA_VERSION=12.4
