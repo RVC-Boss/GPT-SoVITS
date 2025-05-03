@@ -42,6 +42,12 @@ ENV PYTHONPATH="/workspace/GPT-SoVITS"
 
 RUN conda init bash && echo "conda activate base" >> ~/.bashrc
 
+WORKDIR /workspace
+
+RUN rm -rf /workspace/GPT-SoVITS
+
+WORKDIR /workspace/GPT-SoVITS
+
 COPY . /workspace/GPT-SoVITS
 
 CMD ["/bin/bash", "-c", "\
