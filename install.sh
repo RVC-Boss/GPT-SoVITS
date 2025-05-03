@@ -168,9 +168,11 @@ ls -a "GPT_SoVITS/pretrained_models"
 
 echo 4
 
-find "GPT_SoVITS/pretrained_models" -mindepth 1
+find -L "GPT_SoVITS/pretrained_models" -mindepth 1
 
-if find "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
+exit 1
+
+if find -L "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
     echo "Pretrained Model Exists"
 else
     echo "Download Pretrained Models"
@@ -194,7 +196,7 @@ else
 fi
 
 if [ "$DOWNLOAD_UVR5" = "true" ]; then
-    if find "tools/uvr5/uvr5_weights" -mindepth 1 ! -name '.gitignore' | grep -q .; then
+    if find -L "tools/uvr5/uvr5_weights" -mindepth 1 ! -name '.gitignore' | grep -q .; then
         echo "UVR5 Model Exists"
     else
         echo "Download UVR5 Model"
