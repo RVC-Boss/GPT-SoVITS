@@ -15,7 +15,7 @@ SHELL ["/bin/bash", "-c"]
 
 WORKDIR /workspace/GPT-SoVITS
 
-COPY Docker /workspace/GPT-SoVITS/
+COPY Docker /workspace/GPT-SoVITS/Docker/
 
 ARG LITE=false
 ENV LITE=${LITE}
@@ -25,10 +25,6 @@ ENV WORKFLOW=${WORKFLOW}
 
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM}
-
-RUN pwd
-
-RUN ls -a
 
 RUN bash Docker/anaconda_install.sh
 
