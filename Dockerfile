@@ -26,6 +26,8 @@ ENV WORKFLOW=${WORKFLOW}
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM}
 
+RUN ls -a
+
 RUN bash Docker/anaconda_install.sh
 
 COPY extra-req.txt /workspace/GPT-SoVITS/
