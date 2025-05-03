@@ -53,6 +53,14 @@ source "$HOME/anaconda3/etc/profile.d/conda.sh"
 
 "$HOME/anaconda3/bin/conda" install gcc=14 gxx ffmpeg cmake make unzip -q -y
 
+if [ "$CUDA_VERSION" = "12.8" ]; then
+    "$HOME/anaconda3/bin/pip" install torch torchaudio --no-cache-dir --index-url https://download.pytorch.org/whl/cu128
+elif [ "$CUDA_VERSION" = "12.4" ]; then
+    "$HOME/anaconda3/bin/pip" install torch==2.5.1 torchaudio==2.5.1 --no-cache-dir --index-url https://download.pytorch.org/whl/cu124
+fi
+
+"$HOME/anaconda3/bin/pip" cache purge
+
 rm $LOG_PATH
 
 rm -rf "$HOME/anaconda3/pkgs"

@@ -13,6 +13,7 @@ services:
     volumes:
       - .:/workspace/GPT-SoVITS
       - /dev/null:/workspace/GPT-SoVITS/pretrained_models
+      - /dev/null:/workspace/GPT-SoVITS/text/G2PWModel
       - /dev/null:/workspace/tools/asr/models
       - /dev/null:/workspace/tools/uvr5/uvr5_weights
     environment:
@@ -34,6 +35,7 @@ services:
     volumes:
       - .:/workspace/GPT-SoVITS
       - /dev/null:/workspace/GPT-SoVITS/pretrained_models
+      - /dev/null:/workspace/GPT-SoVITS/text/G2PWModel
       - /dev/null:/workspace/tools/asr/models
       - /dev/null:/workspace/tools/uvr5/uvr5_weights
     environment:
@@ -55,6 +57,7 @@ services:
     volumes:
       - .:/workspace/GPT-SoVITS
       - /dev/null:/workspace/GPT-SoVITS/pretrained_models
+      - /dev/null:/workspace/GPT-SoVITS/text/G2PWModel
       - /dev/null:/workspace/tools/asr/models
       - /dev/null:/workspace/tools/uvr5/uvr5_weights
     environment:
@@ -76,6 +79,7 @@ services:
     volumes:
       - .:/workspace/GPT-SoVITS
       - /dev/null:/workspace/GPT-SoVITS/pretrained_models
+      - /dev/null:/workspace/GPT-SoVITS/text/G2PWModel
       - /dev/null:/workspace/tools/asr/models
       - /dev/null:/workspace/tools/uvr5/uvr5_weights
     environment:

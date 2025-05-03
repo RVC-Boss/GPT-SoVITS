@@ -26,19 +26,19 @@ jobs:
         include:
           - cuda_version: 124
             lite: true
-            cuda_base: runtime
+            torch_base: lite
             tag_prefix: cu124-lite
           - cuda_version: 124
             lite: false
-            cuda_base: devel
+            torch_base: full
             tag_prefix: cu124
           - cuda_version: 128
             lite: true
-            cuda_base: runtime
+            torch_base: lite
             tag_prefix: cu128-lite
           - cuda_version: 128
             lite: false
-            cuda_base: devel
+            torch_base: full
             tag_prefix: cu128
 
     steps:
@@ -98,7 +98,7 @@ jobs:
           platforms: linux/amd64
           build-args: |
             LITE=${{ matrix.lite }}
-            CUDA_BASE=${{ matrix.cuda_base }}
+            TORCH_BASE=${{ matrix.torch_base }}
             CUDA_VERSION=${{ matrix.cuda_version }}
             WORKFLOW=true
           tags: |
@@ -113,19 +113,19 @@ jobs:
         include:
           - cuda_version: 124
             lite: true
-            cuda_base: runtime
+            torch_base: lite
             tag_prefix: cu124-lite
           - cuda_version: 124
             lite: false
-            cuda_base: devel
+            torch_base: full
             tag_prefix: cu124
           - cuda_version: 128
             lite: true
-            cuda_base: runtime
+            torch_base: lite
             tag_prefix: cu128-lite
           - cuda_version: 128
             lite: false
-            cuda_base: devel
+            torch_base: full
             tag_prefix: cu128
 
     steps:
@@ -185,7 +185,7 @@ jobs:
           platforms: linux/arm64
           build-args: |
             LITE=${{ matrix.lite }}
-            CUDA_BASE=${{ matrix.cuda_base }}
+            TORCH_BASE=${{ matrix.torch_base }}
             CUDA_VERSION=${{ matrix.cuda_version }}
             WORKFLOW=true
           tags: |
