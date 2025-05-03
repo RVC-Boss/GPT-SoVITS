@@ -8,7 +8,7 @@ cd .. || exit 1
 
 set -e
 
-source "$HOME/anaconda3/etc/profile.d/conda.sh"
+source "$HOME/miniconda3/etc/profile.d/conda.sh"
 
 mkdir GPT_SoVITS
 
@@ -26,8 +26,8 @@ pip show torch
 
 rm -rf /tmp/* /var/tmp/*
 
-rm -rf "$HOME/anaconda3/pkgs"
+rm -rf "$HOME/miniconda3/pkgs"
 
-mkdir "$HOME/anaconda3/pkgs"
+mkdir "$HOME/miniconda3/pkgs"
 
 rm -rf /root/.conda /root/.cache
