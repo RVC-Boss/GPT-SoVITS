@@ -162,6 +162,14 @@ else
     WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
 fi
 
+echo 3
+
+ls -a "GPT_SoVITS/pretrained_models"
+
+echo 4
+
+find "GPT_SoVITS/pretrained_models" -mindepth 1
+
 if find "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
     echo "Pretrained Model Exists"
 else
