@@ -131,6 +131,22 @@ if [ "$(uname)" != "Darwin" ]; then
 
     echo "Installing G++..."
     conda install -c conda-forge gxx -q -y
+else
+    if ! xcode-select -p &>/dev/null; then
+        echo "Installing Xcode Command Line Tools..."
+        xcode-select --install
+    fi
+    echo "Waiting For Xcode Command Line Tools Installation Complete..."
+    while true; do
+        sleep 20
+
+        if xcode-select -p &>/dev/null; then
+            echo "Xcode Command Line Tools Installed"
+            break
+        else
+            echo "Installing，Please Wait..."
+        fi
+    done
 fi
 
 echo "Installing ffmpeg and cmake..."
