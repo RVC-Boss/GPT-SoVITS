@@ -389,6 +389,8 @@ def change_label(path_list):
             webui_port_subfix,
             is_share,
         )
+        if local_mode:
+            cmd += " --local_mode"
         yield (
             process_info(process_name_subfix, "opened"),
             {"__type__": "update", "visible": False},
@@ -413,6 +415,8 @@ def change_uvr5():
     global p_uvr5
     if p_uvr5 is None:
         cmd = '"%s" tools/uvr5/webui.py "%s" %s %s %s' % (python_exec, infer_device, is_half, webui_port_uvr5, is_share)
+        if local_mode:
+            cmd += " True"
         yield (
             process_info(process_name_uvr5, "opened"),
             {"__type__": "update", "visible": False},
@@ -451,6 +455,7 @@ def change_tts_inference(bert_path, cnhubert_base_path, gpu_number, gpt_path, so
         os.environ["is_half"] = str(is_half)
         os.environ["infer_ttswebui"] = str(webui_port_infer_tts)
         os.environ["is_share"] = str(is_share)
+        os.environ["local_mode"] = str(local_mode)
         yield (
             process_info(process_name_tts, "opened"),
             {"__type__": "update", "visible": False},

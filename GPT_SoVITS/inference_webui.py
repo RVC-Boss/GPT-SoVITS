@@ -91,6 +91,8 @@ infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
 is_share = os.environ.get("is_share", "False")
 is_share = eval(is_share)
+local_mode = os.environ.get("local_mode", "False")
+local_mode = eval(local_mode)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
@@ -1273,7 +1275,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
 
 if __name__ == "__main__":
     app.queue().launch(  # concurrency_count=511, max_size=1022
-        server_name="0.0.0.0",
+        server_name="127.0.0.1" if local_mode else "0.0.0.0",
         inbrowser=True,
         share=is_share,
         server_port=infer_ttswebui,

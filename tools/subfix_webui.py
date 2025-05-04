@@ -298,6 +298,7 @@ if __name__ == "__main__":
     parser.add_argument("--json_key_text", default="text", help="the text key name in json, Default: text")
     parser.add_argument("--json_key_path", default="wav_path", help="the path key name in json, Default: wav_path")
     parser.add_argument("--g_batch", default=10, help="max number g_batch wav to display, Default: 10")
+    parser.add_argument("--local_mode", action="store_true", help="enable local mode (bind to 127.0.0.1)")
 
     args = parser.parse_args()
 
@@ -407,7 +408,7 @@ if __name__ == "__main__":
         )
 
     demo.launch(
-        server_name="0.0.0.0",
+        server_name="127.0.0.1" if args.local_mode else "0.0.0.0",
         inbrowser=True,
         # quiet=True,
         share=eval(args.is_share),

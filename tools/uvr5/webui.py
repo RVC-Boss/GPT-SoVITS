@@ -32,6 +32,7 @@ device = sys.argv[1]
 is_half = eval(sys.argv[2])
 webui_port_uvr5 = int(sys.argv[3])
 is_share = eval(sys.argv[4])
+local_mode = sys.argv[5].lower() == 'true' if len(sys.argv) > 5 else False
 
 
 def html_left(text, label="p"):
@@ -220,7 +221,7 @@ with gr.Blocks(title="UVR5 WebUI") as app:
                     api_name="uvr_convert",
                 )
 app.queue().launch(  # concurrency_count=511, max_size=1022
-    server_name="0.0.0.0",
+    server_name="127.0.0.1" if local_mode else "0.0.0.0",
     inbrowser=True,
     share=is_share,
     server_port=webui_port_uvr5,
