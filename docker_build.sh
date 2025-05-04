@@ -68,15 +68,15 @@ done
 TARGETPLATFORM=$(uname -m | grep -q 'x86' && echo "linux/amd64" || echo "linux/arm64")
 
 if [ $LITE = true ]; then
-    CUDA_BASE="runtime"
+    TORCH_BASE="lite"
 else
-    CUDA_BASE="devel"
+    TORCH_BASE="full"
 fi
 
 docker build \
     --build-arg CUDA_VERSION=$CUDA_VERSION \
     --build-arg LITE=$LITE \
     --build-arg TARGETPLATFORM="$TARGETPLATFORM" \
-    --build-arg CUDA_BASE=$CUDA_BASE \
+    --build-arg TORCH_BASE=$TORCH_BASE \
     -t "${USER}/gpt-sovits:local" \
     .
