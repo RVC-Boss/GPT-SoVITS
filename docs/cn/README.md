@@ -118,32 +118,33 @@ pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
 ```
 
-### 运行 GPT-SoVITS（使用 Docker）
+### 运行 GPT-SoVITS (使用 Docker)
 
 #### Docker 镜像选择
 
-由于代码库更新频繁，而 Docker 镜像的发布周期相对较慢，请注意：
+由于代码库更新频繁, 而 Docker 镜像的发布周期相对较慢, 请注意：
 
-- 前往 [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) 查看最新可用的镜像标签（tags）。
-- 根据你的运行环境选择合适的镜像标签。
-- 可选：为了获得最新的更改，你可以使用提供的 Dockerfile 在本地构建镜像。
+- 前往 [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) 查看最新可用的镜像标签(tags)
+- 根据你的运行环境选择合适的镜像标签
+- `Lite` Docker 镜像不包含 ASR 模型和 UVR5 模型. 你可以自行下载 UVR5 模型, ASR 模型则会在需要时由程序自动下载
+- 可选：为了获得最新的更改, 你可以使用提供的 Dockerfile 在本地构建镜像
 
 #### 环境变量
 
-- `is_half`：控制是否启用半精度（fp16）。如果你的 GPU 支持，设置为 `true` 可以减少显存占用。
+- `is_half`：控制是否启用半精度(fp16). 如果你的 GPU 支持, 设置为 `true` 可以减少显存占用
 
 #### 共享内存配置
 
-在 Windows（Docker Desktop）中，默认共享内存大小较小，可能导致运行异常。请在 Docker Compose 文件中根据系统内存情况，增大 `shm_size`（例如设置为 `16g`）。
+在 Windows (Docker Desktop) 中, 默认共享内存大小较小, 可能导致运行异常. 请在 Docker Compose 文件中根据系统内存情况, 增大 `shm_size` (例如设置为 `16g`)
 
 #### 选择服务
 
 `docker-compose.yaml` 文件定义了两个主要服务类型：
 
-- `GPT-SoVITS-CU124` 与 `GPT-SoVITS-CU128`：完整版，包含所有功能。
-- `GPT-SoVITS-CU124-Lite` 与 `GPT-SoVITS-CU128-Lite`：轻量版，依赖更少，功能略有删减。
+- `GPT-SoVITS-CU124` 与 `GPT-SoVITS-CU128`：完整版, 包含所有功能
+- `GPT-SoVITS-CU124-Lite` 与 `GPT-SoVITS-CU128-Lite`：轻量版, 依赖更少, 功能略有删减
 
-如需使用 Docker Compose 运行指定服务，请执行：
+如需使用 Docker Compose 运行指定服务, 请执行：
 
 ```bash
 docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128>
@@ -151,15 +152,15 @@ docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|
 
 #### 本地构建 Docker 镜像
 
-如果你希望自行构建镜像，请使用以下命令：
+如果你希望自行构建镜像, 请使用以下命令：
 
 ```bash
 bash docker_build.sh --cuda <12.4|12.8> [--lite]
 ```
 
-#### 访问运行中的容器（Bash Shell）
+#### 访问运行中的容器 (Bash Shell)
 
-当容器在后台运行时，你可以通过以下命令进入容器：
+当容器在后台运行时, 你可以通过以下命令进入容器：
 
 ```bash
 docker exec -it <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128> bash

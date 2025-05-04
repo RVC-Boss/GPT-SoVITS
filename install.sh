@@ -144,16 +144,22 @@ if [ "$USE_HF" = "true" ]; then
     PRETRINED_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
+    NLTK_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
+    PYOPENJTALK_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
 elif [ "$USE_HF_MIRROR" = "true" ]; then
     echo "Download Model From HuggingFace-Mirror"
     PRETRINED_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
+    NLTK_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
+    PYOPENJTALK_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
 elif [ "$USE_MODELSCOPE" = "true" ]; then
     echo "Download Model From ModelScope"
     PRETRINED_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/pretrained_models.zip"
     G2PW_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip"
     UVR5_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/uvr5_weights.zip"
+    NLTK_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/nltk_data.zip"
+    PYOPENJTALK_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/open_jtalk_dic_utf_8-1.11.tar.gz"
 fi
 
 if [ "$WORKFLOW" = "true" ]; then
@@ -170,7 +176,7 @@ else
 
     unzip -q pretrained_models.zip
     rm -rf pretrained_models.zip
-    mv pretrained_models/* GPT_SoVITS/pretrained_models
+    mv -f pretrained_models/* GPT_SoVITS/pretrained_models
     rm -rf pretrained_models
 fi
 
@@ -180,7 +186,7 @@ if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
 
     unzip -q G2PWModel.zip
     rm -rf G2PWModel.zip
-    mv G2PWModel GPT_SoVITS/text/G2PWModel
+    mv -f G2PWModel GPT_SoVITS/text/G2PWModel
 else
     echo "G2PWModel Exists"
 fi
@@ -194,7 +200,7 @@ if [ "$DOWNLOAD_UVR5" = "true" ]; then
 
         unzip -q uvr5_weights.zip
         rm -rf uvr5_weights.zip
-        mv uvr5_weights/* tools/uvr5/uvr5_weights
+        mv-f uvr5_weights/* tools/uvr5/uvr5_weights
         rm -rf uvr5_weights
     fi
 fi
@@ -256,7 +262,18 @@ pip install -r extra-req.txt --no-deps --quiet
 
 pip install -r requirements.txt --quiet
 
-python -c "import nltk; nltk.download(['averaged_perceptron_tagger','averaged_perceptron_tagger_eng','cmudict'])"
+PY_PREFIX=$(python -c "import sys; print(sys.prefix)")
+PYOPENJTALK_PREFIX=$(python -c "import os, pyopenjtalk; print(os.path.dirname(pyopenjtalk.__file__))")
+
+$WGET_CMD "$NLTK_URL"
+unzip -q nltk_data
+rm -rf nltk_data.zip
+mv -f nltk_data "$PY_PREFIX"
+
+$WGET_CMD "$PYOPENJTALK_URL"
+tar -xvzf open_jtalk_dic_utf_8-1.11.tar.gz
+rm -rf open_jtalk_dic_utf_8-1.11.tar.gz
+mv -f open_jtalk_dic_utf_8-1.11 "$PYOPENJTALK_PREFIX"
 
 if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ]; then
     echo "Update to WSL compatible runtime lib..."

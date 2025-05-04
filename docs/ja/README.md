@@ -110,23 +110,24 @@ pip install -r extra-req.txt --no-deps
 pip install -r requirementx.txt
 ```
 
-### GPT-SoVITS の実行（Docker 使用）
+### GPT-SoVITS の実行 (Docker 使用)
 
 #### Docker イメージの選択
 
 コードベースの更新が頻繁である一方、Docker イメージのリリースは比較的遅いため、以下を確認してください：
 
-- [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) で最新のイメージタグを確認してください。
-- 環境に合った適切なイメージタグを選択してください。
-- オプション：最新の変更を反映させるため、提供されている Dockerfile を使ってローカルでイメージをビルドすることも可能です。
+- [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) で最新のイメージタグを確認してください
+- 環境に合った適切なイメージタグを選択してください
+- `Lite` とは、Docker イメージに ASR モデルおよび UVR5 モデルが含まれていないことを意味します. UVR5 モデルは手動でダウンロードし、ASR モデルは必要に応じてプログラムが自動的にダウンロードします
+- オプション：最新の変更を反映させるため、提供されている Dockerfile を使ってローカルでイメージをビルドすることも可能です
 
 #### 環境変数
 
-- `is_half`：半精度（fp16）を使用するかどうかを制御します。GPU が対応している場合、`true` に設定することでメモリ使用量を削減できます。
+- `is_half`：半精度 (fp16) を使用するかどうかを制御します. GPU が対応している場合、`true` に設定することでメモリ使用量を削減できます
 
 #### 共有メモリの設定
 
-Windows（Docker Desktop）では、デフォルトの共有メモリサイズが小さいため、予期しない動作が発生する可能性があります。Docker Compose ファイル内の `shm_size` を（例：`16g`）に増やすことをおすすめします。
+Windows (Docker Desktop) では、デフォルトの共有メモリサイズが小さいため、予期しない動作が発生する可能性があります. Docker Compose ファイル内の `shm_size` を (例：`16g`) に増やすことをおすすめします
 
 #### サービスの選択
 
@@ -149,7 +150,7 @@ docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|
 bash docker_build.sh --cuda <12.4|12.8> [--lite]
 ```
 
-#### 実行中のコンテナへアクセス（Bash Shell）
+#### 実行中のコンテナへアクセス (Bash Shell)
 
 コンテナがバックグラウンドで実行されている場合、以下のコマンドでシェルにアクセスできます：
 

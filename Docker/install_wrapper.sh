@@ -10,9 +10,9 @@ set -e
 
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
 
-mkdir GPT_SoVITS
+mkdir -p GPT_SoVITS
 
-mkdir GPT_SoVITS/text
+mkdir -p GPT_SoVITS/text
 
 ln -s /workspace/models/pretrained_models /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models
 
@@ -28,6 +28,6 @@ rm -rf /tmp/* /var/tmp/*
 
 rm -rf "$HOME/miniconda3/pkgs"
 
-mkdir "$HOME/miniconda3/pkgs"
+mkdir -p "$HOME/miniconda3/pkgs"
 
 rm -rf /root/.conda /root/.cache

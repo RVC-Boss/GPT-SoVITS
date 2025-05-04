@@ -118,17 +118,18 @@ pip install -r requirements.txt
 
 코드베이스가 빠르게 업데이트되는 반면 Docker 이미지 릴리스 주기는 느리기 때문에 다음을 참고하세요:
 
-- [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits)에서 최신 이미지 태그를 확인하세요.
-- 환경에 맞는 적절한 이미지 태그를 선택하세요.
-- 선택 사항: 최신 변경사항을 반영하려면 제공된 Dockerfile을 사용하여 로컬에서 직접 이미지를 빌드할 수 있습니다.
+- [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits)에서 최신 이미지 태그를 확인하세요
+- 환경에 맞는 적절한 이미지 태그를 선택하세요
+- `Lite` 는 Docker 이미지에 ASR 모델과 UVR5 모델이 포함되어 있지 않음을 의미합니다. UVR5 모델은 사용자가 직접 다운로드해야 하며, ASR 모델은 필요 시 프로그램이 자동으로 다운로드합니다
+- 선택 사항: 최신 변경사항을 반영하려면 제공된 Dockerfile을 사용하여 로컬에서 직접 이미지를 빌드할 수 있습니다
 
 #### 환경 변수
 
-- `is_half`: 반정밀도(fp16) 사용 여부를 제어합니다. GPU가 지원하는 경우 `true`로 설정하면 메모리 사용량을 줄일 수 있습니다.
+- `is_half`: 반정밀도(fp16) 사용 여부를 제어합니다. GPU가 지원하는 경우 `true`로 설정하면 메모리 사용량을 줄일 수 있습니다
 
 #### 공유 메모리 설정
 
-Windows(Docker Desktop)에서는 기본 공유 메모리 크기가 작아 예기치 않은 동작이 발생할 수 있습니다. 시스템 메모리 상황에 따라 Docker Compose 파일에서 `shm_size`를 (예: `16g`)로 증가시키는 것이 좋습니다.
+Windows(Docker Desktop)에서는 기본 공유 메모리 크기가 작아 예기치 않은 동작이 발생할 수 있습니다. 시스템 메모리 상황에 따라 Docker Compose 파일에서 `shm_size`를 (예: `16g`)로 증가시키는 것이 좋습니다
 
 #### 서비스 선택
 

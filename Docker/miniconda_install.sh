@@ -65,6 +65,6 @@ rm $LOG_PATH
 
 rm -rf "$HOME/miniconda3/pkgs"
 
-mkdir "$HOME/miniconda3/pkgs"
+mkdir -p "$HOME/miniconda3/pkgs"
 
 rm -rf "$HOME/.conda" "$HOME/.cache"
