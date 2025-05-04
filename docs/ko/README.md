@@ -121,6 +121,7 @@ pip install -r requirements.txt
 - [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits)에서 최신 이미지 태그를 확인하세요
 - 환경에 맞는 적절한 이미지 태그를 선택하세요
 - `Lite` 는 Docker 이미지에 ASR 모델과 UVR5 모델이 포함되어 있지 않음을 의미합니다. UVR5 모델은 사용자가 직접 다운로드해야 하며, ASR 모델은 필요 시 프로그램이 자동으로 다운로드합니다
+- Docker Compose 실행 시, 해당 아키텍처에 맞는 이미지(amd64 또는 arm64)가 자동으로 다운로드됩니다
 - 선택 사항: 최신 변경사항을 반영하려면 제공된 Dockerfile을 사용하여 로컬에서 직접 이미지를 빌드할 수 있습니다
 
 #### 환경 변수

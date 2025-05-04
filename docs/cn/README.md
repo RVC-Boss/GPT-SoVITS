@@ -127,6 +127,7 @@ pip install -r requirements.txt
 - 前往 [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) 查看最新可用的镜像标签(tags)
 - 根据你的运行环境选择合适的镜像标签
 - `Lite` Docker 镜像不包含 ASR 模型和 UVR5 模型. 你可以自行下载 UVR5 模型, ASR 模型则会在需要时由程序自动下载
+- 在使用 Docker Compose 时, 会自动拉取适配的架构镜像 (amd64 或 arm64)
 - 可选：为了获得最新的更改, 你可以使用提供的 Dockerfile 在本地构建镜像
 
 #### 环境变量

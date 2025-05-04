@@ -121,6 +121,7 @@ Kod tabanı hızla geliştiği halde Docker imajları daha yavaş yayınlandığ
 - En güncel kullanılabilir imaj etiketlerini görmek için [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) adresini kontrol edin
 - Ortamınıza uygun bir imaj etiketi seçin
 - `Lite`, Docker imajında ASR modelleri ve UVR5 modellerinin bulunmadığı anlamına gelir. UVR5 modellerini manuel olarak indirebilirsiniz; ASR modelleri ise gerektiğinde program tarafından otomatik olarak indirilir
+- Docker Compose sırasında, uygun mimariye (amd64 veya arm64) ait imaj otomatik olarak indirilir
 - Opsiyonel: En güncel değişiklikleri almak için, sağlanan Dockerfile ile yerel olarak imajı kendiniz oluşturabilirsiniz
 
 #### Ortam Değişkenleri
