@@ -74,6 +74,7 @@ from config import (
     webui_port_main,
     webui_port_subfix,
     webui_port_uvr5,
+    local_mode,
 )
 from tools import my_utils
 from tools.i18n.i18n import I18nAuto, scan_language_list
@@ -1955,7 +1956,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             gr.Markdown(value=i18n("施工中，请静候佳音"))
 
     app.queue().launch(  # concurrency_count=511, max_size=1022
-        server_name="0.0.0.0",
+        server_name="127.0.0.1" if local_mode else "0.0.0.0",
         inbrowser=True,
         share=is_share,
         server_port=webui_port_main,
