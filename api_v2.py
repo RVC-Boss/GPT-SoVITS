@@ -40,7 +40,10 @@ POST:
     "parallel_infer": True,       # bool. whether to use parallel inference.
     "repetition_penalty": 1.35    # float. repetition penalty for T2S model.
     "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-    "super_sampling": False,       # bool. whether to use super-sampling for audio when using VITS model V3.
+    "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
+    "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
+    "chunk_length: 24,           # int. chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+    "return_fragment": False,     # bool. step by step return the audio fragment. (old version of streaming mode)
 }
 ```
 
@@ -170,6 +173,9 @@ class TTS_Request(BaseModel):
     repetition_penalty: float = 1.35
     sample_steps: int = 32
     super_sampling: bool = False
+    overlap_length: int = 2
+    chunk_length: int = 24
+    return_fragment: bool = False
 
 
 ### modify from https://github.com/RVC-Boss/GPT-SoVITS/pull/894/files
@@ -325,7 +331,10 @@ async def tts_handle(req: dict):
                 "parallel_infer": True,       # bool.(optional) whether to use parallel inference.
                 "repetition_penalty": 1.35    # float.(optional) repetition penalty for T2S model.
                 "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-                "super_sampling": False,       # bool. whether to use super-sampling for audio when using VITS model V3.
+                "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
+                "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
+                "chunk_length: 24,            # int. chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+                "return_fragment": False,     # bool. step by step return the audio fragment. (old version of streaming mode)
             }
     returns:
         StreamingResponse: audio stream response.
@@ -339,8 +348,10 @@ async def tts_handle(req: dict):
     if check_res is not None:
         return check_res
 
-    if streaming_mode or return_fragment:
-        req["return_fragment"] = True
+    req["streaming_mode"] = streaming_mode
+    req["return_fragment"] = return_fragment
+    streaming_mode = streaming_mode or return_fragment
+
 
     try:
         tts_generator = tts_pipeline.run(req)
@@ -404,6 +415,9 @@ async def tts_get_endpoint(
     repetition_penalty: float = 1.35,
     sample_steps: int = 32,
     super_sampling: bool = False,
+    overlap_length: int = 2,
+    chunk_length: int = 24,
+    return_fragment: bool = False,
 ):
     req = {
         "text": text,
@@ -428,6 +442,9 @@ async def tts_get_endpoint(
         "repetition_penalty": float(repetition_penalty),
         "sample_steps": int(sample_steps),
         "super_sampling": super_sampling,
+        "overlap_length": int(overlap_length),
+        "chunk_length": int(chunk_length),
+        "return_fragment": return_fragment,
     }
     return await tts_handle(req)
 
