@@ -1399,20 +1399,10 @@ class TTS:
                             continue
 
                         _semantic_tokens = semantic_tokens
-                        # if is_first_chunk:
-                        #     _semantic_tokens = torch.cat([torch.ones((1,overlap_length), dtype=torch.long, device=self.configs.device)*self.configs.mute_tokens[self.configs.version], _semantic_tokens], dim=-1)
-                        # else:
-                        #     _semantic_tokens = torch.cat([last_tokens[:, -overlap_length:], _semantic_tokens], dim=-1)
-                        #     # _semantic_tokens = torch.cat(previous_tokens+[_semantic_tokens,], dim=-1)
 
                         previous_tokens.append(semantic_tokens)
 
                         _semantic_tokens = torch.cat(previous_tokens, dim=-1)
-
-
-                        # last_tokens = semantic_tokens
-
-                        # print(f"_semantic_tokens shape:{_semantic_tokens.shape}")
 
 
                         if not self.configs.use_vocoder:
@@ -1429,13 +1419,7 @@ class TTS:
                                                                 speed=speed_factor, sample_steps=sample_steps,
                                                                 result_length = semantic_tokens.shape[-1]+overlap_length if not is_first_chunk else None
                                                             )
-                            
 
-
-                        # if is_first_chunk:
-                        #     audio_chunk = audio_chunk[overlap_size:]
-                        #     # is_first_chunk = False
-                        
                         audio_chunk_ = audio_chunk
                         if is_first_chunk and not is_final:
                             is_first_chunk = False
@@ -1448,7 +1432,7 @@ class TTS:
                                 audio_chunk_[last_audio_chunk.shape[0]-overlap_size:-overlap_size] if not is_final \
                                     else audio_chunk_[last_audio_chunk.shape[0]-overlap_size:]
                                     )
-                            # audio_chunk_ = audio_chunk_[:-overlap_size] if not is_final else audio_chunk_
+
 
                         last_audio_chunk = audio_chunk
                         yield self.audio_postprocess(
@@ -1460,7 +1444,7 @@ class TTS:
                                 0.0,
                                 super_sampling if self.configs.use_vocoder and self.configs.version == "v3" else False,
                             )
-                        print(f"first_package_delay: {time.perf_counter()-t0:.3f}")
+                        # print(f"first_package_delay: {time.perf_counter()-t0:.3f}")
                         
                     yield output_sr, np.zeros(int(output_sr*fragment_interval), dtype=np.int16)
 
