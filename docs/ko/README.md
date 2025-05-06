@@ -57,31 +57,41 @@ Windows 사용자라면 (win>=10에서 테스트됨), [통합 패키지를 다�
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
 
 **주의: Mac에서 GPU로 훈련된 모델은 다른 OS에서 훈련된 모델에 비해 품질이 낮습니다. 해당 문제를 해결하기 전까지 MacOS에선 CPU를 사용하여 훈련을 진행합니다.**
 
-1. `xcode-select --install`을 실행하여 Xcode 커맨드라인 도구를 설치하세요.
-2. 다음 명령어를 실행하여 이 프로젝트를 설치하세요.
+다음 명령어를 실행하여 이 프로젝트를 설치하세요
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### 수동 설치
+
+#### 의존성 설치
+
+```bash
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
+```
 
 #### FFmpeg 설치
 
 ##### Conda 사용자
 
 ```bash
+conda activate GPTSoVits
 conda install ffmpeg
 ```
 
@@ -90,26 +100,18 @@ conda install ffmpeg
 ```bash
 sudo apt install ffmpeg
 sudo apt install libsox-dev
-conda install -c conda-forge 'ffmpeg<7'
 ```
 
 ##### Windows 사용자
 
-[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe)와 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe)를 GPT-SoVITS root 디렉토리에 넣습니다.
+[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe)와 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe)를 GPT-SoVITS root 디렉토리에 넣습니다
 
-[Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) 설치 (Korean TTS 전용)
+[Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) 설치
 
 ##### MacOS 사용자
 
 ```bash
 brew install ffmpeg
-```
-
-#### 의존성 설치
-
-```bash
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
 ```
 
 ### GPT-SoVITS 실행하기 (Docker 사용)

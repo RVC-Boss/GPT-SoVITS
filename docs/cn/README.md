@@ -63,31 +63,41 @@
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
 
 **注: 在 Mac 上使用 GPU 训练的模型效果显著低于其他设备训练的模型, 所以我们暂时使用 CPU 进行训练.**
 
-1. 运行 `xcode-select --install` 安装 Xcode command-line tools.
-2. 运行以下的命令来安装本项目:
+运行以下的命令来安装本项目:
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### 手动安装
+
+#### 安装依赖
+
+```bash
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
+```
 
 #### 安装 FFmpeg
 
 ##### Conda 用户
 
 ```bash
+conda activate GPTSoVits
 conda install ffmpeg
 ```
 
@@ -96,26 +106,18 @@ conda install ffmpeg
 ```bash
 sudo apt install ffmpeg
 sudo apt install libsox-dev
-conda install -c conda-forge 'ffmpeg<7'
 ```
 
 ##### Windows 用户
 
-下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下.
+下载并将 [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) 和 [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) 放置在 GPT-SoVITS 根目录下
 
-安装 [Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) 环境(仅限韩语 TTS)
+安装 [Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) 环境
 
 ##### MacOS 用户
 
 ```bash
 brew install ffmpeg
-```
-
-#### 安装依赖
-
-```bash
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
 ```
 
 ### 运行 GPT-SoVITS (使用 Docker)

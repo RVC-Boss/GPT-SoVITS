@@ -59,31 +59,41 @@ Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [entegre
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
 
 **Not: Mac'lerde GPU'larla eğitilen modeller, diğer cihazlarda eğitilenlere göre önemli ölçüde daha düşük kalitede sonuç verir, bu nedenle geçici olarak CPU'lar kullanıyoruz.**
 
-1. `xcode-select --install` komutunu çalıştırarak Xcode komut satırı araçlarını yükleyin.
-2. Aşağıdaki komutları çalıştırarak programı yükleyin:
+Aşağıdaki komutları çalıştırarak programı yükleyin:
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### El ile Yükleme
+
+#### Bağımlılıkları Yükleme
+
+```bash
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
+```
 
 #### FFmpeg'i Yükleme
 
 ##### Conda Kullanıcıları
 
 ```bash
+conda activate GPTSoVits
 conda install ffmpeg
 ```
 
@@ -92,24 +102,18 @@ conda install ffmpeg
 ```bash
 sudo apt install ffmpeg
 sudo apt install libsox-dev
-conda install -c conda-forge 'ffmpeg<7'
 ```
 
 ##### Windows Kullanıcıları
 
-[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) ve [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) dosyalarını indirin ve GPT-SoVITS kök dizinine yerleştirin.
+[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) ve [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) dosyalarını indirin ve GPT-SoVITS kök dizinine yerleştirin
+
+[Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) ortamını yükleyin
 
 ##### MacOS Kullanıcıları
 
 ```bash
 brew install ffmpeg
-```
-
-#### Bağımlılıkları Yükleme
-
-```bash
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
 ```
 
 ### GPT-SoVITS Çalıştırma (Docker Kullanarak)

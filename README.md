@@ -63,31 +63,41 @@ If you are a Windows user (tested with win>=10), you can [download the integrate
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
 
 **Note: The models trained with GPUs on Macs result in significantly lower quality compared to those trained on other devices, so we are temporarily using CPUs instead.**
 
-1. Install Xcode command-line tools by running `xcode-select --install`.
-2. Install the program by running the following commands:
+Install the program by running the following commands:
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### Install Manually
+
+#### Install Dependences
+
+```bash
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
+```
 
 #### Install FFmpeg
 
 ##### Conda Users
 
 ```bash
+conda activate GPTSoVits
 conda install ffmpeg
 ```
 
@@ -96,26 +106,18 @@ conda install ffmpeg
 ```bash
 sudo apt install ffmpeg
 sudo apt install libsox-dev
-conda install -c conda-forge 'ffmpeg<7'
 ```
 
 ##### Windows Users
 
-Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root.
+Download and place [ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) and [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) in the GPT-SoVITS root
 
-Install [Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) (Korean TTS Only)
+Install [Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe)
 
 ##### MacOS Users
 
 ```bash
 brew install ffmpeg
-```
-
-#### Install Dependences
-
-```bash
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
 ```
 
 ### Running GPT-SoVITS with Docker

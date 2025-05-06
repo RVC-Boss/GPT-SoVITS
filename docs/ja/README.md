@@ -57,31 +57,41 @@ Windows ユーザー: (Windows 10 以降でテスト済み)、[統合パッケ�
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
 
 **注: Mac で GPU を使用して訓練されたモデルは、他のデバイスで訓練されたモデルと比較して著しく品質が低下するため、当面は CPU を使用して訓練することを強く推奨します.**
 
-1. `xcode-select --install` を実行して、Xcode コマンドラインツールをインストールします.
-2. 以下のコマンドを実行してこのプロジェクトをインストールします.
+以下のコマンドを実行してこのプロジェクトをインストールします:
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### 手動インストール
 
-#### FFmpeg をインストールします.
+#### 依存関係をインストールします
+
+```bash
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
+```
+
+#### FFmpeg をインストールします
 
 ##### Conda ユーザー
 
 ```bash
+conda activate GPTSoVits
 conda install ffmpeg
 ```
 
@@ -90,24 +100,18 @@ conda install ffmpeg
 ```bash
 sudo apt install ffmpeg
 sudo apt install libsox-dev
-conda install -c conda-forge 'ffmpeg<7'
 ```
 
 ##### Windows ユーザー
 
-[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートフォルダに置きます.
+[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートフォルダに置きます
+
+[Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) 環境をインストールしてください
 
 ##### MacOS ユーザー
 
 ```bash
 brew install ffmpeg
-```
-
-#### 依存関係をインストールします
-
-```bash
-pip install -r extra-req.txt --no-deps
-pip install -r requirementx.txt
 ```
 
 ### GPT-SoVITS の実行 (Docker 使用)
