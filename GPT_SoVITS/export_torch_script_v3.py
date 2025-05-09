@@ -26,7 +26,7 @@ from inference_webui import get_spepc, norm_spec, resample, ssl_model
 logging.config.dictConfig(uvicorn.config.LOGGING_CONFIG)
 logger = logging.getLogger("uvicorn")
 
-is_half = True
+is_half = False
 device = "cuda" if torch.cuda.is_available() else "cpu"
 now_dir = os.getcwd()
 

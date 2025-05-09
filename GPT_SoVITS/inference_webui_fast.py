@@ -69,8 +69,8 @@ if torch.cuda.is_available():
 else:
     device = "cpu"
 
-# is_half = False
-# device = "cpu"
+is_half = False
+device = "cpu"
 
 dict_language_v1 = {
     i18n("中文"): "all_zh",  # 全部按中文识别
