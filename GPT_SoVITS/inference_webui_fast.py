@@ -69,7 +69,7 @@ if torch.cuda.is_available():
 else:
     device = "cpu"
 
-is_half = False
+is_half = True
 device = "cpu"
 
 dict_language_v1 = {
