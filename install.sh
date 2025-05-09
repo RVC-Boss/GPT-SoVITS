@@ -126,11 +126,13 @@ fi
 # 安装构建工具
 # Install build tools
 if [ "$(uname)" != "Darwin" ]; then
-    echo "Installing GCC..."
-    conda install -c conda-forge gcc=14 -q -y
-
-    echo "Installing G++..."
-    conda install -c conda-forge gxx -q -y
+    gcc_major_version=$(command -v gcc >/dev/null 2>&1 && gcc -dumpversion | cut -d. -f1 || echo 0)
+    if [ "$gcc_major_version" -lt 11 ]; then
+        echo "Installing GCC & G++..."
+        conda install -c conda-forge gcc=11 gxx=11 -q -y
+    else
+        echo "GCC >=11"
+    fi
 else
     if ! xcode-select -p &>/dev/null; then
         echo "Installing Xcode Command Line Tools..."
@@ -179,30 +181,27 @@ elif [ "$USE_MODELSCOPE" = "true" ]; then
 fi
 
 if [ "$WORKFLOW" = "true" ]; then
-    WGET_CMD="wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+    WGET_CMD=(wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404)
 else
-    WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+    WGET_CMD=(wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404)
 fi
 
 if find -L "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
     echo "Pretrained Model Exists"
 else
     echo "Download Pretrained Models"
-    $WGET_CMD "$PRETRINED_URL"
+    "${WGET_CMD[@]}" "$PRETRINED_URL"
 
-    unzip -q pretrained_models.zip
+    unzip -q -o pretrained_models.zip -d GPT_SoVITS
     rm -rf pretrained_models.zip
-    mv -f pretrained_models/* GPT_SoVITS/pretrained_models
-    rm -rf pretrained_models
 fi
 
 if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
     echo "Download G2PWModel"
-    $WGET_CMD "$G2PW_URL"
+    "${WGET_CMD[@]}" "$G2PW_URL"
 
-    unzip -q G2PWModel.zip
+    unzip -q -o G2PWModel.zip -d GPT_SoVITS/text
     rm -rf G2PWModel.zip
-    mv -f G2PWModel GPT_SoVITS/text/G2PWModel
 else
     echo "G2PWModel Exists"
 fi
@@ -212,12 +211,10 @@ if [ "$DOWNLOAD_UVR5" = "true" ]; then
         echo "UVR5 Model Exists"
     else
         echo "Download UVR5 Model"
-        $WGET_CMD "$UVR5_URL"
+        "${WGET_CMD[@]}" "$UVR5_URL"
 
-        unzip -q uvr5_weights.zip
+        unzip -q -o uvr5_weights.zip -d tools/uvr5
         rm -rf uvr5_weights.zip
-        mv-f uvr5_weights/* tools/uvr5/uvr5_weights
-        rm -rf uvr5_weights
     fi
 fi
 
@@ -281,15 +278,13 @@ pip install -r requirements.txt --quiet
 PY_PREFIX=$(python -c "import sys; print(sys.prefix)")
 PYOPENJTALK_PREFIX=$(python -c "import os, pyopenjtalk; print(os.path.dirname(pyopenjtalk.__file__))")
 
-$WGET_CMD "$NLTK_URL"
-unzip -q nltk_data
+"${WGET_CMD[@]}" "$NLTK_URL" -O nltk_data.zip
+unzip -q -o nltk_data -d "$PY_PREFIX"
 rm -rf nltk_data.zip
-mv -f nltk_data "$PY_PREFIX"
 
-$WGET_CMD "$PYOPENJTALK_URL"
-tar -xvzf open_jtalk_dic_utf_8-1.11.tar.gz
+"${WGET_CMD[@]}" "$PYOPENJTALK_URL" -O open_jtalk_dic_utf_8-1.11.tar.gz
+tar -xvzf open_jtalk_dic_utf_8-1.11.tar.gz -C "$PYOPENJTALK_PREFIX"
 rm -rf open_jtalk_dic_utf_8-1.11.tar.gz
-mv -f open_jtalk_dic_utf_8-1.11 "$PYOPENJTALK_PREFIX"
 
 if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ]; then
     echo "Update to WSL compatible runtime lib..."

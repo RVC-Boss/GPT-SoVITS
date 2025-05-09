@@ -16,15 +16,15 @@ WORKFLOW=${WORKFLOW:-"false"}
 TARGETPLATFORM=${TARGETPLATFORM:-"linux/amd64"}
 
 if [ "$WORKFLOW" = "true" ]; then
-    WGET_CMD="wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+    WGET_CMD=(wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404)
 else
-    WGET_CMD="wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404"
+    WGET_CMD=(wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404)
 fi
 
 if [ "$TARGETPLATFORM" = "linux/amd64" ]; then
-    eval "$WGET_CMD -O miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py311_25.3.1-1-Linux-x86_64.sh"
+    "${WGET_CMD[@]}" -O miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py311_25.3.1-1-Linux-x86_64.sh
 elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then
-    eval "$WGET_CMD -O miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py311_25.3.1-1-Linux-aarch64.sh"
+    "${WGET_CMD[@]}" -O miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py311_25.3.1-1-Linux-aarch64.sh
 else
     exit 1
 fi
