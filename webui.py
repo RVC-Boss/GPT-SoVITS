@@ -74,6 +74,7 @@ from config import (
     webui_port_main,
     webui_port_subfix,
     webui_port_uvr5,
+    local_mode,
 )
 from tools import my_utils
 from tools.i18n.i18n import I18nAuto, scan_language_list
@@ -388,6 +389,8 @@ def change_label(path_list):
             webui_port_subfix,
             is_share,
         )
+        if local_mode:
+            cmd += " --local_mode"
         yield (
             process_info(process_name_subfix, "opened"),
             {"__type__": "update", "visible": False},
@@ -412,6 +415,8 @@ def change_uvr5():
     global p_uvr5
     if p_uvr5 is None:
         cmd = '"%s" tools/uvr5/webui.py "%s" %s %s %s' % (python_exec, infer_device, is_half, webui_port_uvr5, is_share)
+        if local_mode:
+            cmd += " True"
         yield (
             process_info(process_name_uvr5, "opened"),
             {"__type__": "update", "visible": False},
@@ -450,6 +455,7 @@ def change_tts_inference(bert_path, cnhubert_base_path, gpu_number, gpt_path, so
         os.environ["is_half"] = str(is_half)
         os.environ["infer_ttswebui"] = str(webui_port_infer_tts)
         os.environ["is_share"] = str(is_share)
+        os.environ["local_mode"] = str(local_mode)
         yield (
             process_info(process_name_tts, "opened"),
             {"__type__": "update", "visible": False},
@@ -1955,7 +1961,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
             gr.Markdown(value=i18n("施工中，请静候佳音"))
 
     app.queue().launch(  # concurrency_count=511, max_size=1022
-        server_name="0.0.0.0",
+        server_name="127.0.0.1" if local_mode else "0.0.0.0",
         inbrowser=True,
         share=is_share,
         server_port=webui_port_main,

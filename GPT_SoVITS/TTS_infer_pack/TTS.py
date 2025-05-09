@@ -287,8 +287,9 @@ class TTS_Config:
             configs: dict = self._load_configs(self.configs_path)
 
         assert isinstance(configs, dict)
-        version = configs.get("version", "v2").lower()
-        assert version in ["v1", "v2", "v3", "v4"]
+        version = "v2"
+        if "custom" in configs and configs["custom"]["version"].lower() in ["v1", "v2", "v3", "v4"]:
+            version = configs["custom"]["version"].lower()
         self.default_configs[version] = configs.get(version, self.default_configs[version])
         self.configs: dict = configs.get("custom", deepcopy(self.default_configs[version]))
 
@@ -467,7 +468,7 @@ class TTS:
         version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(weights_path)
         path_sovits = self.configs.default_configs[model_version]["vits_weights_path"]
 
-        if if_lora_v3 == True and os.path.exists(path_sovits) == False:
+        if model_version in {"v3", "v4"} and os.path.exists(path_sovits) == False:
             info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重"%model_version)
             raise FileExistsError(info)
 
@@ -519,7 +520,7 @@ class TTS:
             if "pretrained" not in weights_path and hasattr(vits_model, "enc_q"):
                 del vits_model.enc_q
 
-        if if_lora_v3 == False:
+        if model_version not in {"v3", "v4"}:
             print(
                 f"Loading VITS weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}"
             )
@@ -613,9 +614,6 @@ class TTS:
             self.vocoder_configs["T_chunk"] = 1000
             self.vocoder_configs["upsample_rate"] = 480
             self.vocoder_configs["overlapped_len"] = 12
-
-
-
 
         self.vocoder = self.vocoder.eval()
         if self.configs.is_half == True:
@@ -1256,7 +1254,7 @@ class TTS:
                         speed_factor,
                         False,
                         fragment_interval,
-                        super_sampling if self.configs.use_vocoder and self.configs.version == "v3" else False,
+                        super_sampling if self.configs.use_vocoder and self.configs.version in {"v3", "v4"} else False,
                     )
                 else:
                     audio.append(batch_audio_fragment)
@@ -1277,7 +1275,7 @@ class TTS:
                     speed_factor,
                     split_bucket,
                     fragment_interval,
-                    super_sampling if self.configs.use_vocoder and self.configs.version == "v3" else False,
+                    super_sampling if self.configs.use_vocoder and self.configs.version in {"v3", "v4"} else False,
                 )
 
         except Exception as e:

@@ -30,6 +30,9 @@ webui_port_subfix = 9871
 
 api_port = 9880
 
+# 设置为True可启用本地模式，该模式只允许本机访问，避免出现潜在安全问题。默认为False。
+local_mode = False
+
 if infer_device == "cuda":
     gpu_name = torch.cuda.get_device_name(0)
     if (
