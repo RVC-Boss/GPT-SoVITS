@@ -7,11 +7,17 @@
 全部按日文识别
 """
 
+import json
 import logging
+import os
+import re
+import sys
 import traceback
 import warnings
 
+import torch
 import torchaudio
+from text.LangSegmenter import LangSegmenter
 
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -23,20 +29,6 @@ logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 logging.getLogger("multipart.multipart").setLevel(logging.ERROR)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-import json
-import os
-import re
-import sys
-
-import torch
-from text.LangSegmenter import LangSegmenter
-
-try:
-    import gradio.analytics as analytics
-
-    analytics.version_check = lambda: None
-except:
-    ...
 version = model_version = os.environ.get("version", "v2")
 path_sovits_v3 = "GPT_SoVITS/pretrained_models/s2Gv3.pth"
 path_sovits_v4 = "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth"
@@ -106,7 +98,7 @@ cnhubert.cnhubert_base_path = cnhubert_base_path
 
 import random
 
-from GPT_SoVITS.module.models import SynthesizerTrn, SynthesizerTrnV3, Generator
+from GPT_SoVITS.module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
 
 
 def set_seed(seed):
@@ -1087,7 +1079,7 @@ def html_left(text, label="p"):
                 </div>"""
 
 
-with gr.Blocks(title="GPT-SoVITS WebUI") as app:
+with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
     gr.Markdown(
         value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
         + "<br>"

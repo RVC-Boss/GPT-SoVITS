@@ -1,26 +1,22 @@
+import logging
 import os
 import traceback
+
 import gradio as gr
-import logging
+
 from tools.i18n.i18n import I18nAuto
 from tools.my_utils import clean_path
 
 i18n = I18nAuto()
 
 logger = logging.getLogger(__name__)
+import sys
+
 import ffmpeg
 import torch
-import sys
+from bsroformer import Roformer_Loader
 from mdxnet import MDXNetDereverb
 from vr import AudioPre, AudioPreDeEcho
-from bsroformer import Roformer_Loader
-
-try:
-    import gradio.analytics as analytics
-
-    analytics.version_check = lambda: None
-except:
-    ...
 
 weight_uvr5_root = "tools/uvr5/uvr5_weights"
 uvr5_names = []
@@ -129,7 +125,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
     yield "\n".join(infos)
 
 
-with gr.Blocks(title="UVR5 WebUI") as app:
+with gr.Blocks(title="UVR5 WebUI", analytics_enabled=False) as app:
     gr.Markdown(
         value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
         + "<br>"

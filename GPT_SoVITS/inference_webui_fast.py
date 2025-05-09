@@ -14,6 +14,8 @@ import random
 import re
 import sys
 
+import torch
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
@@ -25,14 +27,6 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
-import torch
-
-try:
-    import gradio.analytics as analytics
-
-    analytics.version_check = lambda: None
-except:
-    ...
 
 
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
@@ -330,7 +324,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         f.write(json.dumps(data))
 
 
-with gr.Blocks(title="GPT-SoVITS WebUI") as app:
+with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
     gr.Markdown(
         value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
         + "<br>"
