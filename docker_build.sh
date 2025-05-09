@@ -40,10 +40,10 @@ while [[ $# -gt 0 ]]; do
     --cuda)
         case "$2" in
         12.4)
-            CUDA_VERSION=124
+            CUDA_VERSION=12.4
             ;;
         12.8)
-            CUDA_VERSION=128
+            CUDA_VERSION=12.8
             ;;
         *)
             echo "Error: Invalid CUDA_VERSION: $2"

@@ -24,19 +24,19 @@ jobs:
     strategy:
       matrix:
         include:
-          - cuda_version: 124
+          - cuda_version: 12.4
             lite: true
             torch_base: lite
             tag_prefix: cu124-lite
-          - cuda_version: 124
+          - cuda_version: 12.4
             lite: false
             torch_base: full
             tag_prefix: cu124
-          - cuda_version: 128
+          - cuda_version: 12.8
             lite: true
             torch_base: lite
             tag_prefix: cu128-lite
-          - cuda_version: 128
+          - cuda_version: 12.8
             lite: false
             torch_base: full
             tag_prefix: cu128
@@ -111,19 +111,19 @@ jobs:
     strategy:
       matrix:
         include:
-          - cuda_version: 124
+          - cuda_version: 12.4
             lite: true
             torch_base: lite
             tag_prefix: cu124-lite
-          - cuda_version: 124
+          - cuda_version: 12.4
             lite: false
             torch_base: full
             tag_prefix: cu124
-          - cuda_version: 128
+          - cuda_version: 12.8
             lite: true
             torch_base: lite
             tag_prefix: cu128-lite
-          - cuda_version: 128
+          - cuda_version: 12.8
             lite: false
             torch_base: full
             tag_prefix: cu128
