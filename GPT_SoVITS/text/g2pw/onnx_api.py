@@ -1,20 +1,22 @@
 # This code is modified from https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw
 # This code is modified from https://github.com/GitYCC/g2pW
 
-import warnings
-
-warnings.filterwarnings("ignore")
 import json
 import os
+import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
+
+from opencc import OpenCC
+
+warnings.filterwarnings("ignore")
+
 
 import numpy as np
 import onnxruntime
 import requests
 
 onnxruntime.set_default_logger_severity(3)
-from opencc import OpenCC
 from pypinyin import Style, pinyin
 from transformers import AutoTokenizer
 

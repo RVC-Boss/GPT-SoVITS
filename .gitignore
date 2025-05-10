@@ -7,13 +7,8 @@ runtime
 .idea
 output
 logs
-reference
-GPT_weights
-SoVITS_weights
-GPT_weights_v2
-SoVITS_weights_v2
-GPT_weights_v3
-SoVITS_weights_v3
+SoVITS_weights*/
+GPT_weights*/
 TEMP
 weight.json
 ffmpeg*
