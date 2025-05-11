@@ -21,8 +21,8 @@ from tools.i18n.i18n import I18nAuto, scan_language_list
 from functools import lru_cache
 import torch
 
-from cached import get_cached_bert
-from cached import CachedBertExtractor
+from .cached1 import get_cached_bert
+from .cached1 import CachedBertExtractor
 
 
 
