@@ -22,6 +22,7 @@ from functools import lru_cache
 import torch
 
 from cached import get_cached_bert
+from cached import CachedBertExtractor
 
 
 
@@ -61,6 +62,8 @@ class TextPreprocessor:
         self.tokenizer = tokenizer
         self.device = device
         self.bert_lock = threading.RLock()
+
+        self.bert_extractor = CachedBertExtractor("bert-base-chinese", device=device)
 
     def preprocess(self, text: str, lang: str, text_split_method: str, version: str = "v2") -> List[Dict]:
         print(f"############ {i18n('切分文本')} ############")
