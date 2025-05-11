@@ -39,7 +39,7 @@ response = requests.post(url, json=payload)
 if response.status_code == 200:
     with open("output.wav", "wb") as f:
         f.write(response.content)
-    print("✅ 生成成功，保存为 output.wav")
+    print(" 生成成功，保存为 output.wav")
 else:
-    print(f"❌ 生成失败: {response.status_code}, 返回信息: {response.text}")
+    print(f" 生成失败: {response.status_code}, 返回信息: {response.text}")
 

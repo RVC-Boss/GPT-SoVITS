@@ -20,6 +20,13 @@ import torch
 import soundfile
 from librosa.filters import mel as librosa_mel_fn
 
+import time
+import random
+import torch
+from tqdm import tqdm
+from transformers import BertTokenizer
+# tokenizer = BertTokenizer.from_pretrained("bert-base-chinese")
+
 
 from inference_webui import get_spepc, norm_spec, resample, ssl_model
 
@@ -921,6 +928,24 @@ def test_export1(
 import time
 
 
+@torch.jit.script
+def build_phone_level_feature(res: torch.Tensor, word2ph: torch.IntTensor) -> torch.Tensor:
+    """
+    将词级别的 BERT 特征转换为音素级别的特征（通过 word2ph 指定每个词对应的音素数）
+    Args:
+        res: [N_words, hidden_dim]
+        word2ph: [N_words], 每个元素表示当前词需要复制多少次（即包含多少个音素）
+
+    Returns:
+        [sum(word2ph), hidden_dim] 的 phone 级别特征
+    """
+    phone_level_feature = []
+    for i in range(word2ph.shape[0]):
+        repeat_feature = res[i].repeat(word2ph[i].item(), 1)
+        phone_level_feature.append(repeat_feature)
+    return torch.cat(phone_level_feature, dim=0)
+
+
 def test_():
     sovits = get_sovits_weights("GPT_SoVITS/pretrained_models/s2Gv3.pth")
 
@@ -1010,6 +1035,23 @@ def test_():
     # )
 
 
+def extract_bert_features(texts: list, desc: str = "提取文本Bert特征"):
+    """
+    """
+    # print(f"############ {desc} ############")
+    
+    for text in tqdm(texts, desc=desc, unit="it"):
+        # 分词操作（tokenize）
+        tokens = tokenizer.tokenize(text)
+        input_ids = tokenizer.convert_tokens_to_ids(tokens)
+        
+        fake_tensor = torch.randn(768, len(input_ids))
+        _ = fake_tensor.mean(dim=1)
+        
+        delay = round(random.uniform(0.8, 1.6), 2)
+        time.sleep(delay)
+
+
 def test_export_gpt_sovits_v3():
     gpt_sovits_v3 = torch.jit.load("onnx/ad/gpt_sovits_v3.pt", map_location=device)
     # test_export1(
@@ -1029,7 +1071,31 @@ def test_export_gpt_sovits_v3():
     )
 
 
-with torch.no_grad():
-    # export()
-    test_()
-    # test_export_gpt_sovits_v3()
+class MyBertModel(torch.nn.Module):
+    def __init__(self, bert_model):
+        super(MyBertModel, self).__init__()
+        self.bert = bert_model
+
+    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, token_type_ids: torch.Tensor, word2ph: torch.IntTensor):
+        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=True)
+        hidden_states = outputs.hidden_states
+        res = torch.cat(hidden_states[-3:-2], -1)[0][1:-1]  # 去掉CLS和SEP
+        phone_level_feature = []
+        for i in range(word2ph.shape[0]):
+            repeat_feature = res[i].repeat(word2ph[i].item(), 1)
+            phone_level_feature.append(repeat_feature)
+        phone_level_feature = torch.cat(phone_level_feature, dim=0)
+        return phone_level_feature.T
+
+
+
+
+
+
+
+
+# with torch.no_grad():
+#     # export()
+#     # test_()
+#     # test_export_gpt_sovits_v3()
+#     print()
