@@ -21,7 +21,7 @@ Write-Host "[INFO] Cleaning .git..."
 Remove-Item "$srcDir\.git" -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "[INFO] Creating tmp dir..."
-New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
+New-Item -ItemType Directory -Force -Path $tmpDir
 
 Write-Host "[INFO] Downloading Python..."
 $zst = "$tmpDir\python.tar.zst"
@@ -98,12 +98,11 @@ Expand-Archive -Path $nltkZip -DestinationPath $prefix -Force
 Remove-Item $nltkZip
 
 Invoke-WebRequest -Uri $JTALK_URL -OutFile $jtalkTar
-& "C:\Program Files\7-Zip\7z.exe" x $jtalkTar -o$tmpDir\jtalk -aoa
-$innerTar = Get-ChildItem "$tmpDir\jtalk" -Filter "*.tar" | Select-Object -First 1
+& "C:\Program Files\7-Zip\7z.exe" e $jtalkTar -o"$tmpDir" -aoa
+$innerTar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 & "C:\Program Files\7-Zip\7z.exe" x $innerTar.FullName -o"$jtalkPath" -aoa
-
 Remove-Item $jtalkTar
-Remove-Item "$tmpDir\jtalk" -Recurse -Force
+Remove-Item $innerTar.FullName
 
 Write-Host "[INFO] Preparing final directory..."
 Copy-Item "$srcDir\*" -Destination $pkgName -Recurse -Force
