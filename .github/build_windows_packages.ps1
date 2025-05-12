@@ -39,6 +39,13 @@ DownloadAndUnzip $G2PW_URL "GPT_SoVITS\text\G2PWModel"
 Write-Host "[INFO] Download UVR5 model..."
 DownloadAndUnzip $UVR5_URL "tools\uvr5\uvr5_weights"
 
+Write-Host "[INFO] Downloading funasr..."
+$funasrUrl = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/funasr.zip"
+$funasrZip = "$tmpDir\funasr.zip"
+Invoke-WebRequest -Uri $funasrUrl -OutFile $funasrZip
+Expand-Archive -Path $funasrZip -DestinationPath "$srcDir\tools\asr\models" -Force
+Remove-Item $funasrZip
+
 Write-Host "[INFO] Download ffmpeg..."
 $ffUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 $ffZip = "$tmpDir\ffmpeg.zip"
