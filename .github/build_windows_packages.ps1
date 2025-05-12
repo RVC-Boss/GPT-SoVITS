@@ -65,6 +65,7 @@ Get-ChildItem
 Get-ChildItem $tmpDir
 & "C:\Program Files\7-Zip\7z.exe" e $zst -o$tmpDir -aoa | Out-Null
 Get-ChildItem $tmpDir
+Write-Host "11111"
 $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 Get-ChildItem $tmpDir
 & "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o$tmpDir\extracted -aoa | Out-Null
