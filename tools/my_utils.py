@@ -147,8 +147,7 @@ def load_cudnn():
         if torch_lib_dir.exists():
             os.add_dll_directory(str(torch_lib_dir))
             print(f"[INFO] Added DLL directory: {torch_lib_dir}")
-            pattern = str(torch_lib_dir / "cudnn_cnn*.dll")
-            matching_files = sorted(glob.glob(pattern))
+            matching_files = sorted(torch_lib_dir.glob("cudnn_cnn*.dll"))
             if not matching_files:
                 print(f"[ERROR] No cudnn_cnn*.dll found in {torch_lib_dir}")
                 return
@@ -170,15 +169,14 @@ def load_cudnn():
             print(f"[ERROR] cudnn dir not found: {cudnn_dir}")
             return
 
-        pattern = str(cudnn_dir / "libcudnn_cnn*.so*")
-        matching_files = sorted(glob.glob(pattern))
+        matching_files = sorted(cudnn_dir.glob("libcudnn_cnn*.so*"))
         if not matching_files:
             print(f"[ERROR] No libcudnn_cnn*.so* found in {cudnn_dir}")
             return
 
         for so_path in matching_files:
             try:
-                ctypes.CDLL(so_path, mode=ctypes.RTLD_GLOBAL)
+                ctypes.CDLL(so_path, mode=ctypes.RTLD_GLOBAL)  # type: ignore
                 print(f"[INFO] Loaded: {so_path}")
             except OSError as e:
                 print(f"[WARNING] Failed to load {so_path}: {e}")
@@ -196,8 +194,7 @@ def load_nvrtc():
         if torch_lib_dir.exists():
             os.add_dll_directory(str(torch_lib_dir))
             print(f"[INFO] Added DLL directory: {torch_lib_dir}")
-            pattern = str(torch_lib_dir / "nvrtc*.dll")
-            matching_files = sorted(glob.glob(pattern))
+            matching_files = sorted(torch_lib_dir.glob("nvrtc*.dll"))
             if not matching_files:
                 print(f"[ERROR] No nvrtc*.dll found in {torch_lib_dir}")
                 return
@@ -219,15 +216,14 @@ def load_nvrtc():
             print(f"[ERROR] nvrtc dir not found: {nvrtc_dir}")
             return
 
-        pattern = str(nvrtc_dir / "libnvrtc*.so*")
-        matching_files = sorted(glob.glob(pattern))
+        matching_files = sorted(nvrtc_dir.glob("libnvrtc*.so*"))
         if not matching_files:
             print(f"[ERROR] No libnvrtc*.so* found in {nvrtc_dir}")
             return
 
         for so_path in matching_files:
             try:
-                ctypes.CDLL(so_path, mode=ctypes.RTLD_GLOBAL)
+                ctypes.CDLL(so_path, mode=ctypes.RTLD_GLOBAL)  # type: ignore
                 print(f"[INFO] Loaded: {so_path}")
             except OSError as e:
                 print(f"[WARNING] Failed to load {so_path}: {e}")
