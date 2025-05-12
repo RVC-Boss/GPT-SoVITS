@@ -17,6 +17,7 @@ import onnxruntime
 import requests
 
 onnxruntime.set_default_logger_severity(3)
+onnxruntime.preload_dlls()
 from pypinyin import Style, pinyin
 from transformers import AutoTokenizer
 
