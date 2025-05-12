@@ -61,10 +61,12 @@ Write-Host "[INFO] Downloading Python..."
 $pyUrl = "https://github.com/astral-sh/python-build-standalone/releases/download/20250409/cpython-3.11.12+20250409-x86_64-pc-windows-msvc-pgo-full.tar.zst"
 $zst = "$tmpDir\python.tar.zst"
 Invoke-WebRequest $pyUrl -OutFile $zst
+Get-ChildItem 
+Get-ChildItem $tmpDir
 & "C:\Program Files\7-Zip\7z.exe" e $zst -o$tmpDir -aoa | Out-Null
 $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 & "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o$tmpDir\extracted -aoa | Out-Null
-Move-Item "$tmpDir\extracted\install" "$srcDir\runtime"
+Move-Item "$tmpDir\extracted\python\install" "$srcDir\runtime"
 
 Write-Host "[INFO] Installing PyTorch..."
 $torchCmd = switch ($cuda) {
