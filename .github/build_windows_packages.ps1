@@ -68,13 +68,19 @@ Remove-Item $ffZip
 Remove-Item $ffDir.FullName -Recurse -Force
 
 Write-Host "[INFO] Installing PyTorch..."
-$torchCmd = switch ($cuda) {
-    "cu124" { "pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124" }
-    "cu128" { "pip install torch==2.7.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu128" }
-    default { Write-Error "Unsupported CUDA version: $cuda"; exit 1 }
-}
 & ".\runtime\python.exe" -m ensurepip
-& ".\runtime\python.exe" -c "$torchCmd"
+switch ($cuda) {
+    "cu124" {
+        & ".\runtime\python.exe" -m pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+    }
+    "cu128" {
+        & ".\runtime\python.exe" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+    }
+    default {
+        Write-Error "Unsupported CUDA version: $cuda"
+        exit 1
+    }
+}
 
 Write-Host "[INFO] Installing dependencies..."
 & ".\runtime\python.exe" -m pip install -r extra-req.txt --no-deps --no-warn-script-location
