@@ -17,21 +17,17 @@ Write-Host "[INFO] Creating tmp dir..."
 New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
 
 Write-Host "[INFO] Downloading Python..."
-$pyUrl = "https://github.com/astral-sh/python-build-standalone/releases/download/20250409/cpython-3.11.12+20250409-x86_64-pc-windows-msvc-pgo-full.tar.zst"
 $zst = "$tmpDir\python.tar.zst"
-Invoke-WebRequest $pyUrl -OutFile $zst
-Get-ChildItem 
+Invoke-WebRequest "https://github.com/astral-sh/python-build-standalone/releases/download/20250409/cpython-3.11.12+20250409-x86_64-pc-windows-msvc-pgo-full.tar.zst" -OutFile $zst
+
+Write-Host "1111"
 Get-ChildItem $tmpDir
-Write-Host "0000"
-Push-Location $tmpDir
-& "C:\Program Files\7-Zip\7z.exe" e $zst -aoa
-Pop-Location
+& "C:\Program Files\7-Zip\7z.exe" e $zst -o"$tmpDir" -aoa
+Write-Host "2222"
 Get-ChildItem $tmpDir
-Write-Host "11111"
 $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
-Get-ChildItem $tmpDir
-Write-Host "222222"
-& "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o$tmpDir\extracted -aoa | Out-Null
+& "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o"$tmpDir\extracted" -aoa
+Write-Host "3333"
 Get-ChildItem $tmpDir
 Move-Item "$tmpDir\extracted\python\install" "$srcDir\runtime"
 
