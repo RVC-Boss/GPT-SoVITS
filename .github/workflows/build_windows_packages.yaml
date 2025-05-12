@@ -20,4 +20,4 @@ jobs:
 
       - name: Run Build and Upload Script
         shell: pwsh
-        run: ./github/build_windows_packages
+        run: ./github/build_windows_packages.ps1
