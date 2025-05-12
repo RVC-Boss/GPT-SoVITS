@@ -23,7 +23,7 @@ Invoke-WebRequest $pyUrl -OutFile $zst
 Get-ChildItem 
 Get-ChildItem $tmpDir
 Write-Host "0000"
-& "C:\Program Files\7-Zip\7z.exe" e $zst -o$tmpDir -aoa
+Start-Process -FilePath "C:\Program Files\7-Zip\7z.exe" -ArgumentList "e `"$zst`" -aoa" -WorkingDirectory $tmpDir -Wait
 Get-ChildItem $tmpDir
 Write-Host "11111"
 $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
