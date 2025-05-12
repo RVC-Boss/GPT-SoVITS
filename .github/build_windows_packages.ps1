@@ -10,6 +10,13 @@ $pkgName = "GPT-SoVITS-$today-$cuda"
 $tmpDir = "tmp"
 $srcDir = $PWD
 
+$baseHF = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
+$PRETRAINED_URL = "$baseHF/pretrained_models.zip"
+$G2PW_URL = "$baseHF/G2PWModel.zip"
+$UVR5_URL = "$baseHF/uvr5_weights.zip"
+$NLTK_URL = "$baseHF/nltk_data.zip"
+$JTALK_URL = "$baseHF/open_jtalk_dic_utf_8-1.11.tar.gz"
+
 Write-Host "[INFO] Cleaning .git..."
 Remove-Item "$srcDir\.git" -Recurse -Force -ErrorAction SilentlyContinue
 
@@ -19,22 +26,10 @@ New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
 Write-Host "[INFO] Downloading Python..."
 $zst = "$tmpDir\python.tar.zst"
 Invoke-WebRequest "https://github.com/astral-sh/python-build-standalone/releases/download/20250409/cpython-3.11.12+20250409-x86_64-pc-windows-msvc-pgo-full.tar.zst" -OutFile $zst
-
-Write-Host "1111"
-Get-ChildItem $tmpDir
 & "C:\Program Files\7-Zip\7z.exe" e $zst -o"$tmpDir" -aoa
-Write-Host "2222"
-Get-ChildItem $tmpDir
 $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 & "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o"$tmpDir\extracted" -aoa
-Write-Host "3333"
-Get-ChildItem $tmpDir
 Move-Item "$tmpDir\extracted\python\install" "$srcDir\runtime"
-
-$baseHF = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
-$PRETRAINED_URL = "$baseHF/pretrained_models.zip"
-$G2PW_URL = "$baseHF/G2PWModel.zip"
-$UVR5_URL = "$baseHF/uvr5_weights.zip"
 
 function DownloadAndUnzip($url, $targetRelPath) {
     $filename = Split-Path $url -Leaf
@@ -82,14 +77,31 @@ $torchCmd = switch ($cuda) {
 & ".\runtime\python.exe" -c "$torchCmd"
 
 Write-Host "[INFO] Installing dependencies..."
-& ".\runtime\python.exe" -m pip install -r extra-req.txt --no-deps
-& ".\runtime\python.exe" -m pip install -r requirements.txt
-& ".\runtime\python.exe" -c "import nltk; nltk.download(['averaged_perceptron_tagger','averaged_perceptron_tagger_eng','cmudict'])"
+& ".\runtime\python.exe" -m pip install -r extra-req.txt --no-deps --no-warn-script-location
+& ".\runtime\python.exe" -m pip install -r requirements.txt --no-warn-script-location
+
+Write-Host "[INFO] Downloading NLTK and pyopenjtalk dictionary..."
+$PYTHON = ".\runtime\python.exe"
+$prefix = & $PYTHON -c "import sys; print(sys.prefix)"
+$jtalkPath = & $PYTHON -c "import os, pyopenjtalk; print(os.path.dirname(pyopenjtalk.__file__))"
+$nltkZip = "$tmpDir\nltk_data.zip"
+$jtalkTar = "$tmpDir\open_jtalk_dic_utf_8-1.11.tar.gz"
+
+Invoke-WebRequest -Uri $NLTK_URL -OutFile $nltkZip
+Expand-Archive -Path $nltkZip -DestinationPath $prefix -Force
+Remove-Item $nltkZip
+
+Invoke-WebRequest -Uri $JTALK_URL -OutFile $jtalkTar
+& "C:\Program Files\7-Zip\7z.exe" x $jtalkTar -o$tmpDir\jtalk -aoa
+$innerTar = Get-ChildItem "$tmpDir\jtalk" -Filter "*.tar" | Select-Object -First 1
+& "C:\Program Files\7-Zip\7z.exe" x $innerTar.FullName -o"$jtalkPath" -aoa
+
+Remove-Item $jtalkTar
+Remove-Item "$tmpDir\jtalk" -Recurse -Force
 
 Write-Host "[INFO] Preparing final directory..."
-$finalDir = "..\$pkgName"
-Move-Item $srcDir $finalDir -Force
-Compress-Archive -Path "$finalDir\*" -DestinationPath "$pkgName.zip" -Force
+Copy-Item "$srcDir\*" -Destination $pkgName -Recurse -Force
+Compress-Archive -Path "$pkgName\*" -DestinationPath "$pkgName.zip" -Force
 
 $msUser = $env:MODELSCOPE_USERNAME
 $msToken = $env:MODELSCOPE_TOKEN
