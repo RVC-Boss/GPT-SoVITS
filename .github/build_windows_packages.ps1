@@ -64,7 +64,9 @@ Invoke-WebRequest $pyUrl -OutFile $zst
 Get-ChildItem 
 Get-ChildItem $tmpDir
 & "C:\Program Files\7-Zip\7z.exe" e $zst -o$tmpDir -aoa | Out-Null
+Get-ChildItem $tmpDir
 $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
+Get-ChildItem $tmpDir
 & "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o$tmpDir\extracted -aoa | Out-Null
 Move-Item "$tmpDir\extracted\python\install" "$srcDir\runtime"
 
