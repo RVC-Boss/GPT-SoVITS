@@ -13,12 +13,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
-import math
 import random
 from typing import Optional
 from typing import Tuple
-from typing import Union
 
 import torch
 import torch.nn as nn
@@ -61,9 +58,7 @@ class DoubleSwishFunction(torch.autograd.Function):
             # floors), should be expectation-preserving.
             floor = -0.043637
             ceil = 1.2
-            d_scaled = (deriv - floor) * (255.0 / (ceil - floor)) + torch.rand_like(
-                deriv
-            )
+            d_scaled = (deriv - floor) * (255.0 / (ceil - floor)) + torch.rand_like(deriv)
             if __name__ == "__main__":
                 # for self-testing only.
                 assert d_scaled.min() >= 0.0
@@ -153,13 +148,9 @@ def _compute_scale_factor(
     else:
         # below_threshold is 0 if x_abs_mean > min_abs, can be at most max_factor if
         # x_abs)_mean , min_abs.
-        below_threshold = ((min_abs - x_abs_mean) * (gain_factor / min_abs)).clamp(
-            min=0, max=max_factor
-        )
+        below_threshold = ((min_abs - x_abs_mean) * (gain_factor / min_abs)).clamp(min=0, max=max_factor)
 
-    above_threshold = ((x_abs_mean - max_abs) * (gain_factor / max_abs)).clamp(
-        min=0, max=max_factor
-    )
+    above_threshold = ((x_abs_mean - max_abs) * (gain_factor / max_abs)).clamp(min=0, max=max_factor)
 
     return below_threshold - above_threshold
 
@@ -181,18 +172,16 @@ def _compute_sign_factor(
     else:
         # 0 if proportion_positive >= min_positive, else can be
         # as large as max_factor.
-        factor1 = (
-            (min_positive - proportion_positive) * (gain_factor / min_positive)
-        ).clamp_(min=0, max=max_factor)
+        factor1 = ((min_positive - proportion_positive) * (gain_factor / min_positive)).clamp_(min=0, max=max_factor)
 
     if max_positive == 1.0:
         factor2 = 0.0
     else:
         # 0 if self.proportion_positive <= max_positive, else can be
         # as large as -max_factor.
-        factor2 = (
-            (proportion_positive - max_positive) * (gain_factor / (1.0 - max_positive))
-        ).clamp_(min=0, max=max_factor)
+        factor2 = ((proportion_positive - max_positive) * (gain_factor / (1.0 - max_positive))).clamp_(
+            min=0, max=max_factor
+        )
     sign_factor = factor1 - factor2
     # require min_positive != 0 or max_positive != 1:
     assert not isinstance(sign_factor, float)
@@ -320,15 +309,11 @@ class ActivationBalancer(torch.nn.Module):
             return _no_op(x)
 
 
-def BalancedDoubleSwish(
-    d_model, channel_dim=-1, max_abs=10.0, min_prob=0.25
-) -> nn.Sequential:
+def BalancedDoubleSwish(d_model, channel_dim=-1, max_abs=10.0, min_prob=0.25) -> nn.Sequential:
     """
     ActivationBalancer -> DoubleSwish
     """
-    balancer = ActivationBalancer(
-        d_model, channel_dim=channel_dim, max_abs=max_abs, min_prob=min_prob
-    )
+    balancer = ActivationBalancer(d_model, channel_dim=channel_dim, max_abs=max_abs, min_prob=min_prob)
     return nn.Sequential(
         balancer,
         DoubleSwish(),

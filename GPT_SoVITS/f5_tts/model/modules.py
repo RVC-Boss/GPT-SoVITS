@@ -391,6 +391,7 @@ class Attention(nn.Module):
 
 # Attention processor
 
+
 # from torch.nn.attention import SDPBackend
 # torch.backends.cuda.enable_flash_sdp(True)
 class AttnProcessor:
@@ -544,6 +545,7 @@ class JointAttnProcessor:
 
 
 # DiT Block
+
 
 class DiTBlock(nn.Module):
     def __init__(self, dim, heads, dim_head, ff_mult=4, dropout=0.1):

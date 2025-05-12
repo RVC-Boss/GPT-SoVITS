@@ -1,6 +1,7 @@
 # modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/t2s_lightning_module.py
 # reference: https://github.com/lifeiteng/vall-e
-import os, sys
+import os
+import sys
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -8,9 +9,11 @@ from typing import Dict
 
 import torch
 from pytorch_lightning import LightningModule
+
 from AR.models.t2s_model import Text2SemanticDecoder
 from AR.modules.lr_schedulers import WarmupCosineLRSchedule
 from AR.modules.optim import ScaledAdam
+
 
 class Text2SemanticLightningModule(LightningModule):
     def __init__(self, config, output_dir, is_train=True):
@@ -23,7 +26,10 @@ class Text2SemanticLightningModule(LightningModule):
             # print(self.load_state_dict(torch.load(pretrained_s1,map_location="cpu")["state_dict"]))
             print(
                 self.load_state_dict(
-                    torch.load(pretrained_s1, map_location="cpu")["weight"]
+                    torch.load(
+                        pretrained_s1,
+                        map_location="cpu",
+                    )["weight"],
                 )
             )
         if is_train:
@@ -35,7 +41,7 @@ class Text2SemanticLightningModule(LightningModule):
     def training_step(self, batch: Dict, batch_idx: int):
         opt = self.optimizers()
         scheduler = self.lr_schedulers()
-        forward=self.model.forward if self.config["train"].get("if_dpo",False)==True else self.model.forward_old
+        forward = self.model.forward if self.config["train"].get("if_dpo", False) == True else self.model.forward_old
         loss, acc = forward(
             batch["phoneme_ids"],
             batch["phoneme_ids_len"],
@@ -113,9 +119,7 @@ class Text2SemanticLightningModule(LightningModule):
     def configure_optimizers(self):
         model_parameters = self.model.parameters()
         parameters_names = []
-        parameters_names.append(
-            [name_param_pair[0] for name_param_pair in self.model.named_parameters()]
-        )
+        parameters_names.append([name_param_pair[0] for name_param_pair in self.model.named_parameters()])
         lm_opt = ScaledAdam(
             model_parameters,
             lr=0.01,
