@@ -18,6 +18,13 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 
 from tools.i18n.i18n import I18nAuto, scan_language_list
+from functools import lru_cache
+import torch
+
+from .cached1 import get_cached_bert
+from .cached1 import CachedBertExtractor
+
+
 
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -55,6 +62,8 @@ class TextPreprocessor:
         self.tokenizer = tokenizer
         self.device = device
         self.bert_lock = threading.RLock()
+
+        self.bert_extractor = CachedBertExtractor("bert-base-chinese", device=device)
 
     def preprocess(self, text: str, lang: str, text_split_method: str, version: str = "v2") -> List[Dict]:
         print(f"############ {i18n('切分文本')} ############")
@@ -186,20 +195,25 @@ class TextPreprocessor:
 
             return phones, bert, norm_text
 
-    def get_bert_feature(self, text: str, word2ph: list) -> torch.Tensor:
-        with torch.no_grad():
-            inputs = self.tokenizer(text, return_tensors="pt")
-            for i in inputs:
-                inputs[i] = inputs[i].to(self.device)
-            res = self.bert_model(**inputs, output_hidden_states=True)
-            res = torch.cat(res["hidden_states"][-3:-2], -1)[0].cpu()[1:-1]
-        assert len(word2ph) == len(text)
-        phone_level_feature = []
-        for i in range(len(word2ph)):
-            repeat_feature = res[i].repeat(word2ph[i], 1)
-            phone_level_feature.append(repeat_feature)
-        phone_level_feature = torch.cat(phone_level_feature, dim=0)
-        return phone_level_feature.T
+    # def get_bert_feature(self, text: str, word2ph: list) -> torch.Tensor:
+    #     with torch.no_grad():
+    #         inputs = self.tokenizer(text, return_tensors="pt")
+    #         for i in inputs:
+    #             inputs[i] = inputs[i].to(self.device)
+    #         res = self.bert_model(**inputs, output_hidden_states=True)
+    #         res = torch.cat(res["hidden_states"][-3:-2], -1)[0].cpu()[1:-1]
+    #     assert len(word2ph) == len(text)
+    #     phone_level_feature = []
+    #     for i in range(len(word2ph)):
+    #         repeat_feature = res[i].repeat(word2ph[i], 1)
+    #         phone_level_feature.append(repeat_feature)
+    #     phone_level_feature = torch.cat(phone_level_feature, dim=0)
+    #     return phone_level_feature.T
+
+    def get_bert_feature(self, norm_text: str, word2ph: list) -> torch.Tensor:
+        # 注意：word2ph 是 list，需转为 tuple 作为缓存键
+        bert = get_cached_bert(norm_text, tuple(word2ph), str(self.device))
+        return bert.to(self.device)
 
     def clean_text_inf(self, text: str, language: str, version: str = "v2"):
         language = language.replace("all_", "")
@@ -235,3 +249,5 @@ class TextPreprocessor:
         pattern = f"([{punctuations}])([{punctuations}])+"
         result = re.sub(pattern, r"\1", text)
         return result
+
+
