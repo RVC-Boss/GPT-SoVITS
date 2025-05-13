@@ -113,9 +113,13 @@ Remove-Item $innerTar.FullName
 
 Write-Host "[INFO] Preparing final directory... $pkgName"
 Get-ChildItem ../
-Remove-Item $pkgName -Force -Recurse -ErrorAction SilentlyContinue
-Copy-Item "$srcDir\*" -Destination $pkgName -Recurse -Force
-Compress-Archive -Path "$pkgName\*" -DestinationPath "$pkgName.zip" -Force
+Get-ChildItem .
+Remove-Item "$tmpDir" -Force -Recurse -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path ../$pkgName
+Copy-Item "$srcDir\*" -Destination ../$pkgName -Recurse -Force
+Set-Location ../
+Get-ChildItem .
+Compress-Archive -Path "$pkgName" -DestinationPath "$pkgName.zip" -Force
 
 Write-Host "[INFO] Uploading to ModelScope..."
 $msUser = $env:MODELSCOPE_USERNAME
@@ -125,7 +129,7 @@ if (-not $msUser -or -not $msToken) {
     exit 1
 }
 python -m pip install --upgrade pip
-python -m pip install modelscope
+python -m pip install modelscope --no-warn-script-location.
 modelscope login --token $msToken
 modelscope upload "$msUser/GPT-SoVITS-Packages" "$pkgName.zip" "data/$pkgName.zip" --repo-type model
 
