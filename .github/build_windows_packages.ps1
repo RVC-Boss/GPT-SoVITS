@@ -76,12 +76,13 @@ Remove-Item $ffDir.FullName -Recurse -Force
 
 Write-Host "[INFO] Installing PyTorch..."
 & ".\runtime\python.exe" -m ensurepip
+& ".\runtime\python.exe" -m pip install --upgrade pip
 switch ($cuda) {
     "cu124" {
-        & ".\runtime\python.exe" -m pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+        & ".\runtime\python.exe" -m pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124 --no-warn-script-location
     }
     "cu128" {
-        & ".\runtime\python.exe" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+        & ".\runtime\python.exe" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128 --no-warn-script-location
     }
     default {
         Write-Error "Unsupported CUDA version: $cuda"
@@ -113,13 +114,15 @@ Remove-Item $innerTar.FullName
 
 Write-Host "[INFO] Preparing final directory... $pkgName"
 Get-ChildItem ../
+Write-Host "000"
 Get-ChildItem .
 Remove-Item "$tmpDir" -Force -Recurse -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path ../$pkgName
 Copy-Item "$srcDir\*" -Destination ../$pkgName -Recurse -Force
 Set-Location ../
+Write-Host "111"
 Get-ChildItem .
-Compress-Archive -Path "$pkgName" -DestinationPath "$pkgName.zip" -Force
+& "C:\Program Files\7-Zip\7z.exe" a -tzip "$zipPath" "$pkgName\*" -mx=5 -bsp1
 
 Write-Host "[INFO] Uploading to ModelScope..."
 $msUser = $env:MODELSCOPE_USERNAME
@@ -129,7 +132,7 @@ if (-not $msUser -or -not $msToken) {
     exit 1
 }
 python -m pip install --upgrade pip
-python -m pip install modelscope --no-warn-script-location.
+python -m pip install modelscope --no-warn-script-location
 modelscope login --token $msToken
 modelscope upload "$msUser/GPT-SoVITS-Packages" "$pkgName.zip" "data/$pkgName.zip" --repo-type model
 
