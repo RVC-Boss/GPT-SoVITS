@@ -17,15 +17,22 @@ $UVR5_URL = "$baseHF/uvr5_weights.zip"
 $NLTK_URL = "$baseHF/nltk_data.zip"
 $JTALK_URL = "$baseHF/open_jtalk_dic_utf_8-1.11.tar.gz"
 
+$PYTHON_VERSION = 3.11.12
+$RELEASE_VERSION = 20250409
+
 Write-Host "[INFO] Cleaning .git..."
 Remove-Item "$srcDir\.git" -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "[INFO] Creating tmp dir..."
 New-Item -ItemType Directory -Force -Path $tmpDir
 
-Write-Host "[INFO] Downloading Python..."
+Write-Host "[INFO] System Python version:"
+python --version
+python -m site
+
+Write-Host "[INFO] Downloading Python $PYTHON_VERSION..."
 $zst = "$tmpDir\python.tar.zst"
-Invoke-WebRequest "https://github.com/astral-sh/python-build-standalone/releases/download/20250409/cpython-3.11.12+20250409-x86_64-pc-windows-msvc-pgo-full.tar.zst" -OutFile $zst
+Invoke-WebRequest "https://github.com/astral-sh/python-build-standalone/releases/download/$RELEASE_VERSION/cpython-$PYTHON_VERSION+$RELEASE_VERSION-x86_64-pc-windows-msvc-pgo-full.tar.zst" -OutFile $zst
 & "C:\Program Files\7-Zip\7z.exe" e $zst -o"$tmpDir" -aoa
 $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 & "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o"$tmpDir\extracted" -aoa
@@ -104,16 +111,21 @@ $innerTar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 Remove-Item $jtalkTar
 Remove-Item $innerTar.FullName
 
-Write-Host "[INFO] Preparing final directory..."
+Write-Host "[INFO] Preparing final directory... $pkgName"
+Get-ChildItem ../
+Remove-Item $pkgName -Force -Recurse -ErrorAction SilentlyContinue
 Copy-Item "$srcDir\*" -Destination $pkgName -Recurse -Force
 Compress-Archive -Path "$pkgName\*" -DestinationPath "$pkgName.zip" -Force
 
+Write-Host "[INFO] Uploading to ModelScope..."
 $msUser = $env:MODELSCOPE_USERNAME
 $msToken = $env:MODELSCOPE_TOKEN
 if (-not $msUser -or -not $msToken) {
     Write-Error "Missing MODELSCOPE_USERNAME or MODELSCOPE_TOKEN"
     exit 1
 }
+python -m pip install --upgrade pip
+python -m pip install modelscope
 modelscope login --token $msToken
 modelscope upload "$msUser/GPT-SoVITS-Packages" "$pkgName.zip" "data/$pkgName.zip" --repo-type model
 
