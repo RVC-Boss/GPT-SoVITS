@@ -17,8 +17,8 @@ $UVR5_URL = "$baseHF/uvr5_weights.zip"
 $NLTK_URL = "$baseHF/nltk_data.zip"
 $JTALK_URL = "$baseHF/open_jtalk_dic_utf_8-1.11.tar.gz"
 
-$PYTHON_VERSION = 3.11.12
-$RELEASE_VERSION = 20250409
+$PYTHON_VERSION = "3.11.12"
+$RELEASE_VERSION = "20250409"
 
 Write-Host "[INFO] Cleaning .git..."
 Remove-Item "$srcDir\.git" -Recurse -Force -ErrorAction SilentlyContinue
