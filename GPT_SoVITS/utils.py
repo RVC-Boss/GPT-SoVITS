@@ -283,7 +283,7 @@ def get_hparams_from_file(config_path):
 def check_git_hash(model_dir):
     source_dir = os.path.dirname(os.path.realpath(__file__))
     if not os.path.exists(os.path.join(source_dir, ".git")):
-        logger.warn(
+        logger.warning(
             "{} is not a git repository, therefore hash value comparison will be ignored.".format(
                 source_dir,
             )
@@ -296,7 +296,7 @@ def check_git_hash(model_dir):
     if os.path.exists(path):
         saved_hash = open(path).read()
         if saved_hash != cur_hash:
-            logger.warn(
+            logger.warning(
                 "git hash values are different. {}(saved) != {}(current)".format(
                     saved_hash[:8],
                     cur_hash[:8],
