@@ -112,8 +112,9 @@ $innerTar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 Remove-Item $jtalkTar
 Remove-Item $innerTar.FullName
 
-Write-Host "[INFO] Preparing final directory $pkgName ..."
-Remove-Item "$tmpDir" -Force -Recurse -ErrorAction SilentlyContinue
+Write-Host "[INFO] Preparing final directory $pkgName ..."、
+$items = @(Get-ChildItem -Filter "*.ipynb", Get-ChildItem -Filter "*.sh", "$tmpDir", ".github", "Docker", "docs", ".gitignore", ".dockerignore", "README.md")
+Remove-Item $items -Force -Recurse -ErrorAction SilentlyContinue
 $curr = Get-Location
 Set-Location ../
 Get-ChildItem .
