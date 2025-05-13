@@ -76,7 +76,7 @@ Remove-Item $ffDir.FullName -Recurse -Force
 
 Write-Host "[INFO] Installing PyTorch..."
 & ".\runtime\python.exe" -m ensurepip
-& ".\runtime\python.exe" -m pip install --upgrade pip
+& ".\runtime\python.exe" -m pip install --upgrade pip --no-warn-script-location
 switch ($cuda) {
     "cu124" {
         & ".\runtime\python.exe" -m pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124 --no-warn-script-location
@@ -112,17 +112,13 @@ $innerTar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 Remove-Item $jtalkTar
 Remove-Item $innerTar.FullName
 
-Write-Host "[INFO] Preparing final directory... $pkgName"
-Get-ChildItem ../
-Write-Host "000"
-Get-ChildItem .
+Write-Host "[INFO] Preparing final directory $pkgName ..."
 Remove-Item "$tmpDir" -Force -Recurse -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path ../$pkgName
-Copy-Item "$srcDir\*" -Destination ../$pkgName -Recurse -Force
+$curr = Get-Location
 Set-Location ../
-Write-Host "111"
 Get-ChildItem .
-& "C:\Program Files\7-Zip\7z.exe" a -tzip "$zipPath" "$pkgName\*" -mx=5 -bsp1
+Rename-Item -Path $curr -NewName $pkgName
+& "C:\Program Files\7-Zip\7z.exe" a -tzip "$zipPath" "$pkgName" -mx=5 -bsp1
 
 Write-Host "[INFO] Uploading to ModelScope..."
 $msUser = $env:MODELSCOPE_USERNAME
@@ -133,7 +129,6 @@ if (-not $msUser -or -not $msToken) {
 }
 python -m pip install --upgrade pip
 python -m pip install modelscope --no-warn-script-location
-modelscope login --token $msToken
-modelscope upload "$msUser/GPT-SoVITS-Packages" "$pkgName.zip" "data/$pkgName.zip" --repo-type model
+modelscope upload "$msUser/GPT-SoVITS-Packages" "$pkgName.zip" "$pkgName.zip" --repo-type model --token $msToken
 
 Write-Host "[SUCCESS] Uploaded: $pkgName.zip"
