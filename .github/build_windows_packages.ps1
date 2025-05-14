@@ -18,7 +18,6 @@ if ($date -and $date.Trim() -ne "") {
 $pkgName = "GPT-SoVITS-$date"
 $tmpDir = "tmp"
 $srcDir = $workDir
-Write-Host "111$workDir"
 
 $suffix = $env:PKG_SUFFIX
 if ($suffix -and $suffix.Trim() -ne "") {
@@ -61,8 +60,6 @@ function DownloadAndUnzip($url, $targetRelPath) {
     Invoke-WebRequest $url -OutFile $tmpZip
     Expand-Archive -Path $tmpZip -DestinationPath $tmpDir -Force
     Get-ChildItem .
-    Write-Host "$tmpDir\$($filename -replace '\.zip$', '')"
-    Write-Host "$srcDir\$targetRelPath"
     Move-Item "$tmpDir\$($filename -replace '\.zip$', '')" "$srcDir\$targetRelPath" -Force
     Remove-Item $tmpZip
 }

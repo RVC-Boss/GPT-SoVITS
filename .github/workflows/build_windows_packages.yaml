@@ -35,8 +35,7 @@ jobs:
         shell: pwsh
         run: |
           $curr = Get-Location
-          echo "WORK_DIR=$curr" >> $env:GITHUB_ENV
           Move-Item .github/build_windows_packages.ps1 ../build_windows_packages.ps1
           Set-Location ../
           Get-ChildItem .
-          ./build_windows_packages.ps1
+          pwsh -Command "& { $env:workDir='$curr'; ./build_windows_packages.ps1 }"
