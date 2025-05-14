@@ -14,7 +14,6 @@ if ([string]::IsNullOrWhiteSpace($date)) {
 }
 
 $pkgName = "GPT-SoVITS-$date"
-Write-Host $pkgName
 $tmpDir = "tmp"
 $srcDir = $PWD
 
@@ -24,7 +23,6 @@ if (-not [string]::IsNullOrWhiteSpace($suffix)) {
 }
 
 $pkgName = "$pkgName-$cuda"
-Write-Host $pkgName
 
 $baseHF = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
 $PRETRAINED_URL = "$baseHF/pretrained_models.zip"
