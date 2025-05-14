@@ -2,6 +2,11 @@ name: Build and Upload Windows Package
 
 on:
   workflow_dispatch:
+    inputs:
+      suffix:
+        description: "Package name suffix (optional)"
+        required: false
+        default: ""
 
 jobs:
   build:
@@ -13,6 +18,9 @@ jobs:
       TORCH_CUDA: ${{ matrix.torch_cuda }}
       MODELSCOPE_USERNAME: ${{ secrets.MODELSCOPE_USERNAME }}
       MODELSCOPE_TOKEN: ${{ secrets.MODELSCOPE_TOKEN }}
+      HUGGINGFACE_USERNAME: ${{ secrets.HUGGINGFACE_USERNAME }}
+      HUGGINGFACE_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
+      PKG_SUFFIX: ${{ github.event.inputs.suffix }}
 
     steps:
       - name: Checkout

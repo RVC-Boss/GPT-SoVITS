@@ -6,12 +6,18 @@ Set-Location $workDir
 $today = Get-Date -Format "MMdd"
 $cuda = $env:TORCH_CUDA
 if (-not $cuda) {
-    Write-Error "Missing TORCH_CUDA env (e.g., cu124 or cu128)"
+    Write-Error "Missing TORCH_CUDA env (cu124 or cu128)"
     exit 1
 }
-$pkgName = "GPT-SoVITS-$today-$cuda"
+$pkgName = "GPT-SoVITS-$today"
 $tmpDir = "tmp"
 $srcDir = $PWD
+
+if ($suffix -and $suffix.Trim() -ne "") {
+    $pkgName = "$pkgName$suffix"
+}
+
+$pkgName = "$pkgName-$cuda"
 
 $baseHF = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
 $PRETRAINED_URL = "$baseHF/pretrained_models.zip"
@@ -21,7 +27,7 @@ $NLTK_URL = "$baseHF/nltk_data.zip"
 $JTALK_URL = "$baseHF/open_jtalk_dic_utf_8-1.11.tar.gz"
 
 $PYTHON_VERSION = "3.11.12"
-$RELEASE_VERSION = "20250409"
+$PY_RELEASE_VERSION = "20250409"
 
 Write-Host "[INFO] Cleaning .git..."
 Remove-Item "$srcDir\.git" -Recurse -Force -ErrorAction SilentlyContinue
@@ -35,7 +41,7 @@ python -m site
 
 Write-Host "[INFO] Downloading Python $PYTHON_VERSION..."
 $zst = "$tmpDir\python.tar.zst"
-Invoke-WebRequest "https://github.com/astral-sh/python-build-standalone/releases/download/$RELEASE_VERSION/cpython-$PYTHON_VERSION+$RELEASE_VERSION-x86_64-pc-windows-msvc-pgo-full.tar.zst" -OutFile $zst
+Invoke-WebRequest "https://github.com/astral-sh/python-build-standalone/releases/download/$PY_RELEASE_VERSION/cpython-$PYTHON_VERSION+$PY_RELEASE_VERSION-x86_64-pc-windows-msvc-pgo-full.tar.zst" -OutFile $zst
 & "C:\Program Files\7-Zip\7z.exe" e $zst -o"$tmpDir" -aoa
 $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 & "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o"$tmpDir\extracted" -aoa
@@ -126,6 +132,9 @@ Get-ChildItem .
 Rename-Item -Path $curr -NewName $pkgName
 & "C:\Program Files\7-Zip\7z.exe" a -tzip "$zipPath" "$pkgName" -mx=5 -bsp1
 
+python -m pip install --upgrade pip
+python -m pip install "modelscope" "huggingface_hub[hf_transfer]" --no-warn-script-location
+
 Write-Host "[INFO] Uploading to ModelScope..."
 $msUser = $env:MODELSCOPE_USERNAME
 $msToken = $env:MODELSCOPE_TOKEN
@@ -133,8 +142,18 @@ if (-not $msUser -or -not $msToken) {
     Write-Error "Missing MODELSCOPE_USERNAME or MODELSCOPE_TOKEN"
     exit 1
 }
-python -m pip install --upgrade pip
-python -m pip install modelscope --no-warn-script-location
 modelscope upload "$msUser/GPT-SoVITS-Packages" "$pkgName.zip" "$pkgName.zip" --repo-type model --token $msToken
 
-Write-Host "[SUCCESS] Uploaded: $pkgName.zip"
+Write-Host "[SUCCESS] Uploaded: $pkgName.zip to ModelScope"
+
+Write-Host "[INFO] Uploading to HuggingFace..."
+$hfUser = $env:HUGGINGFACE_USERNAME
+$hfToken = $env:HUGGINGFACE_TOKEN
+if (-not $hfUser -or -not $hfToken) {
+    Write-Error "Missing HUGGINGFACE_USERNAME or HUGGINGFACE_TOKEN"
+    exit 1
+}
+$env:HF_HUB_ENABLE_HF_TRANSFER = "1"
+huggingface-cli upload "$hfUser/GPT-SoVITS-Packages" "$pkgName.zip" "$pkgName.zip" --repo-type model --token $hfToken
+
+Write-Host "[SUCCESS] Uploaded: $pkgName.zip to HuggingFace"
