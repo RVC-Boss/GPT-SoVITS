@@ -144,7 +144,7 @@ Set-Location ../
 Get-ChildItem .
 Copy-Item -Path $curr -Destination $pkgName -Recurse
 $7zPath = "$pkgName.7z"
-& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -mx=5 -bsp1
+& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -mx=9 -bsp1 
 Get-ChildItem .
 
 python -m pip install --upgrade pip
