@@ -9,18 +9,17 @@ if (-not $cuda) {
 }
 
 $date = $env:DATE_SUFFIX
-Write-Host "111 $date"
-if ($date -and $date.Trim() -ne "") {
+if ([string]::IsNullOrWhiteSpace($date)) {
     $date = Get-Date -Format "MMdd"
-    Write-Host "222 $date"
 }
+
 $pkgName = "GPT-SoVITS-$date"
 Write-Host $pkgName
 $tmpDir = "tmp"
 $srcDir = $PWD
 
 $suffix = $env:PKG_SUFFIX
-if ($suffix -and $suffix.Trim() -ne "") {
+if (-not [string]::IsNullOrWhiteSpace($suffix)) {
     $pkgName = "$pkgName$suffix"
 }
 
