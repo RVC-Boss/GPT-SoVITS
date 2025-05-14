@@ -135,7 +135,8 @@ $curr = Get-Location
 Set-Location ../
 Get-ChildItem .
 Copy-Item -Path $curr -Destination $pkgName -Recurse
-& "C:\Program Files\7-Zip\7z.exe" a -tzip "$zipPath" "$pkgName" -mx=5 -bsp1
+$7zPath = "$pkgName.7z"
+& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -mx=5 -bsp1
 Get-ChildItem .
 
 python -m pip install --upgrade pip
@@ -148,9 +149,9 @@ if (-not $msUser -or -not $msToken) {
     Write-Error "Missing MODELSCOPE_USERNAME or MODELSCOPE_TOKEN"
     exit 1
 }
-modelscope upload "$msUser/GPT-SoVITS-Packages" "$pkgName.zip" "$pkgName.zip" --repo-type model --token $msToken
+modelscope upload "$msUser/GPT-SoVITS-Packages" "$7zPath" "$7zPath" --repo-type model --token $msToken
 
-Write-Host "[SUCCESS] Uploaded: $pkgName.zip to ModelScope"
+Write-Host "[SUCCESS] Uploaded: $7zPath to ModelScope"
 
 Write-Host "[INFO] Uploading to HuggingFace..."
 $hfUser = $env:HUGGINGFACE_USERNAME
@@ -160,6 +161,6 @@ if (-not $hfUser -or -not $hfToken) {
     exit 1
 }
 $env:HF_HUB_ENABLE_HF_TRANSFER = "1"
-huggingface-cli upload "$hfUser/GPT-SoVITS-Packages" "$pkgName.zip" "$pkgName.zip" --repo-type model --token $hfToken
+huggingface-cli upload "$hfUser/GPT-SoVITS-Packages" "$7zPath" "$7zPath" --repo-type model --token $hfToken
 
-Write-Host "[SUCCESS] Uploaded: $pkgName.zip to HuggingFace"
+Write-Host "[SUCCESS] Uploaded: $7zPath to HuggingFace"
