@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $workDir = $env:WORK_DIR
+Write-Host "111$workDir"
 Set-Location $workDir
 Get-ChildItem .
 
