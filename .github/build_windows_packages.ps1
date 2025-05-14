@@ -63,13 +63,13 @@ function DownloadAndUnzip($url, $targetRelPath) {
 }
 
 Write-Host "[INFO] Download pretrained_models..."
-DownloadAndUnzip $PRETRAINED_URL "GPT_SoVITS\pretrained_models"
+DownloadAndUnzip $PRETRAINED_URL "GPT_SoVITS"
 
 Write-Host "[INFO] Download G2PWModel..."
-DownloadAndUnzip $G2PW_URL "GPT_SoVITS\text\G2PWModel"
+DownloadAndUnzip $G2PW_URL "GPT_SoVITS\text"
 
 Write-Host "[INFO] Download UVR5 model..."
-DownloadAndUnzip $UVR5_URL "tools\uvr5\uvr5_weights"
+DownloadAndUnzip $UVR5_URL "tools\uvr5"
 
 Write-Host "[INFO] Downloading funasr..."
 $funasrUrl = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/funasr.zip"
