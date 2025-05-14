@@ -14,7 +14,7 @@ if ($date -and $date.Trim() -ne "") {
 }
 $pkgName = "GPT-SoVITS-$date"
 $tmpDir = "tmp"
-$srcDir = $workDir
+$srcDir = $PWD
 
 $suffix = $env:PKG_SUFFIX
 if ($suffix -and $suffix.Trim() -ne "") {
