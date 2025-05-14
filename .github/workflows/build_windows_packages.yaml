@@ -3,6 +3,10 @@ name: Build and Upload Windows Package
 on:
   workflow_dispatch:
     inputs:
+      date:
+        description: "Date suffix (optional)"
+        required: false
+        default: ""
       suffix:
         description: "Package name suffix (optional)"
         required: false
@@ -20,6 +24,7 @@ jobs:
       MODELSCOPE_TOKEN: ${{ secrets.MODELSCOPE_TOKEN }}
       HUGGINGFACE_USERNAME: ${{ secrets.HUGGINGFACE_USERNAME }}
       HUGGINGFACE_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
+      DATE_SUFFIX: ${{ github.event.inputs.suffix }}
       PKG_SUFFIX: ${{ github.event.inputs.suffix }}
 
     steps:
@@ -30,6 +35,7 @@ jobs:
         shell: pwsh
         run: |
           $curr = Get-Location
+          echo $curr
           echo "WORK_DIR=$curr" >> $env:GITHUB_ENV
           Move-Item .github/build_windows_packages.ps1 ../build_windows_packages.ps1
           Set-Location ../

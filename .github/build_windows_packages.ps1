@@ -4,16 +4,23 @@ $workDir = $env:WORK_DIR
 Set-Location $workDir
 Get-ChildItem .
 
-$today = Get-Date -Format "MMdd"
+
 $cuda = $env:TORCH_CUDA
 if (-not $cuda) {
     Write-Error "Missing TORCH_CUDA env (cu124 or cu128)"
     exit 1
 }
-$pkgName = "GPT-SoVITS-$today"
+
+$date = $env:DATE_SUFFIX
+if ($date -and $date.Trim() -ne "") {
+    $date = Get-Date -Format "MMdd"
+}
+$pkgName = "GPT-SoVITS-$date"
 $tmpDir = "tmp"
 $srcDir = $PWD
+Write-Host $srcDir
 
+$suffix = $env:PKG_SUFFIX
 if ($suffix -and $suffix.Trim() -ne "") {
     $pkgName = "$pkgName$suffix"
 }
