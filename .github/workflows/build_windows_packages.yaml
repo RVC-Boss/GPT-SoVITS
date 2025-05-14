@@ -38,4 +38,4 @@ jobs:
           Move-Item .github/build_windows_packages.ps1 ../build_windows_packages.ps1
           Set-Location ../
           Get-ChildItem .
-          pwsh -Command "./build_windows_packages.ps1" -env:workDir="$curr"
+          pwsh -Command "& { \$env:workDir='$curr'; ./build_windows_packages.ps1 }"
