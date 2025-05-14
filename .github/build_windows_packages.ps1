@@ -136,6 +136,7 @@ Set-Location ../
 Get-ChildItem .
 Copy-Item -Path $curr -Destination $pkgName -Recurse
 & "C:\Program Files\7-Zip\7z.exe" a -tzip "$zipPath" "$pkgName" -mx=5 -bsp1
+Get-ChildItem .
 
 python -m pip install --upgrade pip
 python -m pip install "modelscope" "huggingface_hub[hf_transfer]" --no-warn-script-location
