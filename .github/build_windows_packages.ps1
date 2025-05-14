@@ -2,6 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $workDir = $env:WORK_DIR
 Set-Location $workDir
+Get-ChildItem .
 
 $today = Get-Date -Format "MMdd"
 $cuda = $env:TORCH_CUDA
@@ -52,6 +53,9 @@ function DownloadAndUnzip($url, $targetRelPath) {
     $tmpZip = "$tmpDir\$filename"
     Invoke-WebRequest $url -OutFile $tmpZip
     Expand-Archive -Path $tmpZip -DestinationPath $tmpDir -Force
+    Get-ChildItem .
+    Write-Host "$tmpDir\$($filename -replace '\.zip$', '')"
+    Write-Host "$srcDir\$targetRelPath"
     Move-Item "$tmpDir\$($filename -replace '\.zip$', '')" "$srcDir\$targetRelPath" -Force
     Remove-Item $tmpZip
 }
