@@ -144,7 +144,10 @@ Set-Location ../
 Get-ChildItem .
 Copy-Item -Path $curr -Destination $pkgName -Recurse
 $7zPath = "$pkgName.7z"
-& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -mx=9 -bsp1 
+$time = Measure-Command {
+    & "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -mx=9 -bsp1
+}
+Write-Host "7z compression finished in $($time.TotalSeconds) seconds" 
 Get-ChildItem .
 
 python -m pip install --upgrade pip
