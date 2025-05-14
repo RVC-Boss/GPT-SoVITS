@@ -1,12 +1,6 @@
-param (
-    [string]$workDir
-)
-
 $ErrorActionPreference = "Stop"
 
-Set-Location -Path  $workDir
 Write-Host "Current location: $(Get-Location)"
-Get-ChildItem .
 
 $cuda = $env:TORCH_CUDA
 if (-not $cuda) {
@@ -140,7 +134,7 @@ Remove-Item $items -Force -Recurse -ErrorAction SilentlyContinue
 $curr = Get-Location
 Set-Location ../
 Get-ChildItem .
-Rename-Item -Path $curr -NewName $pkgName
+Copy-Item -Path $curr -Destination $pkgName -Recurse
 & "C:\Program Files\7-Zip\7z.exe" a -tzip "$zipPath" "$pkgName" -mx=5 -bsp1
 
 python -m pip install --upgrade pip

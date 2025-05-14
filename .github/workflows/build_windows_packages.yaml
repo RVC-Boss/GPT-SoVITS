@@ -34,8 +34,5 @@ jobs:
       - name: Run Build and Upload Script
         shell: pwsh
         run: |
-          $curr = Get-Location
           Move-Item .github/build_windows_packages.ps1 ../build_windows_packages.ps1
-          Set-Location ../
-          Get-ChildItem .
-          ./build_windows_packages.ps1 -workDir $curr.Path
+          ../build_windows_packages.ps1
