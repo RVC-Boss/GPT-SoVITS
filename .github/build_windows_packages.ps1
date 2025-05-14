@@ -1,9 +1,12 @@
 $ErrorActionPreference = "Stop"
 
-$workDir = $env:WORK_DIR
-Set-Location $workDir
-Get-ChildItem .
+param (
+    [string]$workDir
+)
 
+Set-Location -Path  $workDir
+Write-Host "Current location: $(Get-Location)"
+Get-ChildItem .
 
 $cuda = $env:TORCH_CUDA
 if (-not $cuda) {
