@@ -114,10 +114,7 @@ switch ($cuda) {
 
 Write-Host "[INFO] Installing dependencies..."
 & ".\runtime\python.exe" -m pip install -r extra-req.txt --no-deps --no-warn-script-location
-$time = Measure-Command {
-    & ".\runtime\python.exe" -m pip install -r requirements.txt --no-warn-script-location
-}
-Write-Host "Elapsed time: $($time.TotalSeconds) seconds"
+& ".\runtime\python.exe" -m pip install -r requirements.txt --no-warn-script-location
 
 Write-Host "[INFO] Downloading NLTK and pyopenjtalk dictionary..."
 $PYTHON = ".\runtime\python.exe"
