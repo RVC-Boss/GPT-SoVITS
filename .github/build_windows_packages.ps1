@@ -1,5 +1,8 @@
 $ErrorActionPreference = "Stop"
 
+$workDir = $env:WORK_DIR
+Set-Location $workDir
+
 $today = Get-Date -Format "MMdd"
 $cuda = $env:TORCH_CUDA
 if (-not $cuda) {

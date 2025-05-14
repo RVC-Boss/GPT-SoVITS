@@ -21,5 +21,8 @@ jobs:
       - name: Run Build and Upload Script
         shell: pwsh
         run: |
+          $curr = Get-Location
+          echo "WORK_DIR=$curr" >> $env:GITHUB_ENV
           Move-Item .github/build_windows_packages.ps1 ../build_windows_packages.ps1
-          ../build_windows_packages.ps1
+          Set-Location ../
+          build_windows_packages.ps1
