@@ -24,7 +24,7 @@ jobs:
       MODELSCOPE_TOKEN: ${{ secrets.MODELSCOPE_TOKEN }}
       HUGGINGFACE_USERNAME: ${{ secrets.HUGGINGFACE_USERNAME }}
       HUGGINGFACE_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
-      DATE_SUFFIX: ${{ github.event.inputs.suffix }}
+      DATE_SUFFIX: ${{ github.event.inputs.date }}
       PKG_SUFFIX: ${{ github.event.inputs.suffix }}
 
     steps:
