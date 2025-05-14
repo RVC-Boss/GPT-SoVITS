@@ -33,4 +33,5 @@ jobs:
           echo "WORK_DIR=$curr" >> $env:GITHUB_ENV
           Move-Item .github/build_windows_packages.ps1 ../build_windows_packages.ps1
           Set-Location ../
-          build_windows_packages.ps1
+          Get-ChildItem .
+          ./build_windows_packages.ps1
