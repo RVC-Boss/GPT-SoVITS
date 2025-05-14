@@ -35,7 +35,6 @@ jobs:
         shell: pwsh
         run: |
           $curr = Get-Location
-          Write-Host "222$curr"
           echo "WORK_DIR=$curr" >> $env:GITHUB_ENV
           Move-Item .github/build_windows_packages.ps1 ../build_windows_packages.ps1
           Set-Location ../
