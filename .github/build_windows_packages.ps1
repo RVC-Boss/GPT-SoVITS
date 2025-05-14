@@ -57,8 +57,15 @@ function DownloadAndUnzip($url, $targetRelPath) {
     $tmpZip = "$tmpDir\$filename"
     Invoke-WebRequest $url -OutFile $tmpZip
     Expand-Archive -Path $tmpZip -DestinationPath $tmpDir -Force
-    Get-ChildItem .
-    Move-Item "$tmpDir\$($filename -replace '\.zip$', '')" "$srcDir\$targetRelPath" -Force
+    $subdirName = $filename -replace '\.zip$', ''
+    $sourcePath = Join-Path $tmpDir $subdirName
+    $destRoot = Join-Path $srcDir $targetRelPath
+    $destPath = Join-Path $destRoot $subdirName
+    if (Test-Path $destPath) {
+        Remove-Item $destPath -Recurse -Force
+    }
+    
+    Move-Item $sourcePath $destRoot
     Remove-Item $tmpZip
 }
 
