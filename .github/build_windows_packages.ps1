@@ -15,6 +15,7 @@ if ($date -and $date.Trim() -ne "") {
     Write-Host "222 $date"
 }
 $pkgName = "GPT-SoVITS-$date"
+Write-Host $pkgName
 $tmpDir = "tmp"
 $srcDir = $PWD
 
@@ -24,6 +25,7 @@ if ($suffix -and $suffix.Trim() -ne "") {
 }
 
 $pkgName = "$pkgName-$cuda"
+Write-Host $pkgName
 
 $baseHF = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
 $PRETRAINED_URL = "$baseHF/pretrained_models.zip"
