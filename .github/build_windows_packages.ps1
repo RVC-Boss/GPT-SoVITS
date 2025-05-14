@@ -9,8 +9,10 @@ if (-not $cuda) {
 }
 
 $date = $env:DATE_SUFFIX
+Write-Host "111 $date"
 if ($date -and $date.Trim() -ne "") {
     $date = Get-Date -Format "MMdd"
+    Write-Host "222 $date"
 }
 $pkgName = "GPT-SoVITS-$date"
 $tmpDir = "tmp"
