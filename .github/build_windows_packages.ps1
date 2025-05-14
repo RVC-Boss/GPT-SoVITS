@@ -1,8 +1,8 @@
-$ErrorActionPreference = "Stop"
-
 param (
     [string]$workDir
 )
+
+$ErrorActionPreference = "Stop"
 
 Set-Location -Path  $workDir
 Write-Host "Current location: $(Get-Location)"
