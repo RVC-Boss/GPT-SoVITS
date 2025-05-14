@@ -18,7 +18,7 @@ if ($date -and $date.Trim() -ne "") {
 $pkgName = "GPT-SoVITS-$date"
 $tmpDir = "tmp"
 $srcDir = $PWD
-Write-Host $srcDir
+Write-Host "111$srcDir"
 
 $suffix = $env:PKG_SUFFIX
 if ($suffix -and $suffix.Trim() -ne "") {
