@@ -114,7 +114,10 @@ switch ($cuda) {
 
 Write-Host "[INFO] Installing dependencies..."
 & ".\runtime\python.exe" -m pip install -r extra-req.txt --no-deps --no-warn-script-location
-& ".\runtime\python.exe" -m pip install -r requirements.txt --no-warn-script-location
+$time = Measure-Command {
+    & ".\runtime\python.exe" -m pip install -r requirements.txt --no-warn-script-location
+}
+Write-Host "Elapsed time: $($time.TotalSeconds) seconds"
 
 Write-Host "[INFO] Downloading NLTK and pyopenjtalk dictionary..."
 $PYTHON = ".\runtime\python.exe"
@@ -144,10 +147,11 @@ Set-Location ../
 Get-ChildItem .
 Copy-Item -Path $curr -Destination $pkgName -Recurse
 $7zPath = "$pkgName.7z"
-$time = Measure-Command {
-    & "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -mx=9 -bsp1
-}
-Write-Host "7z compression finished in $($time.TotalSeconds) seconds" 
+$start = Get-Date
+Write-Host "Compress Starting at $start"
+& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -mx=9 -bsp1
+$end = Get-Date
+Write-Host "Elapsed time: $($end - $start)"
 Get-ChildItem .
 
 python -m pip install --upgrade pip
