@@ -52,20 +52,19 @@ $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 & "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o"$tmpDir\extracted" -aoa
 Move-Item "$tmpDir\extracted\python\install" "$srcDir\runtime"
 
+Write-Host "[INFO] Copying Redistributing Visual C++ Runtime..."
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
 $redistRoot = Join-Path $vsPath "VC\Redist\MSVC"
-Get-ChildItem $redistRoot
 $targetVer = Get-ChildItem -Path $redistRoot -Directory |
     Where-Object { $_.Name -match "^14\." } |
     Sort-Object Name -Descending |
     Select-Object -First 1
 $x64Path = Join-Path $targetVer.FullName "x64"
-Write-Host 111
-Get-ChildItem $x64Path
-Get-ChildItem -Path $x64Path -Directory -Filter "Microsoft.*" | ForEach-Object {
+Get-ChildItem -Path $x64Path -Directory | Where-Object {
+    $_.Name -match '^Microsoft\..*\.(CRT|OpenMP)$'
+} | ForEach-Object {
     Get-ChildItem -Path $_.FullName -Filter "*.dll" | ForEach-Object {
-        Write-Host "Copy $($_.FullName)"
         Copy-Item -Path $_.FullName -Destination "$srcDir\runtime" -Force
     }
 }
@@ -82,7 +81,6 @@ function DownloadAndUnzip($url, $targetRelPath) {
     if (Test-Path $destPath) {
         Remove-Item $destPath -Recurse -Force
     }
-    
     Move-Item $sourcePath $destRoot
     Remove-Item $tmpZip
 }
@@ -109,8 +107,8 @@ $ffZip = "$tmpDir\ffmpeg.zip"
 Invoke-WebRequest -Uri $ffUrl -OutFile $ffZip
 Expand-Archive $ffZip -DestinationPath $tmpDir -Force
 $ffDir = Get-ChildItem -Directory "$tmpDir" | Where-Object { $_.Name -like "ffmpeg*" } | Select-Object -First 1
-Move-Item "$($ffDir.FullName)\bin\ffmpeg.exe" "$srcDir"
-Move-Item "$($ffDir.FullName)\bin\ffprobe.exe" "$srcDir"
+Move-Item "$($ffDir.FullName)\bin\ffmpeg.exe" "$srcDir\runtime"
+Move-Item "$($ffDir.FullName)\bin\ffprobe.exe" "$srcDir\runtime"
 Remove-Item $ffZip
 Remove-Item $ffDir.FullName -Recurse -Force
 
