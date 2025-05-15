@@ -7,23 +7,21 @@ import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
 
-from opencc import OpenCC
-
-warnings.filterwarnings("ignore")
-
-
 import numpy as np
 import onnxruntime
 import requests
-
-onnxruntime.set_default_logger_severity(3)
-onnxruntime.preload_dlls()
+import torch
+from opencc import OpenCC
 from pypinyin import Style, pinyin
-from transformers import AutoTokenizer
+from transformers.models.auto.tokenization_auto import AutoTokenizer
 
 from ..zh_normalization.char_convert import tranditional_to_simplified
 from .dataset import get_char_phoneme_labels, get_phoneme_labels, prepare_onnx_input
 from .utils import load_config
+
+onnxruntime.set_default_logger_severity(3)
+onnxruntime.preload_dlls()
+warnings.filterwarnings("ignore")
 
 model_version = "1.1"
 

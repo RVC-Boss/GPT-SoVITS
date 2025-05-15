@@ -52,6 +52,24 @@ $tar = Get-ChildItem "$tmpDir" -Filter "*.tar" | Select-Object -First 1
 & "C:\Program Files\7-Zip\7z.exe" x $tar.FullName -o"$tmpDir\extracted" -aoa
 Move-Item "$tmpDir\extracted\python\install" "$srcDir\runtime"
 
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+$redistRoot = Join-Path $vsPath "VC\Redist\MSVC"
+Get-ChildItem $redistRoot
+$targetVer = Get-ChildItem -Path $redistRoot -Directory |
+    Where-Object { $_.Name -match "^14\." } |
+    Sort-Object Name -Descending |
+    Select-Object -First 1
+$x64Path = Join-Path $targetVer.FullName "x64"
+Write-Host 111
+Get-ChildItem $x64Path
+Get-ChildItem -Path $x64Path -Directory -Filter "Microsoft.*" | ForEach-Object {
+    Get-ChildItem -Path $_.FullName -Filter "*.dll" | ForEach-Object {
+        Write-Host "Copy $($_.FullName)"
+        Copy-Item -Path $_.FullName -Destination "$srcDir\runtime" -Force
+    }
+}
+
 function DownloadAndUnzip($url, $targetRelPath) {
     $filename = Split-Path $url -Leaf
     $tmpZip = "$tmpDir\$filename"
