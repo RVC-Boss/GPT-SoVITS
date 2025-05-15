@@ -1,5 +1,4 @@
 import json
-import os
 import pathlib
 
 default_param = {}
@@ -48,9 +47,7 @@ class ModelParameters(object):
             import zipfile
 
             with zipfile.ZipFile(config_path, "r") as zip:
-                self.param = json.loads(
-                    zip.read("param.json"), object_pairs_hook=int_keys
-                )
+                self.param = json.loads(zip.read("param.json"), object_pairs_hook=int_keys)
         elif ".json" == pathlib.Path(config_path).suffix:
             with open(config_path, "r") as f:
                 self.param = json.loads(f.read(), object_pairs_hook=int_keys)
@@ -65,5 +62,5 @@ class ModelParameters(object):
             "stereo_n",
             "reverse",
         ]:
-            if not k in self.param:
+            if k not in self.param:
                 self.param[k] = False

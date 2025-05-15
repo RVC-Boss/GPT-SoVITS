@@ -6,9 +6,7 @@ from . import layers_new
 
 
 class BaseNet(nn.Module):
-    def __init__(
-        self, nin, nout, nin_lstm, nout_lstm, dilations=((4, 2), (8, 4), (12, 6))
-    ):
+    def __init__(self, nin, nout, nin_lstm, nout_lstm, dilations=((4, 2), (8, 4), (12, 6))):
         super(BaseNet, self).__init__()
         self.enc1 = layers_new.Conv2DBNActiv(nin, nout, 3, 1, 1)
         self.enc2 = layers_new.Encoder(nout, nout * 2, 3, 2, 1)
@@ -56,21 +54,15 @@ class CascadedNet(nn.Module):
             layers_new.Conv2DBNActiv(nout // 2, nout // 4, 1, 1, 0),
         )
 
-        self.stg1_high_band_net = BaseNet(
-            2, nout // 4, self.nin_lstm // 2, nout_lstm // 2
-        )
+        self.stg1_high_band_net = BaseNet(2, nout // 4, self.nin_lstm // 2, nout_lstm // 2)
 
         self.stg2_low_band_net = nn.Sequential(
             BaseNet(nout // 4 + 2, nout, self.nin_lstm // 2, nout_lstm),
             layers_new.Conv2DBNActiv(nout, nout // 2, 1, 1, 0),
         )
-        self.stg2_high_band_net = BaseNet(
-            nout // 4 + 2, nout // 2, self.nin_lstm // 2, nout_lstm // 2
-        )
+        self.stg2_high_band_net = BaseNet(nout // 4 + 2, nout // 2, self.nin_lstm // 2, nout_lstm // 2)
 
-        self.stg3_full_band_net = BaseNet(
-            3 * nout // 4 + 2, nout, self.nin_lstm, nout_lstm
-        )
+        self.stg3_full_band_net = BaseNet(3 * nout // 4 + 2, nout, self.nin_lstm, nout_lstm)
 
         self.out = nn.Conv2d(nout, 2, 1, bias=False)
         self.aux_out = nn.Conv2d(3 * nout // 4, 2, 1, bias=False)

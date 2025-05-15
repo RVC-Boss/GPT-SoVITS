@@ -1,10 +1,14 @@
+import ctypes
 import os
-import traceback
+import sys
+from pathlib import Path
+
 import ffmpeg
-import numpy as np
 import gradio as gr
-from tools.i18n.i18n import I18nAuto
+import numpy as np
 import pandas as pd
+
+from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto(language=os.environ.get("language", "Auto"))
 
@@ -15,7 +19,7 @@ def load_audio(file, sr):
         # This launches a subprocess to decode audio while down-mixing and resampling as necessary.
         # Requires the ffmpeg CLI and `ffmpeg-python` package to be installed.
         file = clean_path(file)  # 防止小白拷路径头尾带了空格和"和回车
-        if os.path.exists(file) == False:
+        if os.path.exists(file) is False:
             raise RuntimeError("You input a wrong audio path that does not exists, please fix it!")
         out, _ = (
             ffmpeg.input(file, threads=0)
@@ -23,7 +27,11 @@ def load_audio(file, sr):
             .run(cmd=["ffmpeg", "-nostdin"], capture_stdout=True, capture_stderr=True)
         )
     except Exception:
-        traceback.print_exc()
+        out, _ = (
+            ffmpeg.input(file, threads=0)
+            .output("-", format="f32le", acodec="pcm_f32le", ac=1, ar=sr)
+            .run(cmd=["ffmpeg", "-nostdin"], capture_stdout=True)
+        )  # Expose the Error
         raise RuntimeError(i18n("音频加载失败"))
 
     return np.frombuffer(out, np.float32).flatten()
@@ -127,3 +135,97 @@ def check_details(path_list=None, is_train=False, is_dataset_processing=False):
             ...
         else:
             gr.Warning(i18n("缺少语义数据集"))
+
+
+def load_cudnn():
+    import torch
+
+    if not torch.cuda.is_available():
+        print("[INFO] CUDA is not available, skipping cuDNN setup.")
+        return
+
+    if sys.platform == "win32":
+        torch_lib_dir = Path(torch.__file__).parent / "lib"
+        if torch_lib_dir.exists():
+            os.add_dll_directory(str(torch_lib_dir))
+            print(f"[INFO] Added DLL directory: {torch_lib_dir}")
+            matching_files = sorted(torch_lib_dir.glob("cudnn_cnn*.dll"))
+            if not matching_files:
+                print(f"[ERROR] No cudnn_cnn*.dll found in {torch_lib_dir}")
+                return
+            for dll_path in matching_files:
+                dll_name = os.path.basename(dll_path)
+                try:
+                    ctypes.CDLL(dll_name)
+                    print(f"[INFO] Loaded: {dll_name}")
+                except OSError as e:
+                    print(f"[WARNING] Failed to load {dll_name}: {e}")
+        else:
+            print(f"[WARNING] Torch lib directory not found: {torch_lib_dir}")
+
+    elif sys.platform == "linux":
+        site_packages = Path(torch.__file__).resolve().parents[1]
+        cudnn_dir = site_packages / "nvidia" / "cudnn" / "lib"
+
+        if not cudnn_dir.exists():
+            print(f"[ERROR] cudnn dir not found: {cudnn_dir}")
+            return
+
+        matching_files = sorted(cudnn_dir.glob("libcudnn_cnn*.so*"))
+        if not matching_files:
+            print(f"[ERROR] No libcudnn_cnn*.so* found in {cudnn_dir}")
+            return
+
+        for so_path in matching_files:
+            try:
+                ctypes.CDLL(so_path, mode=ctypes.RTLD_GLOBAL)  # type: ignore
+                print(f"[INFO] Loaded: {so_path}")
+            except OSError as e:
+                print(f"[WARNING] Failed to load {so_path}: {e}")
+
+
+def load_nvrtc():
+    import torch
+
+    if not torch.cuda.is_available():
+        print("[INFO] CUDA is not available, skipping nvrtc setup.")
+        return
+
+    if sys.platform == "win32":
+        torch_lib_dir = Path(torch.__file__).parent / "lib"
+        if torch_lib_dir.exists():
+            os.add_dll_directory(str(torch_lib_dir))
+            print(f"[INFO] Added DLL directory: {torch_lib_dir}")
+            matching_files = sorted(torch_lib_dir.glob("nvrtc*.dll"))
+            if not matching_files:
+                print(f"[ERROR] No nvrtc*.dll found in {torch_lib_dir}")
+                return
+            for dll_path in matching_files:
+                dll_name = os.path.basename(dll_path)
+                try:
+                    ctypes.CDLL(dll_name)
+                    print(f"[INFO] Loaded: {dll_name}")
+                except OSError as e:
+                    print(f"[WARNING] Failed to load {dll_name}: {e}")
+        else:
+            print(f"[WARNING] Torch lib directory not found: {torch_lib_dir}")
+
+    elif sys.platform == "linux":
+        site_packages = Path(torch.__file__).resolve().parents[1]
+        nvrtc_dir = site_packages / "nvidia" / "cuda_nvrtc" / "lib"
+
+        if not nvrtc_dir.exists():
+            print(f"[ERROR] nvrtc dir not found: {nvrtc_dir}")
+            return
+
+        matching_files = sorted(nvrtc_dir.glob("libnvrtc*.so*"))
+        if not matching_files:
+            print(f"[ERROR] No libnvrtc*.so* found in {nvrtc_dir}")
+            return
+
+        for so_path in matching_files:
+            try:
+                ctypes.CDLL(so_path, mode=ctypes.RTLD_GLOBAL)  # type: ignore
+                print(f"[INFO] Loaded: {so_path}")
+            except OSError as e:
+                print(f"[WARNING] Failed to load {so_path}: {e}")
