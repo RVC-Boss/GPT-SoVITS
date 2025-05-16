@@ -766,6 +766,12 @@ def get_tts_wav(
     if not ref_free:
         phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language, version)
 
+    # 确保sample_steps为int
+    try:
+        sample_steps = int(sample_steps)
+    except (TypeError, ValueError):
+        sample_steps = 8
+
     for i_text, text in enumerate(texts):
         # 解决输入目标文本的空行导致报错的问题
         if len(text.strip()) == 0:
