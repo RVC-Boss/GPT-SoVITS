@@ -329,7 +329,7 @@ class TTS_Config:
             print(f"fall back to default cnhuhbert_base_path: {self.cnhuhbert_base_path}")
             
         repo_name="lj1995/GPT-SoVITS"
-        snapshot_download(repo_id=repo_name, local_dir=os.path.dirname(self.bert_base_path))
+        snapshot_download(repo_id=repo_name, local_dir=os.path.dirname(self.bert_base_path), local_files_only=True)
         self.update_configs()
         self.max_sec = None
         self.hz: int = 50
