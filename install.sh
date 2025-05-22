@@ -28,7 +28,7 @@ print_help() {
     echo "Usage: bash install.sh [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --device   CU124|CU128|ROCM|MPS|CPU    Specify the Device (REQUIRED)"
+    echo "  --device   CU126|CU128|ROCM|MPS|CPU    Specify the Device (REQUIRED)"
     echo "  --source   HF|HF-Mirror|ModelScope     Specify the model source (REQUIRED)"
     echo "  --download-uvr5                        Enable downloading the UVR5 model"
     echo "  -h, --help                             Show this help message and exit"
@@ -68,8 +68,8 @@ while [[ $# -gt 0 ]]; do
         ;;
     --device)
         case "$2" in
-        CU124)
-            CUDA=124
+        CU126)
+            CUDA=126
             USE_CUDA=true
             ;;
         CU128)
@@ -87,7 +87,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "Error: Invalid Device: $2"
-            echo "Choose From: [CU124, CU128, ROCM, MPS, CPU]"
+            echo "Choose From: [CU126, CU128, ROCM, MPS, CPU]"
             exit 1
             ;;
         esac
@@ -251,8 +251,8 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Installing PyTorch with CUDA support..."
     if [ "$CUDA" = 128 ]; then
         pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
-    elif [ "$CUDA" = 124 ]; then
-        pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cu124
+    elif [ "$CUDA" = 126 ]; then
+        pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cu126
     fi
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Installing PyTorch with ROCm support..."
