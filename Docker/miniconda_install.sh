@@ -55,8 +55,8 @@ source "$HOME/miniconda3/etc/profile.d/conda.sh"
 
 if [ "$CUDA_VERSION" = "12.8" ]; then
     "$HOME/miniconda3/bin/pip" install torch torchaudio --no-cache-dir --index-url https://download.pytorch.org/whl/cu128
-elif [ "$CUDA_VERSION" = "12.4" ]; then
-    "$HOME/miniconda3/bin/pip" install torch==2.5.1 torchaudio==2.5.1 --no-cache-dir --index-url https://download.pytorch.org/whl/cu124
+elif [ "$CUDA_VERSION" = "12.6" ]; then
+    "$HOME/miniconda3/bin/pip" install torch==2.6 torchaudio --no-cache-dir --index-url https://download.pytorch.org/whl/cu126
 fi
 
 "$HOME/miniconda3/bin/pip" cache purge
