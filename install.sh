@@ -252,14 +252,14 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
     if [ "$CUDA" = 128 ]; then
         pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
     elif [ "$CUDA" = 124 ]; then
-        pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+        pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cu124
     fi
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Installing PyTorch with ROCm support..."
-    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/rocm6.2
+    pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
 elif [ "$USE_CPU" = true ] && [ "$WORKFLOW" = false ]; then
     echo "Installing PyTorch for CPU..."
-    pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+    pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cpu
 elif [ "$WORKFLOW" = false ]; then
     echo "Unknown Err"
     exit 1
