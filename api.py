@@ -1087,6 +1087,53 @@ async def tts_endpoint(request: Request):
         json_post_raw.get("if_sr", False) 
     )
 
+from GPT_SoVITS.inference_cli import synthesize
+import soundfile as sf
+import io
+from fastapi.responses import StreamingResponse
+
+@app.get("/version-4")
+async def version_4(
+    GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-e40.ckpt",
+    SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari_e20_s1800_l32.pth",
+    ref_text: str = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ",
+    ref_language: str = "ja",
+    target_text: str = None,
+    text_language: str = "ja",
+    output_path: str = None
+):
+    # Create a temporary buffer to store the audio
+    audio_buffer = io.BytesIO()
+    # GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_language, target_text, text_language, output_path
+    # Synthesize audio and get the result
+    synthesis_result = synthesize(
+        GPT_model_path = GPT_model_path,
+        SoVITS_model_path = SoVITS_model_path,
+        ref_audio_path = "idols/kurari/kurari.wav",
+        ref_text = ref_text,
+        ref_language = ref_language,
+        target_text = target_text,
+        target_language = text_language,
+        output_path = output_path  # Don't save to file
+    )
+    
+    # Get the last audio data and sample rate from synthesis result
+    result_list = list(synthesis_result)
+    if result_list:
+        last_sampling_rate, last_audio_data = result_list[-1]
+        
+        # Write audio data to buffer
+        sf.write(audio_buffer, last_audio_data, last_sampling_rate)
+        audio_buffer.seek(0)
+        
+        # Return audio as streaming response
+        return StreamingResponse(
+            audio_buffer,
+            media_type="audio/wav",
+            headers={"Content-Disposition": "attachment; filename=output.wav"}
+        )
+    
+    return JSONResponse({"error": "Failed to generate audio"}, status_code=400)
 
 @app.get("/")
 async def tts_endpoint(
