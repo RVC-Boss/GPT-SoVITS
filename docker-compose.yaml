@@ -1,9 +1,9 @@
 version: "3.8"
 
 services:
-  GPT-SoVITS-CU124:
-    image: xxxxrt666/gpt-sovits:latest-cu124
-    container_name: GPT-SoVITS-CU124
+  GPT-SoVITS-CU126:
+    image: xxxxrt666/gpt-sovits:latest-cu126
+    container_name: GPT-SoVITS-CU126
     ports:
       - "9871:9871"
       - "9872:9872"
@@ -23,9 +23,9 @@ services:
     shm_size: "16g"
     restart: unless-stopped
     runtime: nvidia
-  GPT-SoVITS-CU124-Lite:
-    image: xxxxrt666/gpt-sovits:latest-cu124-lite
-    container_name: GPT-SoVITS-CU124-Lite
+  GPT-SoVITS-CU126-Lite:
+    image: xxxxrt666/gpt-sovits:latest-cu126-lite
+    container_name: GPT-SoVITS-CU126-Lite
     ports:
       - "9871:9871"
       - "9872:9872"
