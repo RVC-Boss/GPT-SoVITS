@@ -152,7 +152,7 @@ docker compose run --service-ports <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|
 自分でイメージをビルドするには、以下のコマンドを使ってください：
 
 ```bash
-bash docker_build.sh --cuda <12.46|12.8> [--lite]
+bash docker_build.sh --cuda <12.6|12.8> [--lite]
 ```
 
 #### 実行中のコンテナへアクセス (Bash Shell)
