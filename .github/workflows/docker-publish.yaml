@@ -24,14 +24,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - cuda_version: 12.4
+          - cuda_version: 12.6
             lite: true
             torch_base: lite
-            tag_prefix: cu124-lite
-          - cuda_version: 12.4
+            tag_prefix: cu126-lite
+          - cuda_version: 12.6
             lite: false
             torch_base: full
-            tag_prefix: cu124
+            tag_prefix: cu126
           - cuda_version: 12.8
             lite: true
             torch_base: lite
@@ -111,14 +111,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - cuda_version: 12.4
+          - cuda_version: 12.6
             lite: true
             torch_base: lite
-            tag_prefix: cu124-lite
-          - cuda_version: 12.4
+            tag_prefix: cu126-lite
+          - cuda_version: 12.6
             lite: false
             torch_base: full
-            tag_prefix: cu124
+            tag_prefix: cu126
           - cuda_version: 12.8
             lite: true
             torch_base: lite
@@ -202,8 +202,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - tag_prefix: cu124-lite
-          - tag_prefix: cu124
+          - tag_prefix: cu126-lite
+          - tag_prefix: cu126
           - tag_prefix: cu128-lite
           - tag_prefix: cu128
 
@@ -272,5 +272,5 @@ jobs:
       run: |
         docker buildx imagetools create \
           --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest \
-          ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-cu124-lite
+          ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-cu126-lite
         
