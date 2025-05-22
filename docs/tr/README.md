@@ -61,7 +61,7 @@ Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [entegre
 ```bash
 conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
@@ -140,13 +140,13 @@ Windows (Docker Desktop) ortamında, varsayılan paylaşılan bellek boyutu dü�
 
 `docker-compose.yaml` dosyasında iki tür servis tanımlanmıştır:
 
-- `GPT-SoVITS-CU124` ve `GPT-SoVITS-CU128`: Tüm özellikleri içeren tam sürüm.
-- `GPT-SoVITS-CU124-Lite` ve `GPT-SoVITS-CU128-Lite`: Daha az bağımlılığa ve sınırlı işlevselliğe sahip hafif sürüm.
+- `GPT-SoVITS-CU126` ve `GPT-SoVITS-CU128`: Tüm özellikleri içeren tam sürüm.
+- `GPT-SoVITS-CU126-Lite` ve `GPT-SoVITS-CU128-Lite`: Daha az bağımlılığa ve sınırlı işlevselliğe sahip hafif sürüm.
 
 Belirli bir servisi Docker Compose ile çalıştırmak için şu komutu kullanın:
 
 ```bash
-docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128>
+docker compose run --service-ports <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128>
 ```
 
 #### Docker İmajını Yerel Olarak Oluşturma
@@ -154,7 +154,7 @@ docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|
 Docker imajını kendiniz oluşturmak isterseniz şu komutu kullanın:
 
 ```bash
-bash docker_build.sh --cuda <12.4|12.8> [--lite]
+bash docker_build.sh --cuda <12.6|12.8> [--lite]
 ```
 
 #### Çalışan Konteynere Erişim (Bash Shell)
@@ -162,7 +162,7 @@ bash docker_build.sh --cuda <12.4|12.8> [--lite]
 Konteyner arka planda çalışırken, aşağıdaki komutla içine girebilirsiniz:
 
 ```bash
-docker exec -it <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128> bash
+docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
 ## Önceden Eğitilmiş Modeller
