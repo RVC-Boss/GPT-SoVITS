@@ -1124,7 +1124,7 @@ async def version_4(
         
         # Write audio data to buffer
         # sf.write(audio_buffer, last_audio_data, last_sampling_rate, )
-        sf.write(audio_buffer, last_audio_data, last_sampling_rate, format="WAV")
+        sf.write(audio_buffer, last_audio_data, last_sampling_rate, format="wav")
         audio_buffer.seek(0)
         
         # Return audio as streaming response
