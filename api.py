@@ -1113,7 +1113,7 @@ async def version_4(
         ref_text = ref_text,
         ref_language = ref_language,
         target_text = target_text,
-        target_language = text_language,
+        text_language = text_language,
         output_path = output_path  # Don't save to file
     )
     
