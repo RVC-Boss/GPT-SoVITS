@@ -59,7 +59,7 @@ Windows 사용자라면 (win>=10에서 테스트됨), [통합 패키지를 다�
 ```bash
 conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
@@ -138,13 +138,13 @@ Windows(Docker Desktop)에서는 기본 공유 메모리 크기가 작아 예기
 
 `docker-compose.yaml` 파일에는 두 가지 서비스 유형이 정의되어 있습니다:
 
-- `GPT-SoVITS-CU124` 및 `GPT-SoVITS-CU128`: 전체 기능을 포함한 풀 버전
-- `GPT-SoVITS-CU124-Lite` 및 `GPT-SoVITS-CU128-Lite`: 의존성이 줄어든 경량 버전
+- `GPT-SoVITS-CU126` 및 `GPT-SoVITS-CU128`: 전체 기능을 포함한 풀 버전
+- `GPT-SoVITS-CU126-Lite` 및 `GPT-SoVITS-CU128-Lite`: 의존성이 줄어든 경량 버전
 
 특정 서비스를 Docker Compose로 실행하려면 다음 명령을 사용하세요:
 
 ```bash
-docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128>
+docker compose run --service-ports <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128>
 ```
 
 #### Docker 이미지 직접 빌드하기
@@ -152,7 +152,7 @@ docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|
 직접 이미지를 빌드하려면 다음 명령어를 사용하세요:
 
 ```bash
-bash docker_build.sh --cuda <12.4|12.8> [--lite]
+bash docker_build.sh --cuda <12.6|12.8> [--lite]
 ```
 
 #### 실행 중인 컨테이너 접속하기 (Bash Shell)
@@ -160,7 +160,7 @@ bash docker_build.sh --cuda <12.4|12.8> [--lite]
 컨테이너가 백그라운드에서 실행 중일 때 다음 명령어로 셸에 접속할 수 있습니다:
 
 ```bash
-docker exec -it <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128> bash
+docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
 ## 사전 학습된 모델
