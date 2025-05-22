@@ -65,7 +65,7 @@
 ```bash
 conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
@@ -144,13 +144,13 @@ brew install ffmpeg
 
 `docker-compose.yaml` 文件定义了两个主要服务类型：
 
-- `GPT-SoVITS-CU124` 与 `GPT-SoVITS-CU128`：完整版, 包含所有功能
-- `GPT-SoVITS-CU124-Lite` 与 `GPT-SoVITS-CU128-Lite`：轻量版, 依赖更少, 功能略有删减
+- `GPT-SoVITS-CU126` 与 `GPT-SoVITS-CU128`：完整版, 包含所有功能
+- `GPT-SoVITS-CU126-Lite` 与 `GPT-SoVITS-CU128-Lite`：轻量版, 依赖更少, 功能略有删减
 
 如需使用 Docker Compose 运行指定服务, 请执行：
 
 ```bash
-docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128>
+docker compose run --service-ports <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128>
 ```
 
 #### 本地构建 Docker 镜像
@@ -158,7 +158,7 @@ docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|
 如果你希望自行构建镜像, 请使用以下命令：
 
 ```bash
-bash docker_build.sh --cuda <12.4|12.8> [--lite]
+bash docker_build.sh --cuda <12.6|12.8> [--lite]
 ```
 
 #### 访问运行中的容器 (Bash Shell)
@@ -166,7 +166,7 @@ bash docker_build.sh --cuda <12.4|12.8> [--lite]
 当容器在后台运行时, 你可以通过以下命令进入容器：
 
 ```bash
-docker exec -it <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128> bash
+docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
 ## 预训练模型
