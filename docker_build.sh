@@ -14,18 +14,18 @@ fi
 trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 
 LITE=false
-CUDA_VERSION=12.4
+CUDA_VERSION=12.6
 
 print_help() {
     echo "Usage: bash docker_build.sh [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --cuda 12.4|12.8    Specify the CUDA VERSION (REQUIRED)"
+    echo "  --cuda 12.6|12.8    Specify the CUDA VERSION (REQUIRED)"
     echo "  --lite              Build a Lite Image"
     echo "  -h, --help          Show this help message and exit"
     echo ""
     echo "Examples:"
-    echo "  bash docker_build.sh --cuda 12.4 --funasr --faster-whisper"
+    echo "  bash docker_build.sh --cuda 12.6 --funasr --faster-whisper"
 }
 
 # Show help if no arguments provided
@@ -39,15 +39,15 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
     --cuda)
         case "$2" in
-        12.4)
-            CUDA_VERSION=12.4
+        12.6)
+            CUDA_VERSION=12.6
             ;;
         12.8)
             CUDA_VERSION=12.8
             ;;
         *)
             echo "Error: Invalid CUDA_VERSION: $2"
-            echo "Choose From: [12.4, 12.8]"
+            echo "Choose From: [12.6, 12.8]"
             exit 1
             ;;
         esac
