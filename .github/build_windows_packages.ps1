@@ -117,7 +117,7 @@ Write-Host "[INFO] Installing PyTorch..."
 & ".\runtime\python.exe" -m pip install --upgrade pip --no-warn-script-location
 switch ($cuda) {
     "cu124" {
-        & ".\runtime\python.exe" -m pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124 --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cu124 --no-warn-script-location
     }
     "cu128" {
         & ".\runtime\python.exe" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128 --no-warn-script-location
