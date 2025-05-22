@@ -59,7 +59,7 @@ Windows ユーザー: (Windows 10 以降でテスト済み)、[統合パッケ�
 ```bash
 conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU124|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
@@ -138,13 +138,13 @@ Windows (Docker Desktop) では、デフォルトの共有メモリサイズが�
 
 `docker-compose.yaml` ファイルには次の 2 種類のサービスが定義されています：
 
-- `GPT-SoVITS-CU124` および `GPT-SoVITS-CU128`：すべての機能を含むフルバージョン
-- `GPT-SoVITS-CU124-Lite` および `GPT-SoVITS-CU128-Lite`：依存関係を削減した軽量バージョン
+- `GPT-SoVITS-CU126` および `GPT-SoVITS-CU128`：すべての機能を含むフルバージョン
+- `GPT-SoVITS-CU126-Lite` および `GPT-SoVITS-CU128-Lite`：依存関係を削減した軽量バージョン
 
 特定のサービスを Docker Compose で実行するには、以下のコマンドを使用します：
 
 ```bash
-docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128>
+docker compose run --service-ports <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128>
 ```
 
 #### Docker イメージのローカルビルド
@@ -152,7 +152,7 @@ docker compose run --service-ports <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|
 自分でイメージをビルドするには、以下のコマンドを使ってください：
 
 ```bash
-bash docker_build.sh --cuda <12.4|12.8> [--lite]
+bash docker_build.sh --cuda <12.46|12.8> [--lite]
 ```
 
 #### 実行中のコンテナへアクセス (Bash Shell)
@@ -160,7 +160,7 @@ bash docker_build.sh --cuda <12.4|12.8> [--lite]
 コンテナがバックグラウンドで実行されている場合、以下のコマンドでシェルにアクセスできます：
 
 ```bash
-docker exec -it <GPT-SoVITS-CU124-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU124|GPT-SoVITS-CU128> bash
+docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
 ## 事前訓練済みモデル
