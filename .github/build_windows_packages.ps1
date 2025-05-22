@@ -162,7 +162,7 @@ Copy-Item -Path $curr -Destination $pkgName -Recurse
 $7zPath = "$pkgName.7z"
 $start = Get-Date
 Write-Host "Compress Starting at $start"
-& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -m0=lzma2 -mx=9 -md=1536m -ms=1536m -mmc=10000 -mfb=273 -mlc=0 -mlp=4 -mpb=4 -mc=8g -mmt=on -bsp1
+& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -m0=lzma2 -mx=9 -md=1g -ms=1g -mmc=10000 -mfb=273 -mlc=0 -mlp=4 -mpb=4 -mc=8g -mmt=on -bsp1
 $end = Get-Date
 Write-Host "Elapsed time: $($end - $start)"
 Get-ChildItem .
