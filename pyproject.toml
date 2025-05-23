@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools >= 61.0", "setuptools-scm>=8.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.13.4", "hatch-vcs>=0.4.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "GPT_SoVITS"
@@ -60,5 +60,8 @@ Homepage = "https://github.com/JarodMica/GPT-SoVITS/tree/main"
 [project.scripts]
 "gpt_sovits_api" = "GPT_SoVITS.api_v2:main"
 
-[tool.setuptools.packages.find]
-include = ["GPT_SoVITS"]
+[tool.hatch.build.targets.wheel]
+packages = ["GPT_SoVITS"]
+
+[tool.hatch.version]
+source = "vcs"
