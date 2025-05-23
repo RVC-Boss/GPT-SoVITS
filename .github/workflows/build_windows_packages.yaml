@@ -1,0 +1,38 @@
+name: Build and Upload Windows Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Date suffix (optional)"
+        required: false
+        default: ""
+      suffix:
+        description: "Package name suffix (optional)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        torch_cuda: [cu124, cu128]
+    env:
+      TORCH_CUDA: ${{ matrix.torch_cuda }}
+      MODELSCOPE_USERNAME: ${{ secrets.MODELSCOPE_USERNAME }}
+      MODELSCOPE_TOKEN: ${{ secrets.MODELSCOPE_TOKEN }}
+      HUGGINGFACE_USERNAME: ${{ secrets.HUGGINGFACE_USERNAME }}
+      HUGGINGFACE_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
+      DATE_SUFFIX: ${{ github.event.inputs.date }}
+      PKG_SUFFIX: ${{ github.event.inputs.suffix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Build and Upload Script
+        shell: pwsh
+        run: |
+          Move-Item .github/build_windows_packages.ps1 ../build_windows_packages.ps1
+          ../build_windows_packages.ps1

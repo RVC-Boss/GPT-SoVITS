@@ -108,7 +108,7 @@ resample_transform_dict = {}
 
 def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    key="%s-%s"%(sr0,sr1)
+    key = "%s-%s" % (sr0, sr1)
     if key not in resample_transform_dict:
         resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
@@ -252,7 +252,6 @@ class TTS_Config:
             "cnhuhbert_base_path": "GPT_SoVITS/pretrained_models/chinese-hubert-base",
             "bert_base_path": "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
         },
-
     }
     configs: dict = None
     v1_languages: list = ["auto", "en", "zh", "ja", "all_zh", "all_ja"]
@@ -432,7 +431,6 @@ class TTS:
             "aux_ref_audio_paths": [],
         }
 
-
         self.stop_flag: bool = False
         self.precision: torch.dtype = torch.float16 if self.configs.is_half else torch.float32
 
@@ -468,7 +466,7 @@ class TTS:
         path_sovits = self.configs.default_configs[model_version]["vits_weights_path"]
 
         if if_lora_v3 == True and os.path.exists(path_sovits) == False:
-            info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重"%model_version)
+            info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version)
             raise FileExistsError(info)
 
         # dict_s2 = torch.load(weights_path, map_location=self.configs.device,weights_only=False)
@@ -507,7 +505,7 @@ class TTS:
             )
             self.configs.use_vocoder = False
         else:
-            kwargs["version"]=model_version
+            kwargs["version"] = model_version
             vits_model = SynthesizerTrnV3(
                 self.configs.filter_length // 2 + 1,
                 self.configs.segment_size // self.configs.hop_length,
@@ -572,7 +570,7 @@ class TTS:
                 self.vocoder.cpu()
                 del self.vocoder
                 self.empty_cache()
-                
+
             self.vocoder = BigVGAN.from_pretrained(
                 "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
                 use_cuda_kernel=False,
@@ -595,27 +593,27 @@ class TTS:
                 self.empty_cache()
 
             self.vocoder = Generator(
-                        initial_channel=100,
-                        resblock="1",
-                        resblock_kernel_sizes=[3, 7, 11],
-                        resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                        upsample_rates=[10, 6, 2, 2, 2],
-                        upsample_initial_channel=512,
-                        upsample_kernel_sizes=[20, 12, 4, 4, 4],
-                        gin_channels=0, is_bias=True
-                    )
+                initial_channel=100,
+                resblock="1",
+                resblock_kernel_sizes=[3, 7, 11],
+                resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+                upsample_rates=[10, 6, 2, 2, 2],
+                upsample_initial_channel=512,
+                upsample_kernel_sizes=[20, 12, 4, 4, 4],
+                gin_channels=0,
+                is_bias=True,
+            )
             self.vocoder.remove_weight_norm()
-            state_dict_g = torch.load("%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu")
-            print("loading vocoder",self.vocoder.load_state_dict(state_dict_g))
+            state_dict_g = torch.load(
+                "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu"
+            )
+            print("loading vocoder", self.vocoder.load_state_dict(state_dict_g))
 
             self.vocoder_configs["sr"] = 48000
             self.vocoder_configs["T_ref"] = 500
             self.vocoder_configs["T_chunk"] = 1000
             self.vocoder_configs["upsample_rate"] = 480
             self.vocoder_configs["overlapped_len"] = 12
-
-
-
 
         self.vocoder = self.vocoder.eval()
         if self.configs.is_half == True:
@@ -1439,7 +1437,7 @@ class TTS:
         ref_audio = ref_audio.to(self.configs.device).float()
         if ref_audio.shape[0] == 2:
             ref_audio = ref_audio.mean(0).unsqueeze(0)
-            
+
         # tgt_sr = self.vocoder_configs["sr"]
         tgt_sr = 24000 if self.configs.version == "v3" else 32000
         if ref_sr != tgt_sr:

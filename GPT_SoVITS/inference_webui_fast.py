@@ -14,6 +14,8 @@ import random
 import re
 import sys
 
+import torch
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
@@ -25,14 +27,6 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
-import torch
-
-try:
-    import gradio.analytics as analytics
-
-    analytics.version_check = lambda: None
-except:
-    ...
 
 
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
@@ -262,15 +256,17 @@ SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
 
 from process_ckpt import get_sovits_version_from_path_fast
 
-v3v4set={"v3","v4"}
+v3v4set = {"v3", "v4"}
+
+
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
     global version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
-    is_exist=is_exist_s2gv3 if model_version=="v3"else is_exist_s2gv4
+    is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if if_lora_v3 == True and is_exist == False:
-        info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重"%model_version)
+        info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version)
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -328,7 +324,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         f.write(json.dumps(data))
 
 
-with gr.Blocks(title="GPT-SoVITS WebUI") as app:
+with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
     gr.Markdown(
         value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
         + "<br>"
