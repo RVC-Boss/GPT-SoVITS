@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from x_transformers import RMSNorm
 from x_transformers.x_transformers import RotaryEmbedding
 
-from f5_tts.model.modules import (
+from GPT_SoVITS.f5_tts.model.modules import (
     TimestepEmbedding,
     ConvNeXtV2Block,
     ConvPositionEmbedding,
