@@ -274,7 +274,7 @@ class TTS_Config:
     # "auto",#多语种启动切分识别语种
     # "auto_yue",#多语种启动切分识别语种
 
-    def __init__(self, configs: Union[dict, str] = None):
+    def __init__(self, configs: Union[dict, str] = None, local_files_only=False):
         # 设置默认配置文件路径
         configs_base_path: str = "GPT_SoVITS/configs/"
         os.makedirs(configs_base_path, exist_ok=True)
@@ -329,7 +329,7 @@ class TTS_Config:
             print(f"fall back to default cnhuhbert_base_path: {self.cnhuhbert_base_path}")
             
         repo_name="lj1995/GPT-SoVITS"
-        snapshot_download(repo_id=repo_name, local_dir=os.path.dirname(self.bert_base_path), local_files_only=True)
+        snapshot_download(repo_id=repo_name, local_dir=os.path.dirname(self.bert_base_path), local_files_only=local_files_only)
         self.update_configs()
         self.max_sec = None
         self.hz: int = 50
