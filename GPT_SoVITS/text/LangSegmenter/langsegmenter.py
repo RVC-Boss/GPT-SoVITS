@@ -15,7 +15,7 @@ from split_lang import LangSplitter
 
 
 def full_en(text):
-    pattern = r'^[A-Za-z0-9\s\u0020-\u007E\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF]+$'
+    pattern = r'^(?=.*[A-Za-z])[A-Za-z0-9\s\u0020-\u007E\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF]+$'
     return bool(re.match(pattern, text))
 
 
@@ -34,7 +34,7 @@ def full_cjk(text):
         (0x2EBF0, 0x2EE5D),      # CJK Extension H
     ]
 
-    pattern = r'[0-9、-〜。！？.!?… ]+$'
+    pattern = r'[0-9、-〜。！？.!?… /]+$'
 
     cjk_text = ""
     for char in text:
@@ -131,6 +131,8 @@ class LangSegmenter():
                     if cjk_text:
                         dict_item = {'lang':'zh','text':cjk_text}
                         lang_list = merge_lang(lang_list,dict_item)
+                    else:
+                        lang_list = merge_lang(lang_list,dict_item)
                     continue
                 else:
                     lang_list = merge_lang(lang_list,dict_item)
@@ -144,8 +146,24 @@ class LangSegmenter():
                     if cjk_text:
                         dict_item = {'lang':'zh','text':cjk_text}
                         lang_list = merge_lang(lang_list,dict_item)
+                    else:
+                        lang_list = merge_lang(lang_list,dict_item)
                 else:
                     lang_list = merge_lang(lang_list,temp_item)
+
+        temp_list = lang_list
+        lang_list = []
+        for _, temp_item in enumerate(temp_list):
+            if temp_item['lang'] == 'x':
+                if lang_list:
+                    temp_item['lang'] = lang_list[-1]['lang']
+                elif len(temp_list) > 1:
+                    temp_item['lang'] = temp_list[1]['lang']
+                else:
+                    temp_item['lang'] = 'zh'
+
+            lang_list = merge_lang(lang_list,temp_item)
+
         return lang_list
     
 
