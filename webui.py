@@ -58,6 +58,7 @@ for site_packages_root in site_packages_roots:
             traceback.print_exc()
 import shutil
 import subprocess
+from multiprocessing import cpu_count
 from subprocess import Popen
 
 from tools.assets import css, js, top_html
@@ -86,14 +87,9 @@ from config import (
 from tools import my_utils
 from tools.my_utils import check_details, check_for_existance
 
-# os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
-try:
-    import gradio.analytics as analytics
-
-    analytics.version_check = lambda: None
-except:
-    ...
-import gradio as gr
+language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
+os.environ["language"] = language
+i18n = I18nAuto(language=language)
 
 n_cpu = cpu_count()
 
@@ -276,12 +272,7 @@ def change_label(path_list):
     if p_label is None:
         check_for_existance([path_list])
         path_list = my_utils.clean_path(path_list)
-        cmd = '"%s" -s tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s' % (
-            python_exec,
-            path_list,
-            webui_port_subfix,
-            is_share,
-        )
+        cmd = f'"{python_exec}" -s tools/subfix.py --i18n-lang {language} --port {webui_port_subfix} --share {is_share} "{path_list}"'
         yield (
             process_info(process_name_subfix, "opened"),
             {"__type__": "update", "visible": False},
