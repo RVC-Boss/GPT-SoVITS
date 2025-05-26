@@ -310,10 +310,7 @@ if __name__ == "__main__":
 
     with gr.Blocks(analytics_enabled=False) as demo:
         gr.Markdown(
-            value=i18n("Submit Text: ����ǰҳ�����ı��������ֹ����浽�ڴ�(ǰ��ҳ�Զ����浽�ڴ�)")
-                  + "<br>"
-                  + i18n("���浽�ڴ�ʱ�����ı������ݶԱ��ϴ��иĶ����Զ�������ҳ�ı�ע���ڴ汣�浽��ע�ļ���")
-
+            value=i18n("Submit Text: 将当前页所有文本框内容手工保存到内存和文件(翻页前后或者退出标注页面前如果没点这个按钮，你再翻回来就回滚了，白忙活。)")
         )
         with gr.Row():
             btn_change_index = gr.Button("Change Index")
