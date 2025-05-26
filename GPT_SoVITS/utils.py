@@ -13,7 +13,7 @@ import torch
 
 logging.getLogger("numba").setLevel(logging.ERROR)
 logging.getLogger("matplotlib").setLevel(logging.ERROR)
-
+logging.getLogger("httpx").setLevel(logging.ERROR)
 MATPLOTLIB_FLAG = False
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
