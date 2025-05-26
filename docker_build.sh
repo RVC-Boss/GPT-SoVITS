@@ -25,7 +25,7 @@ print_help() {
     echo "  -h, --help          Show this help message and exit"
     echo ""
     echo "Examples:"
-    echo "  bash docker_build.sh --cuda 12.6 --funasr --faster-whisper"
+    echo "  bash docker_build.sh --cuda 12.6"
 }
 
 # Show help if no arguments provided

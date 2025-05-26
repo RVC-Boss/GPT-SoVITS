@@ -34,8 +34,8 @@ print_help() {
     echo "  -h, --help                             Show this help message and exit"
     echo ""
     echo "Examples:"
-    echo "  bash install.sh --source HF --download-uvr5"
-    echo "  bash install.sh --source ModelScope"
+    echo "  bash install.sh --device CU128 --source HF --download-uvr5"
+    echo "  bash install.sh --device MPS --source ModelScope"
 }
 
 # Show help if no arguments provided
@@ -149,7 +149,6 @@ else
             echo "Installing，Please Wait..."
         fi
     done
-    conda install -c conda-forge -q -y
 fi
 
 echo "Installing ffmpeg and cmake..."
