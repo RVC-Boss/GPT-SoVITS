@@ -3,6 +3,7 @@
 
 import json
 import os
+import traceback
 import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
@@ -20,7 +21,10 @@ from .dataset import get_char_phoneme_labels, get_phoneme_labels, prepare_onnx_i
 from .utils import load_config
 
 onnxruntime.set_default_logger_severity(3)
-onnxruntime.preload_dlls()
+try:
+    onnxruntime.preload_dlls()
+except:
+    traceback.print_exc()
 warnings.filterwarnings("ignore")
 
 model_version = "1.1"
