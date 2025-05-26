@@ -42,12 +42,15 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### Test Edilmiş Ortamlar
 
-- Python 3.9, PyTorch 2.0.1, CUDA 11
-- Python 3.10.13, PyTorch 2.1.2, CUDA 12.3
-- Python 3.9, PyTorch 2.2.2, macOS 14.4.1 (Apple silikon)
-- Python 3.9, PyTorch 2.2.2, CPU cihazları
-
-_Not: numba==0.56.4, py<3.11 gerektirir_
+| Python Version | PyTorch Version  | Device        |
+| -------------- | ---------------- | ------------- |
+| Python 3.10    | PyTorch 2.5.1    | CUDA 12.4     |
+| Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
+| Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
+| Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon |
+| Python 3.11    | PyTorch 2.7.0    | Apple silicon |
+| Python 3.9     | PyTorch 2.2.2    | CPU           |
 
 ### Windows
 
@@ -56,33 +59,41 @@ Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [entegre
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh
+bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
 
 **Not: Mac'lerde GPU'larla eğitilen modeller, diğer cihazlarda eğitilenlere göre önemli ölçüde daha düşük kalitede sonuç verir, bu nedenle geçici olarak CPU'lar kullanıyoruz.**
 
-1. `xcode-select --install` komutunu çalıştırarak Xcode komut satırı araçlarını yükleyin.
-2. FFmpeg'i yüklemek için `brew install ffmpeg` komutunu çalıştırın.
-3. Aşağıdaki komutları çalıştırarak programı yükleyin:
+Aşağıdaki komutları çalıştırarak programı yükleyin:
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
+bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### El ile Yükleme
+
+#### Bağımlılıkları Yükleme
+
+```bash
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
+```
 
 #### FFmpeg'i Yükleme
 
 ##### Conda Kullanıcıları
 
 ```bash
+conda activate GPTSoVits
 conda install ffmpeg
 ```
 
@@ -91,12 +102,13 @@ conda install ffmpeg
 ```bash
 sudo apt install ffmpeg
 sudo apt install libsox-dev
-conda install -c conda-forge 'ffmpeg<7'
 ```
 
 ##### Windows Kullanıcıları
 
-[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) ve [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) dosyalarını indirin ve GPT-SoVITS kök dizinine yerleştirin.
+[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) ve [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) dosyalarını indirin ve GPT-SoVITS kök dizinine yerleştirin
+
+[Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) ortamını yükleyin
 
 ##### MacOS Kullanıcıları
 
@@ -104,47 +116,66 @@ conda install -c conda-forge 'ffmpeg<7'
 brew install ffmpeg
 ```
 
-#### Bağımlılıkları Yükleme
+### GPT-SoVITS Çalıştırma (Docker Kullanarak)
+
+#### Docker İmajı Seçimi
+
+Kod tabanı hızla geliştiği halde Docker imajları daha yavaş yayınlandığı için lütfen şu adımları izleyin:
+
+- En güncel kullanılabilir imaj etiketlerini görmek için [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) adresini kontrol edin
+- Ortamınıza uygun bir imaj etiketi seçin
+- `Lite`, Docker imajında ASR modelleri ve UVR5 modellerinin bulunmadığı anlamına gelir. UVR5 modellerini manuel olarak indirebilirsiniz; ASR modelleri ise gerektiğinde program tarafından otomatik olarak indirilir
+- Docker Compose sırasında, uygun mimariye (amd64 veya arm64) ait imaj otomatik olarak indirilir
+- Opsiyonel: En güncel değişiklikleri almak için, sağlanan Dockerfile ile yerel olarak imajı kendiniz oluşturabilirsiniz
+
+#### Ortam Değişkenleri
+
+- `is_half`: Yarı hassasiyet (fp16) kullanımını kontrol eder. GPU’nuz destekliyorsa, belleği azaltmak için `true` olarak ayarlayın.
+
+#### Paylaşılan Bellek Yapılandırması
+
+Windows (Docker Desktop) ortamında, varsayılan paylaşılan bellek boyutu düşüktür ve bu beklenmedik hatalara neden olabilir. Sistem belleğinize göre Docker Compose dosyasındaki `shm_size` değerini (örneğin `16g`) artırmanız önerilir.
+
+#### Servis Seçimi
+
+`docker-compose.yaml` dosyasında iki tür servis tanımlanmıştır:
+
+- `GPT-SoVITS-CU126` ve `GPT-SoVITS-CU128`: Tüm özellikleri içeren tam sürüm.
+- `GPT-SoVITS-CU126-Lite` ve `GPT-SoVITS-CU128-Lite`: Daha az bağımlılığa ve sınırlı işlevselliğe sahip hafif sürüm.
+
+Belirli bir servisi Docker Compose ile çalıştırmak için şu komutu kullanın:
 
 ```bash
-pip install -r extra-req.txt --no-deps
-pip install -r requirements.txt
+docker compose run --service-ports <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128>
 ```
 
-### Docker Kullanarak
+#### Docker İmajını Yerel Olarak Oluşturma
 
-#### docker-compose.yaml yapılandırması
+Docker imajını kendiniz oluşturmak isterseniz şu komutu kullanın:
 
-0. Görüntü etiketleri hakkında: Kod tabanındaki hızlı güncellemeler ve görüntüleri paketleme ve test etme işleminin yavaş olması nedeniyle, lütfen şu anda paketlenmiş en son görüntüleri kontrol etmek için [Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits) adresini kontrol edin ve durumunuza göre seçim yapın veya alternatif olarak, kendi ihtiyaçlarınıza göre bir Dockerfile kullanarak yerel olarak oluşturun.
-1. Ortam Değişkenleri：
-   - is_half: Yarım hassasiyet/çift hassasiyeti kontrol eder. Bu genellikle "SSL çıkarma" adımı sırasında 4-cnhubert/5-wav32k dizinleri altındaki içeriğin doğru şekilde oluşturulmamasının nedenidir. Gerçek durumunuza göre True veya False olarak ayarlayın.
-2. Birim Yapılandırması，Kapsayıcı içindeki uygulamanın kök dizini /workspace olarak ayarlanmıştır. Varsayılan docker-compose.yaml, içerik yükleme/indirme için bazı pratik örnekler listeler.
-3. shm_size： Windows üzerinde Docker Desktop için varsayılan kullanılabilir bellek çok küçüktür, bu da anormal işlemlere neden olabilir. Kendi durumunuza göre ayarlayın.
-4. Dağıtım bölümü altında, GPU ile ilgili ayarlar sisteminize ve gerçek koşullara göre dikkatlice ayarlanmalıdır.
-
-#### docker compose ile çalıştırma
-
-```
-docker compose -f "docker-compose.yaml" up -d
+```bash
+bash docker_build.sh --cuda <12.6|12.8> [--lite]
 ```
 
-#### docker komutu ile çalıştırma
+#### Çalışan Konteynere Erişim (Bash Shell)
 
-Yukarıdaki gibi, ilgili parametreleri gerçek durumunuza göre değiştirin, ardından aşağıdaki komutu çalıştırın:
+Konteyner arka planda çalışırken, aşağıdaki komutla içine girebilirsiniz:
 
-```
-docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
+```bash
+docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
 ## Önceden Eğitilmiş Modeller
 
+**Eğer `install.sh` başarıyla çalıştırılırsa, No.1,2,3 adımını atlayabilirsiniz.**
+
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) üzerinden önceden eğitilmiş modelleri indirip `GPT_SoVITS/pretrained_models` dizinine yerleştirin.
 
-2. [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) üzerinden modeli indirip sıkıştırmayı açın ve `G2PWModel` olarak yeniden adlandırın, ardından `GPT_SoVITS/text` dizinine yerleştirin. (Sadece Çince TTS için)
+2. [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) üzerinden modeli indirip sıkıştırmayı açın ve `G2PWModel` olarak yeniden adlandırın, ardından `GPT_SoVITS/text` dizinine yerleştirin. (Sadece Çince TTS için)
 
 3. UVR5 (Vokal/Enstrümantal Ayrımı & Yankı Giderme) için, [UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) üzerinden modelleri indirip `tools/uvr5/uvr5_weights` dizinine yerleştirin.
 
-   - UVR5'te bs_roformer veya mel_band_roformer modellerini kullanıyorsanız, modeli ve ilgili yapılandırma dosyasını manuel olarak indirip `tools/UVR5/UVR5_weights` klasörüne yerleştirebilirsiniz. **Model dosyası ve yapılandırma dosyasının adı, uzantı dışında aynı olmalıdır**. Ayrıca, model ve yapılandırma dosyasının adlarında **“roformer”** kelimesi yer almalıdır, böylece roformer sınıfındaki bir model olarak tanınır.
+   - UVR5'te bs_roformer veya mel_band_roformer modellerini kullanıyorsanız, modeli ve ilgili yapılandırma dosyasını manuel olarak indirip `tools/UVR5/UVR5_weights` klasörüne yerleştirebilirsiniz. **Model dosyası ve yapılandırma dosyasının adı, uzantı dışında aynı olmalıdır**. Ayrıca, model ve yapılandırma dosyasının adlarında **"roformer"** kelimesi yer almalıdır, böylece roformer sınıfındaki bir model olarak tanınır.
 
    - Model adı ve yapılandırma dosyası adı içinde **doğrudan model tipini belirtmek önerilir**. Örneğin: mel_mand_roformer, bs_roformer. Belirtilmezse, yapılandırma dosyasından özellikler karşılaştırılarak model tipi belirlenir. Örneğin, `bs_roformer_ep_368_sdr_12.9628.ckpt` modeli ve karşılık gelen yapılandırma dosyası `bs_roformer_ep_368_sdr_12.9628.yaml` bir çifttir. Aynı şekilde, `kim_mel_band_roformer.ckpt` ve `kim_mel_band_roformer.yaml` da bir çifttir.
 
@@ -201,12 +232,12 @@ veya WebUI'de manuel olarak sürüm değiştirin.
 
 #### Yol Otomatik Doldurma artık destekleniyor
 
-    1. Ses yolunu doldurun
-    2. Sesi küçük parçalara ayırın
-    3. Gürültü azaltma (isteğe bağlı)
-    4. ASR
-    5. ASR transkripsiyonlarını düzeltin
-    6. Bir sonraki sekmeye geçin ve modeli ince ayar yapın
+1. Ses yolunu doldurun
+2. Sesi küçük parçalara ayırın
+3. Gürültü azaltma (isteğe bağlı)
+4. ASR
+5. ASR transkripsiyonlarını düzeltin
+6. Bir sonraki sekmeye geçin ve modeli ince ayar yapın
 
 ### Çıkarım WebUI'sini Açın
 
@@ -248,9 +279,9 @@ V1 ortamından V2'yi kullanmak için:
 
 2. github'dan en son kodları klonlayın.
 
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) adresinden v2 önceden eğitilmiş modelleri indirin ve bunları `GPT_SoVITS\pretrained_models\gsv-v2final-pretrained` dizinine yerleştirin.
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) adresinden v2 önceden eğitilmiş modelleri indirin ve bunları `GPT_SoVITS/pretrained_models/gsv-v2final-pretrained` dizinine yerleştirin.
 
-   Ek olarak Çince V2: [G2PWModel_1.1.zip](https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip) (G2PW modellerini indirip, zipten çıkarıp, `G2PWModel` olarak yeniden adlandırıp `GPT_SoVITS/text` dizinine yerleştirin.)
+   Ek olarak Çince V2: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW modellerini indirip, zipten çıkarıp, `G2PWModel` olarak yeniden adlandırıp `GPT_SoVITS/text` dizinine yerleştirin.)
 
 ## V3 Sürüm Notları
 
@@ -266,9 +297,9 @@ V1 ortamından V2'yi kullanmak için:
 
 1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin.
 
-2. GitHub’dan en son kodları klonlayın.
+2. GitHub'dan en son kodları klonlayın.
 
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS\pretrained_models` dizinine yerleştirin.
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS/pretrained_models` dizinine yerleştirin.
 
    ek: Ses Süper Çözünürlük modeli için [nasıl indirileceği](../../tools/AP_BWE_main/24kto48k/readme.txt) hakkında bilgi alabilirsiniz.
 
@@ -296,7 +327,7 @@ V1 ortamından V2'yi kullanmak için:
 
 UVR5 için Web Arayüzünü açmak için komut satırını kullanın
 
-```
+```bash
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
 
@@ -307,7 +338,7 @@ python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --
 
 Veri setinin ses segmentasyonu komut satırı kullanılarak bu şekilde yapılır
 
-```
+```bash
 python audio_slicer.py \
     --input_path "<orijinal_ses_dosyası_veya_dizininin_yolu>" \
     --output_root "<alt_bölümlere_ayrılmış_ses_kliplerinin_kaydedileceği_dizin>" \
@@ -319,7 +350,7 @@ python audio_slicer.py \
 
 Veri seti ASR işleme komut satırı kullanılarak bu şekilde yapılır (Yalnızca Çince)
 
-```
+```bash
 python tools/asr/funasr_asr.py -i <girdi> -o <çıktı>
 ```
 
@@ -327,7 +358,7 @@ ASR işleme Faster_Whisper aracılığıyla gerçekleştirilir (Çince dışınd
 
 (İlerleme çubukları yok, GPU performansı zaman gecikmelerine neden olabilir)
 
-```
+```bash
 python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 ```
 
@@ -374,7 +405,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [FunASR](https://github.com/alibaba-damo-academy/FunASR)
 - [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
-@Naozumi520’ye Kantonca eğitim setini sağladığı ve Kantonca ile ilgili bilgiler konusunda rehberlik ettiği için minnettarım.
+@Naozumi520'ye Kantonca eğitim setini sağladığı ve Kantonca ile ilgili bilgiler konusunda rehberlik ettiği için minnettarım.
 
 ## Tüm katkıda bulunanlara çabaları için teşekkürler
 

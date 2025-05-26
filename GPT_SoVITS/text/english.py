@@ -8,10 +8,10 @@ from text.symbols import punctuation
 
 from text.symbols2 import symbols
 
-import unicodedata
 from builtins import str as unicode
 from text.en_normalization.expend import normalize
 from nltk.tokenize import TweetTokenizer
+
 word_tokenize = TweetTokenizer().tokenize
 from nltk import pos_tag
 
@@ -122,9 +122,9 @@ def replace_phs(phs):
 
 
 def replace_consecutive_punctuation(text):
-    punctuations = ''.join(re.escape(p) for p in punctuation)
-    pattern = f'([{punctuations}\s])([{punctuations}])+'
-    result = re.sub(pattern, r'\1', text)
+    punctuations = "".join(re.escape(p) for p in punctuation)
+    pattern = f"([{punctuations}\s])([{punctuations}])+"
+    result = re.sub(pattern, r"\1", text)
     return result
 
 
@@ -182,6 +182,7 @@ def read_dict_new():
             line = f.readline()
 
     return g2p_dict
+
 
 def hot_reload_hot(g2p_dict):
     with open(CMU_DICT_HOT_PATH) as f:
@@ -259,9 +260,12 @@ class en_G2p(G2p):
             del self.cmu[word.lower()]
 
         # 修正多音字
-        self.homograph2features["read"] = (['R', 'IY1', 'D'], ['R', 'EH1', 'D'], 'VBP')
-        self.homograph2features["complex"] = (['K', 'AH0', 'M', 'P', 'L', 'EH1', 'K', 'S'], ['K', 'AA1', 'M', 'P', 'L', 'EH0', 'K', 'S'], 'JJ')
-
+        self.homograph2features["read"] = (["R", "IY1", "D"], ["R", "EH1", "D"], "VBP")
+        self.homograph2features["complex"] = (
+            ["K", "AH0", "M", "P", "L", "EH1", "K", "S"],
+            ["K", "AA1", "M", "P", "L", "EH0", "K", "S"],
+            "JJ",
+        )
 
     def __call__(self, text):
         # tokenization
@@ -280,7 +284,7 @@ class en_G2p(G2p):
             elif len(word) == 1:
                 # 单读 A 发音修正, 这里需要原格式 o_word 判断大写
                 if o_word == "A":
-                    pron = ['EY1']
+                    pron = ["EY1"]
                 else:
                     pron = self.cmu[word][0]
             # g2p_en 原版多音字处理
@@ -289,7 +293,7 @@ class en_G2p(G2p):
                 if pos.startswith(pos1):
                     pron = pron1
                 # pos1比pos长仅出现在read
-                elif len(pos) < len(pos1) and pos == pos1[:len(pos)]:
+                elif len(pos) < len(pos1) and pos == pos1[: len(pos)]:
                     pron = pron1
                 else:
                     pron = pron2
@@ -301,7 +305,6 @@ class en_G2p(G2p):
             prons.extend([" "])
 
         return prons[:-1]
-
 
     def qryword(self, o_word):
         word = o_word.lower()
@@ -320,7 +323,7 @@ class en_G2p(G2p):
             for w in word:
                 # 单读 A 发音修正, 此处不存在大写的情况
                 if w == "a":
-                    phones.extend(['EY1'])
+                    phones.extend(["EY1"])
                 elif not w.isalpha():
                     phones.extend([w])
                 else:
@@ -331,23 +334,23 @@ class en_G2p(G2p):
         if re.match(r"^([a-z]+)('s)$", word):
             phones = self.qryword(word[:-2])[:]
             # P T K F TH HH 无声辅音结尾 's 发 ['S']
-            if phones[-1] in ['P', 'T', 'K', 'F', 'TH', 'HH']:
-                phones.extend(['S'])
+            if phones[-1] in ["P", "T", "K", "F", "TH", "HH"]:
+                phones.extend(["S"])
             # S Z SH ZH CH JH 擦声结尾 's 发 ['IH1', 'Z'] 或 ['AH0', 'Z']
-            elif phones[-1] in ['S', 'Z', 'SH', 'ZH', 'CH', 'JH']:
-                phones.extend(['AH0', 'Z'])
+            elif phones[-1] in ["S", "Z", "SH", "ZH", "CH", "JH"]:
+                phones.extend(["AH0", "Z"])
             # B D G DH V M N NG L R W Y 有声辅音结尾 's 发 ['Z']
             # AH0 AH1 AH2 EY0 EY1 EY2 AE0 AE1 AE2 EH0 EH1 EH2 OW0 OW1 OW2 UH0 UH1 UH2 IY0 IY1 IY2 AA0 AA1 AA2 AO0 AO1 AO2
             # ER ER0 ER1 ER2 UW0 UW1 UW2 AY0 AY1 AY2 AW0 AW1 AW2 OY0 OY1 OY2 IH IH0 IH1 IH2 元音结尾 's 发 ['Z']
             else:
-                phones.extend(['Z'])
+                phones.extend(["Z"])
             return phones
 
         # 尝试进行分词，应对复合词
         comps = wordsegment.segment(word.lower())
 
         # 无法分词的送回去预测
-        if len(comps)==1:
+        if len(comps) == 1:
             return self.predict(word)
 
         # 可以分词的递归处理

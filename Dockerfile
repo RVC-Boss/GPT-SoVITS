@@ -1,42 +1,62 @@
-# Base CUDA image
-FROM cnstark/pytorch:2.0.1-py3.9.17-cuda11.8.0-ubuntu20.04
+ARG CUDA_VERSION=12.6
+ARG TORCH_BASE=full
 
-LABEL maintainer="breakstring@hotmail.com"
-LABEL version="dev-20240209"
+FROM xxxxrt666/torch-base:cu${CUDA_VERSION}-${TORCH_BASE}
+
+LABEL maintainer="XXXXRT"
+LABEL version="V4"
 LABEL description="Docker image for GPT-SoVITS"
 
+ARG CUDA_VERSION=12.6
 
-# Install 3rd party apps
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Etc/UTC
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends tzdata ffmpeg libsox-dev parallel aria2 git git-lfs && \
-    git lfs install && \
-    rm -rf /var/lib/apt/lists/*
+ENV CUDA_VERSION=${CUDA_VERSION}
 
-# Copy only requirements.txt initially to leverage Docker cache
-WORKDIR /workspace
-COPY requirements.txt /workspace/
-RUN pip install --no-cache-dir -r requirements.txt
+SHELL ["/bin/bash", "-c"]
 
-# Define a build-time argument for image type
-ARG IMAGE_TYPE=full
+WORKDIR /workspace/GPT-SoVITS
 
-# Conditional logic based on the IMAGE_TYPE argument
-# Always copy the Docker directory, but only use it if IMAGE_TYPE is not "elite"
-COPY ./Docker /workspace/Docker 
-# elite 类型的镜像里面不包含额外的模型
-RUN if [ "$IMAGE_TYPE" != "elite" ]; then \
-        chmod +x /workspace/Docker/download.sh && \
-        /workspace/Docker/download.sh && \
-        python /workspace/Docker/download.py && \
-        python -m nltk.downloader averaged_perceptron_tagger cmudict; \
-    fi
+COPY Docker /workspace/GPT-SoVITS/Docker/
 
+ARG LITE=false
+ENV LITE=${LITE}
 
-# Copy the rest of the application
-COPY . /workspace
+ARG WORKFLOW=false
+ENV WORKFLOW=${WORKFLOW}
+
+ARG TARGETPLATFORM
+ENV TARGETPLATFORM=${TARGETPLATFORM}
+
+RUN bash Docker/miniconda_install.sh
+
+COPY extra-req.txt /workspace/GPT-SoVITS/
+
+COPY requirements.txt /workspace/GPT-SoVITS/
+
+COPY install.sh /workspace/GPT-SoVITS/
+
+RUN bash Docker/install_wrapper.sh
 
 EXPOSE 9871 9872 9873 9874 9880
 
-CMD ["python", "webui.py"]
+ENV PYTHONPATH="/workspace/GPT-SoVITS"
+
+RUN conda init bash && echo "conda activate base" >> ~/.bashrc
+
+WORKDIR /workspace
+
+RUN rm -rf /workspace/GPT-SoVITS
+
+WORKDIR /workspace/GPT-SoVITS
+
+COPY . /workspace/GPT-SoVITS
+
+CMD ["/bin/bash", "-c", "\
+  rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
+  rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel && \
+  rm -rf /workspace/GPT-SoVITS/tools/asr/models && \
+  rm -rf /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
+  ln -s /workspace/models/pretrained_models /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
+  ln -s /workspace/models/G2PWModel /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel && \
+  ln -s /workspace/models/asr_models /workspace/GPT-SoVITS/tools/asr/models && \
+  ln -s /workspace/models/uvr5_weights /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
+  exec bash"]

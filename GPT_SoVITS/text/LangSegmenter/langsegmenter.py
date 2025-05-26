@@ -173,4 +173,3 @@ if __name__ == "__main__":
 
     text = "ねえ、知ってる？最近、僕は天文学を勉強してるんだ。君の瞳が星空みたいにキラキラしてるからさ。"
     print(LangSegmenter.getTexts(text))
-

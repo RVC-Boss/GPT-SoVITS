@@ -1,10 +1,8 @@
 from torch.nn.functional import *
 from torch.nn.functional import (
-    _mha_shape_check,
     _canonical_mask,
-    _none_or_dtype,
-    _in_projection_packed,
 )
+
 
 def multi_head_attention_forward_patched(
     query,
@@ -34,7 +32,6 @@ def multi_head_attention_forward_patched(
     is_causal: bool = False,
     cache=None,
 ) -> Tuple[Tensor, Optional[Tensor]]:
-
     # set up shape vars
     _, _, embed_dim = query.shape
     attn_mask = _canonical_mask(
@@ -80,12 +77,8 @@ def multi_head_attention_forward_patched(
     q = q.view(num_heads, -1, head_dim).unsqueeze(0)
     k = k.view(num_heads, -1, head_dim).unsqueeze(0)
     v = v.view(num_heads, -1, head_dim).unsqueeze(0)
-    attn_output = scaled_dot_product_attention(
-        q, k, v, attn_mask, dropout_p, is_causal
-    )
-    attn_output = (
-        attn_output.permute(2, 0, 1, 3).contiguous().view(-1, embed_dim)
-    )
+    attn_output = scaled_dot_product_attention(q, k, v, attn_mask, dropout_p, is_causal)
+    attn_output = attn_output.permute(2, 0, 1, 3).contiguous().view(-1, embed_dim)
     attn_output = linear(attn_output, out_proj_weight, out_proj_bias)
     attn_output = attn_output.view(-1, 1, attn_output.size(1))
 

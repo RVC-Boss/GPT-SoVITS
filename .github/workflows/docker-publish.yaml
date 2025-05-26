@@ -1,0 +1,276 @@
+name: Build and Publish Docker Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-meta:
+    runs-on: ubuntu-22.04
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Generate Tag
+        id: meta
+        run: |
+          DATE=$(date +'%Y%m%d')
+          COMMIT=$(git rev-parse --short=6 HEAD)
+          echo "tag=${DATE}-${COMMIT}" >> $GITHUB_OUTPUT
+  build-amd64:
+    needs: generate-meta
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - cuda_version: 12.6
+            lite: true
+            torch_base: lite
+            tag_prefix: cu126-lite
+          - cuda_version: 12.6
+            lite: false
+            torch_base: full
+            tag_prefix: cu126
+          - cuda_version: 12.8
+            lite: true
+            torch_base: lite
+            tag_prefix: cu128-lite
+          - cuda_version: 12.8
+            lite: false
+            torch_base: full
+            tag_prefix: cu128
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          echo "Before cleanup:"
+          df -h  
+
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /opt/hostedtoolcache/PyPy
+          sudo rm -rf /opt/hostedtoolcache/go
+          sudo rm -rf /opt/hostedtoolcache/node
+          sudo rm -rf /opt/hostedtoolcache/Ruby
+          sudo rm -rf /opt/microsoft
+          sudo rm -rf /opt/pipx
+          sudo rm -rf /opt/az
+          sudo rm -rf /opt/google
+
+          
+          sudo rm -rf /usr/lib/jvm
+          sudo rm -rf /usr/lib/google-cloud-sdk
+          sudo rm -rf /usr/lib/dotnet
+
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/julia1.11.5
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/local/share/chromium
+
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/miniconda
+          sudo rm -rf /usr/share/az_12.1.0
+          sudo rm -rf /usr/share/dotnet
+
+          echo "After cleanup:"
+          df -h
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Build and Push Docker Image (amd64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64
+          build-args: |
+            LITE=${{ matrix.lite }}
+            TORCH_BASE=${{ matrix.torch_base }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
+            WORKFLOW=true
+          tags: |
+            xxxxrt666/gpt-sovits:${{ matrix.tag_prefix }}-${{ needs.generate-meta.outputs.tag }}-amd64
+            xxxxrt666/gpt-sovits:latest-${{ matrix.tag_prefix }}-amd64
+
+  build-arm64:
+    needs: generate-meta
+    runs-on: ubuntu-22.04-arm
+    strategy:
+      matrix:
+        include:
+          - cuda_version: 12.6
+            lite: true
+            torch_base: lite
+            tag_prefix: cu126-lite
+          - cuda_version: 12.6
+            lite: false
+            torch_base: full
+            tag_prefix: cu126
+          - cuda_version: 12.8
+            lite: true
+            torch_base: lite
+            tag_prefix: cu128-lite
+          - cuda_version: 12.8
+            lite: false
+            torch_base: full
+            tag_prefix: cu128
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          echo "Before cleanup:"
+          df -h  
+
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /opt/hostedtoolcache/PyPy
+          sudo rm -rf /opt/hostedtoolcache/go
+          sudo rm -rf /opt/hostedtoolcache/node
+          sudo rm -rf /opt/hostedtoolcache/Ruby
+          sudo rm -rf /opt/microsoft
+          sudo rm -rf /opt/pipx
+          sudo rm -rf /opt/az
+          sudo rm -rf /opt/google
+
+          
+          sudo rm -rf /usr/lib/jvm
+          sudo rm -rf /usr/lib/google-cloud-sdk
+          sudo rm -rf /usr/lib/dotnet
+
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/julia1.11.5
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/local/share/chromium
+
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/miniconda
+          sudo rm -rf /usr/share/az_12.1.0
+          sudo rm -rf /usr/share/dotnet
+
+          echo "After cleanup:"
+          df -h
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Build and Push Docker Image (arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/arm64
+          build-args: |
+            LITE=${{ matrix.lite }}
+            TORCH_BASE=${{ matrix.torch_base }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
+            WORKFLOW=true
+          tags: |
+            xxxxrt666/gpt-sovits:${{ matrix.tag_prefix }}-${{ needs.generate-meta.outputs.tag }}-arm64
+            xxxxrt666/gpt-sovits:latest-${{ matrix.tag_prefix }}-arm64
+
+
+  merge-and-clean:
+    needs:
+      - build-amd64
+      - build-arm64
+      - generate-meta
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - tag_prefix: cu126-lite
+          - tag_prefix: cu126
+          - tag_prefix: cu128-lite
+          - tag_prefix: cu128
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Merge amd64 and arm64 into multi-arch image
+        run: |
+          DATE_TAG=${{ needs.generate-meta.outputs.tag }}
+          TAG_PREFIX=${{ matrix.tag_prefix }}
+
+          docker buildx imagetools create \
+            --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:${TAG_PREFIX}-${DATE_TAG} \
+            ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:${TAG_PREFIX}-${DATE_TAG}-amd64 \
+            ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:${TAG_PREFIX}-${DATE_TAG}-arm64
+
+          docker buildx imagetools create \
+            --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX} \
+            ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX}-amd64 \
+            ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-${TAG_PREFIX}-arm64
+      - name: Delete old platform-specific tags via Docker Hub API
+        env:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          TAG_PREFIX: ${{ matrix.tag_prefix }}
+          DATE_TAG: ${{ needs.generate-meta.outputs.tag }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+
+          TOKEN=$(curl -s -u $DOCKER_HUB_USERNAME:$DOCKER_HUB_TOKEN \
+          "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$DOCKER_HUB_USERNAME/gpt-sovits:pull,push,delete" \
+          | jq -r .token)
+
+          for PLATFORM in amd64 arm64; do
+            SAFE_PLATFORM=$(echo $PLATFORM | sed 's/\//-/g')
+            TAG="${TAG_PREFIX}-${DATE_TAG}-${SAFE_PLATFORM}"
+            LATEST_TAG="latest-${TAG_PREFIX}-${SAFE_PLATFORM}"
+
+            for DEL_TAG in "$TAG" "$LATEST_TAG"; do
+              echo "Deleting tag: $DEL_TAG"
+              curl -X DELETE -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/$DOCKER_HUB_USERNAME/gpt-sovits/manifests/$DEL_TAG
+            done
+          done
+  create-default:
+    runs-on: ubuntu-latest
+    needs:
+      - merge-and-clean
+    steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+    - name: Create Default Tag
+      run: |
+        docker buildx imagetools create \
+          --tag ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest \
+          ${{ secrets.DOCKER_HUB_USERNAME }}/gpt-sovits:latest-cu126-lite
+        

@@ -32,18 +32,10 @@ def make_pair(mix_dir, inst_dir):
     input_exts = [".wav", ".m4a", ".mp3", ".mp4", ".flac"]
 
     X_list = sorted(
-        [
-            os.path.join(mix_dir, fname)
-            for fname in os.listdir(mix_dir)
-            if os.path.splitext(fname)[1] in input_exts
-        ]
+        [os.path.join(mix_dir, fname) for fname in os.listdir(mix_dir) if os.path.splitext(fname)[1] in input_exts]
     )
     y_list = sorted(
-        [
-            os.path.join(inst_dir, fname)
-            for fname in os.listdir(inst_dir)
-            if os.path.splitext(fname)[1] in input_exts
-        ]
+        [os.path.join(inst_dir, fname) for fname in os.listdir(inst_dir) if os.path.splitext(fname)[1] in input_exts]
     )
 
     filelist = list(zip(X_list, y_list))
@@ -65,14 +57,10 @@ def train_val_split(dataset_dir, split_mode, val_rate, val_filelist):
             train_filelist = filelist[:-val_size]
             val_filelist = filelist[-val_size:]
         else:
-            train_filelist = [
-                pair for pair in filelist if list(pair) not in val_filelist
-            ]
+            train_filelist = [pair for pair in filelist if list(pair) not in val_filelist]
     elif split_mode == "subdirs":
         if len(val_filelist) != 0:
-            raise ValueError(
-                "The `val_filelist` option is not available in `subdirs` mode"
-            )
+            raise ValueError("The `val_filelist` option is not available in `subdirs` mode")
 
         train_filelist = make_pair(
             os.path.join(dataset_dir, "training/mixtures"),
@@ -91,9 +79,7 @@ def augment(X, y, reduction_rate, reduction_mask, mixup_rate, mixup_alpha):
     perm = np.random.permutation(len(X))
     for i, idx in enumerate(tqdm(perm)):
         if np.random.uniform() < reduction_rate:
-            y[idx] = spec_utils.reduce_vocal_aggressively(
-                X[idx], y[idx], reduction_mask
-            )
+            y[idx] = spec_utils.reduce_vocal_aggressively(X[idx], y[idx], reduction_mask)
 
         if np.random.uniform() < 0.5:
             # swap channel
@@ -152,9 +138,7 @@ def make_training_set(filelist, cropsize, patches, sr, hop_length, n_fft, offset
 
 def make_validation_set(filelist, cropsize, sr, hop_length, n_fft, offset):
     patch_list = []
-    patch_dir = "cs{}_sr{}_hl{}_nf{}_of{}".format(
-        cropsize, sr, hop_length, n_fft, offset
-    )
+    patch_dir = "cs{}_sr{}_hl{}_nf{}_of{}".format(cropsize, sr, hop_length, n_fft, offset)
     os.makedirs(patch_dir, exist_ok=True)
 
     for i, (X_path, y_path) in enumerate(tqdm(filelist)):
