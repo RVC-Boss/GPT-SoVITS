@@ -1419,7 +1419,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
                     value=process_info(process_name_slice, "close"), variant="primary", visible=False
                 )
 
-            gr.Markdown(value="0bb-" + i18n("语音降噪工具"))
+            gr.Markdown(value="0bb-" + i18n("语音降噪工具")+i18n("(非必需)"))
             with gr.Row():
                 with gr.Column(scale=3):
                     with gr.Row():
