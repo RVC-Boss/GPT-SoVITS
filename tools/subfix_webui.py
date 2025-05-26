@@ -1,3 +1,8 @@
+# -*- coding: gbk -*-
+import sys
+from tools.i18n.i18n import I18nAuto, scan_language_list
+language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
+i18n = I18nAuto(language=language)
 import argparse
 import copy
 import json
@@ -304,6 +309,12 @@ if __name__ == "__main__":
     set_global(args.load_json, args.load_list, args.json_key_text, args.json_key_path, args.g_batch)
 
     with gr.Blocks(analytics_enabled=False) as demo:
+        gr.Markdown(
+            value=i18n("Submit Text: 将当前页所有文本框内容手工保存到内存(前后翻页自动保存到内存)")
+                  + "<br>"
+                  + i18n("保存到内存时如检查文本框内容对比上次有改动，自动将所有页的标注从内存保存到标注文件。")
+
+        )
         with gr.Row():
             btn_change_index = gr.Button("Change Index")
             btn_submit_change = gr.Button("Submit Text")
