@@ -1,0 +1,15 @@
+ci:
+  autoupdate_schedule: monthly
+
+repos:
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.11.7
+  hooks:
+    # Run the linter.
+    - id: ruff
+      types_or: [ python, pyi ]
+      args: [ --fix ]
+    # Run the formatter.
+    - id: ruff-format
+      types_or: [ python, pyi ]
+      args: [ --line-length, "120", --target-version, "py310" ]

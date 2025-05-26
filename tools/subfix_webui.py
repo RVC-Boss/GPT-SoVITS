@@ -1,7 +1,7 @@
 import argparse
-import os
 import copy
 import json
+import os
 import uuid
 
 try:
@@ -11,8 +11,8 @@ try:
 except:
     ...
 
-import librosa
 import gradio as gr
+import librosa
 import numpy as np
 import soundfile
 
@@ -303,7 +303,7 @@ if __name__ == "__main__":
 
     set_global(args.load_json, args.load_list, args.json_key_text, args.json_key_path, args.g_batch)
 
-    with gr.Blocks() as demo:
+    with gr.Blocks(analytics_enabled=False) as demo:
         with gr.Row():
             btn_change_index = gr.Button("Change Index")
             btn_submit_change = gr.Button("Submit Text")

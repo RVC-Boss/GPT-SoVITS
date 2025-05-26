@@ -40,14 +40,15 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### テスト済みの環境
 
-| Python Version | PyTorch Version  | Device          |
-|----------------|------------------|-----------------|
-| Python 3.9     | PyTorch 2.0.1    | CUDA 11.8       |
-| Python 3.10.13 | PyTorch 2.1.2    | CUDA 12.3       |
-| Python 3.10.17 | PyTorch 2.5.1    | CUDA 12.4       |
-| Python 3.9     | PyTorch 2.5.1    | Apple silicon   |
-| Python 3.11    | PyTorch 2.6.0    | Apple silicon   |
-| Python 3.9     | PyTorch 2.2.2    | CPU             |
+| Python Version | PyTorch Version  | Device        |
+| -------------- | ---------------- | ------------- |
+| Python 3.10    | PyTorch 2.5.1    | CUDA 12.4     |
+| Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
+| Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
+| Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
+| Python 3.9     | PyTorch 2.5.1    | Apple silicon |
+| Python 3.11    | PyTorch 2.7.0    | Apple silicon |
+| Python 3.9     | PyTorch 2.2.2    | CPU           |
 
 ### Windows
 
@@ -56,31 +57,41 @@ Windows ユーザー: (Windows 10 以降でテスト済み)、[統合パッケ�
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS
 
 **注: Mac で GPU を使用して訓練されたモデルは、他のデバイスで訓練されたモデルと比較して著しく品質が低下するため、当面は CPU を使用して訓練することを強く推奨します.**
 
-1. `xcode-select --install` を実行して、Xcode コマンドラインツールをインストールします.
-2. 以下のコマンドを実行してこのプロジェクトをインストールします.
+以下のコマンドを実行してこのプロジェクトをインストールします:
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### 手動インストール
 
-#### FFmpeg をインストールします.
+#### 依存関係をインストールします
+
+```bash
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+
+pip install -r extra-req.txt --no-deps
+pip install -r requirements.txt
+```
+
+#### FFmpeg をインストールします
 
 ##### Conda ユーザー
 
 ```bash
+conda activate GPTSoVits
 conda install ffmpeg
 ```
 
@@ -89,12 +100,13 @@ conda install ffmpeg
 ```bash
 sudo apt install ffmpeg
 sudo apt install libsox-dev
-conda install -c conda-forge 'ffmpeg<7'
 ```
 
 ##### Windows ユーザー
 
-[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートフォルダに置きます.
+[ffmpeg.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffmpeg.exe) と [ffprobe.exe](https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/ffprobe.exe) をダウンロードし、GPT-SoVITS のルートフォルダに置きます
+
+[Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe) 環境をインストールしてください
 
 ##### MacOS ユーザー
 
@@ -102,38 +114,53 @@ conda install -c conda-forge 'ffmpeg<7'
 brew install ffmpeg
 ```
 
-#### 依存関係をインストールします
+### GPT-SoVITS の実行 (Docker 使用)
+
+#### Docker イメージの選択
+
+コードベースの更新が頻繁である一方、Docker イメージのリリースは比較的遅いため、以下を確認してください：
+
+- [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) で最新のイメージタグを確認してください
+- 環境に合った適切なイメージタグを選択してください
+- `Lite` とは、Docker イメージに ASR モデルおよび UVR5 モデルが含まれていないことを意味します. UVR5 モデルは手動でダウンロードし、ASR モデルは必要に応じてプログラムが自動的にダウンロードします
+- Docker Compose 実行時に、対応するアーキテクチャ (amd64 または arm64) のイメージが自動的に取得されます
+- オプション：最新の変更を反映させるため、提供されている Dockerfile を使ってローカルでイメージをビルドすることも可能です
+
+#### 環境変数
+
+- `is_half`：半精度 (fp16) を使用するかどうかを制御します. GPU が対応している場合、`true` に設定することでメモリ使用量を削減できます
+
+#### 共有メモリの設定
+
+Windows (Docker Desktop) では、デフォルトの共有メモリサイズが小さいため、予期しない動作が発生する可能性があります. Docker Compose ファイル内の `shm_size` を (例：`16g`) に増やすことをおすすめします
+
+#### サービスの選択
+
+`docker-compose.yaml` ファイルには次の 2 種類のサービスが定義されています：
+
+- `GPT-SoVITS-CU126` および `GPT-SoVITS-CU128`：すべての機能を含むフルバージョン
+- `GPT-SoVITS-CU126-Lite` および `GPT-SoVITS-CU128-Lite`：依存関係を削減した軽量バージョン
+
+特定のサービスを Docker Compose で実行するには、以下のコマンドを使用します：
 
 ```bash
-pip install -r extra-req.txt --no-deps
-pip install -r requirementx.txt
+docker compose run --service-ports <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128>
 ```
 
-### Docker の使用
+#### Docker イメージのローカルビルド
 
-#### docker-compose.yaml の設定
+自分でイメージをビルドするには、以下のコマンドを使ってください：
 
-0. イメージのタグについて: コードベースの更新が速い割に、イメージのパッケージングとテストが遅いため、[Docker Hub](https://hub.docker.com/r/breakstring/gpt-sovits)(古いバージョン) で現在パッケージされている最新のイメージをご覧になり、ご自身の状況に応じて選択するか、またはご自身のニーズに応じて Dockerfile を使用してローカルでビルドしてください.
-1. 環境変数: 
-
-   - `is_half`: 半精度／倍精度の制御."SSL 抽出"ステップ中に`4-cnhubert/5-wav32k`ディレクトリ内の内容が正しく生成されない場合、通常これが原因です.実際の状況に応じて True または False に調整してください.
-
-2. ボリューム設定: コンテナ内のアプリケーションのルートディレクトリは`/workspace`に設定されます.デフォルトの`docker-compose.yaml`には、アップロード／ダウンロードの内容の実例がいくつか記載されています.
-3. `shm_size`: Windows の Docker Desktop のデフォルトの利用可能メモリは小さすぎるため、うまく動作しない可能性があります.状況に応じて適宜設定してください.
-4. `deploy`セクションの GPU に関連する内容は、システムと実際の状況に応じて慎重に設定してください.
-
-#### docker compose で実行する
-
-```markdown
-docker compose -f "docker-compose.yaml" up -d
+```bash
+bash docker_build.sh --cuda <12.6|12.8> [--lite]
 ```
 
-#### docker コマンドで実行する
+#### 実行中のコンテナへアクセス (Bash Shell)
 
-上記と同様に、実際の状況に基づいて対応するパラメータを変更し、次のコマンドを実行します: 
+コンテナがバックグラウンドで実行されている場合、以下のコマンドでシェルにアクセスできます：
 
-```markdown
-docker run --rm -it --gpus=all --env=is_half=False --volume=G:\GPT-SoVITS-DockerTest\output:/workspace/output --volume=G:\GPT-SoVITS-DockerTest\logs:/workspace/logs --volume=G:\GPT-SoVITS-DockerTest\SoVITS_weights:/workspace/SoVITS_weights --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" -d breakstring/gpt-sovits:xxxxx
+```bash
+docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
 ## 事前訓練済みモデル
@@ -201,12 +228,12 @@ python webui.py v1 <言語(オプション)>
 
 #### パス自動補完のサポート
 
-    1. 音声パスを入力する
-    2. 音声を小さなチャンクに分割する
-    3. ノイズ除去 (オプション)
-    4. ASR
-    5. ASR転写を校正する
-    6. 次のタブに移動し、モデルを微調整する
+1. 音声パスを入力する
+2. 音声を小さなチャンクに分割する
+3. ノイズ除去 (オプション)
+4. ASR
+5. ASR 転写を校正する
+6. 次のタブに移動し、モデルを微調整する
 
 ### 推論 WebUI を開く
 
@@ -248,7 +275,7 @@ V1 環境から V2 を使用するには:
 
 2. 最新のコードを github からクローン
 
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)から V2 の事前学習モデルをダウンロードし、それらを`GPT_SoVITS\pretrained_models\gsv-v2final-pretrained`に配置
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)から V2 の事前学習モデルをダウンロードし、それらを`GPT_SoVITS/pretrained_models/gsv-v2final-pretrained`に配置
 
    中国語 V2 追加: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW モデルをダウンロードし、解凍して`G2PWModel`にリネームし、`GPT_SoVITS/text`に配置します)
 
@@ -268,7 +295,7 @@ v2 環境から v3 を使用する方法:
 
 2. GitHub から最新のコードをクローンします.
 
-3. v3 の事前学習済みモデル (s1v3.ckpt、s2Gv3.pth、models--nvidia--bigvgan_v2_24khz_100band_256x フォルダ) を[Huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) からダウンロードし、GPT_SoVITS\pretrained_models フォルダに配置します.
+3. v3 の事前学習済みモデル (s1v3.ckpt、s2Gv3.pth、models--nvidia--bigvgan_v2_24khz_100band_256x フォルダ) を[Huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) からダウンロードし、GPT_SoVITS/pretrained_models フォルダに配置します.
 
    追加: 音声超解像モデルについては、[ダウンロード方法](../../tools/AP_BWE_main/24kto48k/readme.txt)を参照してください.
 
@@ -296,7 +323,7 @@ v2 環境から v3 を使用する方法:
 
 コマンド ラインを使用して UVR5 の WebUI を開きます
 
-```
+```bash
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
 
@@ -307,7 +334,7 @@ python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --
 
 コマンド ラインを使用してデータセットのオーディオ セグメンテーションを行う方法は次のとおりです.
 
-```
+```bash
 python audio_slicer.py \
     --input_path "<path_to_original_audio_file_or_directory>" \
     --output_root "<directory_where_subdivided_audio_clips_will_be_saved>" \
@@ -319,7 +346,7 @@ python audio_slicer.py \
 
 コマンドラインを使用してデータセット ASR 処理を行う方法です (中国語のみ)
 
-```
+```bash
 python tools/asr/funasr_asr.py -i <input> -o <output>
 ```
 
@@ -327,7 +354,7 @@ ASR 処理は Faster_Whisper を通じて実行されます(中国語を除く A
 
 (進行状況バーは表示されません.GPU のパフォーマンスにより時間遅延が発生する可能性があります)
 
-```
+```bash
 python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
 ```
 
@@ -335,7 +362,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 ## クレジット
 
-特に以下のプロジェクトと貢献者に感謝します: 
+特に以下のプロジェクトと貢献者に感謝します:
 
 ### 理論研究
 
