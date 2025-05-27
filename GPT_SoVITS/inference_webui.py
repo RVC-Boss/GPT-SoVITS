@@ -510,7 +510,7 @@ def audio_sr(audio,sr):
 ##ref_wav_path+prompt_text+prompt_language+text(单个)+text_language+top_k+top_p+temperature
 # cache_tokens={}#暂未实现清理机制
 cache= {}
-def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=20, top_p=0.6, temperature=0.6, ref_free = False,speed=1,if_freeze=False,inp_refs=None,sample_steps=8,if_sr=False,pause_second=0.3):
+def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language, how_to_cut=i18n("不切"), top_k=15, top_p=1, temperature=1, ref_free = False,speed=1,if_freeze=False,inp_refs=None,sample_steps=8,if_sr=False,pause_second=0.3):
     global cache
     if ref_wav_path:pass
     else:gr.Warning(i18n('请上传参考音频'))
