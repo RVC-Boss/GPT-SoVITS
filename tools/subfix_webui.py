@@ -1,7 +1,12 @@
+# -*- coding: gbk -*-
+import sys
+from tools.i18n.i18n import I18nAuto, scan_language_list
+language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
+i18n = I18nAuto(language=language)
 import argparse
-import os
 import copy
 import json
+import os
 import uuid
 
 try:
@@ -11,8 +16,8 @@ try:
 except:
     ...
 
-import librosa
 import gradio as gr
+import librosa
 import numpy as np
 import soundfile
 
@@ -303,7 +308,10 @@ if __name__ == "__main__":
 
     set_global(args.load_json, args.load_list, args.json_key_text, args.json_key_path, args.g_batch)
 
-    with gr.Blocks() as demo:
+    with gr.Blocks(analytics_enabled=False) as demo:
+        gr.Markdown(
+            value=i18n("Submit Text: 将当前页所有文本框内容手工保存到内存和文件(翻页前后或者退出标注页面前如果没点这个按钮，你再翻回来就回滚了，白忙活。)")
+        )
         with gr.Row():
             btn_change_index = gr.Button("Change Index")
             btn_submit_change = gr.Button("Submit Text")

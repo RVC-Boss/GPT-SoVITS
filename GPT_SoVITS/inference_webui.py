@@ -7,11 +7,17 @@
 全部按日文识别
 """
 
+import json
 import logging
+import os
+import re
+import sys
 import traceback
 import warnings
 
+import torch
 import torchaudio
+from text.LangSegmenter import LangSegmenter
 
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -23,20 +29,6 @@ logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 logging.getLogger("multipart.multipart").setLevel(logging.ERROR)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-import json
-import os
-import re
-import sys
-
-import torch
-from text.LangSegmenter import LangSegmenter
-
-try:
-    import gradio.analytics as analytics
-
-    analytics.version_check = lambda: None
-except:
-    ...
 version = model_version = os.environ.get("version", "v2")
 path_sovits_v3 = "GPT_SoVITS/pretrained_models/s2Gv3.pth"
 path_sovits_v4 = "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth"
@@ -106,7 +98,7 @@ cnhubert.cnhubert_base_path = cnhubert_base_path
 
 import random
 
-from GPT_SoVITS.module.models import SynthesizerTrn, SynthesizerTrnV3,Generator
+from GPT_SoVITS.module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
 
 
 def set_seed(seed):
@@ -226,9 +218,9 @@ else:
 resample_transform_dict = {}
 
 
-def resample(audio_tensor, sr0,sr1):
+def resample(audio_tensor, sr0, sr1):
     global resample_transform_dict
-    key="%s-%s"%(sr0,sr1)
+    key = "%s-%s" % (sr0, sr1)
     if key not in resample_transform_dict:
         resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
@@ -238,14 +230,18 @@ def resample(audio_tensor, sr0,sr1):
 # symbol_version-model_version-if_lora_v3
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 
-v3v4set={"v3","v4"}
+v3v4set = {"v3", "v4"}
+
+
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
     global vq_model, hps, version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
-    print(sovits_path,version, model_version, if_lora_v3)
-    is_exist=is_exist_s2gv3 if model_version=="v3"else is_exist_s2gv4
+    print(sovits_path, version, model_version, if_lora_v3)
+    is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     if if_lora_v3 == True and is_exist == False:
-        info = "GPT_SoVITS/pretrained_models/s2Gv3.pth" + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重"%model_version)
+        info = "GPT_SoVITS/pretrained_models/s2Gv3.pth" + i18n(
+            "SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version
+        )
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -276,10 +272,15 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             prompt_language_update,
             text_update,
             text_language_update,
-            {"__type__": "update", "visible": visible_sample_steps, "value": 32 if model_version=="v3"else 8,"choices":[4, 8, 16, 32,64,128]if model_version=="v3"else [4, 8, 16, 32]},
+            {
+                "__type__": "update",
+                "visible": visible_sample_steps,
+                "value": 32 if model_version == "v3" else 8,
+                "choices": [4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
+            },
             {"__type__": "update", "visible": visible_inp_refs},
             {"__type__": "update", "value": False, "interactive": True if model_version not in v3v4set else False},
-            {"__type__": "update", "visible": True if model_version =="v3" else False},
+            {"__type__": "update", "visible": True if model_version == "v3" else False},
             {"__type__": "update", "value": i18n("模型加载中，请等待"), "interactive": False},
         )
 
@@ -304,7 +305,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         )
         model_version = version
     else:
-        hps.model.version=model_version
+        hps.model.version = model_version
         vq_model = SynthesizerTrnV3(
             hps.data.filter_length // 2 + 1,
             hps.train.segment_size // hps.data.hop_length,
@@ -326,7 +327,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
     else:
         path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
         print(
-            "loading sovits_%spretrained_G"%model_version,
+            "loading sovits_%spretrained_G" % model_version,
             vq_model.load_state_dict(load_sovits_new(path_sovits)["weight"], strict=False),
         )
         lora_rank = dict_s2["lora_rank"]
@@ -337,7 +338,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             init_lora_weights=True,
         )
         vq_model.cfm = get_peft_model(vq_model.cfm, lora_config)
-        print("loading sovits_%s_lora%s" % (model_version,lora_rank))
+        print("loading sovits_%s_lora%s" % (model_version, lora_rank))
         vq_model.load_state_dict(dict_s2["weight"], strict=False)
         vq_model.cfm = vq_model.cfm.merge_and_unload()
         # torch.save(vq_model.state_dict(),"merge_win.pth")
@@ -350,10 +351,15 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         prompt_language_update,
         text_update,
         text_language_update,
-        {"__type__": "update", "visible": visible_sample_steps, "value":32 if model_version=="v3"else 8,"choices":[4, 8, 16, 32,64,128]if model_version=="v3"else [4, 8, 16, 32]},
+        {
+            "__type__": "update",
+            "visible": visible_sample_steps,
+            "value": 32 if model_version == "v3" else 8,
+            "choices": [4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
+        },
         {"__type__": "update", "visible": visible_inp_refs},
         {"__type__": "update", "value": False, "interactive": True if model_version not in v3v4set else False},
-        {"__type__": "update", "visible": True if model_version =="v3" else False},
+        {"__type__": "update", "visible": True if model_version == "v3" else False},
         {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
     )
     with open("./weight.json") as f:
@@ -400,7 +406,7 @@ now_dir = os.getcwd()
 
 
 def init_bigvgan():
-    global bigvgan_model,hifigan_model
+    global bigvgan_model, hifigan_model
     from BigVGAN import bigvgan
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
@@ -411,17 +417,20 @@ def init_bigvgan():
     bigvgan_model.remove_weight_norm()
     bigvgan_model = bigvgan_model.eval()
     if hifigan_model:
-        hifigan_model=hifigan_model.cpu()
-        hifigan_model=None
-        try:torch.cuda.empty_cache()
-        except:pass
+        hifigan_model = hifigan_model.cpu()
+        hifigan_model = None
+        try:
+            torch.cuda.empty_cache()
+        except:
+            pass
     if is_half == True:
         bigvgan_model = bigvgan_model.half().to(device)
     else:
         bigvgan_model = bigvgan_model.to(device)
 
+
 def init_hifigan():
-    global hifigan_model,bigvgan_model
+    global hifigan_model, bigvgan_model
     hifigan_model = Generator(
         initial_channel=100,
         resblock="1",
@@ -430,26 +439,32 @@ def init_hifigan():
         upsample_rates=[10, 6, 2, 2, 2],
         upsample_initial_channel=512,
         upsample_kernel_sizes=[20, 12, 4, 4, 4],
-        gin_channels=0, is_bias=True
+        gin_channels=0,
+        is_bias=True,
     )
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
-    state_dict_g = torch.load("%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu")
-    print("loading vocoder",hifigan_model.load_state_dict(state_dict_g))
+    state_dict_g = torch.load(
+        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu"
+    )
+    print("loading vocoder", hifigan_model.load_state_dict(state_dict_g))
     if bigvgan_model:
-        bigvgan_model=bigvgan_model.cpu()
-        bigvgan_model=None
-        try:torch.cuda.empty_cache()
-        except:pass
+        bigvgan_model = bigvgan_model.cpu()
+        bigvgan_model = None
+        try:
+            torch.cuda.empty_cache()
+        except:
+            pass
     if is_half == True:
         hifigan_model = hifigan_model.half().to(device)
     else:
         hifigan_model = hifigan_model.to(device)
 
-bigvgan_model=hifigan_model=None
-if model_version=="v3":
+
+bigvgan_model = hifigan_model = None
+if model_version == "v3":
     init_bigvgan()
-if model_version=="v4":
+if model_version == "v4":
     init_hifigan()
 
 
@@ -837,17 +852,17 @@ def get_tts_wav(
             ref_audio = ref_audio.to(device).float()
             if ref_audio.shape[0] == 2:
                 ref_audio = ref_audio.mean(0).unsqueeze(0)
-            tgt_sr=24000 if model_version=="v3"else 32000
+            tgt_sr = 24000 if model_version == "v3" else 32000
             if sr != tgt_sr:
-                ref_audio = resample(ref_audio, sr,tgt_sr)
+                ref_audio = resample(ref_audio, sr, tgt_sr)
             # print("ref_audio",ref_audio.abs().mean())
-            mel2 = mel_fn(ref_audio)if model_version=="v3"else mel_fn_v4(ref_audio)
+            mel2 = mel_fn(ref_audio) if model_version == "v3" else mel_fn_v4(ref_audio)
             mel2 = norm_spec(mel2)
             T_min = min(mel2.shape[2], fea_ref.shape[2])
             mel2 = mel2[:, :, :T_min]
             fea_ref = fea_ref[:, :, :T_min]
-            Tref=468 if model_version=="v3"else 500
-            Tchunk=934 if model_version=="v3"else 1000
+            Tref = 468 if model_version == "v3" else 500
+            Tchunk = 934 if model_version == "v3" else 1000
             if T_min > Tref:
                 mel2 = mel2[:, :, -Tref:]
                 fea_ref = fea_ref[:, :, -Tref:]
@@ -872,13 +887,13 @@ def get_tts_wav(
                 cfm_resss.append(cfm_res)
             cfm_res = torch.cat(cfm_resss, 2)
             cfm_res = denorm_spec(cfm_res)
-            if model_version=="v3":
+            if model_version == "v3":
                 if bigvgan_model == None:
                     init_bigvgan()
-            else:#v4
+            else:  # v4
                 if hifigan_model == None:
                     init_hifigan()
-            vocoder_model=bigvgan_model if model_version=="v3"else hifigan_model
+            vocoder_model = bigvgan_model if model_version == "v3" else hifigan_model
             with torch.inference_mode():
                 wav_gen = vocoder_model(cfm_res)
                 audio = wav_gen[0][0]  # .cpu().detach().numpy()
@@ -892,9 +907,12 @@ def get_tts_wav(
         t1 = ttime()
     print("%.3f\t%.3f\t%.3f\t%.3f" % (t[0], sum(t[1::3]), sum(t[2::3]), sum(t[3::3])))
     audio_opt = torch.cat(audio_opt, 0)  # np.concatenate
-    if model_version in {"v1","v2"}:opt_sr=32000
-    elif model_version=="v3":opt_sr=24000
-    else:opt_sr=48000#v4
+    if model_version in {"v1", "v2"}:
+        opt_sr = 32000
+    elif model_version == "v3":
+        opt_sr = 24000
+    else:
+        opt_sr = 48000  # v4
     if if_sr == True and opt_sr == 24000:
         print(i18n("音频超分中"))
         audio_opt, opt_sr = audio_sr(audio_opt.unsqueeze(0), opt_sr)
@@ -1067,7 +1085,7 @@ def html_left(text, label="p"):
                 </div>"""
 
 
-with gr.Blocks(title="GPT-SoVITS WebUI") as app:
+with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
     gr.Markdown(
         value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
         + "<br>"
@@ -1137,16 +1155,16 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                 sample_steps = (
                     gr.Radio(
                         label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
-                        value=32 if model_version=="v3"else 8,
-                        choices=[4, 8, 16, 32,64,128]if model_version=="v3"else [4, 8, 16, 32],
+                        value=32 if model_version == "v3" else 8,
+                        choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
                         visible=True,
                     )
                     if model_version in v3v4set
                     else gr.Radio(
                         label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
-                        choices=[4, 8, 16, 32,64,128]if model_version=="v3"else [4, 8, 16, 32],
+                        choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
                         visible=False,
-                        value=32 if model_version=="v3"else 8,
+                        value=32 if model_version == "v3" else 8,
                     )
                 )
                 if_sr_Checkbox = gr.Checkbox(
@@ -1154,7 +1172,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI") as app:
                     value=False,
                     interactive=True,
                     show_label=True,
-                    visible=False if model_version !="v3" else True,
+                    visible=False if model_version != "v3" else True,
                 )
         gr.Markdown(html_center(i18n("*请填写需要合成的目标文本和语种模式"), "h3"))
         with gr.Row():

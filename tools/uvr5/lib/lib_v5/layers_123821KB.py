@@ -63,9 +63,7 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(
-        self, nin, nout, ksize=3, stride=1, pad=1, activ=nn.ReLU, dropout=False
-    ):
+    def __init__(self, nin, nout, ksize=3, stride=1, pad=1, activ=nn.ReLU, dropout=False):
         super(Decoder, self).__init__()
         self.conv = Conv2DBNActiv(nin, nout, ksize, 1, pad, activ=activ)
         self.dropout = nn.Dropout2d(0.1) if dropout else None
@@ -91,24 +89,14 @@ class ASPPModule(nn.Module):
             Conv2DBNActiv(nin, nin, 1, 1, 0, activ=activ),
         )
         self.conv2 = Conv2DBNActiv(nin, nin, 1, 1, 0, activ=activ)
-        self.conv3 = SeperableConv2DBNActiv(
-            nin, nin, 3, 1, dilations[0], dilations[0], activ=activ
-        )
-        self.conv4 = SeperableConv2DBNActiv(
-            nin, nin, 3, 1, dilations[1], dilations[1], activ=activ
-        )
-        self.conv5 = SeperableConv2DBNActiv(
-            nin, nin, 3, 1, dilations[2], dilations[2], activ=activ
-        )
-        self.bottleneck = nn.Sequential(
-            Conv2DBNActiv(nin * 5, nout, 1, 1, 0, activ=activ), nn.Dropout2d(0.1)
-        )
+        self.conv3 = SeperableConv2DBNActiv(nin, nin, 3, 1, dilations[0], dilations[0], activ=activ)
+        self.conv4 = SeperableConv2DBNActiv(nin, nin, 3, 1, dilations[1], dilations[1], activ=activ)
+        self.conv5 = SeperableConv2DBNActiv(nin, nin, 3, 1, dilations[2], dilations[2], activ=activ)
+        self.bottleneck = nn.Sequential(Conv2DBNActiv(nin * 5, nout, 1, 1, 0, activ=activ), nn.Dropout2d(0.1))
 
     def forward(self, x):
         _, _, h, w = x.size()
-        feat1 = F.interpolate(
-            self.conv1(x), size=(h, w), mode="bilinear", align_corners=True
-        )
+        feat1 = F.interpolate(self.conv1(x), size=(h, w), mode="bilinear", align_corners=True)
         feat2 = self.conv2(x)
         feat3 = self.conv3(x)
         feat4 = self.conv4(x)

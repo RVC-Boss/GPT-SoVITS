@@ -1,3 +1,4 @@
+--no-binary=opencc
 numpy<2.0
 scipy
 tensorboard
@@ -6,8 +7,8 @@ numba
 pytorch-lightning>=2.4
 gradio<5
 ffmpeg-python
-onnxruntime; sys_platform == 'darwin'
-onnxruntime-gpu; sys_platform != 'darwin'
+onnxruntime; platform_machine == "aarch64" or platform_machine == "arm64"
+onnxruntime-gpu; platform_machine == "x86_64" or platform_machine == "AMD64"
 tqdm
 funasr==1.0.27
 cn2an
@@ -17,7 +18,7 @@ g2p_en
 torchaudio
 modelscope==1.10.0
 sentencepiece
-transformers>=4.43
+transformers>=4.43,<=4.50
 peft
 chardet
 PyYAML
@@ -31,8 +32,7 @@ rotary_embedding_torch
 ToJyutping 
 g2pk2
 ko_pron
-opencc; sys_platform != 'linux'
-opencc==1.1.1; sys_platform == 'linux'
+opencc
 python_mecab_ko; sys_platform != 'win32'
 fastapi[standard]>=0.115.2
 x_transformers

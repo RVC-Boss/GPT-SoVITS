@@ -1,26 +1,31 @@
 # This code is modified from https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/g2pw
 # This code is modified from https://github.com/GitYCC/g2pW
 
-import warnings
-
-warnings.filterwarnings("ignore")
 import json
 import os
+import traceback
+import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import onnxruntime
 import requests
-
-onnxruntime.set_default_logger_severity(3)
+import torch
 from opencc import OpenCC
 from pypinyin import Style, pinyin
-from transformers import AutoTokenizer
+from transformers.models.auto.tokenization_auto import AutoTokenizer
 
 from ..zh_normalization.char_convert import tranditional_to_simplified
 from .dataset import get_char_phoneme_labels, get_phoneme_labels, prepare_onnx_input
 from .utils import load_config
+
+onnxruntime.set_default_logger_severity(3)
+try:
+    onnxruntime.preload_dlls()
+except:
+    traceback.print_exc()
+warnings.filterwarnings("ignore")
 
 model_version = "1.1"
 
@@ -87,7 +92,7 @@ class G2PWOnnxConverter:
         sess_options = onnxruntime.SessionOptions()
         sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
         sess_options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
-        sess_options.intra_op_num_threads = 2
+        sess_options.intra_op_num_threads = 2 if torch.cuda.is_available() else 0
         try:
             self.session_g2pW = onnxruntime.InferenceSession(
                 os.path.join(uncompress_path, "g2pW.onnx"),

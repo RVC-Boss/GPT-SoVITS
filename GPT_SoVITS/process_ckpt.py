@@ -28,18 +28,18 @@ def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
 from io import BytesIO
 
 
-def my_save2(fea, path,cfm_version):
+def my_save2(fea, path, cfm_version):
     bio = BytesIO()
     torch.save(fea, bio)
     bio.seek(0)
     data = bio.getvalue()
-    byte=b"03" if cfm_version=="v3"else b"04"
+    byte = b"03" if cfm_version == "v3" else b"04"
     data = byte + data[2:]
     with open(path, "wb") as f:
         f.write(data)
 
 
-def savee(ckpt, name, epoch, steps, hps, cfm_version=None,lora_rank=None):
+def savee(ckpt, name, epoch, steps, hps, cfm_version=None, lora_rank=None):
     try:
         opt = OrderedDict()
         opt["weight"] = {}
@@ -51,7 +51,7 @@ def savee(ckpt, name, epoch, steps, hps, cfm_version=None,lora_rank=None):
         opt["info"] = "%sepoch_%siteration" % (epoch, steps)
         if lora_rank:
             opt["lora_rank"] = lora_rank
-            my_save2(opt, "%s/%s.pth" % (hps.save_weight_dir, name),cfm_version)
+            my_save2(opt, "%s/%s.pth" % (hps.save_weight_dir, name), cfm_version)
         else:
             my_save(opt, "%s/%s.pth" % (hps.save_weight_dir, name))
         return "Success."
