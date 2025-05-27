@@ -1097,11 +1097,18 @@ async def version_4(
     GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-e40.ckpt",
     SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari_e20_s1800_l32.pth",
     ref_text: str = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ",
-    ref_language: str = "ja",
+    ref_language: str = "日文",
     target_text: str = None,
-    text_language: str = "ja",
-    output_path: str = None
+    text_language: str = "日文",
+    output_path: str = None,
+    character_name: str = "Kurari",
 ):
+    if character_name == "saotome":
+        GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e20_s1800_l32.pth"
+        ref_text = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。"
+        ref_language = "日文"
+
     # Create a temporary buffer to store the audio
     audio_buffer = io.BytesIO()
     # GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_language, target_text, text_language, output_path
@@ -1148,18 +1155,15 @@ async def tts_endpoint(
         top_p: float = 1.0,
         temperature: float = 1.0,
         speed: float = 1.0,
-        sample_steps: int = 32,
+        sample_steps: int = 20,
         if_sr: bool = False
 ):
     if character == "kurari":
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
         
-    if text_language == "en" and character == "saotome":
-        refer_wav_path = f"idols/{character}_eng/{character}.wav"
-        inp_refs = [f"idols/{character}_eng/refs/{file}" for file in os.listdir(f"idols/{character}_eng/refs") if file.endswith('.wav')]
-    else:
-        refer_wav_path = f"idols/{character}/{character}.wav"
-        inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
+    
+    refer_wav_path = f"idols/{character}/{character}.wav"
+    inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
 
     
     print(f"the base path is {refer_wav_path}")
