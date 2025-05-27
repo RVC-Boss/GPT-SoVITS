@@ -1105,7 +1105,7 @@ async def version_4(
 ):
     if character_name == "saotome":
         GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
-        SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e20_s1800_l32.pth"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
         ref_text = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。"
         ref_language = "日文"
 
@@ -1113,10 +1113,14 @@ async def version_4(
     audio_buffer = io.BytesIO()
     # GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_language, target_text, text_language, output_path
     # Synthesize audio and get the result
+
+    path = "idols/kurari/kurari.wav" 
+    if character_name == "saotome":
+        path = "idols/saotome/saotome.wav"
     synthesis_result = synthesize(
         GPT_model_path = GPT_model_path,
         SoVITS_model_path = SoVITS_model_path,
-        ref_audio_path = "idols/kurari/kurari.wav",
+        ref_audio_path = path,
         ref_text = ref_text,
         ref_language = ref_language,
         target_text = target_text,
