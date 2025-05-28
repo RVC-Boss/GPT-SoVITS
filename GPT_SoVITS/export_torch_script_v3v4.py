@@ -473,7 +473,7 @@ class GPTSoVITSV4(torch.nn.Module):
             # 因为导出的模型在不同shape时会重新编译还是怎么的，会卡顿10s这样，
             # 所以在这里补0让他shape维持不变
             # 但是这样会导致生成的音频长度不对，所以在最后截取一下。
-            # 经过 bigvgan 之后音频长度就是 fea_todo.shape[2] * 256
+            # 经过 hifigan 之后音频长度就是 fea_todo.shape[2] * 480
             complete_len = chunk_len - fea_todo_chunk.shape[-1]
             if complete_len != 0:
                 fea_todo_chunk = torch.cat(
@@ -1090,7 +1090,7 @@ def test_export1(
 
     bert1 = bert1.T.to(device)
     bert2 = bert2.T.to(device)
-    top_k = torch.LongTensor([15]).to(device)
+    top_k = torch.LongTensor([20]).to(device)
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info("start inference %s", current_time)
