@@ -375,7 +375,7 @@
 - 2025.05.26 [PR#2377](https://github.com/RVC-Boss/GPT-SoVITS/pull/2377): 通过缓存策略使 SoVITS V3/V4 推理提速 10%.
   - 类型: 性能优化
   - 提交: Kakaru Hayate
-- 2025.05.26 [Commit#4d9d56b1](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d9d56b19638dc434d6eefd9545e4d8639a3e072), [Commit#8c705784](https://github.com/RVC-Boss/GPT-SoVITS/commit/8c705784c50bf438c7b6d0be33a9e5e3cb90e6b2), [Commit#fafe4e7f](https://github.com/RVC-Boss/GPT-SoVITS/commit/fafe4e7f120fba56c5f053c6db30aa675d5951ba): 更新标注界面, 增加友情提示, 即标注完每一面都要点 Submit Text 否则修改无效.
+- 2025.05.26 [Commit#4d9d56b1](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d9d56b19638dc434d6eefd9545e4d8639a3e072), [Commit#8c705784](https://github.com/RVC-Boss/GPT-SoVITS/commit/8c705784c50bf438c7b6d0be33a9e5e3cb90e6b2), [Commit#fafe4e7f](https://github.com/RVC-Boss/GPT-SoVITS/commit/fafe4e7f120fba56c5f053c6db30aa675d5951ba): 更新标注界面, 增加友情提示, 即标注完每一页都要点击 `Submit Text` 否则修改无效.
   - 类型: 修复
   - 提交: RVC-Boss
 - 2025.05.29 [Commit#1934fc1e](https://github.com/RVC-Boss/GPT-SoVITS/commit/1934fc1e1b22c4c162bba1bbe7d7ebb132944cdc): 修复 UVR5 和 ONNX 去混响模型使用 FFmpeg 编码 MP3 和 M4A 原路径带空格时的错误.
