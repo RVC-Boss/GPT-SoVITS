@@ -300,3 +300,24 @@ https://github.com/RVC-Boss/GPT-SoVITS/pull/2112 https://github.com/RVC-Boss/GPT
 1-v3支持并行推理 https://github.com/RVC-Boss/GPT-SoVITS/commit/03b662a769946b7a6a8569a354860e8eeeb743aa
 
 2-整合包修复onnxruntime GPU推理的支持, 影响:  (1) g2pw有个onnx模型原先是CPU推理现在用GPU, 显著降低推理的CPU瓶颈 (2) foxjoy去混响模型现在可使用GPU推理
+
+### 202504/202505更新
+
+1-修复uvr5和onnx去混响模型ffmpeg编码mp3和m4a原路径带空格会有bug的问题
+https://github.com/RVC-Boss/GPT-SoVITS/commit/1934fc1e1b22c4c162bba1bbe7d7ebb132944cdc
+
+2-标注界面增加友情提示标注完每一面都要点submit text否则白忙活
+https://github.com/RVC-Boss/GPT-SoVITS/commit/fafe4e7f120fba56c5f053c6db30aa675d5951ba
+https://github.com/RVC-Boss/GPT-SoVITS/commit/8c705784c50bf438c7b6d0be33a9e5e3cb90e6b2
+
+3-通过缓存策略使sovits推理提速10%
+https://github.com/RVC-Boss/GPT-SoVITS/pull/2377
+
+4-混合语种切分识别逻辑优化
+https://github.com/RVC-Boss/GPT-SoVITS/pull/2408
+
+5-完善colab/kaggle notebook脚本，完善linux环境配置脚本，docker环境，windows自动构建脚本
+https://github.com/RVC-Boss/GPT-SoVITS/commit/ad7df5298bea51273c86c05b5b13f28ed7d9fe16
+https://github.com/RVC-Boss/GPT-SoVITS/commit/d5e479dad6342222eb4887df627e69c048d2338c
+
+预告：端午后基于V2版本进行重大优化更新！
