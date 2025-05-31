@@ -199,7 +199,7 @@ def set_default():
     else:
         default_sovits_epoch = 2
         default_sovits_save_every_epoch = 1
-        max_sovits_epoch = 20  # 40 # 3
+        max_sovits_epoch = 16  # 40 # 3 #训太多=作死
         max_sovits_save_every_epoch = 10  # 10 # 3
 
     default_batch_size = max(1, default_batch_size)
@@ -1419,7 +1419,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
                     value=process_info(process_name_slice, "close"), variant="primary", visible=False
                 )
 
-            gr.Markdown(value="0bb-" + i18n("语音降噪工具")+i18n("(非必需)"))
+            gr.Markdown(value="0bb-" + i18n("语音降噪工具")+i18n("(不稳定，先别用，可能劣化模型效果！)"))
             with gr.Row():
                 with gr.Column(scale=3):
                     with gr.Row():
