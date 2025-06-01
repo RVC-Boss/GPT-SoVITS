@@ -1,3 +1,5 @@
+#
+
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
@@ -7,12 +9,21 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 <a href="https://trendshift.io/repositories/7033" target="_blank"><img src="https://trendshift.io/api/badge/repositories/7033" alt="RVC-Boss%2FGPT-SoVITS | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-<!-- img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br> -->
+[![Train In Colab](https://img.shields.io/badge/Colab-Training-F9AB00?style=for-the-badge&logo=googlecolab)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-WebUI.ipynb)
+[![Infer In Colab](https://img.shields.io/badge/Colab-Inference-F9AB00?style=for-the-badge&logo=googlecolab)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-Inference.ipynb)
+[![Huggingface](https://img.shields.io/badge/HuggingFace-online%20demo-blue.svg?style=for-the-badge&logo=huggingface)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
 
-[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
-[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-online%20demo-yellow.svg?style=for-the-badge)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
-[![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
+[![简体中文](https://img.shields.io/badge/简体中文-阅读文档-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e)
+[![English](https://img.shields.io/badge/English-Read%20Docs-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://rentry.co/GPT-SoVITS-guide#/)
+[![Change Log](https://img.shields.io/badge/Change%20Log-View%20Updates-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/docs/en/Changelog_EN.md)
+
+[![GitHub release](https://img.shields.io/github/v/release/RVC-Boss/gpt-sovits?style=for-the-badge&logo=github)](https://github.com/RVC-Boss/gpt-sovits/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/RVC-Boss/gpt-sovits?style=for-the-badge&logo=github)](https://github.com/RVC-Boss/gpt-sovits/stargazers)
+[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
+
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg?style=for-the-badge&logo=python)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1+-ee4c2c?style=for-the-badge&logo=pytorch)](https://pytorch.org/)
+[![Image Size](https://img.shields.io/docker/image-size/xxxxrt666/gpt-sovits/latest?style=for-the-badge&logo=docker)](https://hub.docker.com/r/xxxxrt666/gpt-sovits)
 
 **English** | [**中文简体**](./docs/cn/README.md) | [**日本語**](./docs/ja/README.md) | [**한국어**](./docs/ko/README.md) | [**Türkçe**](./docs/tr/README.md)
 
@@ -20,7 +31,7 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 ---
 
-## Features:
+## Features
 
 1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
 
@@ -34,13 +45,13 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 Unseen speakers few-shot fine-tuning demo:
 
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+<https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
-**User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
+<!-- **User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)** -->
 
 ## Installation
 
-For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
+For users in China, you can use [AutoDL Cloud Docker](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to experience the full functionality online.
 
 ### Tested Environments
 
@@ -171,7 +182,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 ## Pretrained Models
 
-**If `install.sh` runs successfully, you may skip No.1,2,3**
+**If `install.sh` runs successfully, you may skip No.1, 2, 3**
 
 **Users in China can [download all these models here](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/dkxgpiy9zb96hob4#nVNhX).**
 
@@ -193,10 +204,8 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 The TTS annotation .list file format:
 
-```
-
+```text
 vocal_path|speaker_name|language|text
-
 ```
 
 Language dictionary:
@@ -209,10 +218,8 @@ Language dictionary:
 
 Example:
 
-```
-
+```text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
-
 ```
 
 ## Finetune and inference
@@ -222,21 +229,12 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 #### Integrated Package Users
 
 Double-click `go-webui.bat`or use `go-webui.ps1`
-if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-v1.ps1`
 
 #### Others
 
 ```bash
 python webui.py <language(optional)>
 ```
-
-if you want to switch to V1,then
-
-```bash
-python webui.py v1 <language(optional)>
-```
-
-Or maunally switch version in WebUI
 
 ### Finetune
 
@@ -253,7 +251,7 @@ Or maunally switch version in WebUI
 
 #### Integrated Package Users
 
-Double-click `go-webui-v2.bat` or use `go-webui-v2.ps1` ,then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
+Double-click `go-webui.bat` or use `go-webui.ps1` , then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
 
 #### Others
 
@@ -373,11 +371,6 @@ Use the command line to open the WebUI for UVR5
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
 
-<!-- If you can't open a browser, follow the format below for UVR processing,This is using mdxnet for audio processing
-```
-python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
-``` -->
-
 This is how the audio segmentation of the dataset is done using the command line
 
 ```bash
@@ -453,5 +446,5 @@ Thankful to @Naozumi520 for providing the Cantonese training set and for the gui
 ## Thanks to all contributors for their efforts
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
+  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" alt="Contributors"/>
 </a>

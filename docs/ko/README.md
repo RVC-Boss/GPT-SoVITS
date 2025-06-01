@@ -1,3 +1,5 @@
+#
+
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
@@ -5,12 +7,21 @@
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
 
-<img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
+[![Train In Colab](https://img.shields.io/badge/Colab-Training-F9AB00?style=for-the-badge&logo=googlecolab)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-WebUI.ipynb)
+[![Infer In Colab](https://img.shields.io/badge/Colab-Inference-F9AB00?style=for-the-badge&logo=googlecolab)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-Inference.ipynb)
+[![Huggingface](https://img.shields.io/badge/HuggingFace-online%20demo-blue.svg?style=for-the-badge&logo=huggingface)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
 
-[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
-[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-online%20demo-yellow.svg?style=for-the-badge)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
-[![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
+[![简体中文](https://img.shields.io/badge/简体中文-阅读文档-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e)
+[![English](https://img.shields.io/badge/English-Read%20Docs-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://rentry.co/GPT-SoVITS-guide#/)
+[![Change Log](https://img.shields.io/badge/Change%20Log-View%20Updates-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/docs/ko/Changelog_KO.md)
+
+[![GitHub release](https://img.shields.io/github/v/release/RVC-Boss/gpt-sovits?style=for-the-badge&logo=github)](https://github.com/RVC-Boss/gpt-sovits/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/RVC-Boss/gpt-sovits?style=for-the-badge&logo=github)](https://github.com/RVC-Boss/gpt-sovits/stargazers)
+[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
+
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg?style=for-the-badge&logo=python)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1+-ee4c2c?style=for-the-badge&logo=pytorch)](https://pytorch.org/)
+[![Image Size](https://img.shields.io/docker/image-size/xxxxrt666/gpt-sovits/latest?style=for-the-badge&logo=docker)](https://hub.docker.com/r/xxxxrt666/gpt-sovits)
 
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | [**日本語**](../ja/README.md) | **한국어** | [**Türkçe**](../tr/README.md)
 
@@ -18,7 +29,7 @@
 
 ---
 
-## 기능:
+## 기능
 
 1. **제로샷 텍스트 음성 변환 (TTS):** 5초의 음성 샘플을 입력하면 즉시 텍스트를 음성으로 변환할 수 있습니다.
 
@@ -32,9 +43,9 @@
 
 보지 못한 발화자의 퓨샷(few-shot) 파인튜닝 데모:
 
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+<https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
-**사용자 설명서: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
+<!-- **사용자 설명서: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)** -->
 
 ## 설치
 
@@ -165,7 +176,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 ## 사전 학습된 모델
 
-**`install.sh`가 성공적으로 실행되면 No.1,2,3 은 건너뛰어도 됩니다.**
+**`install.sh`가 성공적으로 실행되면 No.1, 2, 3 은 건너뛰어도 됩니다.**
 
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) 에서 사전 학습된 모델을 다운로드하고, `GPT_SoVITS/pretrained_models` 디렉토리에 배치하세요.
 
@@ -185,7 +196,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 텍스트 음성 합성(TTS) 주석 .list 파일 형식:
 
-```
+```text
 vocal_path|speaker_name|language|text
 ```
 
@@ -197,7 +208,7 @@ vocal_path|speaker_name|language|text
 
 예시:
 
-```
+```text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
@@ -208,21 +219,12 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 #### 통합 패키지 사용자
 
 `go-webui.bat`을 더블 클릭하거나 `go-webui.ps1`를 사용하십시오.
-V1으로 전환하려면, `go-webui-v1.bat`을 더블 클릭하거나 `go-webui-v1.ps1`를 사용하십시오.
 
 #### 기타
 
 ```bash
 python webui.py <언어(옵션)>
 ```
-
-V1으로 전환하려면,
-
-```bash
-python webui.py v1 <언어(옵션)>
-```
-
-또는 WebUI에서 수동으로 버전을 전환하십시오.
 
 ### 미세 조정
 
@@ -239,7 +241,7 @@ python webui.py v1 <언어(옵션)>
 
 #### 통합 패키지 사용자
 
-`go-webui-v2.bat`을 더블 클릭하거나 `go-webui-v2.ps1`를 사용한 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.
+`go-webui.bat`을 더블 클릭하거나 `go-webui.ps1`를 사용한 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.
 
 #### 기타
 
@@ -277,13 +279,13 @@ V1 환경에서 V2를 사용하려면:
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)에서 V2 사전 학습 모델을 다운로드하여 `GPT_SoVITS/pretrained_models/gsv-v2final-pretrained`에 넣으십시오.
 
-   중국어 V2 추가: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다.)
+   중국어 V2 추가: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다)
 
 ## V3 릴리스 노트
 
 새로운 기능:
 
-1. 음색 유사성이 더 높아져 목표 음성에 대한 학습 데이터가 적게 필요합니다. (기본 모델을 직접 사용하여 미세 조정 없이 음색 유사성이 크게 향상됩니다.)
+1. 음색 유사성이 더 높아져 목표 음성에 대한 학습 데이터가 적게 필요합니다. (기본 모델을 직접 사용하여 미세 조정 없이 음색 유사성이 크게 향상됩니다)
 
 2. GPT 모델이 더 안정적이며 반복 및 생략이 적고, 더 풍부한 감정 표현을 가진 음성을 생성하기가 더 쉽습니다.
 
@@ -437,8 +439,8 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 @Naozumi520 님께 감사드립니다. 광둥어 학습 자료를 제공해 주시고, 광둥어 관련 지식을 지도해 주셔서 감사합니다.
 
-## 모든 기여자들에게 감사드립니다 ;)
+## 모든 기여자들에게 감사드립니다
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
+  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" alt="Contributors"/>
 </a>
