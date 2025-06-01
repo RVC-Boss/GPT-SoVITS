@@ -72,7 +72,40 @@ with open("./weight.json", "r", encoding="utf-8") as file:
         gpt_path = gpt_path[0]
     if isinstance(sovits_path, list):
         sovits_path = sovits_path[0]
+        
+    if not gpt_path or not os.path.exists(gpt_path):
+        for path in pretrained_gpt_name:
+            if os.path.exists(path):
+                resolved_gpt_path = path
+                break
+        if resolved_gpt_path:
+            print(
+                f"GPT path '{gpt_path}' not found. Falling back to: '{resolved_gpt_path}'"
+            )
+        else:
+            print(
+                f"GPT path '{gpt_path}' not found, and no pretrained GPT model found."
+            )
+            exit(1)
+        gpt_path = resolved_gpt_path
 
+    if not sovits_path or not os.path.exists(sovits_path):
+        for path in pretrained_sovits_name:
+            if os.path.exists(path):
+                resolved_sovits_path = path
+                break
+        if resolved_sovits_path:
+            print(
+                f"SoVITS path '{sovits_path}' not found. Falling back to: '{resolved_sovits_path}'"
+            )
+        else:
+            print(
+                f"SoVITS path '{sovits_path}' not found, and no pretrained SoVITS model found."
+            )
+            exit(1)
+
+        sovits_path = resolved_sovits_path
+    
 # gpt_path = os.environ.get(
 #     "gpt_path", pretrained_gpt_name
 # )
