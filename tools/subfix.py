@@ -536,6 +536,7 @@ def main(list_path: str = "", i18n_lang="Auto", port=9871, share=False):
         share=share,
         server_port=port,
         quiet=False,
+        show_api=False,
     )
 
 
