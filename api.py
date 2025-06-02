@@ -1214,12 +1214,24 @@ async def tts_endpoint(
 
     
     if character in ["Kurari", "saotome"]:
-        if text_language == "ja":
+        """
+        "中文": "all_zh",
+        "粤语": "all_yue",
+        "英文": "en",
+        "日文": "all_ja",
+        "韩文": "all_ko",
+        "中英混合": "zh",
+        "粤英混合": "yue",
+        "日英混合": "ja",
+        """
+        if text_language == "all_ja":
             text_language = "日文"
+        elif text_language == "ja":
+            text_language = "日英混合"
         elif text_language == "en":
             text_language = "英文"
         elif text_language == "zh":
-            text_language = "中文"
+            text_language = "中英混合"
         elif text_language == "ko":
             text_language = "韩文"
 
