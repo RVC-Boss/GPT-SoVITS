@@ -1102,13 +1102,8 @@ async def version_4(
     text_language: str = "日文",
     output_path: str = None,
     character_name: str = "Kurari",
+    model_id: int = 14,
 ):
-    if character_name == "saotome":
-        GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
-        SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
-        ref_text = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。"
-        ref_language = "日文"
-
     # Create a temporary buffer to store the audio
     audio_buffer = io.BytesIO()
     # GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_language, target_text, text_language, output_path
@@ -1117,6 +1112,11 @@ async def version_4(
     path = "idols/kurari/kurari.wav" 
     if character_name == "saotome":
         path = "idols/saotome/saotome.wav"
+        GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
+        ref_text = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。"
+        ref_language = "日文"
+
     synthesis_result = synthesize(
         GPT_model_path = GPT_model_path,
         SoVITS_model_path = SoVITS_model_path,
@@ -1147,6 +1147,53 @@ async def version_4(
     
     return JSONResponse({"error": "Failed to generate audio"}, status_code=400)
 
+def version_4_cli(
+    GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-e40.ckpt",
+    SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari_e20_s1800_l32.pth",
+    ref_text: str = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ",
+    ref_language: str = "日文",
+    target_text: str = None,
+    text_language: str = "日文",
+    output_path: str = None,
+    character_name: str = "Kurari",
+    model_id: int = 14,
+):
+    # Create a temporary buffer to store the audio
+    audio_buffer = io.BytesIO()
+
+    path = "idols/kurari/kurari.wav" 
+    if character_name == "saotome":
+        path = "idols/saotome/saotome.wav"
+        GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
+        ref_text = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。"
+        ref_language = "日文"
+
+    synthesis_result = synthesize(
+        GPT_model_path = GPT_model_path,
+        SoVITS_model_path = SoVITS_model_path,
+        ref_audio_path = path,
+        ref_text = ref_text,
+        ref_language = ref_language,
+        target_text = target_text,
+        text_language = text_language,
+        output_path = output_path  # Don't save to file
+    )
+    
+    # Get the last audio data and sample rate from synthesis result
+    result_list = list(synthesis_result)
+    if result_list:
+        last_sampling_rate, last_audio_data = result_list[-1]
+        
+        # Write audio data to buffer
+        sf.write(audio_buffer, last_audio_data, last_sampling_rate, format="wav")
+        audio_buffer.seek(0)
+        
+        return audio_buffer, last_sampling_rate
+    
+    return None, None
+
+
 @app.get("/")
 async def tts_endpoint(
         prompt_text: str = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。",
@@ -1164,6 +1211,34 @@ async def tts_endpoint(
 ):
     if character == "kurari":
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
+
+    
+    if character in ["Kurari", "saotome"]:
+        if text_language == "ja":
+            text_language = "日文"
+        elif text_language == "en":
+            text_language = "英文"
+        elif text_language == "zh":
+            text_language = "中文"
+        elif text_language == "ko":
+            text_language = "韩文"
+
+        audio_buffer, sample_rate = version_4_cli(
+            character_name=character,
+            ref_text=prompt_text,
+            ref_language="日文",
+            target_text=text,
+            text_language=text_language or "日文"
+        )
+        
+        if audio_buffer:
+            return StreamingResponse(
+                audio_buffer,
+                media_type="audio/wav",
+                headers={"Content-Disposition": "attachment; filename=output.wav"}
+            )
+        else:
+            return JSONResponse({"error": "Failed to generate audio"}, status_code=400)
         
     
     refer_wav_path = f"idols/{character}/{character}.wav"
