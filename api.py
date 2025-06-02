@@ -1166,7 +1166,6 @@ def version_4_cli(
         path = "idols/saotome/saotome.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
-        ref_text = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。"
         ref_language = "日文"
 
     synthesis_result = synthesize(
@@ -1211,6 +1210,9 @@ async def tts_endpoint(
 ):
     if character == "kurari":
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
+    elif character == "saotome":
+        prompt_text = "朝ごはんにはトーストと卵、そしてコーヒーを飲みました。簡単だけど、朝の時間が少し幸せに感じられる瞬間でした。"
+
 
     
     if character in ["Kurari", "saotome"]:
