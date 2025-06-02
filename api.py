@@ -1097,19 +1097,30 @@ async def version_4(
     GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-e40.ckpt",
     SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari_e20_s1800_l32.pth",
     ref_text: str = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ",
-    ref_language: str = "ja",
+    ref_language: str = "日文",
     target_text: str = None,
-    text_language: str = "ja",
-    output_path: str = None
+    text_language: str = "日文",
+    output_path: str = None,
+    character_name: str = "Kurari",
+    model_id: int = 14,
 ):
     # Create a temporary buffer to store the audio
     audio_buffer = io.BytesIO()
     # GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_language, target_text, text_language, output_path
     # Synthesize audio and get the result
+
+    path = "idols/kurari/kurari.wav" 
+    if character_name == "saotome":
+        path = "idols/saotome/saotome.wav"
+        GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
+        ref_text = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。"
+        ref_language = "日文"
+
     synthesis_result = synthesize(
         GPT_model_path = GPT_model_path,
         SoVITS_model_path = SoVITS_model_path,
-        ref_audio_path = "idols/kurari/kurari.wav",
+        ref_audio_path = path,
         ref_text = ref_text,
         ref_language = ref_language,
         target_text = target_text,
@@ -1136,6 +1147,52 @@ async def version_4(
     
     return JSONResponse({"error": "Failed to generate audio"}, status_code=400)
 
+def version_4_cli(
+    GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-e40.ckpt",
+    SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari_e20_s1800_l32.pth",
+    ref_text: str = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ",
+    ref_language: str = "日文",
+    target_text: str = None,
+    text_language: str = "日文",
+    output_path: str = None,
+    character_name: str = "Kurari",
+    model_id: int = 14,
+):
+    # Create a temporary buffer to store the audio
+    audio_buffer = io.BytesIO()
+
+    path = "idols/kurari/kurari.wav" 
+    if character_name == "saotome":
+        path = "idols/saotome/saotome.wav"
+        GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
+        ref_language = "日文"
+
+    synthesis_result = synthesize(
+        GPT_model_path = GPT_model_path,
+        SoVITS_model_path = SoVITS_model_path,
+        ref_audio_path = path,
+        ref_text = ref_text,
+        ref_language = ref_language,
+        target_text = target_text,
+        text_language = text_language,
+        output_path = output_path  # Don't save to file
+    )
+    
+    # Get the last audio data and sample rate from synthesis result
+    result_list = list(synthesis_result)
+    if result_list:
+        last_sampling_rate, last_audio_data = result_list[-1]
+        
+        # Write audio data to buffer
+        sf.write(audio_buffer, last_audio_data, last_sampling_rate, format="wav")
+        audio_buffer.seek(0)
+        
+        return audio_buffer, last_sampling_rate
+    
+    return None, None
+
+
 @app.get("/")
 async def tts_endpoint(
         prompt_text: str = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。",
@@ -1148,18 +1205,58 @@ async def tts_endpoint(
         top_p: float = 1.0,
         temperature: float = 1.0,
         speed: float = 1.0,
-        sample_steps: int = 32,
+        sample_steps: int = 20,
         if_sr: bool = False
 ):
     if character == "kurari":
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
+    elif character == "saotome":
+        prompt_text = "朝ごはんにはトーストと卵、そしてコーヒーを飲みました。簡単だけど、朝の時間が少し幸せに感じられる瞬間でした。"
+
+
+    
+    if character in ["Kurari", "saotome"]:
+        """
+        "中文": "all_zh",
+        "粤语": "all_yue",
+        "英文": "en",
+        "日文": "all_ja",
+        "韩文": "all_ko",
+        "中英混合": "zh",
+        "粤英混合": "yue",
+        "日英混合": "ja",
+        """
+        if text_language == "all_ja":
+            text_language = "日文"
+        elif text_language == "ja":
+            text_language = "日英混合"
+        elif text_language == "en":
+            text_language = "英文"
+        elif text_language == "zh":
+            text_language = "中英混合"
+        elif text_language == "ko":
+            text_language = "韩文"
+
+        audio_buffer, sample_rate = version_4_cli(
+            character_name=character,
+            ref_text=prompt_text,
+            ref_language="日文",
+            target_text=text,
+            text_language=text_language or "日文"
+        )
         
-    if text_language == "en" and character == "saotome":
-        refer_wav_path = f"idols/{character}_eng/{character}.wav"
-        inp_refs = [f"idols/{character}_eng/refs/{file}" for file in os.listdir(f"idols/{character}_eng/refs") if file.endswith('.wav')]
-    else:
-        refer_wav_path = f"idols/{character}/{character}.wav"
-        inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
+        if audio_buffer:
+            return StreamingResponse(
+                audio_buffer,
+                media_type="audio/wav",
+                headers={"Content-Disposition": "attachment; filename=output.wav"}
+            )
+        else:
+            return JSONResponse({"error": "Failed to generate audio"}, status_code=400)
+        
+    
+    refer_wav_path = f"idols/{character}/{character}.wav"
+    inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
 
     
     print(f"the base path is {refer_wav_path}")
