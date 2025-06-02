@@ -583,11 +583,18 @@ class TTS:
                 self.vocoder.cpu()
                 del self.vocoder
                 self.empty_cache()
-            
-            self.vocoder = BigVGAN.from_pretrained(
-                "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
-                use_cuda_kernel=False,
-            )  # if True, RuntimeError: Ninja is required to load C++ extensions
+            if not vocoder_path:
+                self.vocoder = BigVGAN.from_pretrained(
+                    "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+                    use_cuda_kernel=False,
+                )  # if True, RuntimeError: Ninja is required to load C++ extensions
+            else:
+                self.vocoder = BigVGAN.from_pretrained(
+                    vocoder_path,
+                    use_cuda_kernel=False,
+                    local_files_only=True,
+                    cache_dir=vocoder_path
+                )
             # remove weight norm in the model and set to eval mode
             self.vocoder.remove_weight_norm()
 

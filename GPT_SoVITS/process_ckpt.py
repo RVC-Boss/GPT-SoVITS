@@ -4,6 +4,12 @@ from time import time as ttime
 import shutil
 import os
 import torch
+import sys
+import GPT_SoVITS.utils as _gpt_utils
+sys.modules['utils'] = _gpt_utils
+from GPT_SoVITS.utils import HParams
+HParams.__module__ = 'utils'
+torch.serialization.add_safe_globals([HParams])
 from GPT_SoVITS.tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
@@ -120,5 +126,5 @@ def load_sovits_new(sovits_path):
         bio = BytesIO()
         bio.write(data)
         bio.seek(0)
-        return torch.load(bio, map_location="cpu", weights_only=False)
-    return torch.load(sovits_path, map_location="cpu", weights_only=False)
+        return torch.load(bio, map_location="cpu", weights_only=True)
+    return torch.load(sovits_path, map_location="cpu", weights_only=True)
