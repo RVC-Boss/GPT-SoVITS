@@ -1,7 +1,93 @@
 import sys
 import os
 
-import torch
+import torch,re
+
+from tools.i18n.i18n import I18nAuto, scan_language_list
+i18n = I18nAuto(language=os.environ["language"])
+
+
+pretrained_sovits_name = {
+    "v1":"GPT_SoVITS/pretrained_models/s2G488k.pth",
+    "v2":"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
+    "v3":"GPT_SoVITS/pretrained_models/s2Gv3.pth",###v3v4还要检查vocoder，算了。。。
+    "v4":"GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
+    "v2Pro":"GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro_pre1.pth",
+    "v2ProPlus":"GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus_pre1.pth",
+}
+
+pretrained_gpt_name = {
+    "v1":"GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
+    "v2":"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
+    "v3":"GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "v4":"GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "v2Pro":"GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "v2ProPlus":"GPT_SoVITS/pretrained_models/s1v3.ckpt",
+}
+name2sovits_path={
+    # i18n("不训练直接推v1底模！"): "GPT_SoVITS/pretrained_models/s2G488k.pth",
+    i18n("不训练直接推v2底模！"): "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
+    # i18n("不训练直接推v3底模！"): "GPT_SoVITS/pretrained_models/s2Gv3.pth",
+    # i18n("不训练直接推v4底模！"): "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
+    i18n("不训练直接推v2Pro底模！"): "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro_pre1.pth",
+    i18n("不训练直接推v2ProPlus底模！"): "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus_pre1.pth",
+}
+name2gpt_path={
+    # i18n("不训练直接推v1底模！"):"GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
+    i18n("不训练直接推v2底模！"):"GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
+    i18n("不训练直接推v3底模！"):"GPT_SoVITS/pretrained_models/s1v3.ckpt",
+}
+SoVITS_weight_root = ["SoVITS_weights", "SoVITS_weights_v2", "SoVITS_weights_v3", "SoVITS_weights_v4", "SoVITS_weights_v2Pro", "SoVITS_weights_v2ProPlus"]
+GPT_weight_root = ["GPT_weights", "GPT_weights_v2", "GPT_weights_v3", "GPT_weights_v4", "GPT_weights_v2Pro", "GPT_weights_v2ProPlus"]
+SoVITS_weight_version2root={
+    "v1":"SoVITS_weights",
+    "v2":"SoVITS_weights_v2",
+    "v3":"SoVITS_weights_v3",
+    "v4":"SoVITS_weights_v4",
+    "v2Pro":"SoVITS_weights_v2Pro",
+    "v2ProPlus":"SoVITS_weights_v2ProPlus",
+}
+GPT_weight_version2root={
+    "v1":"GPT_weights",
+    "v2":"GPT_weights_v2",
+    "v3":"GPT_weights_v3",
+    "v4":"GPT_weights_v4",
+    "v2Pro":"GPT_weights_v2Pro",
+    "v2ProPlus":"GPT_weights_v2ProPlus",
+}
+def custom_sort_key(s):
+    # 使用正则表达式提取字符串中的数字部分和非数字部分
+    parts = re.split("(\d+)", s)
+    # 将数字部分转换为整数，非数字部分保持不变
+    parts = [int(part) if part.isdigit() else part for part in parts]
+    return parts
+
+def get_weights_names():
+    SoVITS_names = []
+    for key in name2sovits_path:
+        if os.path.exists(name2sovits_path[key]):SoVITS_names.append(key)
+    for path in SoVITS_weight_root:
+        for name in os.listdir(path):
+            if name.endswith(".pth"):
+                SoVITS_names.append("%s/%s" % (path, name))
+    GPT_names = []
+    for key in name2gpt_path:
+        if os.path.exists(name2gpt_path[key]):GPT_names.append(key)
+    for path in GPT_weight_root:
+        for name in os.listdir(path):
+            if name.endswith(".ckpt"):
+                GPT_names.append("%s/%s" % (path, name))
+    SoVITS_names=sorted(SoVITS_names, key=custom_sort_key)
+    GPT_names=sorted(GPT_names, key=custom_sort_key)
+    return SoVITS_names, GPT_names
+
+def change_choices():
+    SoVITS_names, GPT_names = get_weights_names()
+    return {"choices": SoVITS_names, "__type__": "update"}, {
+        "choices": GPT_names,
+        "__type__": "update",
+    }
+
 
 # 推理用的指定模型
 sovits_path = ""
