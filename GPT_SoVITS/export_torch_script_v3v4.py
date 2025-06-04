@@ -699,7 +699,7 @@ def export_cfm(
     return export_cfm
 
 
-def export(version="v3"):
+def export_1(ref_wav_path,ref_wav_text,version="v3"):
     if version == "v3":
         sovits = get_sovits_weights("GPT_SoVITS/pretrained_models/s2Gv3.pth")
         init_bigvgan()
@@ -721,7 +721,7 @@ def export(version="v3"):
     script_t2s = torch.jit.script(t2s_m).to(device)
 
     hps = sovits.hps
-    ref_wav_path = "onnx/ad/ref.wav"
+    # ref_wav_path = "onnx/ad/ref.wav"
     speed = 1.0
     sample_steps = 8
     dtype = torch.float16 if is_half == True else torch.float32
@@ -748,8 +748,11 @@ def export(version="v3"):
         prompt_semantic = codes[0, 0]
         prompt = prompt_semantic.unsqueeze(0).to(device)
 
+    # phones1, bert1, norm_text1 = get_phones_and_bert(
+    #     "你这老坏蛋，我找了你这么久，真没想到在这里找到你。他说。", "all_zh", "v3"
+    # )
     phones1, bert1, norm_text1 = get_phones_and_bert(
-        "你这老坏蛋，我找了你这么久，真没想到在这里找到你。他说。", "all_zh", "v3"
+        ref_wav_text, "auto", "v3"
     )
     phones2, bert2, norm_text2 = get_phones_and_bert(
         "这是一个简单的示例，真没想到这么简单就完成了。The King and His Stories.Once there was a king. He likes to write stories, but his stories were not good. As people were afraid of him, they all said his stories were good.After reading them, the writer at once turned to the soldiers and said: Take me back to prison, please.",
@@ -1041,7 +1044,7 @@ def test_export(
     soundfile.write(output, (audio * 32768).astype(np.int16), sr)
 
 
-def test_export1(
+def test_export(
     todo_text,
     gpt_sovits_v3v4,
     output,
@@ -1116,7 +1119,7 @@ def test_export1(
 import time
 
 
-def test_(version="v3"):
+def export_2(version="v3"):
     if version == "v3":
         sovits = get_sovits_weights("GPT_SoVITS/pretrained_models/s2Gv3.pth")
         # init_bigvgan()
@@ -1205,14 +1208,14 @@ def test_(version="v3"):
     # torch.set_num_interop_threads(1)
     # torch.set_num_threads(1)
 
-    test_export1(
+    test_export(
         "汗流浃背了呀!老弟~ My uncle has two dogs. One is big and the other is small. He likes them very much. He often plays with them. He takes them for a walk every day. He says they are his good friends. He is very happy with them. 最后还是我得了 MVP....",
         gpt_sovits_v3v4,
         "out.wav",
         sr
     )
 
-    test_export1(
+    test_export(
         "你小子是什么来路.汗流浃背了呀!老弟~ My uncle has two dogs. He is very happy with them. 最后还是我得了 MVP!",
         gpt_sovits_v3v4,
         "out2.wav",
@@ -1240,7 +1243,7 @@ def test_export_gpt_sovits_v3():
     #     gpt_sovits_v3,
     #     "out4.wav",
     # )
-    test_export1(
+    test_export(
         "风萧萧兮易水寒，壮士一去兮不复还.",
         gpt_sovits_v3,
         "out5.wav",
@@ -1248,6 +1251,6 @@ def test_export_gpt_sovits_v3():
 
 
 with torch.no_grad():
-    export("v4")
-    # test_("v4")
+    export_1("onnx/ad/ref.wav","你这老坏蛋，我找了你这么久，真没想到在这里找到你。他说。","v4")
+    # export_2("v4")
     # test_export_gpt_sovits_v3()
