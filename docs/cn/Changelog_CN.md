@@ -382,4 +382,9 @@
   - 类型: 修复
   - 提交: RVC-Boss
 
-**预告：端午后基于V2版本进行重大优化更新！**
+## 202506 (V2Pro 系列)
+- 2025.06.04 [Commit#b7c0c5ca](https://github.com/RVC-Boss/GPT-SoVITS/commit/b7c0c5ca878bcdd419fd86bf80dba431a6653356)~[Commit#298ebb03](https://github.com/RVC-Boss/GPT-SoVITS/commit/298ebb03c5a719388527ae6a586c7ea960344e70): **新增 GPT-SoVITS V2Pro 系列模型**.
+  - 类型: 新功能
+  - 提交: RVC-Boss
+
+
