@@ -244,7 +244,7 @@
   - Tür: Optimizasyon
   - Katkıda Bulunan: GoHomeToMacDonal
 - 2024.03.10 [PR#721](https://github.com/RVC-Boss/GPT-SoVITS/pull/721)
-  - İçerik: Hızlı çıkarım dalı 'fast_inference_' eklendi
+  - İçerik: Hızlı çıkarım dalı 'fast*inference*' eklendi
   - Tür: Özellik
   - Katkıda Bulunan: ChasonJiang
 - 2024.03.13 [PR#761](https://github.com/RVC-Boss/GPT-SoVITS/pull/761)
@@ -287,7 +287,7 @@
 
 - 2024.06.06 [Commit#99f09c8b](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a)
   - İçerik: WebUI'da GPT ince ayarında Çince metinlerin BERT özelliklerinin okunmaması nedeniyle çıkarım tutarsızlığı ve kalite düşüşü sorunu düzeltildi
-  **Uyarı: Daha önce büyük miktarda veriyle ince ayar yaptıysanız, kaliteyi artırmak için modeli yeniden ayarlamanız önerilir**
+    **Uyarı: Daha önce büyük miktarda veriyle ince ayar yaptıysanız, kaliteyi artırmak için modeli yeniden ayarlamanız önerilir**
   - Tür: Düzeltme
   - Katkıda Bulunan: RVC-Boss
 - 2024.06.07 [PR#1159](https://github.com/RVC-Boss/GPT-SoVITS/pull/1159)
@@ -347,7 +347,7 @@
 - 2024.07.23 [Commit#9588a3c5](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2), [PR#1340](https://github.com/RVC-Boss/GPT-SoVITS/pull/1340)
   - İçerik: Sentez sırasında konuşma hızı ayarlama özelliği eklendi (rastgeleliği sabitleme ve sadece hızı kontrol etme seçeneği dahil). Bu özellik `api.py` dosyasına eklendi
   - Tür: Özellik
-  - Katkıda Bulunan: RVC-Boss, 红血球AE3803
+  - Katkıda Bulunan: RVC-Boss, 红血球 AE3803
 - 2024.07.27 [PR#1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR#1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356)
   - İçerik: BS-RoFormer vokal eşlik ayırma modeli desteği eklendi.
   - Tür: Yeni Özellik
@@ -409,7 +409,7 @@
 
 - 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4)
   - İçerik: **İnce ayar için 14GB VRAM gerektiren GPT-SoVITS V3 modeli eklendi.**
-  - Tür: Yeni Özellik ([Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) referans)
+  - Tür: Yeni Özellik ([Wiki](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>) referans)
   - Katkıda Bulunan: RVC-Boss
 - 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032)
   - İçerik: Çok dilli proje dokümantasyonu güncellendi.
@@ -475,6 +475,7 @@
     - Pydantic: [Issue#2230](https://github.com/RVC-Boss/GPT-SoVITS/issues/2230), [Issue#2239](https://github.com/RVC-Boss/GPT-SoVITS/issues/2239).
     - PyTorch-Lightning: [Issue#2174](https://github.com/RVC-Boss/GPT-SoVITS/issues/2174).
 - 2025.03.31 [PR#2241](https://github.com/RVC-Boss/GPT-SoVITS/pull/2241)
+
   - İçerik: **SoVITS v3 için paralel çıkarım etkinleştirildi.**
   - Tür: Yeni Özellik
   - Katkıda Bulunan: ChasonJiang

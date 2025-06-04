@@ -157,7 +157,7 @@
   - 类型: 修复
   - 提交: StaryLan
 - 2024.02.07 [Commit#14a28510](https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8)
-  - 内容: 修复 UVR5 `inf everywhere` 报错的问题 (`is_half` 传参未转换布尔类型导致恒定半精度推理, 16系显卡会 `inf`).
+  - 内容: 修复 UVR5 `inf everywhere` 报错的问题 (`is_half` 传参未转换布尔类型导致恒定半精度推理, 16 系显卡会 `inf`).
   - 类型: 修复
   - 提交: RVC-Boss
 - 2024.02.07 [Commit#d74f888e](https://github.com/RVC-Boss/GPT-SoVITS/commit/d74f888e7ac86063bfeacef95d0e6ddafe42b3b2)
@@ -230,6 +230,7 @@
 ## 202403
 
 - 2024.03.06 [PR#675](https://github.com/RVC-Boss/GPT-SoVITS/pull/675)
+
   - 内容: Faster Whisper 在没有 CUDA 可用时自动使用 CPU 推理.
   - 类型: 优化
   - 提交: ShiroDoMain
@@ -347,7 +348,7 @@
 - 2024.07.23 [Commit#9588a3c5](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2), [PR#1340](https://github.com/RVC-Boss/GPT-SoVITS/pull/1340)
   - 内容: 支持合成语速调节, 支持冻结随机性只调节语速, 并将其更新到`api.py` 上.
   - 类型: 新功能
-  - 提交: RVC-Boss, 红血球AE3803
+  - 提交: RVC-Boss, 红血球 AE3803
 - 2024.07.27 [PR#1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR#1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356)
   - 内容: 增加 BS-Roformer 人声伴奏分离模型支持.
   - 类型: 新功能
@@ -409,7 +410,7 @@
 
 - 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4)
   - 内容: **新增 GPT-SoVITS V3 模型, 需要 14G 显存进行微调.**
-  - 类型: 新功能 (特性参阅 [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)))
+  - 类型: 新功能 (特性参阅 [Wiki](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>))
   - 提交: RVC-Boss
 - 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032)
   - 内容: 更新项目多语言文档.
@@ -453,7 +454,7 @@
   - 类型: 文档
   - 提交: StaryLan
 - 2025.02.28 [PR#2122](https://github.com/RVC-Boss/GPT-SoVITS/pull/2122)
-  - 内容: 对于模型无法判断的CJK短字符采用规则判断.
+  - 内容: 对于模型无法判断的 CJK 短字符采用规则判断.
   - 类型: 修复
   - 提交: KamioRinn
   - 关联: [Issue#2116](https://github.com/RVC-Boss/GPT-SoVITS/issues/2116)
@@ -475,6 +476,7 @@
     - Pydantic: [Issue#2230](https://github.com/RVC-Boss/GPT-SoVITS/issues/2230), [Issue#2239](https://github.com/RVC-Boss/GPT-SoVITS/issues/2239).
     - PyTorch-Lightning: [Issue#2174](https://github.com/RVC-Boss/GPT-SoVITS/issues/2174).
 - 2025.03.31 [PR#2241](https://github.com/RVC-Boss/GPT-SoVITS/pull/2241)
+
   - 内容: **为 SoVITS v3 适配并行推理**.
   - 类型: 新功能
   - 提交: ChasonJiang
