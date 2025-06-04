@@ -4,7 +4,7 @@ import os
 import torch,re
 
 from tools.i18n.i18n import I18nAuto, scan_language_list
-i18n = I18nAuto(language=os.environ["language"])
+i18n = I18nAuto(language=os.environ.get("language", "Auto"))
 
 
 pretrained_sovits_name = {
@@ -67,6 +67,7 @@ def get_weights_names():
     for key in name2sovits_path:
         if os.path.exists(name2sovits_path[key]):SoVITS_names.append(key)
     for path in SoVITS_weight_root:
+        if not os.path.exists(path):continue
         for name in os.listdir(path):
             if name.endswith(".pth"):
                 SoVITS_names.append("%s/%s" % (path, name))
@@ -74,6 +75,7 @@ def get_weights_names():
     for key in name2gpt_path:
         if os.path.exists(name2gpt_path[key]):GPT_names.append(key)
     for path in GPT_weight_root:
+        if not os.path.exists(path):continue
         for name in os.listdir(path):
             if name.endswith(".ckpt"):
                 GPT_names.append("%s/%s" % (path, name))
