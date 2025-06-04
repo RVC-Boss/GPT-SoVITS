@@ -98,13 +98,23 @@ cut_method = {
     i18n("按标点符号切"): "cut5",
 }
 
+from config import name2sovits_path,name2gpt_path,change_choices,get_weights_names
+SoVITS_names, GPT_names = get_weights_names()
+from config import pretrained_sovits_name
+path_sovits_v3 = pretrained_sovits_name["v3"]
+path_sovits_v4 = pretrained_sovits_name["v4"]
+is_exist_s2gv3 = os.path.exists(path_sovits_v3)
+is_exist_s2gv4 = os.path.exists(path_sovits_v4)
+
 tts_config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
 tts_config.device = device
 tts_config.is_half = is_half
 tts_config.version = version
 if gpt_path is not None:
+    if "！"in gpt_path:gpt_path=name2gpt_path[gpt_path]
     tts_config.t2s_weights_path = gpt_path
 if sovits_path is not None:
+    if "！"in sovits_path:sovits_path=name2sovits_path[sovits_path]
     tts_config.vits_weights_path = sovits_path
 if cnhubert_base_path is not None:
     tts_config.cnhuhbert_base_path = cnhubert_base_path
@@ -147,11 +157,7 @@ def inference(
         "text": text,
         "text_lang": dict_language[text_lang],
         "ref_audio_path": ref_audio_path,
-        "aux_ref_audio_paths": (
-            [item.name for item in aux_ref_audio_paths]
-            if aux_ref_audio_paths is not None
-            else []
-        ),
+        "aux_ref_audio_paths": [item.name for item in aux_ref_audio_paths] if aux_ref_audio_paths is not None else [],
         "prompt_text": prompt_text if not ref_text_free else "",
         "prompt_lang": dict_language[prompt_lang],
         "top_k": top_k,
@@ -183,44 +189,6 @@ def custom_sort_key(s):
     parts = [int(part) if part.isdigit() else part for part in parts]
     return parts
 
-
-def change_choices():
-    SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
-    return {
-        "choices": sorted(SoVITS_names, key=custom_sort_key),
-        "__type__": "update",
-    }, {
-        "choices": sorted(GPT_names, key=custom_sort_key),
-        "__type__": "update",
-    }
-
-
-path_sovits_v3 = "GPT_SoVITS/pretrained_models/s2Gv3.pth"
-path_sovits_v4 = "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth"
-is_exist_s2gv3 = os.path.exists(path_sovits_v3)
-is_exist_s2gv4 = os.path.exists(path_sovits_v4)
-pretrained_sovits_name = [
-    "GPT_SoVITS/pretrained_models/s2G488k.pth",
-    "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
-    "GPT_SoVITS/pretrained_models/s2Gv3.pth",
-    "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
-]
-pretrained_gpt_name = [
-    "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
-    "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
-    "GPT_SoVITS/pretrained_models/s1v3.ckpt",
-    "GPT_SoVITS/pretrained_models/s1v3.ckpt",
-]
-
-
-_ = [[], []]
-for i in range(4):
-    if os.path.exists(pretrained_gpt_name[i]):
-        _[0].append(pretrained_gpt_name[i])
-    if os.path.exists(pretrained_sovits_name[i]):
-        _[-1].append(pretrained_sovits_name[i])
-pretrained_gpt_name, pretrained_sovits_name = _
-
 if os.path.exists("./weight.json"):
     pass
 else:
@@ -230,65 +198,24 @@ else:
 with open("./weight.json", "r", encoding="utf-8") as file:
     weight_data = file.read()
     weight_data = json.loads(weight_data)
-    gpt_path = os.environ.get(
-        "gpt_path", weight_data.get("GPT", {}).get(version, pretrained_gpt_name)
-    )
-    sovits_path = os.environ.get(
-        "sovits_path",
-        weight_data.get("SoVITS", {}).get(version, pretrained_sovits_name),
-    )
+    gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, GPT_names[-1]))
+    sovits_path = os.environ.get("sovits_path", weight_data.get("SoVITS", {}).get(version, SoVITS_names[0]))
     if isinstance(gpt_path, list):
         gpt_path = gpt_path[0]
     if isinstance(sovits_path, list):
         sovits_path = sovits_path[0]
 
-
-SoVITS_weight_root = [
-    "SoVITS_weights",
-    "SoVITS_weights_v2",
-    "SoVITS_weights_v3",
-    "SoVITS_weights_v4",
-]
-GPT_weight_root = ["GPT_weights", "GPT_weights_v2", "GPT_weights_v3", "GPT_weights_v4"]
-for path in SoVITS_weight_root + GPT_weight_root:
-    os.makedirs(path, exist_ok=True)
-
-
-def get_weights_names(GPT_weight_root, SoVITS_weight_root):
-    SoVITS_names = [i for i in pretrained_sovits_name]
-    for path in SoVITS_weight_root:
-        for name in os.listdir(path):
-            if name.endswith(".pth"):
-                SoVITS_names.append("%s/%s" % (path, name))
-    GPT_names = [i for i in pretrained_gpt_name]
-    for path in GPT_weight_root:
-        for name in os.listdir(path):
-            if name.endswith(".ckpt"):
-                GPT_names.append("%s/%s" % (path, name))
-    return SoVITS_names, GPT_names
-
-
-SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
-
-
 from process_ckpt import get_sovits_version_from_path_fast
-
 v3v4set = {"v3", "v4"}
-
-
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
+    if "！"in sovits_path:sovits_path=name2sovits_path[sovits_path]
     global version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if if_lora_v3 == True and is_exist == False:
-        info = (
-            path_sovits
-            + f"SoVITS {model_version}"
-            + " : "
-            + i18n("底模缺失，无法加载相应 LoRA 权重")
-        )
+        info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version)
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -302,10 +229,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             prompt_text_update = {"__type__": "update", "value": ""}
             prompt_language_update = {"__type__": "update", "value": i18n("中文")}
         if text_language in list(dict_language.keys()):
-            text_update, text_language_update = {"__type__": "update"}, {
-                "__type__": "update",
-                "value": text_language,
-            }
+            text_update, text_language_update = {"__type__": "update"}, {"__type__": "update", "value": text_language}
         else:
             text_update = {"__type__": "update", "value": ""}
             text_language_update = {"__type__": "update", "value": i18n("中文")}
@@ -324,15 +248,8 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             text_language_update,
             {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
             {"__type__": "update", "visible": visible_inp_refs},
-            {
-                "__type__": "update",
-                "interactive": True if model_version not in v3v4set else False,
-            },
-            {
-                "__type__": "update",
-                "value": i18n("模型加载中，请等待"),
-                "interactive": False,
-            },
+            {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
+            {"__type__": "update", "value": i18n("模型加载中，请等待"), "interactive": False},
         )
 
     tts_pipeline.init_vits_weights(sovits_path)
@@ -345,10 +262,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         text_language_update,
         {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
         {"__type__": "update", "visible": visible_inp_refs},
-        {
-            "__type__": "update",
-            "interactive": True if model_version not in v3v4set else False,
-        },
+        {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
         {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
     )
     with open("./weight.json") as f:
@@ -361,13 +275,9 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
 
 with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
     gr.Markdown(
-        value=i18n(
-            "本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责."
-        )
+        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
         + "<br>"
-        + i18n(
-            "如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE."
-        )
+        + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
     )
 
     with gr.Column():
@@ -387,18 +297,13 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
                 interactive=True,
             )
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
-            refresh_button.click(
-                fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown]
-            )
+            refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
 
     with gr.Row():
         with gr.Column():
             gr.Markdown(value=i18n("*请上传并填写参考信息"))
             with gr.Row():
-                inp_ref = gr.Audio(
-                    label=i18n("主参考音频(请上传3~10秒内参考音频，超过会报错！)"),
-                    type="filepath",
-                )
+                inp_ref = gr.Audio(label=i18n("主参考音频(请上传3~10秒内参考音频，超过会报错！)"), type="filepath")
                 inp_refs = gr.File(
                     label=i18n("辅参考音频(可选多个，或不选)"),
                     file_count="multiple",
@@ -407,9 +312,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
             prompt_text = gr.Textbox(label=i18n("主参考音频的文本"), value="", lines=2)
             with gr.Row():
                 prompt_language = gr.Dropdown(
-                    label=i18n("主参考音频的语种"),
-                    choices=list(dict_language.keys()),
-                    value=i18n("中文"),
+                    label=i18n("主参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文")
                 )
                 with gr.Column():
                     ref_text_free = gr.Checkbox(
@@ -421,20 +324,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
                     gr.Markdown(
                         i18n("使用无参考文本模式时建议使用微调的GPT")
                         + "<br>"
-                        + i18n(
-                            "听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。"
-                        )
+                        + i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。")
                     )
 
         with gr.Column():
             gr.Markdown(value=i18n("*请填写需要合成的目标文本和语种模式"))
-            text = gr.Textbox(
-                label=i18n("需要合成的文本"), value="", lines=20, max_lines=20
-            )
+            text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=20, max_lines=20)
             text_language = gr.Dropdown(
-                label=i18n("需要合成的文本的语种"),
-                choices=list(dict_language.keys()),
-                value=i18n("中文"),
+                label=i18n("需要合成的文本的语种"), choices=list(dict_language.keys()), value=i18n("中文")
             )
 
     with gr.Group():
@@ -443,69 +340,27 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
             with gr.Column():
                 with gr.Row():
                     batch_size = gr.Slider(
-                        minimum=1,
-                        maximum=200,
-                        step=1,
-                        label=i18n("batch_size"),
-                        value=20,
-                        interactive=True,
+                        minimum=1, maximum=200, step=1, label=i18n("batch_size"), value=20, interactive=True
                     )
                     sample_steps = gr.Radio(
-                        label=i18n("采样步数(仅对V3/4生效)"),
-                        value=32,
-                        choices=[4, 8, 16, 32, 64, 128],
-                        visible=True,
+                        label=i18n("采样步数(仅对V3/4生效)"), value=32, choices=[4, 8, 16, 32, 64, 128], visible=True
                     )
                 with gr.Row():
                     fragment_interval = gr.Slider(
-                        minimum=0.01,
-                        maximum=1,
-                        step=0.01,
-                        label=i18n("分段间隔(秒)"),
-                        value=0.3,
-                        interactive=True,
+                        minimum=0.01, maximum=1, step=0.01, label=i18n("分段间隔(秒)"), value=0.3, interactive=True
                     )
                     speed_factor = gr.Slider(
-                        minimum=0.6,
-                        maximum=1.65,
-                        step=0.05,
-                        label="语速",
-                        value=1.0,
-                        interactive=True,
+                        minimum=0.6, maximum=1.65, step=0.05, label="语速", value=1.0, interactive=True
                     )
                 with gr.Row():
-                    top_k = gr.Slider(
-                        minimum=1,
-                        maximum=100,
-                        step=1,
-                        label=i18n("top_k"),
-                        value=5,
-                        interactive=True,
-                    )
-                    top_p = gr.Slider(
-                        minimum=0,
-                        maximum=1,
-                        step=0.05,
-                        label=i18n("top_p"),
-                        value=1,
-                        interactive=True,
-                    )
+                    top_k = gr.Slider(minimum=1, maximum=100, step=1, label=i18n("top_k"), value=5, interactive=True)
+                    top_p = gr.Slider(minimum=0, maximum=1, step=0.05, label=i18n("top_p"), value=1, interactive=True)
                 with gr.Row():
                     temperature = gr.Slider(
-                        minimum=0,
-                        maximum=1,
-                        step=0.05,
-                        label=i18n("temperature"),
-                        value=1,
-                        interactive=True,
+                        minimum=0, maximum=1, step=0.05, label=i18n("temperature"), value=1, interactive=True
                     )
                     repetition_penalty = gr.Slider(
-                        minimum=0,
-                        maximum=2,
-                        step=0.05,
-                        label=i18n("重复惩罚"),
-                        value=1.35,
-                        interactive=True,
+                        minimum=0, maximum=2, step=0.05, label=i18n("重复惩罚"), value=1.35, interactive=True
                     )
 
             with gr.Column():
@@ -525,19 +380,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
                         scale=1,
                     )
                     super_sampling = gr.Checkbox(
-                        label=i18n("音频超采样(仅对V3生效))"),
-                        value=False,
-                        interactive=True,
-                        show_label=True,
+                        label=i18n("音频超采样(仅对V3生效))"), value=False, interactive=True, show_label=True
                     )
 
                 with gr.Row():
-                    parallel_infer = gr.Checkbox(
-                        label=i18n("并行推理"),
-                        value=True,
-                        interactive=True,
-                        show_label=True,
-                    )
+                    parallel_infer = gr.Checkbox(label=i18n("并行推理"), value=True, interactive=True, show_label=True)
                     split_bucket = gr.Checkbox(
                         label=i18n("数据分桶(并行推理时会降低一点计算量)"),
                         value=True,
@@ -547,12 +394,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
 
                 with gr.Row():
                     seed = gr.Number(label=i18n("随机种子"), value=-1)
-                    keep_random = gr.Checkbox(
-                        label=i18n("保持随机"),
-                        value=True,
-                        interactive=True,
-                        show_label=True,
-                    )
+                    keep_random = gr.Checkbox(label=i18n("保持随机"), value=True, interactive=True, show_label=True)
 
                 output = gr.Audio(label=i18n("输出的语音"))
                 with gr.Row():
