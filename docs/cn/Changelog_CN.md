@@ -201,6 +201,7 @@
   - 内容: 支持无参考文本输入.
   - 类型: 新功能
   - 提交: Watchtower-Liu
+  - 关联: [Issue#475](https://github.com/RVC-Boss/GPT-SoVITS/issues/475)
 - 2024.02.17 [PR#509](https://github.com/RVC-Boss/GPT-SoVITS/pull/509), [PR#507](https://github.com/RVC-Boss/GPT-SoVITS/pull/507), [PR#532](https://github.com/RVC-Boss/GPT-SoVITS/pull/532), [PR#556](https://github.com/RVC-Boss/GPT-SoVITS/pull/556), [PR#559](https://github.com/RVC-Boss/GPT-SoVITS/pull/559)
   - 内容: 优化中文日文前端处理.
   - 类型: 优化
