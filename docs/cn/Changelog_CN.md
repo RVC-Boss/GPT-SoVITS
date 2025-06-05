@@ -386,5 +386,11 @@
 - 2025.06.04 [Commit#b7c0c5ca](https://github.com/RVC-Boss/GPT-SoVITS/commit/b7c0c5ca878bcdd419fd86bf80dba431a6653356)~[Commit#298ebb03](https://github.com/RVC-Boss/GPT-SoVITS/commit/298ebb03c5a719388527ae6a586c7ea960344e70): **新增 GPT-SoVITS V2Pro 系列模型**.
   - 类型: 新功能
   - 提交: RVC-Boss
+- 2025.06.05 https://github.com/RVC-Boss/GPT-SoVITS/pull/2426: config/inference_webui初始化bug修复.
+  - 类型: 修复
+  - 提交: SapphireLab
+- 2025.06.05 https://github.com/RVC-Boss/GPT-SoVITS/pull/2427: 优化精度自动检测逻辑;给webui前端界面模块增加可收缩式支持.
+  - 类型: 新功能
+  - 提交: XXXXRT666
 
 
