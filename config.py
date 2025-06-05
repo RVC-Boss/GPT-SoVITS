@@ -160,7 +160,7 @@ def get_device_dtype_sm(idx: int) -> tuple[torch.device, torch.dtype, float, flo
     is_16_series = bool(re.search(r"16\d{2}", name))
     if mem_gb < 4:
         return cpu, torch.float32, 0.0, 0.0
-    if (sm_version >= 7.0 and sm_version != 7.5) or (5.3 <= sm_version <= 6.0):
+    if sm_version >= 7.0 or (5.3 <= sm_version <= 6.0):
         if is_16_series and sm_version == 7.5:
             return cuda, torch.float32, sm_version, mem_gb  # 16系卡除外
         else:
