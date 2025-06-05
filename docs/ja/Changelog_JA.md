@@ -1,261 +1,472 @@
 # 更新履歴
 
-## 20240121
+## 202401
 
-1. `config`に`is_share`を追加し、Colab などの環境でこれを`True`に設定すると、webui を公共ネットワークにマッピングできます.
-2. WebUI に英語システムの英語翻訳を追加しました.
-3. `cmd-asr`は FunASR モデルが既に含まれているかどうかを自動的に確認し、デフォルトのパスにない場合は modelscope から自動的にダウンロードします.
-4. [SoVITS 训练报错 ZeroDivisionError](https://github.com/RVC-Boss/GPT-SoVITS/issues/79) 修復を試みます (長さ 0 のサンプルをフィルタリングなど)
-5. TEMP ファイルフォルダからオーディオやその他のファイルをクリーンアップして最適化します.
-6. 合成オーディオがリファレンスオーディオの終わりを含む問題を大幅に改善しました.
+- 2024.01.21 [PR#108](https://github.com/RVC-Boss/GPT-SoVITS/pull/108)
+  - 内容: WebUIに英語システム翻訳サポートを追加。
+  - タイプ: ドキュメンテーション
+  - 貢献者: D3lik
+- 2024.01.21 [Commit#7b89c9ed](https://github.com/RVC-Boss/GPT-SoVITS/commit/7b89c9ed5669f63c4ed6ae791408969640bdcf3e)
+  - 内容: SoVITSトレーニングのZeroDivisionError修正を試みた。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss, Tybost
+  - 関連: [Issue#79](https://github.com/RVC-Boss/GPT-SoVITS/issues/79)
+- 2024.01.21 [Commit#ea62d6e0](https://github.com/RVC-Boss/GPT-SoVITS/commit/ea62d6e0cf1efd75287766ea2b55d1c3b69b4fd3)
+  - 内容: 合成音声に参照音声の終端が含まれる問題を大幅に軽減。
+  - タイプ: 最適化
+  - 貢献者: RVC-Boss
+- 2024.01.21 [Commit#a87ad522](https://github.com/RVC-Boss/GPT-SoVITS/commit/a87ad5228ed2d729da42019ae1b93171f6a745ef)
+  - 内容: `cmd-asr.py`がデフォルトディレクトリにFunASRモデルが含まれているか確認し、ない場合はModelScopeからダウンロードするようになった。
+  - タイプ: 機能
+  - 貢献者: RVC-Boss
+- 2024.01.21 [Commit#f6147116](https://github.com/RVC-Boss/GPT-SoVITS/commit/f61471166c107ba56ccb7a5137fa9d7c09b2830d)
+  - 内容: `Config.py`に`is_share`パラメータを追加、`True`に設定するとWebUIを公開ネットワークにマッピング可能。
+  - タイプ: 機能
+  - 貢献者: RVC-Boss
+- 2024.01.21 [Commit#102d5081](https://github.com/RVC-Boss/GPT-SoVITS/commit/102d50819e5d24580d6e96085b636b25533ecc7f)
+  - 内容: `TEMP`フォルダ内のキャッシュ音声ファイルやその他ファイルをクリーンアップ。
+  - タイプ: 最適化
+  - 貢献者: RVC-Boss
+- 2024.01.22 [Commit#872134c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/872134c846bcb8f1909a3f5aff68a6aa67643f68)
+  - 内容: 極端に短い出力ファイルで参照音声が繰り返される問題を修正。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.22 英語と日本語トレーニングのネイティブサポートをテスト（日本語トレーニングはルートディレクトリに非英語特殊文字がないことが必要）。
+- 2024.01.22 [PR#124](https://github.com/RVC-Boss/GPT-SoVITS/pull/124)
+  - 内容: 音声パスチェックを改善。不正な入力パスから読み取ろうとすると、ffmpegエラーではなくパスが存在しないと報告するようになった。
+  - タイプ: 最適化
+  - 貢献者: xmimu
+- 2024.01.23 [Commit#93c47cd9](https://github.com/RVC-Boss/GPT-SoVITS/commit/93c47cd9f0c53439536eada18879b4ec5a812ae1)
+  - 内容: Hubert抽出がNaNエラーを引き起こし、SoVITS/GPTトレーニングでZeroDivisionErrorが発生する問題を解決。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.23 [Commit#80fffb0a](https://github.com/RVC-Boss/GPT-SoVITS/commit/80fffb0ad46e4e7f27948d5a57c88cf342088d50)
+  - 内容: 中国語分ツール`jieba`を`jieba_fast`に置き換え。
+  - タイプ: 最適化
+  - 貢献者: RVC-Boss
+- 2024.01.23 [Commit#63625758](https://github.com/RVC-Boss/GPT-SoVITS/commit/63625758a99e645f3218dd167924e01a0e3cf0dc)
+  - 内容: モデルファイルのソートロジックを最適化。
+  - タイプ: 最適化
+  - 貢献者: RVC-Boss
+- 2024.01.23 [Commit#0c691191](https://github.com/RVC-Boss/GPT-SoVITS/commit/0c691191e894c15686e88279745712b3c6dc232f)
+  - 内容: 推論WebUIでクイックモデル切り替えをサポート追加。
+  - タイプ: 機能
+  - 貢献者: RVC-Boss
+- 2024.01.25 [Commit#249561e5](https://github.com/RVC-Boss/GPT-SoVITS/commit/249561e5a18576010df6587c274d38cbd9e18b4b)
+  - 内容: 推論WebUIの冗長なログを削除。
+  - タイプ: 最適化
+  - 貢献者: RVC-Boss
+- 2024.01.25 [PR#183](https://github.com/RVC-Boss/GPT-SoVITS/pull/183), [PR#200](https://github.com/RVC-Boss/GPT-SoVITS/pull/200)
+  - 内容: Macでのトレーニングと推論をサポート。
+  - タイプ: 機能
+  - 貢献者: Lion-Wu
+- 2024.01.26 [Commit#813cf96e](https://github.com/RVC-Boss/GPT-SoVITS/commit/813cf96e508ba1bb2c658f38c7cc77b797fb4082), [Commit#2d1ddeca](https://github.com/RVC-Boss/GPT-SoVITS/commit/2d1ddeca42db90c3fe2d0cd79480fd544d87f02b)
+  - 内容: UVR5の読み取り時にディレクトリが自動的に飛び出す問題を修正。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.26 [PR#204](https://github.com/RVC-Boss/GPT-SoVITS/pull/204)
+  - 内容: 中日混合および日英混合出力テキストをサポート追加。
+  - タイプ: 機能
+  - 貢献者: Kakaru Hayate
+- 2024.01.26 [Commit#f4148cf7](https://github.com/RVC-Boss/GPT-SoVITS/commit/f4148cf77fb899c22bcdd4e773d2f24ab34a73e7)
+  - 内容: 出力のセグメンテーションモードをオプションで追加。
+  - タイプ: 機能
+  - 貢献者: RVC-Boss
+- 2024.01.26 [Commit#9fe955c1](https://github.com/RVC-Boss/GPT-SoVITS/commit/9fe955c1bf5f94546c9f699141281f2661c8a180)
+  - 内容: 複数改行による推論エラーを修正。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.26 [Commit#84ee4719](https://github.com/RVC-Boss/GPT-SoVITS/commit/84ee471936b332bc2ccee024d6dfdedab4f0dc7b)
+  - 内容: 半精度をサポートしないGPU向けに自動的に単精度を強制。CPU推論時も単精度を強制。
+  - タイプ: 最適化
+  - 貢献者: RVC-Boss
+- 2024.01.28 [PR#238](https://github.com/RVC-Boss/GPT-SoVITS/pull/238)
+  - 内容: Dockerfile内のモデルダウンロードプロセスを完了。
+  - タイプ: 修正
+  - 貢献者: breakstring
+- 2024.01.28 [PR#257](https://github.com/RVC-Boss/GPT-SoVITS/pull/257)
+  - 内容: 数字の発音が中国語文字に変換される問題を修正。
+  - タイプ: 修正
+  - 貢献者: duliangang
+- 2024.01.28 [Commit#f0cfe397](https://github.com/RVC-Boss/GPT-SoVITS/commit/f0cfe397089a6fd507d678c71adeaab5e7ed0683)
+  - 内容: GPTトレーニングがチェックポイントを保存しない問題を修正。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.28 [Commit#b8ae5a27](https://github.com/RVC-Boss/GPT-SoVITS/commit/b8ae5a2761e2654fc0c905498009d3de9de745a8)
+  - 内容: 制限を設定して不合理な参照音声長を除外。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.28 [Commit#698e9655](https://github.com/RVC-Boss/GPT-SoVITS/commit/698e9655132d194b25b86fbbc99d53c8d2cea2a3)
+  - 内容: 文頭の数文字が飲み込まれる問題を修正。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.29 [Commit#ff977a5f](https://github.com/RVC-Boss/GPT-SoVITS/commit/ff977a5f5dc547e0ad82b9e0f1cd95fbc830b2b0)
+  - 内容: 16シリーズのような半精度トレーニングに問題があるGPU向けに、トレーニング設定を単精度に変更。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.29 [Commit#172e139f](https://github.com/RVC-Boss/GPT-SoVITS/commit/172e139f45ac26723bc2cf7fac0112f69d6b46ec)
+  - 内容: 利用可能なColabバージョンをテストして更新。
+  - タイプ: 機能
+  - 貢献者: RVC-Boss
+- 2024.01.29 [PR#135](https://github.com/RVC-Boss/GPT-SoVITS/pull/135)
+  - 内容: FunASRをバージョン1.0に更新し、インターフェース不一致によるエラーを修正。
+  - タイプ: 修正
+  - 貢献者: LauraGPT
+- 2024.01.30 [Commit#1c2fa98c](https://github.com/RVC-Boss/GPT-SoVITS/commit/1c2fa98ca8c325dcfb32797d22ff1c2a726d1cb4)
+  - 内容: 中日英句読点の分割問題を修正し、文の始めと終わりに句読点を追加。
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.01.30 [Commit#74409f35](https://github.com/RVC-Boss/GPT-SoVITS/commit/74409f3570fa1c0ff28d4c65c288a6ce58ca00d2)
+  - 内容: 句読点による分割を追加。
+  - タイプ: 機能
+  - 貢献者: RVC-Boss
+- 2024.01.30 [Commit#c42eeccf](https://github.com/RVC-Boss/GPT-SoVITS/commit/c42eeccfdd2d0a0d714ecc8bfc22a12373aca6b7)
+  - 内容: パスと関連する文字列を解析して、二重引用符を自動的に削除します.また、パスをコピーする場合、二重引用符が含まれていてもエラーが発生しません.
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
 
-## 20240122
+## 202402
 
-1. 短すぎる出力ファイルが重複したリファレンスオーディオを返す問題を修正しました.
-2. 英語-日本語学習がスムーズに進む QA を完了しました. (ただし、日本語学習はルートディレクトリに英語以外の文字が含まれていない必要があります)
-3. オーディオパスをチェックします.間違ったパスを読み取ろうとすると、「パスが存在しません」というエラーメッセージが返されます.これは ffmpeg モジュールのエラーではありません.
+- 2024.02.01 [Commit#45f73519](https://github.com/RVC-Boss/GPT-SoVITS/commit/45f73519cc41cd17cf816d8b997a9dcb0bee04b6)
+  - 内容: ASRパス末尾のスラッシュによるファイル名保存エラーの修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.02.03 [Commit#dba1a74c](https://github.com/RVC-Boss/GPT-SoVITS/commit/dba1a74ccb0cf19a1b4eb93faf11d4ec2b1fc5d7)
+  - 内容: UVR5のフォーマット読み取りエラーによる音声分離失敗の修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.02.03 [Commit#3ebff70b](https://github.com/RVC-Boss/GPT-SoVITS/commit/3ebff70b71580ee1f97b3238c9442cbc5aef47c7)
+  - 内容: 中日英混合テキストの自動言語判別・分割機能のサポート
+  - タイプ: 機能改善
+  - 貢献者: RVC-Boss
+- 2024.02.03 [PR#377](https://github.com/RVC-Boss/GPT-SoVITS/pull/377)
+  - 内容: PaddleSpeechのテキスト正規化を導入(例: xx.xx%表記、「元/吨」を「元每吨」と正確に読む、アンダースコア問題の解消)
+  - タイプ: 機能改善
+  - 貢献者: KamioRinn
+- 2024.02.05 [PR#395](https://github.com/RVC-Boss/GPT-SoVITS/pull/395)
+  - 内容: 英語テキスト前処理の最適化
+  - タイプ: 機能改善
+  - 貢献者: KamioRinn
+- 2024.02.06 [Commit#65b463a7](https://github.com/RVC-Boss/GPT-SoVITS/commit/65b463a787f31637b4768cc9a47cab59541d3927)
+  - 内容: 言語パラメータの混乱による中国語推論精度低下の修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+  - 関連: [Issue#391](https://github.com/RVC-Boss/GPT-SoVITS/issues/391)
+- 2024.02.06 [PR#403](https://github.com/RVC-Boss/GPT-SoVITS/pull/403)
+  - 内容: UVR5の高バージョンLibrosaへの対応
+  - タイプ: 修正
+  - 貢献者: StaryLan
+- 2024.02.07 [Commit#14a28510](https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8)
+  - 内容: UVR5の「inf everywhere」エラーの修正(ブール型変換不足による半精度推論問題、16シリーズGPUで発生)
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.02.07 [Commit#d74f888e](https://github.com/RVC-Boss/GPT-SoVITS/commit/d74f888e7ac86063bfeacef95d0e6ddafe42b3b2)
+  - 内容: Gradio依存関係の修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.02.07 [PR#400](https://github.com/RVC-Boss/GPT-SoVITS/pull/400)
+  - 内容: Faster Whisperの統合による日本語・英語音声認識機能の追加
+  - タイプ: 新機能
+  - 貢献者: Shadow
+- 2024.02.07 [Commit#6469048d](https://github.com/RVC-Boss/GPT-SoVITS/commit/6469048de12a8d6f0bd05d07f031309e61575a38)～[Commit#94ee71d9](https://github.com/RVC-Boss/GPT-SoVITS/commit/94ee71d9d562d10c9a1b96e745c6a6575aa66a10)
+  - 内容: 3連ルートディレクトリ空欄時の自動.listファイルパス読み込み機能
+  - タイプ: 機能改善
+  - 貢献者: RVC-Boss
+- 2024.02.08 [Commit#59f35ada](https://github.com/RVC-Boss/GPT-SoVITS/commit/59f35adad85815df27e9c6b33d420f5ebfd8376b)
+  - 内容: GPTトレーニングのフリーズ問題(Windows10 1909)と繁体字システム言語時のエラー修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+  - 関連: [Issue#232](https://github.com/RVC-Boss/GPT-SoVITS/issues/232)
+- 2024.02.12 [PR#457](https://github.com/RVC-Boss/GPT-SoVITS/pull/457)
+  - 内容: DPO損失実験的トレーニングオプションの追加(ネガティブサンプル構築によるGPTの繰り返し・文字抜け問題改善)、推論インターフェースの複数パラメータ公開
+  - タイプ: 新機能
+  - 貢献者: liufenghua
+- 2024.02.12 [Commit#2fa74ecb](https://github.com/RVC-Boss/GPT-SoVITS/commit/2fa74ecb941db27d9015583a9be6962898d66730), [Commit#d82f6bbb](https://github.com/RVC-Boss/GPT-SoVITS/commit/d82f6bbb98ba725e6725dcee99b80ce71fb0bf28)
+  - 内容: 音声認識ロジックの最適化、Faster Whisperのミラーサイトダウンロード対応(HuggingFace接続問題回避)
+  - タイプ: 機能改善
+  - 貢献者: RVC-Boss
+- 2024.02.15 [Commit#dd2c4d6d](https://github.com/RVC-Boss/GPT-SoVITS/commit/dd2c4d6d7121bf82d29d0f0e4d788f3b231997c8)
+  - 内容: 中国語実験名のトレーニングサポート
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.02.15 [Commit#ccb9b08b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ccb9b08be3c58e102defcc94ff4fd609da9e27ee)～[Commit#895fde46](https://github.com/RVC-Boss/GPT-SoVITS/commit/895fde46e420040ed26aaf0c5b7e99359d9b199b)
+  - 内容: DPOトレーニングを必須からオプションに変更(選択時は自動的にバッチサイズ半減)、推論インターフェースの新パラメータ未伝達問題の修正
+  - タイプ: 機能改善
+  - 貢献者: RVC-Boss
+- 2024.02.15 [Commit#7b0c3c67](https://github.com/RVC-Boss/GPT-SoVITS/commit/7b0c3c676495c64b2064aa472bff14b5c06206a5)
+  - 内容: 中国語テキスト前処理エラーの修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.02.16 [PR#499](https://github.com/RVC-Boss/GPT-SoVITS/pull/499)
+  - 内容: 参照テキストなし入力のサポート
+  - タイプ: 新機能
+  - 貢献者: Watchtower-Liu
+  - 関連: [Issue#475](https://github.com/RVC-Boss/GPT-SoVITS/issues/475)
+- 2024.02.17 [PR#509](https://github.com/RVC-Boss/GPT-SoVITS/pull/509), [PR#507](https://github.com/RVC-Boss/GPT-SoVITS/pull/507), [PR#532](https://github.com/RVC-Boss/GPT-SoVITS/pull/532), [PR#556](https://github.com/RVC-Boss/GPT-SoVITS/pull/556), [PR#559](https://github.com/RVC-Boss/GPT-SoVITS/pull/559)
+  - 内容: 中国語・日本語前処理の改善
+  - タイプ: 機能改善
+  - 貢献者: KamioRinn, v3cun
+- 2024.02.17 [PR#510](https://github.com/RVC-Boss/GPT-SoVITS/pull/511), [PR#511](https://github.com/RVC-Boss/GPT-SoVITS/pull/511)
+  - 内容: Colabの公開URL未開始問題の修正
+  - タイプ: 修正
+  - 貢献者: ChanningWang2018, RVC-Boss
+- 2024.02.21 [PR#557](https://github.com/RVC-Boss/GPT-SoVITS/pull/557)
+  - 内容: MacOS推論デバイスをMPSからCPUに変更(CPU推論の方が高速)
+  - タイプ: 機能改善
+  - 貢献者: XXXXRT666
+- 2024.02.21 [Commit#6da486c1](https://github.com/RVC-Boss/GPT-SoVITS/commit/6da486c15d09e3d99fa42c5e560aaac56b6b4ce1), [Commit#5a171773](https://github.com/RVC-Boss/GPT-SoVITS/commit/5a17177342d2df1e11369f2f4f58d34a3feb1a35)
+  - 内容: データ前処理に音声ノイズ除去オプション追加(16Kサンプルレートにダウンサンプリング、高ノイズ時以外は非推奨)
+  - タイプ: 新機能
+  - 貢献者: RVC-Boss
+- 2024.02.28 [PR#573](https://github.com/RVC-Boss/GPT-SoVITS/pull/573)
+  - 内容: is_half判定の修正によるMacOSの正常なCPU推論対応
+  - タイプ: 修正
+  - 貢献者: XXXXRT666
+- 2024.02.28 [PR#610](https://github.com/RVC-Boss/GPT-SoVITS/pull/610)
+  - 内容: UVR5 MDXNetパラメータ順序エラーによる出力フォルダ逆転問題の修正
+  - タイプ: 修正
+  - 貢献者: Yuze Wang
 
-## 20240123
+## 202403
 
-1. hubert から nan 抽出による SoVITS/GPT 学習中の ZeroDivisionError 関連エラーを修正しました.
-2. 推論インターフェースでモデルを素早く切り替えることができるようにサポートしました.
-3. モデルファイルのソートロジックを最適化しました.
-4. 中国語の分析に `jieba_fast` を `jieba` に置き換えました.
+- 2024.03.06 [PR#675](https://github.com/RVC-Boss/GPT-SoVITS/pull/675)
+  - 内容: CUDAが利用できない場合、Faster Whisperの自動CPU推論を有効化
+  - タイプ: 機能改善
+  - 貢献者: ShiroDoMain
+- 2024.03.06 [Commit#616be20d](https://github.com/RVC-Boss/GPT-SoVITS/commit/616be20db3cf94f1cd663782fea61b2370704193)
+  - 内容: Faster Whisper非中国語ASR使用時、中国語FunASRモデルの事前ダウンロードが不要に
+  - タイプ: 機能改善
+  - 貢献者: RVC-Boss
+- 2024.03.09 [PR#672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672)
+  - 内容: 推論速度を50%向上（RTX3090 + PyTorch 2.2.1 + CU11.8 + Win10 + Py39環境で検証）
+  - タイプ: 機能改善
+  - 貢献者: GoHomeToMacDonal
+- 2024.03.10 [PR#721](https://github.com/RVC-Boss/GPT-SoVITS/pull/721)
+  - 内容: 高速推論ブランチ`fast_inference_`を追加
+  - タイプ: 新機能
+  - 貢献者: ChasonJiang
+- 2024.03.13 [PR#761](https://github.com/RVC-Boss/GPT-SoVITS/pull/761)
+  - 内容: CPUトレーニングをサポート（macOSでCPUを使用したトレーニングが可能に）
+  - タイプ: 新機能
+  - 貢献者: Lion-Wu
+- 2024.03.19 [PR#804](https://github.com/RVC-Boss/GPT-SoVITS/pull/804), [PR#812](https://github.com/RVC-Boss/GPT-SoVITS/pull/812), [PR#821](https://github.com/RVC-Boss/GPT-SoVITS/pull/821)
+  - 内容: 英語テキストフロントエンドの最適化
+  - タイプ: 機能改善
+  - 貢献者: KamioRinn
+- 2024.03.30 [PR#894](https://github.com/RVC-Boss/GPT-SoVITS/pull/894)
+  - 内容: APIフォーマットの改善
+  - タイプ: 機能改善
+  - 貢献者: KamioRinn
 
-## 20240126
+## 202404
 
-1. 中国語と英語、日本語と英語が混在した出力テキストをサポートします.
-2. 出力で選択的な分割モードをサポートします.
-3. uvr5 がディレクトリを読み取り、自動的に終了する問題を修正しました.
-4. 複数の改行による推論エラーを修正しました.
-5. 推論インターフェースから不要なログを削除しました.
-6. MacOS での学習と推論をサポートします.
-7. 半精度をサポートしていないカードを自動的に識別して単精度を強制し、CPU 推論では単精度を強制します.
+- 2024.04.03 [PR#917](https://github.com/RVC-Boss/GPT-SoVITS/pull/917)
+  - 内容: UVR5 WebUIにおけるFFmpegコマンド文字列フォーマットの修正
+  - タイプ: 修正
+  - 貢献者: StaryLan
 
-## 20240128
+## 202405
 
-1. 数字を漢字で読む問題を修正しました.
-2. 文章の先頭の一部の単語が欠落する問題を修正しました.
-3. 不適切な長さのリファレンスオーディオを制限しました.
-4. GPT 学習時の ckpt が保存されない問題を修正しました.
-5. Dockerfile のモデルダウンロードプロセスを改善しました.
+- 2024.05.02 [PR#953](https://github.com/RVC-Boss/GPT-SoVITS/pull/953)
+  - 内容: SoVITSトレーニング時のVQ凍結漏れ問題を修正（品質劣化の原因となる）
+  - タイプ: 修正
+  - 貢献者: hcwu1993
+  - 関連: [Issue#747](https://github.com/RVC-Boss/GPT-SoVITS/issues/747)
+- 2024.05.19 [PR#1102](https://github.com/RVC-Boss/GPT-SoVITS/pull/1102)
+  - 内容: トレーニングデータ処理時、未対応言語に対するエラープロンプトを追加
+  - タイプ: 機能改善
+  - 貢献者: StaryLan
+- 2024.05.27 [PR#1132](https://github.com/RVC-Boss/GPT-SoVITS/pull/1132)
+  - 内容: Hubert抽出におけるバグ修正
+  - タイプ: 修正
+  - 貢献者: XXXXRT666
 
-## 20240129
+## 202406
 
-1. 16 系などの半精度学習に問題があるカードは、学習構成を単精度学習に変更しました.
-2. Colab でも使用可能なバージョンをテストして更新しました.
-3. ModelScope FunASR リポジトリの古いバージョンで git クローンを行う際のインターフェース不整合エラーの問題を修正しました.
+- 2024.06.06 [Commit#](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a)
+  - 内容: WebUIのGPTファインチューニング時に中国語入力テキストのBERT特徴量を読み取れない問題を修正（推論時との不一致や品質劣化の原因となる）
+  **注意: 既に大量データでファインチューニング済みの場合は、品質向上のためモデルの再チューニングを推奨**
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.06.07 [PR#1159](https://github.com/RVC-Boss/GPT-SoVITS/pull/1159)
+  - 内容: `s2_train.py`におけるSoVITSトレーニングの進捗バー処理を修正
+  - タイプ: 修正
+  - 貢献者: pengzhendong
+- 2024.06.10 [Commit#501a74ae](https://github.com/RVC-Boss/GPT-SoVITS/commit/501a74ae96789a26b48932babed5eb4e9483a232)
+  - 内容: UVR5 MDXNetがFFmpegを呼び出す際の文字列フォーマットを修正（スペースを含むパスに対応）
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.06.10 [PR#1168](https://github.com/RVC-Boss/GPT-SoVITS/pull/1168), [PR#1169](https://github.com/RVC-Boss/GPT-SoVITS/pull/1169)
+  - 内容: 純粋な句読点および複数句読点テキスト入力の処理ロジックを改善
+  - タイプ: 修正
+  - 貢献者: XXXXRT666
+  - 関連: [Issue#1165](https://github.com/RVC-Boss/GPT-SoVITS/issues/1165)
+- 2024.06.13 [Commit#db506705](https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041)
+  - 内容: CPU推論におけるデフォルトバッチサイズの小数点問題を修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.06.28 [PR#1258](https://github.com/RVC-Boss/GPT-SoVITS/pull/1258), [PR#1265](https://github.com/RVC-Boss/GPT-SoVITS/pull/1265), [PR#1267](https://github.com/RVC-Boss/GPT-SoVITS/pull/1267)
+  - 内容: ノイズ除去やASRで例外が発生した場合に保留中の全オーディオファイル処理が終了してしまう問題を修正
+  - タイプ: 修正
+  - 貢献者: XXXXRT666
+- 2024.06.29 [Commit#a208698e](https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca)
+  - 内容: マルチGPUトレーニング時のマルチプロセス保存ロジックを修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2024.06.29 [PR#1251](https://github.com/RVC-Boss/GPT-SoVITS/pull/1251)
+  - 内容: 冗長な`my_utils.py`を削除
+  - タイプ: 最適化
+  - 貢献者: aoguai
+  - 関連: [Issue#1189](https://github.com/RVC-Boss/GPT-SoVITS/issues/1189)
 
-## 20240130
+## 202407
 
-1. パスと関連する文字列を解析して、二重引用符を自動的に削除します.また、パスをコピーする場合、二重引用符が含まれていてもエラーが発生しません.
-2. 中国語と英語、日本語と英語の混合出力をサポートします.
-3. 出力で選択的な分割モードをサポートします.
+- 2024.07.06 [PR#1253](https://github.com/RVC-Boss/GPT-SoVITS/pull/1253)
+  - 内容: 句読点分割時の小数点分割問題を修正
+  - タイプ: 修正
+  - 貢献者: aoguai
+- 2024.07.06 [Commit#](https://github.com/RVC-Boss/GPT-SoVITS/commit/b0786f2998f1b2fce6678434524b4e0e8cc716f5)
+  - 内容: 高速化推論コードが検証済みでmainブランチにマージされ、ベースと同等の推論効果を保証。テキスト未参照モードでも高速推論をサポート
+  - タイプ: 最適化
+  - 貢献者: RVC-Boss, GoHomeToMacDonal
+  - 関連: [PR#672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672)
+- 今後も`fast_inference`ブランチでの変更整合性を継続検証
 
-## 20240201
-
-1. UVR5 形式の読み取りエラーによる分離失敗を修正しました.
-2. 中国語・日本語・英語の混合テキストに対する自動分割と言語認識をサポートしました.
-
-## 20240202
-
-1. ASRパスが `/` で終わることによるファイル名保存エラーの問題を修正しました.
-2. [PR 377](https://github.com/RVC-Boss/GPT-SoVITS/pull/377) で PaddleSpeech の Normalizer を導入し、"xx.xx%" (パーセント記号) の読み取りや"元/吨"が"元吨"ではなく"元每吨"と読まれる問題、アンダースコアエラーを修正しました.
-
-## 20240207
-
-1. [Issue 391](https://github.com/RVC-Boss/GPT-SoVITS/issues/391) で報告された中国語推論品質の低下を引き起こした言語パラメータの混乱を修正しました.
-2. [PR 403](https://github.com/RVC-Boss/GPT-SoVITS/pull/403) で UVR5 を librosa のより高いバージョンに適応させました.
-3. [Commit 14a2851](https://github.com/RVC-Boss/GPT-SoVITS/commit/14a285109a521679f8846589c22da8f656a46ad8) で、`is_half` パラメータがブール値に変換されず、常に半精度推論が行われ、16 シリーズの GPU で `inf` が発生する UVR5 inf everywhereエラーを修正しました.
-4. 英語テキストフロントエンドを最適化しました.
-5. Gradio の依存関係を修正しました.
-6. データセット準備中にルートディレクトリが空白の場合、`.list` フルパスの自動読み取りをサポートしました.
-7. 日本語と英語のために Faster Whisper ASR を統合しました.
-
-## 20240208
-
-1. [Commit 59f35ad](https://github.com/RVC-Boss/GPT-SoVITS/commit/59f35adad85815df27e9c6b33d420f5ebfd8376b) で、Windows 10 1909 および [Issue 232](https://github.com/RVC-Boss/GPT-SoVITS/issues/232) (繁体字中国語システム言語) での GPT トレーニングのハングを修正する試みを行いました.
-
-## 20240212
-
-1. Faster Whisper と FunASR のロジックを最適化し、Faster Whisper をミラーダウンロードに切り替えて Hugging Face の接続問題を回避しました.
-2. [PR 457](https://github.com/RVC-Boss/GPT-SoVITS/pull/457) で、GPT の繰り返しと文字欠落を軽減するために、トレーニング中に負のサンプルを構築する実験的なDPO Lossトレーニングオプションを有効にし、いくつかの推論パラメータを推論WebUIで利用可能にしました.
-
-## 20240214
-
-1. トレーニングで中国語の実験名をサポート (以前はエラーが発生していました).
-2. DPOトレーニングを必須ではなくオプション機能に変更.選択された場合、バッチサイズは自動的に半分になります.推論 WebUI で新しいパラメータが渡されない問題を修正しました.
-
-## 20240216
-
-1. 参照テキストなしでの入力をサポート.
-2. [Issue 475](https://github.com/RVC-Boss/GPT-SoVITS/issues/475) で報告された中国語フロントエンドのバグを修正しました.
-
-## 20240221
-
-1. データ処理中のノイズ低減オプションを追加 (ノイズ低減は16kHzサンプリングレートのみを残します；背景ノイズが大きい場合にのみ使用してください).
-2. [PR 559](https://github.com/RVC-Boss/GPT-SoVITS/pull/559), [PR 556](https://github.com/RVC-Boss/GPT-SoVITS/pull/556), [PR 532](https://github.com/RVC-Boss/GPT-SoVITS/pull/532), [PR 507](https://github.com/RVC-Boss/GPT-SoVITS/pull/507), [PR 509](https://github.com/RVC-Boss/GPT-SoVITS/pull/509) で中国語と日本語のフロントエンド処理を最適化しました.
-3. Mac CPU 推論を MPS ではなく CPU を使用するように切り替え、パフォーマンスを向上させました.
-4. Colab のパブリック URL の問題を修正しました.
-## 20240306
-
-1. [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) で推論速度を50%向上させました (RTX3090 + PyTorch 2.2.1 + CU11.8 + Win10 + Py39 でテスト).
-2. Faster Whisper非中国語ASRを使用する際、最初に中国語FunASRモデルをダウンロードする必要がなくなりました.
-3. [PR 610](https://github.com/RVC-Boss/GPT-SoVITS/pull/610) で UVR5 残響除去モデルの設定が逆になっていた問題を修正しました.
-4. [PR 675](https://github.com/RVC-Boss/GPT-SoVITS/pull/675) で、CUDA が利用できない場合に Faster Whisper の自動 CPU 推論を有効にしました.
-5. [PR 573](https://github.com/RVC-Boss/GPT-SoVITS/pull/573) で、Mac での適切なCPU推論を確保するために `is_half` チェックを修正しました.
-
-## 202403/202404/202405
-
-### マイナー修正:
-
-1. 参照テキストなしモードの問題を修正しました.
-2. 中国語と英語のテキストフロントエンドを最適化しました.
-3. API フォーマットを改善しました.
-4. CMD フォーマットの問題を修正しました.
-5. トレーニングデータ処理中のサポートされていない言語に対するエラープロンプトを追加しました.
-6. Hubert 抽出のバグを修正しました.
-
-### メジャー修正:
-
-1. SoVITS トレーニングで VQ を凍結せずに品質低下を引き起こす問題を修正しました.
-2. クイック推論ブランチを追加しました.
-
-## 20240610
-
-### マイナー修正:
-
-1. [PR 1168](https://github.com/RVC-Boss/GPT-SoVITS/pull/1168) & [PR 1169](https://github.com/RVC-Boss/GPT-SoVITS/pull/1169)で、純粋な句読点および複数の句読点を含むテキスト入力のロジックを改善しました.
-2. [Commit 501a74a](https://github.com/RVC-Boss/GPT-SoVITS/commit/501a74ae96789a26b48932babed5eb4e9483a232)で、UVR5 の MDXNet デリバブをサポートする CMD フォーマットを修正し、スペースを含むパスをサポートしました.
-3. [PR 1159](https://github.com/RVC-Boss/GPT-SoVITS/pull/1159)で、`s2_train.py` の SoVITS トレーニングのプログレスバーロジックを修正しました.
-
-### メジャー修正:
-
-4. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) で、WebUI の GPT ファインチューニングが中国語入力テキストの BERT 特徴を読み取らず、推論との不一致や品質低下の可能性を修正しました.
-   **注意: 以前に大量のデータでファインチューニングを行った場合、品質向上のためにモデルを再調整することをお勧めします.**
-
-## 20240706
-
-### マイナー修正:
-
-1. [Commit 1250670](https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041) で、CPU 推論のデフォルトバッチサイズの小数点問題を修正しました.
-2. [PR 1258](https://github.com/RVC-Boss/GPT-SoVITS/pull/1258), [PR 1265](https://github.com/RVC-Boss/GPT-SoVITS/pull/1265), [PR 1267](https://github.com/RVC-Boss/GPT-SoVITS/pull/1267) で、ノイズ除去またはASRが例外に遭遇した場合に、すべての保留中のオーディオファイルが終了する問題を修正しました.
-3. [PR 1253](https://github.com/RVC-Boss/GPT-SoVITS/pull/1253) で、句読点で分割する際の小数点分割の問題を修正しました.
-4. [Commit a208698](https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca) で、マルチGPUトレーニングのマルチプロセス保存ロジックを修正しました.
-5. [PR 1251](https://github.com/RVC-Boss/GPT-SoVITS/pull/1251) で、不要な `my_utils` を削除しました.
-
-### メジャー修正:
-
-6. [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) の加速推論コードが検証され、メインブランチにマージされ、ベースとの推論効果の一貫性が確保されました.
-   また、参照テキストなしモードでの加速推論もサポートしています.
-
-**今後の更新では、`fast_inference`ブランチの変更の一貫性を継続的に検証します**.
-
-## 20240727
-
-### マイナー修正:
-
-1. [PR 1298](https://github.com/RVC-Boss/GPT-SoVITS/pull/1298) で、不要な i18n コードをクリーンアップしました.
-2. [PR 1299](https://github.com/RVC-Boss/GPT-SoVITS/pull/1299) で、ユーザーファイルパスの末尾のスラッシュがコマンドラインエラーを引き起こす問題を修正しました.
-3. [PR 756](https://github.com/RVC-Boss/GPT-SoVITS/pull/756) で、GPT トレーニングのステップ計算ロジックを修正しました.
-
-### メジャー修正:
-
-4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) で、合成のスピーチレート調整をサポートしました.
-   スピーチレートのみを調整しながらランダム性を固定できるようになりました.
-
-- 2024.07.27 [PR#1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR#1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356): BS-RoFormerボーカル・伴奏分離モデルのサポートを追加。
+- 2024.07.13 [PR#1294](https://github.com/RVC-Boss/GPT-SoVITS/pull/1294), [PR#1298](https://github.com/RVC-Boss/GPT-SoVITS/pull/1298)
+  - 内容: i18nスキャンのリファクタリングと多言語設定ファイルの更新
+  - タイプ: ドキュメンテーション
+  - 貢献者: StaryLan
+- 2024.07.13 [PR#1299](https://github.com/RVC-Boss/GPT-SoVITS/pull/1299)
+  - 内容: ユーザーファイルパスの末尾スラッシュがコマンドラインエラーを引き起こす問題を修正
+  - タイプ: 修正
+  - 貢献者: XXXXRT666
+- 2024.07.19 [PR#756](https://github.com/RVC-Boss/GPT-SoVITS/pull/756)
+  - 内容: GPTトレーニング時、カスタム`bucket_sampler`使用時のステップ数不一致を修正
+  - タイプ: 修正
+  - 貢献者: huangxu1991
+- 2024.07.23 [Commit#9588a3c5](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2), [PR#1340](https://github.com/RVC-Boss/GPT-SoVITS/pull/1340)
+  - 内容: 合成時の話速調整をサポート（ランダム性を固定して速度のみ制御するオプション含む）。`api.py`に更新済み
+  - タイプ: 新機能
+  - 貢献者: RVC-Boss, 红血球AE3803
+- 2024.07.27 [PR#1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR#1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356)
+  - 内容: BS-RoFormerボーカル・伴奏分離モデルのサポートを追加。
   - タイプ: 新機能
   - 貢献者: KamioRinn
-- 2024.07.27 [PR#1351](https://github.com/RVC-Boss/GPT-SoVITS/pull/1351): 中国語テキストフロントエンドの改善。
+- 2024.07.27 [PR#1351](https://github.com/RVC-Boss/GPT-SoVITS/pull/1351)
+  - 内容: 中国語テキストフロントエンドの改善。
   - タイプ: 新機能
   - 貢献者: KamioRinn
 
 ## 202408 (V2 バージョン)
 
-- 2024.08.01 [PR#1355](https://github.com/RVC-Boss/GPT-SoVITS/pull/1355): WebUIでファイル処理時にパスを自動入力するように変更。
+- 2024.08.01 [PR#1355](https://github.com/RVC-Boss/GPT-SoVITS/pull/1355)
+  - 内容: WebUIでファイル処理時にパスを自動入力するように変更。
   - タイプ: 雑務
   - 貢献者: XXXXRT666
-- 2024.08.01 [Commit#e62e9653](https://github.com/RVC-Boss/GPT-SoVITS/commit/e62e965323a60a76a025bcaa45268c1ddcbcf05c): BS-RoformerのFP16推論サポートを有効化。
+- 2024.08.01 [Commit#e62e9653](https://github.com/RVC-Boss/GPT-SoVITS/commit/e62e965323a60a76a025bcaa45268c1ddcbcf05c)
+  - 内容: BS-RoformerのFP16推論サポートを有効化。
   - タイプ: パフォーマンス最適化
   - 貢献者: RVC-Boss
-- 2024.08.01 [Commit#bce451a2](https://github.com/RVC-Boss/GPT-SoVITS/commit/bce451a2d1641e581e200297d01f219aeaaf7299), [Commit#4c8b7612](https://github.com/RVC-Boss/GPT-SoVITS/commit/4c8b7612206536b8b4435997acb69b25d93acb78): GPU認識ロジックを最適化、ユーザーが入力した任意のGPUインデックスを処理するユーザーフレンドリーなロジックを追加。
+- 2024.08.01 [Commit#bce451a2](https://github.com/RVC-Boss/GPT-SoVITS/commit/bce451a2d1641e581e200297d01f219aeaaf7299), [Commit#4c8b7612](https://github.com/RVC-Boss/GPT-SoVITS/commit/4c8b7612206536b8b4435997acb69b25d93acb78)
+  - 内容: GPU認識ロジックを最適化、ユーザーが入力した任意のGPUインデックスを処理するユーザーフレンドリーなロジックを追加。
   - タイプ: 雑務
   - 貢献者: RVC-Boss
-- 2024.08.02 [Commit#ff6c193f](https://github.com/RVC-Boss/GPT-SoVITS/commit/ff6c193f6fb99d44eea3648d82ebcee895860a22)~[Commit#de7ee7c7](https://github.com/RVC-Boss/GPT-SoVITS/commit/de7ee7c7c15a2ec137feb0693b4ff3db61fad758): **GPT-SoVITS V2モデルを追加。**
+- 2024.08.02 [Commit#ff6c193f](https://github.com/RVC-Boss/GPT-SoVITS/commit/ff6c193f6fb99d44eea3648d82ebcee895860a22)~[Commit#de7ee7c7](https://github.com/RVC-Boss/GPT-SoVITS/commit/de7ee7c7c15a2ec137feb0693b4ff3db61fad758)
+  - 内容: **GPT-SoVITS V2モデルを追加。**
   - タイプ: 新機能
   - 貢献者: RVC-Boss
-- 2024.08.03 [Commit#8a101474](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3): FunASRを使用して広東語ASRをサポート。
+- 2024.08.03 [Commit#8a101474](https://github.com/RVC-Boss/GPT-SoVITS/commit/8a101474b5a4f913b4c94fca2e3ca87d0771bae3)
+  - 内容: FunASRを使用して広東語ASRをサポート。
   - タイプ: 新機能
   - 貢献者: RVC-Boss
-- 2024.08.03 [PR#1387](https://github.com/RVC-Boss/GPT-SoVITS/pull/1387), [PR#1388](https://github.com/RVC-Boss/GPT-SoVITS/pull/1388): UIとタイミングロジックを最適化。
+- 2024.08.03 [PR#1387](https://github.com/RVC-Boss/GPT-SoVITS/pull/1387), [PR#1388](https://github.com/RVC-Boss/GPT-SoVITS/pull/1388)
+  - 内容: UIとタイミングロジックを最適化。
   - タイプ: 雑務
   - 貢献者: XXXXRT666
-- 2024.08.06 [PR#1404](https://github.com/RVC-Boss/GPT-SoVITS/pull/1404), [PR#987](https://github.com/RVC-Boss/GPT-SoVITS/pull/987), [PR#488](https://github.com/RVC-Boss/GPT-SoVITS/pull/488): 多音字処理ロジックを最適化（V2のみ）。
+- 2024.08.06 [PR#1404](https://github.com/RVC-Boss/GPT-SoVITS/pull/1404), [PR#987](https://github.com/RVC-Boss/GPT-SoVITS/pull/987), [PR#488](https://github.com/RVC-Boss/GPT-SoVITS/pull/488)
+  - 内容: 多音字処理ロジックを最適化（V2のみ）。
   - タイプ: 修正、新機能
   - 貢献者: KamioRinn、RVC-Boss
-- 2024.08.13 [PR#1422](https://github.com/RVC-Boss/GPT-SoVITS/pull/1422): 参照音声が1つしかアップロードできないバグを修正。欠損ファイルがある場合に警告ポップアップを表示するデータセット検証を追加。
+- 2024.08.13 [PR#1422](https://github.com/RVC-Boss/GPT-SoVITS/pull/1422)
+  - 内容: 参照音声が1つしかアップロードできないバグを修正。欠損ファイルがある場合に警告ポップアップを表示するデータセット検証を追加。
   - タイプ: 修正、雑務
   - 貢献者: XXXXRT666
-- 2024.08.20 [Issue#1508](https://github.com/RVC-Boss/GPT-SoVITS/issues/1508): 上流のLangSegmentライブラリがSSMLタグを使用した数字、電話番号、日付、時刻の最適化をサポート。
+- 2024.08.20 [Issue#1508](https://github.com/RVC-Boss/GPT-SoVITS/issues/1508)
+  - 内容: 上流のLangSegmentライブラリがSSMLタグを使用した数字、電話番号、日付、時刻の最適化をサポート。
   - タイプ: 新機能
   - 貢献者: juntaosun
-- 2024.08.20 [PR#1503](https://github.com/RVC-Boss/GPT-SoVITS/pull/1503): APIを修正・最適化。
+- 2024.08.20 [PR#1503](https://github.com/RVC-Boss/GPT-SoVITS/pull/1503)
+  - 内容: APIを修正・最適化。
   - タイプ: 修正
   - 貢献者: KamioRinn
-- 2024.08.20 [PR#1490](https://github.com/RVC-Boss/GPT-SoVITS/pull/1490): `fast_inference`ブランチをメインブランチにマージ。
+- 2024.08.20 [PR#1490](https://github.com/RVC-Boss/GPT-SoVITS/pull/1490)
+  - 内容: `fast_inference`ブランチをメインブランチにマージ。
   - タイプ: リファクタリング
   - 貢献者: ChasonJiang
 - 2024.08.21 **GPT-SoVITS V2バージョンを正式リリース。**
 
 ## 202502 (V3 バージョン)
 
-- 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4): **GPT-SoVITS V3モデルを追加。ファインチューニングには14GBのVRAMが必要。**
+- 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4)
+  - 内容: **GPT-SoVITS V3モデルを追加。ファインチューニングには14GBのVRAMが必要。**
   - タイプ: 新機能（[Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))参照）
   - 貢献者: RVC-Boss
-- 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032): 多言語プロジェクトドキュメントを更新。
+- 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032)
+  - 内容: 多言語プロジェクトドキュメントを更新。
   - タイプ: ドキュメント
   - 貢献者: StaryLan
-- 2025.02.12 [PR#2033](https://github.com/RVC-Boss/GPT-SoVITS/pull/2033): 日本語ドキュメントを更新。
+- 2025.02.12 [PR#2033](https://github.com/RVC-Boss/GPT-SoVITS/pull/2033)
+  - 内容: 日本語ドキュメントを更新。
   - タイプ: ドキュメント
   - 貢献者: Fyphen
-- 2025.02.12 [PR#2010](https://github.com/RVC-Boss/GPT-SoVITS/pull/2010): アテンション計算ロジックを最適化。
+- 2025.02.12 [PR#2010](https://github.com/RVC-Boss/GPT-SoVITS/pull/2010)
+  - 内容: アテンション計算ロジックを最適化。
   - タイプ: パフォーマンス最適化
   - 貢献者: wzy3650
-- 2025.02.12 [PR#2040](https://github.com/RVC-Boss/GPT-SoVITS/pull/2040): ファインチューニング用に勾配チェックポイントサポートを追加。12GB VRAMが必要。
+- 2025.02.12 [PR#2040](https://github.com/RVC-Boss/GPT-SoVITS/pull/2040)
+  - 内容: ファインチューニング用に勾配チェックポイントサポートを追加。12GB VRAMが必要。
   - タイプ: 新機能
   - 貢献者: Kakaru Hayate
-- 2025.02.14 [PR#2047](https://github.com/RVC-Boss/GPT-SoVITS/pull/2047), [PR#2062](https://github.com/RVC-Boss/GPT-SoVITS/pull/2062), [PR#2073](https://github.com/RVC-Boss/GPT-SoVITS/pull/2073): 新しい言語セグメンテーションツールに切り替え、多言語混合テキストの分割戦略を改善。数字と英語の処理ロジックを最適化。
+- 2025.02.14 [PR#2047](https://github.com/RVC-Boss/GPT-SoVITS/pull/2047), [PR#2062](https://github.com/RVC-Boss/GPT-SoVITS/pull/2062), [PR#2073](https://github.com/RVC-Boss/GPT-SoVITS/pull/2073)
+  - 内容: 新しい言語セグメンテーションツールに切り替え、多言語混合テキストの分割戦略を改善。数字と英語の処理ロジックを最適化。
   - タイプ: 新機能
   - 貢献者: KamioRinn
-- 2025.02.23 [Commit#56509a17](https://github.com/RVC-Boss/GPT-SoVITS/commit/56509a17c918c8d149c48413a672b8ddf437495b)~[Commit#514fb692](https://github.com/RVC-Boss/GPT-SoVITS/commit/514fb692db056a06ed012bc3a5bca2a5b455703e): **GPT-SoVITS V3モデルがLoRAトレーニングをサポート。ファインチューニングに8GB GPUメモリが必要。**
+- 2025.02.23 [Commit#56509a17](https://github.com/RVC-Boss/GPT-SoVITS/commit/56509a17c918c8d149c48413a672b8ddf437495b)~[Commit#514fb692](https://github.com/RVC-Boss/GPT-SoVITS/commit/514fb692db056a06ed012bc3a5bca2a5b455703e)
+  - 内容: **GPT-SoVITS V3モデルがLoRAトレーニングをサポート。ファインチューニングに8GB GPUメモリが必要。**
   - タイプ: 新機能
   - 貢献者: RVC-Boss
-- 2025.02.23 [PR#2078](https://github.com/RVC-Boss/GPT-SoVITS/pull/2078): ボーカルと楽器分離のためのMel Band Roformerモデルサポートを追加。
+- 2025.02.23 [PR#2078](https://github.com/RVC-Boss/GPT-SoVITS/pull/2078)
+  - 内容: ボーカルと楽器分離のためのMel Band Roformerモデルサポートを追加。
   - タイプ: 新機能
   - 貢献者: Sucial
-- 2025.02.26 [PR#2112](https://github.com/RVC-Boss/GPT-SoVITS/pull/2112), [PR#2114](https://github.com/RVC-Boss/GPT-SoVITS/pull/2114): 中国語パス下でのMeCabエラーを修正（日本語/韓国語または多言語テキスト分割用）。
+- 2025.02.26 [PR#2112](https://github.com/RVC-Boss/GPT-SoVITS/pull/2112), [PR#2114](https://github.com/RVC-Boss/GPT-SoVITS/pull/2114)
+  - 内容: 中国語パス下でのMeCabエラーを修正（日本語/韓国語または多言語テキスト分割用）。
   - タイプ: 修正
   - 貢献者: KamioRinn
-- 2025.02.27 [Commit#92961c3f](https://github.com/RVC-Boss/GPT-SoVITS/commit/92961c3f68b96009ff2cd00ce614a11b6c4d026f)~[Commit#250b1c73](https://github.com/RVC-Boss/GPT-SoVITS/commit/250b1c73cba60db18148b21ec5fbce01fd9d19bc): **24kHzから48kHzへのオーディオ超解像モデルを追加**。V3モデルで24Kオーディオを生成する際の「こもった」オーディオ問題を緩和。
+- 2025.02.27 [Commit#92961c3f](https://github.com/RVC-Boss/GPT-SoVITS/commit/92961c3f68b96009ff2cd00ce614a11b6c4d026f)~[Commit#250b1c73](https://github.com/RVC-Boss/GPT-SoVITS/commit/250b1c73cba60db18148b21ec5fbce01fd9d19bc)
+  - 内容: **24kHzから48kHzへのオーディオ超解像モデルを追加**。V3モデルで24Kオーディオを生成する際の「こもった」オーディオ問題を緩和。
   - タイプ: 新機能
   - 貢献者: RVC-Boss
   - 関連: [Issue#2085](https://github.com/RVC-Boss/GPT-SoVITS/issues/2085), [Issue#2117](https://github.com/RVC-Boss/GPT-SoVITS/issues/2117)
-- 2025.02.28 [PR#2123](https://github.com/RVC-Boss/GPT-SoVITS/pull/2123): 多言語プロジェクトドキュメントを更新。
+- 2025.02.28 [PR#2123](https://github.com/RVC-Boss/GPT-SoVITS/pull/2123)
+  - 内容: 多言語プロジェクトドキュメントを更新。
   - タイプ: ドキュメント
   - 貢献者: StaryLan
-- 2025.02.28 [PR#2122](https://github.com/RVC-Boss/GPT-SoVITS/pull/2122): モデルが識別できない短いCJK文字に対してルールベースの検出を適用。
+- 2025.02.28 [PR#2122](https://github.com/RVC-Boss/GPT-SoVITS/pull/2122)
+  - 内容: モデルが識別できない短いCJK文字に対してルールベースの検出を適用。
   - タイプ: 修正
   - 貢献者: KamioRinn
   - 関連: [Issue#2116](https://github.com/RVC-Boss/GPT-SoVITS/issues/2116)
-- 2025.02.28 [Commit#c38b1690](https://github.com/RVC-Boss/GPT-SoVITS/commit/c38b16901978c1db79491e16905ea3a37a7cf686), [Commit#a32a2b89](https://github.com/RVC-Boss/GPT-SoVITS/commit/a32a2b893436fad56cc82409121c7fa36a1815d5): 合成速度を制御するための発話速度パラメータを追加。
+- 2025.02.28 [Commit#c38b1690](https://github.com/RVC-Boss/GPT-SoVITS/commit/c38b16901978c1db79491e16905ea3a37a7cf686), [Commit#a32a2b89](https://github.com/RVC-Boss/GPT-SoVITS/commit/a32a2b893436fad56cc82409121c7fa36a1815d5)
+  - 内容: 合成速度を制御するための発話速度パラメータを追加。
   - タイプ: 修正
   - 貢献者: RVC-Boss
 - 2025.02.28 **GPT-SoVITS V3を正式リリース**。
 
 ## 202503
 
-- 2025.03.31 [PR#2236](https://github.com/RVC-Boss/GPT-SoVITS/pull/2236): 依存関係の不正なバージョンによる問題を修正。
+- 2025.03.31 [PR#2236](https://github.com/RVC-Boss/GPT-SoVITS/pull/2236)
+  - 内容: 依存関係の不正なバージョンによる問題を修正。
   - タイプ: 修正
   - 貢献者: XXXXRT666
   - 関連:
@@ -263,7 +474,8 @@
     - ONNX: [Issue#492](https://github.com/RVC-Boss/GPT-SoVITS/issues/492), [Issue#671](https://github.com/RVC-Boss/GPT-SoVITS/issues/671), [Issue#1192](https://github.com/RVC-Boss/GPT-SoVITS/issues/1192), [Issue#1819](https://github.com/RVC-Boss/GPT-SoVITS/issues/1819), [Issue#1841](https://github.com/RVC-Boss/GPT-SoVITS/issues/1841).
     - Pydantic: [Issue#2230](https://github.com/RVC-Boss/GPT-SoVITS/issues/2230), [Issue#2239](https://github.com/RVC-Boss/GPT-SoVITS/issues/2239).
     - PyTorch-Lightning: [Issue#2174](https://github.com/RVC-Boss/GPT-SoVITS/issues/2174).
-- 2025.03.31 [PR#2241](https://github.com/RVC-Boss/GPT-SoVITS/pull/2241): **SoVITS v3の並列推論を有効化。**
+- 2025.03.31 [PR#2241](https://github.com/RVC-Boss/GPT-SoVITS/pull/2241)
+  - 内容: **SoVITS v3の並列推論を有効化。**
   - タイプ: 新機能
   - 貢献者: ChasonJiang
 
@@ -277,56 +489,92 @@
 
 ## 202504 (V4 バージョン)
 
-- 2025.04.01 [Commit#6a60e5ed](https://github.com/RVC-Boss/GPT-SoVITS/commit/6a60e5edb1817af4a61c7a5b196c0d0f1407668f): SoVITS v3並列推論のロックを解除。非同期モデル読み込みロジックを修正。
+- 2025.04.01 [Commit#6a60e5ed](https://github.com/RVC-Boss/GPT-SoVITS/commit/6a60e5edb1817af4a61c7a5b196c0d0f1407668f)
+  - 内容: SoVITS v3並列推論のロックを解除。非同期モデル読み込みロジックを修正。
   - タイプ: 修正
   - 貢献者: RVC-Boss
-- 2025.04.07 [PR#2255](https://github.com/RVC-Boss/GPT-SoVITS/pull/2255): Ruffを使用したコードフォーマット。G2PWリンクを更新。
+- 2025.04.07 [PR#2255](https://github.com/RVC-Boss/GPT-SoVITS/pull/2255)
+  - 内容: Ruffを使用したコードフォーマット。G2PWリンクを更新。
   - タイプ: スタイル
   - 貢献者: XXXXRT666
-- 2025.04.15 [PR#2290](https://github.com/RVC-Boss/GPT-SoVITS/pull/2290): ドキュメントを整理。Python 3.11サポートを追加。インストーラーを更新。
+- 2025.04.15 [PR#2290](https://github.com/RVC-Boss/GPT-SoVITS/pull/2290)
+  - 内容: ドキュメントを整理。Python 3.11サポートを追加。インストーラーを更新。
   - タイプ: 雑務
   - 貢献者: XXXXRT666
-- 2025.04.20 [PR#2300](https://github.com/RVC-Boss/GPT-SoVITS/pull/2300): Colab、インストールファイル、モデルダウンロードを更新。
+- 2025.04.20 [PR#2300](https://github.com/RVC-Boss/GPT-SoVITS/pull/2300)
+  - 内容: Colab、インストールファイル、モデルダウンロードを更新。
   - タイプ: 雑務
   - 貢献者: XXXXRT666
-- 2025.04.20 [Commit#e0c452f0](https://github.com/RVC-Boss/GPT-SoVITS/commit/e0c452f0078e8f7eb560b79a54d75573fefa8355)~[Commit#9d481da6](https://github.com/RVC-Boss/GPT-SoVITS/commit/9d481da610aa4b0ef8abf5651fd62800d2b4e8bf): **GPT-SoVITS V4モデルを追加。**
+- 2025.04.20 [Commit#e0c452f0](https://github.com/RVC-Boss/GPT-SoVITS/commit/e0c452f0078e8f7eb560b79a54d75573fefa8355)~[Commit#9d481da6](https://github.com/RVC-Boss/GPT-SoVITS/commit/9d481da610aa4b0ef8abf5651fd62800d2b4e8bf)
+  - 内容: **GPT-SoVITS V4モデルを追加。**
   - タイプ: 新機能
   - 貢献者: RVC-Boss
-- 2025.04.21 [Commit#8b394a15](https://github.com/RVC-Boss/GPT-SoVITS/commit/8b394a15bce8e1d85c0b11172442dbe7a6017ca2)~[Commit#bc2fe5ec](https://github.com/RVC-Boss/GPT-SoVITS/commit/bc2fe5ec86536c77bb3794b4be263ac87e4fdae6), [PR#2307](https://github.com/RVC-Boss/GPT-SoVITS/pull/2307): V4の並列推論を有効化。
+- 2025.04.21 [Commit#8b394a15](https://github.com/RVC-Boss/GPT-SoVITS/commit/8b394a15bce8e1d85c0b11172442dbe7a6017ca2)~[Commit#bc2fe5ec](https://github.com/RVC-Boss/GPT-SoVITS/commit/bc2fe5ec86536c77bb3794b4be263ac87e4fdae6), [PR#2307](https://github.com/RVC-Boss/GPT-SoVITS/pull/2307)
+  - 内容: V4の並列推論を有効化。
   - タイプ: 新機能
   - 貢献者: RVC-Boss、ChasonJiang
-- 2025.04.22 [Commit#7405427a](https://github.com/RVC-Boss/GPT-SoVITS/commit/7405427a0ab2a43af63205df401fd6607a408d87)~[Commit#590c83d7](https://github.com/RVC-Boss/GPT-SoVITS/commit/590c83d7667c8d4908f5bdaf2f4c1ba8959d29ff), [PR#2309](https://github.com/RVC-Boss/GPT-SoVITS/pull/2309): モデルバージョンパラメータの受け渡しを修正。
+- 2025.04.22 [Commit#7405427a](https://github.com/RVC-Boss/GPT-SoVITS/commit/7405427a0ab2a43af63205df401fd6607a408d87)~[Commit#590c83d7](https://github.com/RVC-Boss/GPT-SoVITS/commit/590c83d7667c8d4908f5bdaf2f4c1ba8959d29ff), [PR#2309](https://github.com/RVC-Boss/GPT-SoVITS/pull/2309)
+  - 内容: モデルバージョンパラメータの受け渡しを修正。
   - タイプ: 修正
   - 貢献者: RVC-Boss、ChasonJiang
-- 2025.04.22 [Commit#fbdab94e](https://github.com/RVC-Boss/GPT-SoVITS/commit/fbdab94e17d605d85841af6f94f40a45976dd1d9), [PR#2310](https://github.com/RVC-Boss/GPT-SoVITS/pull/2310): NumpyとNumbaのバージョン不一致問題を修正。librosaバージョンを更新。
+- 2025.04.22 [Commit#fbdab94e](https://github.com/RVC-Boss/GPT-SoVITS/commit/fbdab94e17d605d85841af6f94f40a45976dd1d9), [PR#2310](https://github.com/RVC-Boss/GPT-SoVITS/pull/2310)
+  - 内容: NumpyとNumbaのバージョン不一致問題を修正。librosaバージョンを更新。
   - タイプ: 修正
   - 貢献者: RVC-Boss、XXXXRT666
   - 関連: [Issue#2308](https://github.com/RVC-Boss/GPT-SoVITS/issues/2308)
 - **2024.04.22 GPT-SoVITS V4を正式リリース**。
-- 2025.04.22 [PR#2311](https://github.com/RVC-Boss/GPT-SoVITS/pull/2311): Gradioパラメータを更新。
+- 2025.04.22 [PR#2311](https://github.com/RVC-Boss/GPT-SoVITS/pull/2311)
+  - 内容: Gradioパラメータを更新。
   - タイプ: 雑務
   - 貢献者: XXXXRT666
-- 2025.04.25 [PR#2322](https://github.com/RVC-Boss/GPT-SoVITS/pull/2322): Colab/Kaggleノートブックスクリプトを改善。
+- 2025.04.25 [PR#2322](https://github.com/RVC-Boss/GPT-SoVITS/pull/2322)
+  - 内容: Colab/Kaggleノートブックスクリプトを改善。
   - タイプ: 雑務
   - 貢献者: XXXXRT666
 
 ## 202505
 
-- 2025.05.26 [PR#2351](https://github.com/RVC-Boss/GPT-SoVITS/pull/2351): DockerとWindows自動ビルドスクリプトを改善。pre-commitフォーマットを追加。
+- 2025.05.26 [PR#2351](https://github.com/RVC-Boss/GPT-SoVITS/pull/2351)
+  - 内容: DockerとWindows自動ビルドスクリプトを改善。pre-commitフォーマットを追加。
   - タイプ: 雑務
   - 貢献者: XXXXRT666
-- 2025.05.26 [PR#2408](https://github.com/RVC-Boss/GPT-SoVITS/pull/2408): 多言語テキスト分割と認識ロジックを最適化。
+- 2025.05.26 [PR#2408](https://github.com/RVC-Boss/GPT-SoVITS/pull/2408)
+  - 内容: 多言語テキスト分割と認識ロジックを最適化。
   - タイプ: 修正
   - 貢献者: KamioRinn
   - 関連: [Issue#2404](https://github.com/RVC-Boss/GPT-SoVITS/issues/2404)
-- 2025.05.26 [PR#2377](https://github.com/RVC-Boss/GPT-SoVITS/pull/2377): キャッシュ戦略を実装し、SoVITS V3/V4推論速度を10%向上。
+- 2025.05.26 [PR#2377](https://github.com/RVC-Boss/GPT-SoVITS/pull/2377)
+  - 内容: キャッシュ戦略を実装し、SoVITS V3/V4推論速度を10%向上。
   - タイプ: パフォーマンス最適化
   - 貢献者: Kakaru Hayate
-- 2025.05.26 [Commit#4d9d56b1](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d9d56b19638dc434d6eefd9545e4d8639a3e072), [Commit#8c705784](https://github.com/RVC-Boss/GPT-SoVITS/commit/8c705784c50bf438c7b6d0be33a9e5e3cb90e6b2), [Commit#fafe4e7f](https://github.com/RVC-Boss/GPT-SoVITS/commit/fafe4e7f120fba56c5f053c6db30aa675d5951ba): アノテーションインターフェースを更新し、以下の注意事項を追加しました：各ページの編集が終わったら必ず「Submit Text」をクリックしてください。さもなくば変更は保存されません。
+- 2025.05.26 [Commit#4d9d56b1](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d9d56b19638dc434d6eefd9545e4d8639a3e072), [Commit#8c705784](https://github.com/RVC-Boss/GPT-SoVITS/commit/8c705784c50bf438c7b6d0be33a9e5e3cb90e6b2), [Commit#fafe4e7f](https://github.com/RVC-Boss/GPT-SoVITS/commit/fafe4e7f120fba56c5f053c6db30aa675d5951ba)
+  - 内容: アノテーションインターフェースを更新し、以下の注意事項を追加しました：各ページの編集が終わったら必ず「Submit Text」をクリックしてください。さもなくば変更は保存されません。
   - タイプ: 修正
   - 貢献者: RVC-Boss
-- 2025.05.29 [Commit#1934fc1e](https://github.com/RVC-Boss/GPT-SoVITS/commit/1934fc1e1b22c4c162bba1bbe7d7ebb132944cdc): UVR5およびONNX dereverberationモデルのエラーを修正。FFmpegが元のパスにスペースを含むMP3/M4Aファイルをエンコードする場合の問題を解決。
+- 2025.05.29 [Commit#1934fc1e](https://github.com/RVC-Boss/GPT-SoVITS/commit/1934fc1e1b22c4c162bba1bbe7d7ebb132944cdc)
+  - 内容: UVR5およびONNX dereverberationモデルのエラーを修正。FFmpegが元のパスにスペースを含むMP3/M4Aファイルをエンコードする場合の問題を解決。
   - タイプ: 修正
   - 貢献者: RVC-Boss
 
-**プレビュー: 端午節後にV2バージョンを基にした大規模な最適化アップデートを予定！**
+## 202506（V2Pro シリーズ）
+
+- 2025.06.03 [PR#2420](https://github.com/RVC-Boss/GPT-SoVITS/pull/2420)
+  - 内容: プロジェクトの多言語ドキュメントを更新
+  - タイプ: ドキュメント
+  - 貢献者: StaryLan
+- 2025.06.04 [PR#2417](https://github.com/RVC-Boss/GPT-SoVITS/pull/2417)
+  - 内容: TorchScript を使用した V4 モデルのエクスポート機能を追加
+  - タイプ: 新機能
+  - 貢献者: L-jasmine
+- 2025.06.04 [Commit#b7c0c5ca](https://github.com/RVC-Boss/GPT-SoVITS/commit/b7c0c5ca878bcdd419fd86bf80dba431a6653356)〜[Commit#298ebb03](https://github.com/RVC-Boss/GPT-SoVITS/commit/298ebb03c5a719388527ae6a586c7ea960344e70)
+  - 内容: GPT-SoVITS V2Pro シリーズモデル (V2Pro, V2ProPlus) を正式に導入
+  - タイプ: 新機能
+  - 貢献者: RVC-Boss
+- 2025.06.05 [PR#2426](https://github.com/RVC-Boss/GPT-SoVITS/pull/2426)
+  - 内容: `config/inference_webui` の初期化時のエラーを修正
+  - タイプ: 不具合修正（Bug Fix）
+  - 貢献者: StaryLan
+- 2025.06.05 [PR#2427](https://github.com/RVC-Boss/GPT-SoVITS/pull/2427), [Commit#7d70852a](https://github.com/RVC-Boss/GPT-SoVITS/commit/7d70852a3f67c3b52e3a62857f8663d529efc8cd), [PR#2434](https://github.com/RVC-Boss/GPT-SoVITS/pull/2434)
+  - 内容: 自動精度検出ロジックを最適化し、WebUI フロントエンドモジュールに折り畳み（Collapsible）機能を追加
+  - タイプ: 新機能
+  - 貢献者: XXXXRT666, RVC-Boss
