@@ -299,6 +299,38 @@ v2 環境から v3 を使用する方法:
 
    追加: 音声超解像モデルについては、[ダウンロード方法](../../tools/AP_BWE_main/24kto48k/readme.txt)を参照してください.
 
+## V4 リリースノート
+
+新機能:
+
+1. **V4 は、V3 で発生していた非整数倍アップサンプリングによる金属音の問題を修正し、音声がこもる問題を防ぐためにネイティブに 48kHz 音声を出力します（V3 はネイティブに 24kHz 音声のみ出力）**. 作者は V4 を V3 の直接的な置き換えとして推奨していますが、さらなるテストが必要です.
+   [詳細はこちら](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+
+V1/V2/V3 環境から V4 への移行方法:
+
+1. `pip install -r requirements.txt` を実行して一部の依存パッケージを更新してください.
+
+2. GitHub から最新のコードをクローンします.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) から V4 の事前学習済みモデル (`gsv-v4-pretrained/s2v4.ckpt` および `gsv-v4-pretrained/vocoder.pth`) をダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリへ配置してください.
+
+## V2Pro リリースノート
+
+新機能:
+
+1. **V2 と比較してやや高いメモリ使用量ですが、ハードウェアコストと推論速度は維持しつつ、V4 よりも高い性能と音質を実現します. **
+   [詳細はこちら](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90features-(%E5%90%84%E7%89%88%E6%9C%AC%E7%89%B9%E6%80%A7))
+
+2. V1/V2 と V2Pro シリーズは類似した特徴を持ち、V3/V4 も同様の機能を持っています. 平均音質が低いトレーニングセットの場合、V1/V2/V2Pro は良好な結果を出すことができますが、V3/V4 では対応できません. また、V3/V4 の合成音声はトレーニング全体ではなく、より参考音声に寄った音質になります.
+
+V1/V2/V3/V4 環境から V2Pro への移行方法:
+
+1. `pip install -r requirements.txt` を実行して一部の依存パッケージを更新してください.
+
+2. GitHub から最新のコードをクローンします.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) から V2Pro の事前学習済みモデル (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, および `sv/pretrained_eres2netv2w24s4ep4.ckpt`) をダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリへ配置してください.
+
 ## Todo リスト
 
 - [x] **優先度 高:**
@@ -381,6 +413,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
 - [BigVGAN](https://github.com/NVIDIA/BigVGAN)
+- [eresnetv2](https://modelscope.cn/models/iic/speech_eres2netv2w24s4ep4_sv_zh-cn_16k-common)
 
 ### 推論用テキストフロントエンド
 

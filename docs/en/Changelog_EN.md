@@ -330,4 +330,14 @@
   - Type: Fix
   - Contributor: RVC-Boss
 
-**Preview: Major optimization update based on V2 version coming after the Dragon Boat Festival!**
+## 202506 (V2Pro Series)
+
+- 2025.06.03 [PR#2420](https://github.com/RVC-Boss/GPT-SoVITS/pull/2420): Updated multilingual project documentation.
+  - Type: Documentation
+  - Contributor: StaryLan
+- 2025.06.04 [PR#2417](https://github.com/RVC-Boss/GPT-SoVITS/pull/2417): Support exporting V4 with TorchScript.
+  - Type: New Feature
+  - Contributor: L-jasmine
+- 2025.06.04 [Commit#b7c0c5ca](https://github.com/RVC-Boss/GPT-SoVITS/commit/b7c0c5ca878bcdd419fd86bf80dba431a6653356)~[Commit#298ebb03](https://github.com/RVC-Boss/GPT-SoVITS/commit/298ebb03c5a719388527ae6a586c7ea960344e70): **Added GPT-SoVITS V2Pro Series model (V2Pro, V2ProPlus).**.
+  - Type: New Feature
+  - Contributor: RVC-Boss
