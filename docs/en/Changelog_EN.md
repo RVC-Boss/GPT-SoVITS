@@ -572,7 +572,7 @@
   - Contributor: RVC-Boss
 - 2025.06.05 [PR#2426](https://github.com/RVC-Boss/GPT-SoVITS/pull/2426)
   - Description: Fix initialization error in `config/inference_webui`.
-  - Type**: Bug Fix
+  - Type: Fix
   - Contributor: StaryLan
 - 2025.06.05 [PR#2427](https://github.com/RVC-Boss/GPT-SoVITS/pull/2427), [Commit#7d70852a](https://github.com/RVC-Boss/GPT-SoVITS/commit/7d70852a3f67c3b52e3a62857f8663d529efc8cd), [PR#2434](https://github.com/RVC-Boss/GPT-SoVITS/pull/2434)
   - Content: Optimized automatic precision detection logic; added collapsible functionality to WebUI frontend modules.
