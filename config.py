@@ -158,13 +158,14 @@ def get_device_dtype_sm(idx: int) -> tuple[torch.device, torch.dtype, float, flo
     major, minor = capability
     sm_version = major + minor / 10.0
     is_16_series = bool(re.search(r"16\d{2}", name))
-    if mem_gb < 4:
+    if mem_gb < 4 or sm_version < 5.3:
         return cpu, torch.float32, 0.0, 0.0
-    if (sm_version >= 7.0 and sm_version != 7.5) or (5.3 <= sm_version <= 6.0):
-        if is_16_series and sm_version == 7.5:
-            return cuda, torch.float32, sm_version, mem_gb  # 16系卡除外
-        else:
-            return cuda, torch.float16, sm_version, mem_gb
+    if sm_version < 6.0:
+        return cuda, torch.float32, sm_version, mem_gb
+    if is_16_series and sm_version == 7.5: # 16系列不使用float16
+        return cuda, torch.float32, sm_version, mem_gb
+    if sm_version >= 7.0:
+        return cuda, torch.float16, sm_version, mem_gb
     return cpu, torch.float32, 0.0, 0.0
 
 
