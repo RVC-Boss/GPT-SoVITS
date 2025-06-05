@@ -108,7 +108,7 @@
 
 ## 202403/202404/202405 Güncellemeleri
 
-### Küçük Düzeltmeler:
+### Küçük Düzeltmeler
 
 1. Referans metin olmayan mod ile ilgili sorunlar düzeltildi.
 2. Çince ve İngilizce metin önyüzü optimize edildi.
@@ -117,27 +117,27 @@
 5. Eğitim verisi işleme sırasında desteklenmeyen diller için hata uyarıları eklendi.
 6. Hubert çıkarımındaki hata düzeltildi.
 
-### Büyük Düzeltmeler:
+### Büyük Düzeltmeler
 
 1. VQ'yu dondurmadan yapılan SoVITS eğitimi sorunu (bu kalite düşüşüne neden olabilir) düzeltildi.
 2. Hızlı çıkarım dalı eklendi.
 
 ## 20240610
 
-### Küçük Düzeltmeler:
+### Küçük Düzeltmeler
 
 1. [PR 1168](https://github.com/RVC-Boss/GPT-SoVITS/pull/1168) & [PR 1169](https://github.com/RVC-Boss/GPT-SoVITS/pull/1169) saf noktalama işareti ve çoklu noktalama işareti metin girdisi için mantığı geliştirdi.
 2. [Commit 501a74a](https://github.com/RVC-Boss/GPT-SoVITS/commit/501a74ae96789a26b48932babed5eb4e9483a232) UVR5'teki MDXNet yankı giderme için CMD formatını düzeltti, boşluk içeren yolları destekledi.
 3. [PR 1159](https://github.com/RVC-Boss/GPT-SoVITS/pull/1159) `s2_train.py` içindeki SoVITS eğitimi için ilerleme çubuğu mantığını düzeltti.
 
-### Büyük Düzeltmeler:
+### Büyük Düzeltmeler
 
-4. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) WebUI'nin GPT ince ayarının, Çince giriş metinlerinin BERT özelliğini okumaması sorununu düzeltti, bu da çıkarım ile tutarsızlığa ve potansiyel kalite düşüşüne neden oluyordu.
+1. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) WebUI'nin GPT ince ayarının, Çince giriş metinlerinin BERT özelliğini okumaması sorununu düzeltti, bu da çıkarım ile tutarsızlığa ve potansiyel kalite düşüşüne neden oluyordu.
    **Dikkat: Daha önce büyük miktarda veri ile ince ayar yaptıysanız, modelin kalitesini artırmak için yeniden ayar yapmanız önerilir.**
 
 ## 20240706
 
-### Küçük Düzeltmeler:
+### Küçük Düzeltmeler
 
 1. [Commit 1250670](https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041) CPU çıkarımında varsayılan yığın boyutu ondalık sorununu düzeltti.
 2. [PR 1258](https://github.com/RVC-Boss/GPT-SoVITS/pull/1258), [PR 1265](https://github.com/RVC-Boss/GPT-SoVITS/pull/1265), [PR 1267](https://github.com/RVC-Boss/GPT-SoVITS/pull/1267) gürültü giderme veya ASR ile ilgili istisnalarla karşılaşıldığında bekleyen tüm ses dosyalarının çıkış yapmasına neden olan sorunları düzeltti.
@@ -145,24 +145,24 @@
 4. [Commit a208698](https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca) çoklu GPU eğitimi için çoklu işlem kaydetme mantığını düzeltti.
 5. [PR 1251](https://github.com/RVC-Boss/GPT-SoVITS/pull/1251) gereksiz `my_utils`'ı kaldırdı.
 
-### Büyük Düzeltmeler:
+### Büyük Düzeltmeler
 
-6. [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) hızlandırılmış çıkarım kodu doğrulandı ve ana dala birleştirildi, taban ile tutarlı çıkarım etkileri sağlandı.
+1. [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) hızlandırılmış çıkarım kodu doğrulandı ve ana dala birleştirildi, taban ile tutarlı çıkarım etkileri sağlandı.
    Ayrıca referans metni olmayan modda hızlandırılmış çıkarımı destekler.
 
 **Gelecek güncellemeler, `fast_inference` dalındaki değişikliklerin tutarlılığını doğrulamaya devam edecek.**
 
 ## 20240727
 
-### Küçük Düzeltmeler:
+### Küçük Düzeltmeler
 
 1. [PR 1298](https://github.com/RVC-Boss/GPT-SoVITS/pull/1298) gereksiz i18n kodlarını temizledi.
 2. [PR 1299](https://github.com/RVC-Boss/GPT-SoVITS/pull/1299) kullanıcı dosya yollarındaki sonlandırma eğik çizgilerinin komut satırı hatalarına neden olduğu sorunları düzeltti.
 3. [PR 756](https://github.com/RVC-Boss/GPT-SoVITS/pull/756) GPT eğitimindeki adım hesaplama mantığını düzeltti.
 
-### Büyük Düzeltmeler:
+### Büyük Düzeltmeler
 
-4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) sentez için konuşma hızı ayarlamasını destekledi.
+1. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) sentez için konuşma hızı ayarlamasını destekledi.
    Konuşma hızını ayarlarken rastgeleliği dondurmayı etkinleştirdi.
 
 - 2024.07.27 [PR#1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR#1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356): BS-RoFormer vokal eşlik ayırma modeli desteği eklendi.
@@ -212,7 +212,7 @@
 ## 202502 (V3 Sürümü)
 
 - 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4): **İnce ayar için 14GB VRAM gerektiren GPT-SoVITS V3 modeli eklendi.**
-  - Tür: Yeni Özellik ([Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)) referans)
+  - Tür: Yeni Özellik ([Wiki](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>) referans)
   - Katkıda Bulunan: RVC-Boss
 - 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032): Çok dilli proje dokümantasyonu güncellendi.
   - Tür: Dokümantasyon
@@ -265,6 +265,7 @@
     - Pydantic: [Issue#2230](https://github.com/RVC-Boss/GPT-SoVITS/issues/2230), [Issue#2239](https://github.com/RVC-Boss/GPT-SoVITS/issues/2239).
     - PyTorch-Lightning: [Issue#2174](https://github.com/RVC-Boss/GPT-SoVITS/issues/2174).
 - 2025.03.31 [PR#2241](https://github.com/RVC-Boss/GPT-SoVITS/pull/2241): **SoVITS v3 için paralel çıkarım etkinleştirildi.**
+
   - Tür: Yeni Özellik
   - Katkıda Bulunan: ChasonJiang
 

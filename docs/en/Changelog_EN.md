@@ -108,7 +108,7 @@
 
 ## 202403/202404/202405
 
-### Minor Fixes:
+### Minor Fixes
 
 1. Fixed issues with the no-reference text mode.
 2. Optimized the Chinese and English text frontend.
@@ -117,27 +117,27 @@
 5. Added error prompts for unsupported languages during training data processing.
 6. Fixed the bug in Hubert extraction.
 
-### Major Fixes:
+### Major Fixes
 
 1. Fixed the issue of SoVITS training without freezing VQ (which could cause quality degradation).
 2. Added a quick inference branch.
 
 ## 20240610
 
-### Minor Fixes:
+### Minor Fixes
 
 1. [PR 1168](https://github.com/RVC-Boss/GPT-SoVITS/pull/1168) & [PR 1169](https://github.com/RVC-Boss/GPT-SoVITS/pull/1169) improved the logic for pure punctuation and multi-punctuation text input.
 2. [Commit 501a74a](https://github.com/RVC-Boss/GPT-SoVITS/commit/501a74ae96789a26b48932babed5eb4e9483a232) fixed CMD format for MDXNet de-reverb in UVR5, supporting paths with spaces.
 3. [PR 1159](https://github.com/RVC-Boss/GPT-SoVITS/pull/1159) fixed progress bar logic for SoVITS training in `s2_train.py`.
 
-### Major Fixes:
+### Major Fixes
 
-4. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) fixed the issue of WebUI's GPT fine-tuning not reading BERT feature of Chinese input texts, causing inconsistency with inference and potential quality degradation.
+1. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) fixed the issue of WebUI's GPT fine-tuning not reading BERT feature of Chinese input texts, causing inconsistency with inference and potential quality degradation.
    **Caution: If you have previously fine-tuned with a large amount of data, it is recommended to retune the model to improve quality.**
 
 ## 20240706
 
-### Minor Fixes:
+### Minor Fixes
 
 1. [Commit 1250670](https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041) fixed default batch size decimal issue in CPU inference.
 2. [PR 1258](https://github.com/RVC-Boss/GPT-SoVITS/pull/1258), [PR 1265](https://github.com/RVC-Boss/GPT-SoVITS/pull/1265), [PR 1267](https://github.com/RVC-Boss/GPT-SoVITS/pull/1267) fixed issues where denoising or ASR encountering exceptions would exit all pending audio files.
@@ -145,24 +145,24 @@
 4. [Commit a208698](https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca) fixed multi-process save logic for multi-GPU training.
 5. [PR 1251](https://github.com/RVC-Boss/GPT-SoVITS/pull/1251) removed redundant `my_utils`.
 
-### Major Fixes:
+### Major Fixes
 
-6. The accelerated inference code from [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) has been validated and merged into the main branch, ensuring consistent inference effects with the base.
+1. The accelerated inference code from [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672) has been validated and merged into the main branch, ensuring consistent inference effects with the base.
    It also supports accelerated inference in no-reference text mode.
 
 **Future updates will continue to verify the consistency of changes in the `fast_inference` branch**.
 
 ## 20240727
 
-### Minor Fixes:
+### Minor Fixes
 
 1. [PR 1298](https://github.com/RVC-Boss/GPT-SoVITS/pull/1298) cleaned up redundant i18n code.
 2. [PR 1299](https://github.com/RVC-Boss/GPT-SoVITS/pull/1299) fixed issues where trailing slashes in user file paths caused command line errors.
 3. [PR 756](https://github.com/RVC-Boss/GPT-SoVITS/pull/756) fixed the step calculation logic in GPT training.
 
-### Major Fixes:
+### Major Fixes
 
-4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) supported speech rate adjustment for synthesis.
+1. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) supported speech rate adjustment for synthesis.
    Enabled freezing randomness while only adjusting the speech rate.
 
 - 2024.07.27 [PR#1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR#1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356): Added support for the BS-RoFormer vocal accompaniment separation model.
@@ -212,7 +212,7 @@
 ## 202502 (V3 Version)
 
 - 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4): **Added GPT-SoVITS V3 model, which requires 14GB VRAM for fine-tuning.**
-  - Type: New Feature (Refer to [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)))
+  - Type: New Feature (Refer to [Wiki](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>))
   - Contributor: RVC-Boss
 - 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032): Updated multilingual project documentation.
   - Type: Documentation
@@ -267,9 +267,6 @@
 - 2025.03.31 [PR#2241](https://github.com/RVC-Boss/GPT-SoVITS/pull/2241): **Enabled parallel inference for SoVITS v3.**
   - Type: New Feature
   - Contributor: ChasonJiang
-
-- Fixed other minor bugs.
-
 - Integrated package fixes for ONNX runtime GPU inference support:
   - Type: Fix
   - Details:

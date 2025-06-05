@@ -108,7 +108,7 @@
 
 ## 202403/202404/202405
 
-### 사소한 수정:
+### 사소한 수정
 
 1. 참조 텍스트 없는 모드의 문제를 수정했습니다.
 2. 중국어 및 영어 텍스트 프론트엔드를 최적화했습니다.
@@ -117,27 +117,27 @@
 5. 훈련 데이터 처리 중 지원되지 않는 언어에 대한 오류 프롬프트를 추가했습니다.
 6. Hubert 추출의 버그를 수정했습니다.
 
-### 주요 수정:
+### 주요 수정
 
 1. VQ를 고정하지 않고 SoVITS 훈련의 문제를 수정했습니다(품질 저하를 일으킬 수 있음).
 2. 빠른 추론 분기를 추가했습니다.
 
 ## 20240610
 
-### 사소한 수정:
+### 사소한 수정
 
 1. [PR 1168](https://github.com/RVC-Boss/GPT-SoVITS/pull/1168) & [PR 1169](https://github.com/RVC-Boss/GPT-SoVITS/pull/1169) 순수 구두점 및 다중 구두점 텍스트 입력 로직을 개선했습니다.
 2. [Commit 501a74a](https://github.com/RVC-Boss/GPT-SoVITS/commit/501a74ae96789a26b48932babed5eb4e9483a232) UVR5에서 MDXNet 디러버브를 위한 CMD 형식을 수정하고 공백이 있는 경로를 지원했습니다.
 3. [PR 1159](https://github.com/RVC-Boss/GPT-SoVITS/pull/1159) `s2_train.py`에서 SoVITS 훈련을 위한 진행률 표시줄 로직을 수정했습니다.
 
-### 주요 수정:
+### 주요 수정
 
-4. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) WebUI의 GPT 미세 조정이 중국어 입력 텍스트의 BERT 기능을 읽지 않아 추론과 불일치 및 잠재적 품질 저하를 일으키는 문제를 수정했습니다.
+1. [Commit 99f09c8](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a) WebUI의 GPT 미세 조정이 중국어 입력 텍스트의 BERT 기능을 읽지 않아 추론과 불일치 및 잠재적 품질 저하를 일으키는 문제를 수정했습니다.
    **주의: 이전에 많은 양의 데이터로 미세 조정한 경우 품질을 향상시키기 위해 모델을 다시 조정하는 것이 좋습니다.**
 
 ## 20240706
 
-### 사소한 수정:
+### 사소한 수정
 
 1. [Commit 1250670](https://github.com/RVC-Boss/GPT-SoVITS/commit/db50670598f0236613eefa6f2d5a23a271d82041) CPU 추론에서 기본 배치 크기 소수점 문제를 수정했습니다.
 2. [PR 1258](https://github.com/RVC-Boss/GPT-SoVITS/pull/1258), [PR 1265](https://github.com/RVC-Boss/GPT-SoVITS/pull/1265), [PR 1267](https://github.com/RVC-Boss/GPT-SoVITS/pull/1267) 노이즈 제거 또는 ASR이 예외를 만나면 모든 보류 중인 오디오 파일이 종료되는 문제를 수정했습니다.
@@ -145,24 +145,24 @@
 4. [Commit a208698](https://github.com/RVC-Boss/GPT-SoVITS/commit/a208698e775155efc95b187b746d153d0f2847ca) 다중 GPU 훈련을 위한 다중 프로세스 저장 로직을 수정했습니다.
 5. [PR 1251](https://github.com/RVC-Boss/GPT-SoVITS/pull/1251) 불필요한 `my_utils`를 제거했습니다.
 
-### 주요 수정:
+### 주요 수정
 
-6. [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672)의 가속 추론 코드가 검증되어 메인 브랜치에 병합되었으며, 기본과 일관된 추론 효과를 보장합니다.
+1. [PR 672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672)의 가속 추론 코드가 검증되어 메인 브랜치에 병합되었으며, 기본과 일관된 추론 효과를 보장합니다.
    또한 참조 텍스트 없는 모드에서 가속 추론을 지원합니다.
 
 **향후 업데이트에서는 `fast_inference` 브랜치의 변경 사항의 일관성을 계속 검증할 것입니다**.
 
 ## 20240727
 
-### 사소한 수정:
+### 사소한 수정
 
 1. [PR 1298](https://github.com/RVC-Boss/GPT-SoVITS/pull/1298) 불필요한 i18n 코드를 정리했습니다.
 2. [PR 1299](https://github.com/RVC-Boss/GPT-SoVITS/pull/1299) 사용자 파일 경로의 후행 슬래시가 명령줄 오류를 일으키는 문제를 수정했습니다.
 3. [PR 756](https://github.com/RVC-Boss/GPT-SoVITS/pull/756) GPT 훈련의 단계 계산 로직을 수정했습니다.
 
-### 주요 수정:
+### 주요 수정
 
-4. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) 합성을 위한 음성 속도 조절을 지원했습니다.
+1. [Commit 9588a3c](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2) 합성을 위한 음성 속도 조절을 지원했습니다.
    음성 속도만 조절하면서 무작위성을 고정할 수 있습니다.
 
 - 2024.07.27 [PR#1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR#1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356): BS-RoFormer 보컬 분리 모델 지원 추가.
@@ -212,7 +212,7 @@
 ## 202502 (V3 버전)
 
 - 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4): **GPT-SoVITS V3 모델 추가, 파인튜닝 시 14GB VRAM 필요.**
-  - 유형: 신규 기능 ([위키 참조](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)))
+  - 유형: 신규 기능 ([위키 참조](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>))
   - 기여자: RVC-Boss
 - 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032): 다국어 프로젝트 문서 업데이트.
   - 유형: 문서화
@@ -265,6 +265,7 @@
     - Pydantic: [Issue#2230](https://github.com/RVC-Boss/GPT-SoVITS/issues/2230), [Issue#2239](https://github.com/RVC-Boss/GPT-SoVITS/issues/2239).
     - PyTorch-Lightning: [Issue#2174](https://github.com/RVC-Boss/GPT-SoVITS/issues/2174).
 - 2025.03.31 [PR#2241](https://github.com/RVC-Boss/GPT-SoVITS/pull/2241): **SoVITS v3 병렬 추론 지원 활성화.**
+
   - 유형: 신규 기능
   - 기여자: ChasonJiang
 
