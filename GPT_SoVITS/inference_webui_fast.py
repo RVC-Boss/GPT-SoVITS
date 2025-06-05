@@ -47,6 +47,7 @@ import gradio as gr
 from TTS_infer_pack.text_segmentation_method import get_method
 from TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
 
+from tools.assets import css, js, top_html
 from tools.i18n.i18n import I18nAuto, scan_language_list
 
 language = os.environ.get("language", "Auto")
@@ -98,9 +99,11 @@ cut_method = {
     i18n("按标点符号切"): "cut5",
 }
 
-from config import name2sovits_path,name2gpt_path,change_choices,get_weights_names
+from config import change_choices, get_weights_names, name2gpt_path, name2sovits_path
+
 SoVITS_names, GPT_names = get_weights_names()
 from config import pretrained_sovits_name
+
 path_sovits_v3 = pretrained_sovits_name["v3"]
 path_sovits_v4 = pretrained_sovits_name["v4"]
 is_exist_s2gv3 = os.path.exists(path_sovits_v3)
@@ -111,10 +114,12 @@ tts_config.device = device
 tts_config.is_half = is_half
 tts_config.version = version
 if gpt_path is not None:
-    if "！"in gpt_path:gpt_path=name2gpt_path[gpt_path]
+    if "！" in gpt_path:
+        gpt_path = name2gpt_path[gpt_path]
     tts_config.t2s_weights_path = gpt_path
 if sovits_path is not None:
-    if "！"in sovits_path:sovits_path=name2sovits_path[sovits_path]
+    if "！" in sovits_path:
+        sovits_path = name2sovits_path[sovits_path]
     tts_config.vits_weights_path = sovits_path
 if cnhubert_base_path is not None:
     tts_config.cnhuhbert_base_path = cnhubert_base_path
@@ -189,6 +194,7 @@ def custom_sort_key(s):
     parts = [int(part) if part.isdigit() else part for part in parts]
     return parts
 
+
 if os.path.exists("./weight.json"):
     pass
 else:
@@ -206,9 +212,13 @@ with open("./weight.json", "r", encoding="utf-8") as file:
         sovits_path = sovits_path[0]
 
 from process_ckpt import get_sovits_version_from_path_fast
+
 v3v4set = {"v3", "v4"}
+
+
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
-    if "！"in sovits_path:sovits_path=name2sovits_path[sovits_path]
+    if "！" in sovits_path:
+        sovits_path = name2sovits_path[sovits_path]
     global version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
@@ -273,11 +283,13 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         f.write(json.dumps(data))
 
 
-with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
-    gr.Markdown(
-        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
-        + "<br>"
-        + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
+with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css) as app:
+    gr.HTML(
+        top_html.format(
+            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
+            + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
+        ),
+        elem_classes="markdown",
     )
 
     with gr.Column():
