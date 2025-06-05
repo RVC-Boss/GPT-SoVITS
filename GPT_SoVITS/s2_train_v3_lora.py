@@ -189,7 +189,7 @@ def run(rank, n_gpus, hps):
             print(
                 "loaded pretrained %s" % hps.train.pretrained_s2G,
                 net_g.load_state_dict(
-                    torch.load(hps.train.pretrained_s2G, map_location="cpu")["weight"],
+                    torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
                     strict=False,
                 ),
             )
@@ -365,7 +365,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                         epoch,
                         global_step,
                         hps,
-                        cfm_version=hps.model.version,
+                        model_version=hps.model.version,
                         lora_rank=lora_rank,
                     ),
                 )

@@ -98,13 +98,23 @@ cut_method = {
     i18n("按标点符号切"): "cut5",
 }
 
+from config import name2sovits_path,name2gpt_path,change_choices,get_weights_names
+SoVITS_names, GPT_names = get_weights_names()
+from config import pretrained_sovits_name
+path_sovits_v3 = pretrained_sovits_name["v3"]
+path_sovits_v4 = pretrained_sovits_name["v4"]
+is_exist_s2gv3 = os.path.exists(path_sovits_v3)
+is_exist_s2gv4 = os.path.exists(path_sovits_v4)
+
 tts_config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
 tts_config.device = device
 tts_config.is_half = is_half
 tts_config.version = version
 if gpt_path is not None:
+    if "！"in gpt_path:gpt_path=name2gpt_path[gpt_path]
     tts_config.t2s_weights_path = gpt_path
 if sovits_path is not None:
+    if "！"in sovits_path:sovits_path=name2sovits_path[sovits_path]
     tts_config.vits_weights_path = sovits_path
 if cnhubert_base_path is not None:
     tts_config.cnhuhbert_base_path = cnhubert_base_path
@@ -179,41 +189,6 @@ def custom_sort_key(s):
     parts = [int(part) if part.isdigit() else part for part in parts]
     return parts
 
-
-def change_choices():
-    SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
-    return {"choices": sorted(SoVITS_names, key=custom_sort_key), "__type__": "update"}, {
-        "choices": sorted(GPT_names, key=custom_sort_key),
-        "__type__": "update",
-    }
-
-
-path_sovits_v3 = "GPT_SoVITS/pretrained_models/s2Gv3.pth"
-path_sovits_v4 = "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth"
-is_exist_s2gv3 = os.path.exists(path_sovits_v3)
-is_exist_s2gv4 = os.path.exists(path_sovits_v4)
-pretrained_sovits_name = [
-    "GPT_SoVITS/pretrained_models/s2G488k.pth",
-    "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
-    "GPT_SoVITS/pretrained_models/s2Gv3.pth",
-    "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
-]
-pretrained_gpt_name = [
-    "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
-    "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
-    "GPT_SoVITS/pretrained_models/s1v3.ckpt",
-    "GPT_SoVITS/pretrained_models/s1v3.ckpt",
-]
-
-
-_ = [[], []]
-for i in range(4):
-    if os.path.exists(pretrained_gpt_name[i]):
-        _[0].append(pretrained_gpt_name[i])
-    if os.path.exists(pretrained_sovits_name[i]):
-        _[-1].append(pretrained_sovits_name[i])
-pretrained_gpt_name, pretrained_sovits_name = _
-
 if os.path.exists("./weight.json"):
     pass
 else:
@@ -223,43 +198,17 @@ else:
 with open("./weight.json", "r", encoding="utf-8") as file:
     weight_data = file.read()
     weight_data = json.loads(weight_data)
-    gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, pretrained_gpt_name))
-    sovits_path = os.environ.get("sovits_path", weight_data.get("SoVITS", {}).get(version, pretrained_sovits_name))
+    gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, GPT_names[-1]))
+    sovits_path = os.environ.get("sovits_path", weight_data.get("SoVITS", {}).get(version, SoVITS_names[0]))
     if isinstance(gpt_path, list):
         gpt_path = gpt_path[0]
     if isinstance(sovits_path, list):
         sovits_path = sovits_path[0]
 
-
-SoVITS_weight_root = ["SoVITS_weights", "SoVITS_weights_v2", "SoVITS_weights_v3", "SoVITS_weights_v4"]
-GPT_weight_root = ["GPT_weights", "GPT_weights_v2", "GPT_weights_v3", "GPT_weights_v4"]
-for path in SoVITS_weight_root + GPT_weight_root:
-    os.makedirs(path, exist_ok=True)
-
-
-def get_weights_names(GPT_weight_root, SoVITS_weight_root):
-    SoVITS_names = [i for i in pretrained_sovits_name]
-    for path in SoVITS_weight_root:
-        for name in os.listdir(path):
-            if name.endswith(".pth"):
-                SoVITS_names.append("%s/%s" % (path, name))
-    GPT_names = [i for i in pretrained_gpt_name]
-    for path in GPT_weight_root:
-        for name in os.listdir(path):
-            if name.endswith(".ckpt"):
-                GPT_names.append("%s/%s" % (path, name))
-    return SoVITS_names, GPT_names
-
-
-SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
-
-
 from process_ckpt import get_sovits_version_from_path_fast
-
 v3v4set = {"v3", "v4"}
-
-
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
+    if "！"in sovits_path:sovits_path=name2sovits_path[sovits_path]
     global version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
