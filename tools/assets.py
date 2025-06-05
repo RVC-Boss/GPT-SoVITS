@@ -42,7 +42,7 @@ css = """
 
 .markdown {
     background-color: lightblue;
-    padding: 10px;
+    padding: 6px 10px;
 }
 
 .checkbox_info {
@@ -93,7 +93,7 @@ footer * {
 """
 top_html = """
 <div align="center">
-    <div style="margin-bottom: 20px; font-size: 15px;">{}</div>
+    <div style="margin-bottom: 5px; font-size: 15px;">{}</div>
     <div style="display: flex; gap: 80px; justify-content: center;">
         <a href="https://github.com/RVC-Boss/GPT-SoVITS" target="_blank">
             <img src="https://img.shields.io/badge/GitHub-GPT--SoVITS-blue.svg?style=for-the-badge&logo=github" style="width: auto; height: 30px;">
