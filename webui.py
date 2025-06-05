@@ -60,6 +60,7 @@ import shutil
 import subprocess
 from subprocess import Popen
 
+from tools.assets import css, js, top_html
 from tools.i18n.i18n import I18nAuto, scan_language_list
 
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
@@ -1299,14 +1300,13 @@ def sync(text):
     return {"__type__": "update", "value": text}
 
 
-with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
-    gr.Markdown(
-        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
-        + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
-        + "<br>"
-        + i18n("中文教程文档")
-        + ": "
-        + "https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e"
+with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css) as app:
+    gr.HTML(
+        top_html.format(
+            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
+            + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
+        ),
+        elem_classes="markdown",
     )
 
     with gr.Tabs():
