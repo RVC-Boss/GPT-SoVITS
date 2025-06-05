@@ -862,7 +862,7 @@ def close1a():
     )
 
 
-sv_path = "GPT_SoVITS\pretrained_models\sv\pretrained_eres2netv2w24s4ep4.ckpt"
+sv_path = "GPT_SoVITS/pretrained_models/sv/pretrained_eres2netv2w24s4ep4.ckpt"
 ps1b = []
 process_name_1b = i18n("语音自监督特征提取")
 
