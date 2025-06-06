@@ -299,6 +299,38 @@ v2 환경에서 v3 사용하기:
 
    추가: 오디오 슈퍼 해상도 모델에 대해서는 [다운로드 방법](../../tools/AP_BWE_main/24kto48k/readme.txt)을 참고하세요.
 
+## V4 릴리스 노트
+
+신규 기능:
+
+1. **V4는 V3에서 발생하는 비정수 배율 업샘플링으로 인한 금속성 잡음 문제를 수정했으며, 소리가 먹먹해지는 것을 방지하기 위해 기본적으로 48kHz 오디오를 출력합니다 (V3는 기본적으로 24kHz만 지원)**. 개발자는 V4를 V3의 직접적인 대체 버전으로 보고 있지만 추가 테스트가 필요합니다.
+   [자세히 보기](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
+
+V1/V2/V3 환경에서 V4로 전환 방법:
+
+1. 일부 의존 패키지를 업데이트하기 위해 `pip install -r requirements.txt` 명령어를 실행하세요.
+
+2. GitHub에서 최신 코드를 클론하세요.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 V4 사전 학습 모델(`gsv-v4-pretrained/s2v4.ckpt` 및 `gsv-v4-pretrained/vocoder.pth`)을 다운로드하고 `GPT_SoVITS/pretrained_models` 디렉토리에 넣으세요.
+
+## V2Pro 릴리스 노트
+
+신규 기능:
+
+1. **V2보다 약간 높은 VRAM 사용량이지만 성능은 V4보다 우수하며, V2 수준의 하드웨어 비용과 속도를 유지합니다**.
+   [자세히 보기](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90features-(%E5%90%84%E7%89%88%E6%9C%AC%E7%89%B9%E6%80%A7))
+
+2. V1/V2와 V2Pro 시리즈는 유사한 특징을 가지며, V3/V4도 비슷한 기능을 가지고 있습니다. 평균 음질이 낮은 학습 데이터셋에서는 V1/V2/V2Pro가 좋은 결과를 내지만 V3/V4는 그렇지 못합니다. 또한 V3/V4의 합성 음색은 전체 학습 데이터셋보다는 참고 음성에 더 가깝습니다.
+
+V1/V2/V3/V4 환경에서 V2Pro로 전환 방법:
+
+1. 일부 의존 패키지를 업데이트하기 위해 `pip install -r requirements.txt` 명령어를 실행하세요.
+
+2. GitHub에서 최신 코드를 클론하세요.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 V2Pro 사전 학습 모델(`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, 및 `sv/pretrained_eres2netv2w24s4ep4.ckpt`)을 다운로드하고 `GPT_SoVITS/pretrained_models` 디렉토리에 넣으세요.
+
 ## 할 일 목록
 
 - [x] **최우선순위:**
@@ -382,6 +414,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
 - [BigVGAN](https://github.com/NVIDIA/BigVGAN)
+- [eresnetv2](https://modelscope.cn/models/iic/speech_eres2netv2w24s4ep4_sv_zh-cn_16k-common)
 
 ### 추론용 텍스트 프론트엔드
 

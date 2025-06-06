@@ -285,7 +285,7 @@ V1 ortamından V2'yi kullanmak için:
 
 ## V3 Sürüm Notları
 
-### Yeni Özellikler:
+Yeni Özellikler:
 
 1. **Tını benzerliği** daha yüksek olup, hedef konuşmacıyı yakınsamak için daha az eğitim verisi gerekmektedir (tını benzerliği, base model doğrudan kullanılacak şekilde fine-tuning yapılmadan önemli ölçüde iyileştirilmiştir).
 
@@ -293,7 +293,7 @@ V1 ortamından V2'yi kullanmak için:
 
    [daha fazla detay](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-### v2 ortamında v3 kullanımı:
+V2 ortamında V3 kullanımı:
 
 1. `pip install -r requirements.txt` ile bazı paketleri güncelleyin.
 
@@ -302,6 +302,38 @@ V1 ortamından V2'yi kullanmak için:
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden v3 önceden eğitilmiş modellerini (s1v3.ckpt, s2Gv3.pth ve models--nvidia--bigvgan_v2_24khz_100band_256x klasörünü) indirin ve `GPT_SoVITS/pretrained_models` dizinine yerleştirin.
 
    ek: Ses Süper Çözünürlük modeli için [nasıl indirileceği](../../tools/AP_BWE_main/24kto48k/readme.txt) hakkında bilgi alabilirsiniz.
+
+## V4 Sürüm Notları
+
+Yeni Özellikler:
+
+1. **V4, V3'te görülen non-integer upsample işleminden kaynaklanan metalik ses sorununu düzeltti ve sesin boğuklaşmasını önlemek için doğrudan 48kHz ses çıktısı sunar (V3 sadece 24kHz destekler)**. Yazar, V4'ün V3'ün yerine geçebileceğini belirtmiştir ancak daha fazla test yapılması gerekmektedir.
+   [Daha fazla bilgi](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
+
+V1/V2/V3 ortamından V4'e geçiş:
+
+1. Bazı bağımlılıkları güncellemek için `pip install -r requirements.txt` komutunu çalıştırın.
+
+2. GitHub'dan en son kodları klonlayın.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden V4 ön eğitilmiş modelleri indirin (`gsv-v4-pretrained/s2v4.ckpt` ve `gsv-v4-pretrained/vocoder.pth`) ve bunları `GPT_SoVITS/pretrained_models` dizinine koyun.
+
+## V2Pro Sürüm Notları
+
+Yeni Özellikler:
+
+1. **V2 ile karşılaştırıldığında biraz daha yüksek VRAM kullanımı sağlar ancak V4'ten daha iyi performans gösterir; aynı donanım maliyeti ve hız avantajını korur**.
+   [Daha fazla bilgi](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90features-(%E5%90%84%E7%89%88%E6%9C%AC%E7%89%B9%E6%80%A7))
+
+2. V1/V2 ve V2Pro serisi benzer özelliklere sahipken, V3/V4 de yakın işlevleri paylaşır. Ortalama kalite düşük olan eğitim setleriyle V1/V2/V2Pro iyi sonuçlar verebilir ama V3/V4 veremez. Ayrıca, V3/V4’ün ürettiği ses tonu genel eğitim setine değil, referans ses örneğine daha çok benzemektedir.
+
+V1/V2/V3/V4 ortamından V2Pro'ya geçiş:
+
+1. Bazı bağımlılıkları güncellemek için `pip install -r requirements.txt` komutunu çalıştırın.
+
+2. GitHub'dan en son kodları klonlayın.
+
+3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden V2Pro ön eğitilmiş modelleri indirin (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, ve `sv/pretrained_eres2netv2w24s4ep4.ckpt`) ve bunları `GPT_SoVITS/pretrained_models` dizinine koyun.
 
 ## Yapılacaklar Listesi
 
@@ -385,6 +417,7 @@ python ./tools/asr/fasterwhisper_asr.py -i <girdi> -o <çıktı> -l <dil>
 - [Chinese Speech Pretrain](https://github.com/TencentGameMate/chinese_speech_pretrain)
 - [Chinese-Roberta-WWM-Ext-Large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large)
 - [BigVGAN](https://github.com/NVIDIA/BigVGAN)
+- [eresnetv2](https://modelscope.cn/models/iic/speech_eres2netv2w24s4ep4_sv_zh-cn_16k-common)
 
 ### Tahmin İçin Metin Ön Ucu
 
