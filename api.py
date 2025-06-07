@@ -1071,10 +1071,10 @@ default_refer = DefaultRefer(args.default_refer_path, args.default_refer_text, a
 # 模型路径检查
 if sovits_path == "":
     sovits_path = g_config.pretrained_sovits_path
-    logger.warn(f"未指定SoVITS模型路径, fallback后当前值: {sovits_path}")
+    logger.warning(f"未指定SoVITS模型路径, fallback后当前值: {sovits_path}")
 if gpt_path == "":
     gpt_path = g_config.pretrained_gpt_path
-    logger.warn(f"未指定GPT模型路径, fallback后当前值: {gpt_path}")
+    logger.warning(f"未指定GPT模型路径, fallback后当前值: {gpt_path}")
 
 # 指定默认参考音频, 调用方 未提供/未给全 参考音频参数时使用
 if default_refer.path == "" or default_refer.text == "" or default_refer.language == "":
