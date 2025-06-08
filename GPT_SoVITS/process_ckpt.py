@@ -127,7 +127,7 @@ def get_sovits_version_from_path_fast(sovits_path):
 def load_sovits_new(sovits_path):
     f = open(sovits_path, "rb")
     meta = f.read(2)
-    if meta != "PK":
+    if meta != b"PK":
         data = b"PK" + f.read()
         bio = BytesIO()
         bio.write(data)
