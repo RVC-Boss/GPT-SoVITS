@@ -214,7 +214,7 @@ v3v4set = {"v3", "v4"}
 
 
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
-    if "！" in sovits_path:
+    if "！" in sovits_path or "!" in sovits_path:
         sovits_path = name2sovits_path[sovits_path]
     global vq_model, hps, version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
@@ -361,7 +361,7 @@ except:
 
 
 def change_gpt_weights(gpt_path):
-    if "！" in gpt_path:
+    if "！" in gpt_path or "!" in gpt_path:
         gpt_path = name2gpt_path[gpt_path]
     global hz, max_sec, t2s_model, config
     hz = 50
