@@ -507,6 +507,7 @@ def open1Ba(
 ):
     global p_train_SoVITS
     if p_train_SoVITS == None:
+        exp_name=exp_name.rstrip(" ")
         config_file = (
             "GPT_SoVITS/configs/s2.json"
             if version not in {"v2Pro", "v2ProPlus"}
@@ -603,6 +604,7 @@ def open1Bb(
 ):
     global p_train_GPT
     if p_train_GPT == None:
+        exp_name=exp_name.rstrip(" ")
         with open(
             "GPT_SoVITS/configs/s1longer.yaml" if version == "v1" else "GPT_SoVITS/configs/s1longer-v2.yaml"
         ) as f:
@@ -785,6 +787,7 @@ def open1a(inp_text, inp_wav_dir, exp_name, gpu_numbers, bert_pretrained_dir):
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if check_for_existance([inp_text, inp_wav_dir], is_dataset_processing=True):
         check_details([inp_text, inp_wav_dir], is_dataset_processing=True)
+    exp_name = exp_name.rstrip(" ")
     if ps1a == []:
         opt_dir = "%s/%s" % (exp_root, exp_name)
         config = {
@@ -874,6 +877,7 @@ def open1b(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, ssl_pretrained
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if check_for_existance([inp_text, inp_wav_dir], is_dataset_processing=True):
         check_details([inp_text, inp_wav_dir], is_dataset_processing=True)
+    exp_name = exp_name.rstrip(" ")
     if ps1b == []:
         config = {
             "inp_text": inp_text,
@@ -962,6 +966,7 @@ def open1c(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, pretrained_s2G
     inp_text = my_utils.clean_path(inp_text)
     if check_for_existance([inp_text, inp_wav_dir], is_dataset_processing=True):
         check_details([inp_text, inp_wav_dir], is_dataset_processing=True)
+    exp_name = exp_name.rstrip(" ")
     if ps1c == []:
         opt_dir = "%s/%s" % (exp_root, exp_name)
         config_file = (
@@ -1059,6 +1064,7 @@ def open1abc(
     inp_wav_dir = my_utils.clean_path(inp_wav_dir)
     if check_for_existance([inp_text, inp_wav_dir], is_dataset_processing=True):
         check_details([inp_text, inp_wav_dir], is_dataset_processing=True)
+    exp_name = exp_name.rstrip(" ")
     if ps1abc == []:
         opt_dir = "%s/%s" % (exp_root, exp_name)
         try:
