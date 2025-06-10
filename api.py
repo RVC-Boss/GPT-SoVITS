@@ -1157,6 +1157,7 @@ def version_4_cli(
     output_path: str = None,
     character_name: str = "Kurari",
     model_id: int = 14,
+    version: str = "v1",  # v3 or v4
 ):
     # Create a temporary buffer to store the audio
     audio_buffer = io.BytesIO()
@@ -1167,6 +1168,12 @@ def version_4_cli(
         GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
         ref_language = "日文"
+    if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
+        GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-new-e40.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-new_e15_s3165_l32.pth"
+    elif (character_name == "kurari" or character_name=="Kurari") and version == "v3":
+        GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-high-e45.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-high_e25_s325.pth"
 
     synthesis_result = synthesize(
         GPT_model_path = GPT_model_path,
@@ -1206,7 +1213,8 @@ async def tts_endpoint(
         temperature: float = 1.0,
         speed: float = 1.0,
         sample_steps: int = 20,
-        if_sr: bool = False
+        if_sr: bool = False,
+        version: str = "v1",  # v3 or v4
 ):
     if character == "kurari":
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
@@ -1244,7 +1252,8 @@ async def tts_endpoint(
             ref_text=prompt_text,
             ref_language="日文",
             target_text=text,
-            text_language=text_language or "日文"
+            text_language=text_language or "日文",
+            version= version,  # v2 or v3
         )
         
         if audio_buffer:
