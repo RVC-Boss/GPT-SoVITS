@@ -1223,7 +1223,7 @@ async def tts_endpoint(
 
 
     
-    if character in ["Kurari", "saotome"]:
+    if (character == "Kurari" and version!="v3") or character == "saotome":
         """
         "中文": "all_zh",
         "粤语": "all_yue",
@@ -1253,7 +1253,7 @@ async def tts_endpoint(
             ref_language="日文",
             target_text=text,
             text_language=text_language or "日文",
-            version= version,  # v2 or v3
+            version=version,  # v2 or v3
         )
         
         if audio_buffer:
@@ -1265,7 +1265,9 @@ async def tts_endpoint(
         else:
             return JSONResponse({"error": "Failed to generate audio"}, status_code=400)
         
-    
+    if character == "Kurari": 
+        character = "kurari"
+
     refer_wav_path = f"idols/{character}/{character}.wav"
     inp_refs = [f"idols/{character}/refs/{file}" for file in os.listdir(f"idols/{character}/refs") if file.endswith('.wav')]
 
