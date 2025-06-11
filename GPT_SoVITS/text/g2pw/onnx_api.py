@@ -3,7 +3,6 @@
 
 import json
 import os
-import traceback
 import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
