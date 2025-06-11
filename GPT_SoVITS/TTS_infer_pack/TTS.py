@@ -1073,7 +1073,7 @@ class TTS:
 
         ###### setting reference audio and prompt text preprocessing ########
         t0 = time.perf_counter()
-        if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
+        if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"] or (self.is_v2pro and self.prompt_cache["refer_spec"][0][1] is None)):
             if not os.path.exists(ref_audio_path):
                 raise ValueError(f"{ref_audio_path} not exists")
             self.set_ref_audio(ref_audio_path)
