@@ -28,7 +28,8 @@ class Text2SemanticLightningModule(LightningModule):
                 self.load_state_dict(
                     torch.load(
                         pretrained_s1,
-                        map_location="cpu", weights_only=False,
+                        map_location="cpu",
+                        weights_only=False,
                     )["weight"],
                 )
             )

@@ -17,15 +17,16 @@ def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
     shutil.move(tmp_path, "%s/%s" % (dir, name))
 
 
-
 from io import BytesIO
 
-model_version2byte={
-    "v3":b"03",
-    "v4":b"04",
-    "v2Pro":b"05",
-    "v2ProPlus":b"06",
+model_version2byte = {
+    "v3": b"03",
+    "v4": b"04",
+    "v2Pro": b"05",
+    "v2ProPlus": b"06",
 }
+
+
 def my_save2(fea, path, model_version):
     bio = BytesIO()
     torch.save(fea, bio)
@@ -50,13 +51,14 @@ def savee(ckpt, name, epoch, steps, hps, model_version=None, lora_rank=None):
         if lora_rank:
             opt["lora_rank"] = lora_rank
             my_save2(opt, "%s/%s.pth" % (hps.save_weight_dir, name), model_version)
-        elif (model_version!=None and "Pro"in model_version):
+        elif model_version != None and "Pro" in model_version:
             my_save2(opt, "%s/%s.pth" % (hps.save_weight_dir, name), model_version)
         else:
             my_save(opt, "%s/%s.pth" % (hps.save_weight_dir, name))
         return "Success."
     except:
         return traceback.format_exc()
+
 
 """
 00:v1

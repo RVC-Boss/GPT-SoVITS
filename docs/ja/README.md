@@ -1,16 +1,23 @@
+#
+
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
-パワフルなFew-Shot音声変換・音声合成 WebUI.<br><br>
+パワフルなFew-Shot音声変換・音声合成 WebUI. <br><br>
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
 
-<img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
+[![Train In Colab](https://img.shields.io/badge/Colab-Training-F9AB00?style=for-the-badge&logo=googlecolab)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-WebUI.ipynb)
+[![Infer In Colab](https://img.shields.io/badge/Colab-Inference-F9AB00?style=for-the-badge&logo=googlecolab)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-Inference.ipynb)
+[![Huggingface](https://img.shields.io/badge/HuggingFace-online%20demo-blue.svg?style=for-the-badge&logo=huggingface)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
 
-[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
-[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-online%20demo-yellow.svg?style=for-the-badge)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
-[![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
+[![GitHub release](https://img.shields.io/github/v/release/RVC-Boss/gpt-sovits?style=for-the-badge&logo=github)](https://github.com/RVC-Boss/gpt-sovits/releases)
+[![Image Size](https://img.shields.io/docker/image-size/xxxxrt666/gpt-sovits/latest?style=for-the-badge&logo=docker)](https://hub.docker.com/r/xxxxrt666/gpt-sovits)
+[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
+
+[![简体中文](https://img.shields.io/badge/简体中文-阅读文档-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e)
+[![English](https://img.shields.io/badge/English-Read%20Docs-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://rentry.co/GPT-SoVITS-guide#/)
+[![Change Log](https://img.shields.io/badge/Change%20Log-View%20Updates-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/docs/en/Changelog_EN.md)
 
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | **日本語** | [**한국어**](../ko/README.md) | [**Türkçe**](../tr/README.md)
 
@@ -18,7 +25,7 @@
 
 ---
 
-## 機能:
+## 機能
 
 1. **Zero-Shot TTS:** たった 5 秒間の音声サンプルで、即座にテキストからその音声に変換できます.
 
@@ -32,9 +39,9 @@
 
 声の事前学習無しかつ Few-Shot でトレーニングされたモデルのデモ:
 
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+<https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
-**ユーザーマニュアル: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
+<!-- **ユーザーマニュアル: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)** -->
 
 ## インストール
 
@@ -165,7 +172,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 ## 事前訓練済みモデル
 
-**`install.sh`が正常に実行された場合、No.1,2,3 はスキップしてかまいません.**
+**`install.sh`が正常に実行された場合、No.1, 2, 3 はスキップしてかまいません.**
 
 1. [GPT-SoVITS Models](https://huggingface.co/lj1995/GPT-SoVITS) から事前訓練済みモデルをダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリに配置してください.
 
@@ -173,19 +180,19 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 3. UVR5 (ボーカル/伴奏 (BGM 等) 分離 & リバーブ除去の追加機能) の場合は、[UVR5 Weights](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/uvr5_weights) からモデルをダウンロードし、`tools/uvr5/uvr5_weights` ディレクトリに配置してください.
 
-   - UVR5 で bs_roformer または mel_band_roformer モデルを使用する場合、モデルと対応する設定ファイルを手動でダウンロードし、`tools/UVR5/UVR5_weights`フォルダに配置することができます.**モデルファイルと設定ファイルの名前は、拡張子を除いて同じであることを確認してください**.さらに、モデルと設定ファイルの名前には**「roformer」が含まれている必要があります**.これにより、roformer クラスのモデルとして認識されます.
+   - UVR5 で bs_roformer または mel_band_roformer モデルを使用する場合、モデルと対応する設定ファイルを手動でダウンロードし、`tools/UVR5/UVR5_weights`フォルダに配置することができます. **モデルファイルと設定ファイルの名前は、拡張子を除いて同じであることを確認してください**. さらに、モデルと設定ファイルの名前には**「roformer」が含まれている必要があります**. これにより、roformer クラスのモデルとして認識されます.
 
-   - モデル名と設定ファイル名には、**直接モデルタイプを指定することをお勧めします**.例: mel_mand_roformer、bs_roformer.指定しない場合、設定文から特徴を照合して、モデルの種類を特定します.例えば、モデル`bs_roformer_ep_368_sdr_12.9628.ckpt`と対応する設定ファイル`bs_roformer_ep_368_sdr_12.9628.yaml`はペアです.同様に、`kim_mel_band_roformer.ckpt`と`kim_mel_band_roformer.yaml`もペアです.
+   - モデル名と設定ファイル名には、**直接モデルタイプを指定することをお勧めします**. 例: mel_mand_roformer、bs_roformer. 指定しない場合、設定文から特徴を照合して、モデルの種類を特定します. 例えば、モデル`bs_roformer_ep_368_sdr_12.9628.ckpt`と対応する設定ファイル`bs_roformer_ep_368_sdr_12.9628.yaml`はペアです. 同様に、`kim_mel_band_roformer.ckpt`と`kim_mel_band_roformer.yaml`もペアです.
 
 4. 中国語 ASR (追加機能) の場合は、[Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files)、[Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files)、および [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください.
 
-5. 英語または日本語の ASR (追加機能) を使用する場合は、[Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください.また、[他のモデル](https://huggingface.co/Systran) は、より小さいサイズで高クオリティな可能性があります.
+5. 英語または日本語の ASR (追加機能) を使用する場合は、[Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください. また、[他のモデル](https://huggingface.co/Systran) は、より小さいサイズで高クオリティな可能性があります.
 
 ## データセット形式
 
 TTS アノテーション .list ファイル形式:
 
-```
+```text
 vocal_path|speaker_name|language|text
 ```
 
@@ -197,7 +204,7 @@ vocal_path|speaker_name|language|text
 
 例:
 
-```
+```text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
@@ -208,21 +215,12 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 #### 統合パッケージ利用者
 
 `go-webui.bat`をダブルクリックするか、`go-webui.ps1`を使用します.
-V1 に切り替えたい場合は、`go-webui-v1.bat`をダブルクリックするか、`go-webui-v1.ps1`を使用してください.
 
 #### その他
 
 ```bash
 python webui.py <言語(オプション)>
 ```
-
-V1 に切り替えたい場合は
-
-```bash
-python webui.py v1 <言語(オプション)>
-```
-
-または WebUI で手動でバージョンを切り替えてください.
 
 ### 微調整
 
@@ -239,7 +237,7 @@ python webui.py v1 <言語(オプション)>
 
 #### 統合パッケージ利用者
 
-`go-webui-v2.bat`をダブルクリックするか、`go-webui-v2.ps1`を使用して、`1-GPT-SoVITS-TTS/1C-inference`で推論 webui を開きます.
+`go-webui.bat`をダブルクリックするか、`go-webui.ps1`を使用して、`1-GPT-SoVITS-TTS/1C-inference`で推論 webui を開きます.
 
 #### その他
 
@@ -359,11 +357,6 @@ V1/V2/V3/V4 環境から V2Pro への移行方法:
 python tools/uvr5/webui.py "<infer_device>" <is_half> <webui_port_uvr5>
 ```
 
-<!-- ブラウザを開けない場合は、以下の形式に従って UVR 処理を行ってください.これはオーディオ処理に mdxnet を使用しています.
-```
-python mdxnet.py --model --input_root --output_vocal --output_ins --agg_level --format --device --is_half_precision
-``` -->
-
 コマンド ラインを使用してデータセットのオーディオ セグメンテーションを行う方法は次のとおりです.
 
 ```bash
@@ -384,7 +377,7 @@ python tools/asr/funasr_asr.py -i <input> -o <output>
 
 ASR 処理は Faster_Whisper を通じて実行されます(中国語を除く ASR マーキング)
 
-(進行状況バーは表示されません.GPU のパフォーマンスにより時間遅延が発生する可能性があります)
+(進行状況バーは表示されません. GPU のパフォーマンスにより時間遅延が発生する可能性があります)
 
 ```bash
 python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p <precision>
@@ -439,5 +432,5 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 ## すべてのコントリビューターに感謝します
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
+  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" alt="Contributors"/>
 </a>

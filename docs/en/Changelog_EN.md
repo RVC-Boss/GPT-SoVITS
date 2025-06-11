@@ -285,7 +285,7 @@
 
 - 2024.06.06 [Commit#](https://github.com/RVC-Boss/GPT-SoVITS/commit/99f09c8bdc155c1f4272b511940717705509582a)
   - Content: Fixed the issue of WebUI's GPT fine-tuning not reading BERT feature of Chinese input texts, causing inconsistency with inference and potential quality degradation.
-   **Caution: If you have previously fine-tuned with a large amount of data, it is recommended to retune the model to improve quality.**
+    **Caution: If you have previously fine-tuned with a large amount of data, it is recommended to retune the model to improve quality.**
   - Type: Fix
   - Contributor: RVC-Boss
 - 2024.06.07 [PR#1159](https://github.com/RVC-Boss/GPT-SoVITS/pull/1159)
@@ -347,7 +347,7 @@
 - 2024.07.23 [Commit#9588a3c5](https://github.com/RVC-Boss/GPT-SoVITS/commit/9588a3c52d9ebdb20b3c5d74f647d12e7c1171c2), [PR#1340](https://github.com/RVC-Boss/GPT-SoVITS/pull/1340)
   - Content: Support adjusting speech speed during synthesis, including an option to freeze randomness and only control speed. This feature has been updated to `api.py`.
   - Type: Feature
-  - Contributor: RVC-Boss, 红血球AE3803
+  - Contributor: RVC-Boss, 红血球 AE3803
 - 2024.07.27 [PR#1306](https://github.com/RVC-Boss/GPT-SoVITS/pull/1306), [PR#1356](https://github.com/RVC-Boss/GPT-SoVITS/pull/1356)
   - Content: Added support for the BS-RoFormer vocal accompaniment separation model.
   - Type: Feature
@@ -409,7 +409,7 @@
 
 - 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4)
   - Content: **Added GPT-SoVITS V3 model, which requires 14GB VRAM for fine-tuning.**
-  - Type: Feature (Refer to [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)))
+  - Type: Feature (Refer to [Wiki](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>))
   - Contributor: RVC-Boss
 - 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032)
   - Content: Updated multilingual project documentation.
@@ -478,9 +478,6 @@
   - Content: **Enabled parallel inference for SoVITS v3.**
   - Type: Feature
   - Contributor: ChasonJiang
-
-- Fixed other minor bugs.
-
 - Integrated package fixes for ONNX runtime GPU inference support:
   - Type: Fix
   - Details:
