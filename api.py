@@ -1169,8 +1169,8 @@ def version_4_cli(
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
         ref_language = "日文"
     if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
-        GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-new-e40.ckpt"
-        SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-new_e15_s3165_l32.pth"
+        GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-hql-e40.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-hql_e20_s1240.pth"
     elif (character_name == "kurari" or character_name=="Kurari") and version == "v3":
         GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-high-e45.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-high_e25_s325.pth"
