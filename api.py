@@ -1216,7 +1216,7 @@ async def tts_endpoint(
         if_sr: bool = False,
         version: str = "v1",  # v3 or v4
 ):
-    if character == "kurari":
+    if character == "kurari" or character == "Kurari":
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
     elif character == "saotome":
         prompt_text = "朝ごはんにはトーストと卵、そしてコーヒーを飲みました。簡単だけど、朝の時間が少し幸せに感じられる瞬間でした。"
