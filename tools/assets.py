@@ -113,7 +113,7 @@ footer * {
 
 top_html = """
 <div id="top-banner">
-    This software is open source under the MIT license. The author does not have any control over the software. Users who use the software and distribute the sounds exported by the software are solely responsible. See the root directory <strong>Agreement-LICENSE</strong> for details.
+    {}
 </div>
 <div align="center" style="margin-top: 8px;">
     <div style="display: flex; gap: 80px; justify-content: center; flex-wrap: wrap;">
