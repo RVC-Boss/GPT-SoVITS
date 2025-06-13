@@ -1227,7 +1227,8 @@ async def tts_endpoint(
     elif character == "ikka" or character == "Ikka":
         prompt_text = "言われますけどその通りで朝早く起きるといい空気を吸えて"
 
-
+    import warnings
+    warnings.warn(f"the character name is {character}. ")
     
     if (character == "Kurari") or character == "saotome" or character == "ikka" or character == "Ikka":
         """
