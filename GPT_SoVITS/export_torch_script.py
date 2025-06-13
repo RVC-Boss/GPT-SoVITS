@@ -129,8 +129,8 @@ def sample(
 
 
 @torch.jit.script
-def spectrogram_torch(y: Tensor, n_fft: int, sampling_rate: int, hop_size: int, win_size: int, center: bool = False):
-    hann_window = torch.hann_window(win_size, device=y.device, dtype=y.dtype)
+def spectrogram_torch(hann_window:Tensor, y: Tensor, n_fft: int, sampling_rate: int, hop_size: int, win_size: int, center: bool = False):
+    # hann_window = torch.hann_window(win_size, device=y.device, dtype=y.dtype)
     y = torch.nn.functional.pad(
         y.unsqueeze(1),
         (int((n_fft - hop_size) / 2), int((n_fft - hop_size) / 2)),
@@ -349,7 +349,7 @@ class T2STransformer:
 
 
 class VitsModel(nn.Module):
-    def __init__(self, vits_path, version=None):
+    def __init__(self, vits_path, version=None, is_half=True, device="cpu"):
         super().__init__()
         # dict_s2 = torch.load(vits_path,map_location="cpu")
         dict_s2 = load_sovits_new(vits_path)
@@ -374,11 +374,18 @@ class VitsModel(nn.Module):
             n_speakers=self.hps.data.n_speakers,
             **self.hps.model,
         )
-        self.vq_model.eval()
         self.vq_model.load_state_dict(dict_s2["weight"], strict=False)
+        self.vq_model.dec.remove_weight_norm()
+        if is_half:
+            self.vq_model = self.vq_model.half()
+        self.vq_model = self.vq_model.to(device)
+        self.vq_model.eval()
+        self.hann_window = torch.hann_window(self.hps.data.win_length, device=device, dtype= torch.float16 if is_half else torch.float32)
+
 
     def forward(self, text_seq, pred_semantic, ref_audio, speed=1.0, sv_emb=None):
         refer = spectrogram_torch(
+            self.hann_window,
             ref_audio,
             self.hps.data.filter_length,
             self.hps.data.sampling_rate,
@@ -668,7 +675,7 @@ def export(gpt_path, vits_path, ref_audio_path, ref_text, output_path, export_be
     ssl_content = ssl(ref_audio).to(device)
 
     # vits_path = "SoVITS_weights_v2/xw_e8_s216.pth"
-    vits = VitsModel(vits_path).to(device)
+    vits = VitsModel(vits_path,device=device,is_half=False)
     vits.eval()
 
     # gpt_path = "GPT_weights_v2/xw-e15.ckpt"
@@ -766,10 +773,7 @@ def export_prov2(
     sv_model = ExportERes2NetV2(sv_cn_model)
 
     # vits_path = "SoVITS_weights_v2/xw_e8_s216.pth"
-    vits = VitsModel(vits_path, version)
-    if is_half:
-        vits.vq_model = vits.vq_model.half()
-    vits.to(device)
+    vits = VitsModel(vits_path, version,is_half=is_half,device=device)
     vits.eval()
 
     # gpt_path = "GPT_weights_v2/xw-e15.ckpt"
