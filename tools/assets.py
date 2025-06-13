@@ -1,12 +1,6 @@
 js = """
 function createGradioAnimation() {
-    
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('__theme') !== 'light') { 
-        params.set('__theme', 'light'); // 仅当 __theme 不是 'light' 时设置为 'light'
-        window.location.search = params.toString(); // 更新 URL，触发页面刷新
-    }
-    
+     
     var container = document.createElement('div');
     container.id = 'gradio-animation';
     container.style.fontSize = '2em';
@@ -36,25 +30,51 @@ function createGradioAnimation() {
 }
 """
 
-
 css = """
-/* CSSStyleRule */
+/* Top banner styling */
+#top-banner {
+    padding: 14px 20px;
+    border-radius: 12px;
+    margin: 12px auto 16px auto;
+    width: 100%;
+    max-width: 100%;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.5;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+}
 
-.markdown {
-    background-color: lightblue;
-    padding: 6px 10px;
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    #top-banner {
+        background-color: rgba(42, 47, 74, 0.85);
+        color: #e0e0e0;
+    }
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+    #top-banner {
+        background-color: rgba(240, 240, 240, 0.9);
+        color: #222;
+    }
 }
 
 .checkbox_info {
-    color: var(--block-title-text-color) !important;
-    font-size: var(--block-title-text-size) !important;
+    color: var(--block-title-text-color) !important; 
+    font-size: var(--block-title-text-size) !important; 
     font-weight: var(--block-title-text-weight) !important;
     height: 22px;
     margin-bottom: 8px !important;
 }
 
 ::selection {
-    background: #ffc078; !important;
+    background: #ffc078 !important;
 }
 
 #checkbox_train_dpo input[type="checkbox"]{
@@ -79,33 +99,35 @@ css = """
 }
 
 footer {
-    height: 50px !important;           /* 设置页脚高度 */
-    background-color: transparent !important; /* 背景透明 */
+    height: 50px !important;
+    background-color: transparent !important;
     display: flex;
-    justify-content: center;           /* 居中对齐 */
-    align-items: center;               /* 垂直居中 */
+    justify-content: center;
+    align-items: center;
 }
 
 footer * {
-    display: none !important;          /* 隐藏所有子元素 */
+    display: none !important;
 }
-
 """
+
 top_html = """
-<div align="center">
-    <div style="margin-bottom: 5px; font-size: 15px;">{}</div>
-    <div style="display: flex; gap: 80px; justify-content: center;">
+<div id="top-banner">
+    {}
+</div>
+<div align="center" style="margin-top: 8px;">
+    <div style="display: flex; gap: 80px; justify-content: center; flex-wrap: wrap;">
         <a href="https://github.com/RVC-Boss/GPT-SoVITS" target="_blank">
-            <img src="https://img.shields.io/badge/GitHub-GPT--SoVITS-blue.svg?style=for-the-badge&logo=github" style="width: auto; height: 30px;">
+            <img src="https://img.shields.io/badge/GitHub-GPT--SoVITS-blue.svg?style=for-the-badge&logo=github" style="height: 30px;">
         </a>
         <a href="https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e" target="_blank">
-            <img src="https://img.shields.io/badge/简体中文-阅读文档-blue?style=for-the-badge&logo=googledocs&logoColor=white" style="width: auto; height: 30px;">
+            <img src="https://img.shields.io/badge/简体中文-阅读文档-blue?style=for-the-badge&logo=googledocs&logoColor=white" style="height: 30px;">
         </a>
         <a href="https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e" target="_blank">
-            <img src="https://img.shields.io/badge/English-READ%20DOCS-blue?style=for-the-badge&logo=googledocs&logoColor=white" style="width: auto; height: 30px;">
+            <img src="https://img.shields.io/badge/English-READ%20DOCS-blue?style=for-the-badge&logo=googledocs&logoColor=white" style="height: 30px;">
         </a>
         <a href="https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE" target="_blank">
-            <img src="https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative" style="width: auto; height: 30px;">
+            <img src="https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative" style="height: 30px;">
         </a>
     </div>
 </div>
