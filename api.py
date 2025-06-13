@@ -1168,6 +1168,10 @@ def version_4_cli(
         GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
         ref_language = "日文"
+    elif character_name == "ikka" or character_name == "Ikka":
+        path = "idols/ikka/ikka.wav"
+        GPT_model_path = "GPT_SoVITS/pretrained_models/ikko-san-e45.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/ikko-san_e15_s1305_l32.pth"
     if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
         GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-hql-e40.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-hql_e20_s1240.pth"
@@ -1220,10 +1224,12 @@ async def tts_endpoint(
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
     elif character == "saotome":
         prompt_text = "朝ごはんにはトーストと卵、そしてコーヒーを飲みました。簡単だけど、朝の時間が少し幸せに感じられる瞬間でした。"
+    elif character == "ikka" or character == "Ikka":
+        prompt_text = "言われますけどその通りで朝早く起きるといい空気を吸えて"
 
 
     
-    if (character == "Kurari") or character == "saotome":
+    if (character == "Kurari") or character == "saotome" or character == "ikka" or character == "Ikka":
         """
         "中文": "all_zh",
         "粤语": "all_yue",
