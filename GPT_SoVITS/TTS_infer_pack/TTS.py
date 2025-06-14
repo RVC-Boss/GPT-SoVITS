@@ -539,8 +539,8 @@ class TTS:
             )
             self.configs.use_vocoder = True
             self.init_vocoder(model_version)
-            if "pretrained" not in weights_path and hasattr(vits_model, "enc_q"):
-                del vits_model.enc_q
+        if "pretrained" not in weights_path and hasattr(vits_model, "enc_q"):
+            del vits_model.enc_q
 
         self.is_v2pro=model_version in {"v2Pro","v2ProPlus"}
 
