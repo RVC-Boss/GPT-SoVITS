@@ -143,9 +143,9 @@ class DiT(nn.Module):
         drop_audio_cond=False,  # cfg for cond audio
         drop_text=False,  # cfg for text
         # mask: bool["b n"] | None = None,  # noqa: F722
-        infer=False, # bool
-        text_cache=None, # torch tensor as text_embed
-        dt_cache=None, # torch tensor as dt
+        infer=False,  # bool
+        text_cache=None,  # torch tensor as text_embed
+        dt_cache=None,  # torch tensor as dt
     ):
         x = x0.transpose(2, 1)
         cond = cond0.transpose(2, 1)

@@ -507,7 +507,7 @@ def open1Ba(
 ):
     global p_train_SoVITS
     if p_train_SoVITS == None:
-        exp_name=exp_name.rstrip(" ")
+        exp_name = exp_name.rstrip(" ")
         config_file = (
             "GPT_SoVITS/configs/s2.json"
             if version not in {"v2Pro", "v2ProPlus"}
@@ -604,7 +604,7 @@ def open1Bb(
 ):
     global p_train_GPT
     if p_train_GPT == None:
-        exp_name=exp_name.rstrip(" ")
+        exp_name = exp_name.rstrip(" ")
         with open(
             "GPT_SoVITS/configs/s1longer.yaml" if version == "v1" else "GPT_SoVITS/configs/s1longer-v2.yaml"
         ) as f:

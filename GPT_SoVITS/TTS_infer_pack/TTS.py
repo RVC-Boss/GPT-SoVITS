@@ -32,19 +32,21 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 from tools.audio_sr import AP_BWE
 from tools.i18n.i18n import I18nAuto, scan_language_list
-from tools.my_utils import load_audio
 from TTS_infer_pack.text_segmentation_method import splits
 from TTS_infer_pack.TextPreprocessor import TextPreprocessor
 from sv import SV
-resample_transform_dict={}
-def resample(audio_tensor, sr0,sr1,device):
+
+resample_transform_dict = {}
+
+
+def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    key="%s-%s-%s"%(sr0,sr1,str(device))
+    key = "%s-%s-%s" % (sr0, sr1, str(device))
     if key not in resample_transform_dict:
-        resample_transform_dict[key] = torchaudio.transforms.Resample(
-            sr0, sr1
-        ).to(device)
+        resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
+
+
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
@@ -110,6 +112,7 @@ def speed_change(input_audio: np.ndarray, speed: float, sr: int):
     processed_audio = np.frombuffer(out, np.int16)
 
     return processed_audio
+
 
 class DictToAttrRecursive(dict):
     def __init__(self, input_dict):
@@ -479,7 +482,7 @@ class TTS:
     def init_vits_weights(self, weights_path: str):
         self.configs.vits_weights_path = weights_path
         version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(weights_path)
-        if "Pro"in model_version:
+        if "Pro" in model_version:
             self.init_sv_model()
         path_sovits = self.configs.default_configs[model_version]["vits_weights_path"]
 
@@ -498,9 +501,9 @@ class TTS:
         else:
             hps["model"]["version"] = "v2"
         version = hps["model"]["version"]
-        v3v4set={"v3", "v4"}
+        v3v4set = {"v3", "v4"}
         if model_version not in v3v4set:
-            if "Pro"not in model_version:
+            if "Pro" not in model_version:
                 model_version = version
             else:
                 hps["model"]["version"] = model_version
@@ -542,7 +545,7 @@ class TTS:
             if "pretrained" not in weights_path and hasattr(vits_model, "enc_q"):
                 del vits_model.enc_q
 
-        self.is_v2pro=model_version in {"v2Pro","v2ProPlus"}
+        self.is_v2pro = model_version in {"v2Pro", "v2ProPlus"}
 
         if if_lora_v3 == False:
             print(
@@ -632,7 +635,9 @@ class TTS:
             )
             self.vocoder.remove_weight_norm()
             state_dict_g = torch.load(
-                "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu", weights_only=False
+                "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+                map_location="cpu",
+                weights_only=False,
             )
             print("loading vocoder", self.vocoder.load_state_dict(state_dict_g))
 
@@ -752,11 +757,13 @@ class TTS:
 
         if raw_sr != self.configs.sampling_rate:
             audio = raw_audio.to(self.configs.device)
-            if (audio.shape[0] == 2): audio = audio.mean(0).unsqueeze(0)
+            if audio.shape[0] == 2:
+                audio = audio.mean(0).unsqueeze(0)
             audio = resample(audio, raw_sr, self.configs.sampling_rate, self.configs.device)
         else:
             audio = raw_audio.to(self.configs.device)
-            if (audio.shape[0] == 2): audio = audio.mean(0).unsqueeze(0)
+            if audio.shape[0] == 2:
+                audio = audio.mean(0).unsqueeze(0)
 
         maxx = audio.abs().max()
         if maxx > 1:
@@ -775,8 +782,9 @@ class TTS:
             audio = resample(audio, self.configs.sampling_rate, 16000, self.configs.device)
             if self.configs.is_half:
                 audio = audio.half()
-        else:audio=None
-        return spec,audio
+        else:
+            audio = None
+        return spec, audio
 
     def _set_prompt_semantic(self, ref_wav_path: str):
         zero_wav = np.zeros(
@@ -1073,7 +1081,10 @@ class TTS:
 
         ###### setting reference audio and prompt text preprocessing ########
         t0 = time.perf_counter()
-        if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"] or (self.is_v2pro and self.prompt_cache["refer_spec"][0][1] is None)):
+        if (ref_audio_path is not None) and (
+            ref_audio_path != self.prompt_cache["ref_audio_path"]
+            or (self.is_v2pro and self.prompt_cache["refer_spec"][0][1] is None)
+        ):
             if not os.path.exists(ref_audio_path):
                 raise ValueError(f"{ref_audio_path} not exists")
             self.set_ref_audio(ref_audio_path)
@@ -1212,9 +1223,10 @@ class TTS:
                 t_34 += t4 - t3
 
                 refer_audio_spec = []
-                if self.is_v2pro:sv_emb=[]
-                for spec,audio_tensor in self.prompt_cache["refer_spec"]:
-                    spec=spec.to(dtype=self.precision, device=self.configs.device)
+                if self.is_v2pro:
+                    sv_emb = []
+                for spec, audio_tensor in self.prompt_cache["refer_spec"]:
+                    spec = spec.to(dtype=self.precision, device=self.configs.device)
                     refer_audio_spec.append(spec)
                     if self.is_v2pro:
                         sv_emb.append(self.sv_model.compute_embedding3(audio_tensor))
@@ -1249,10 +1261,14 @@ class TTS:
                             torch.cat(pred_semantic_list).unsqueeze(0).unsqueeze(0).to(self.configs.device)
                         )
                         _batch_phones = torch.cat(batch_phones).unsqueeze(0).to(self.configs.device)
-                        if self.is_v2pro!=True:
-                            _batch_audio_fragment = self.vits_model.decode(all_pred_semantic, _batch_phones, refer_audio_spec, speed=speed_factor).detach()[0, 0, :]
+                        if self.is_v2pro != True:
+                            _batch_audio_fragment = self.vits_model.decode(
+                                all_pred_semantic, _batch_phones, refer_audio_spec, speed=speed_factor
+                            ).detach()[0, 0, :]
                         else:
-                            _batch_audio_fragment = self.vits_model.decode(all_pred_semantic, _batch_phones, refer_audio_spec, speed=speed_factor,sv_emb=sv_emb).detach()[0, 0, :]
+                            _batch_audio_fragment = self.vits_model.decode(
+                                all_pred_semantic, _batch_phones, refer_audio_spec, speed=speed_factor, sv_emb=sv_emb
+                            ).detach()[0, 0, :]
                         audio_frag_end_idx.insert(0, 0)
                         batch_audio_fragment = [
                             _batch_audio_fragment[audio_frag_end_idx[i - 1] : audio_frag_end_idx[i]]
@@ -1266,9 +1282,13 @@ class TTS:
                                 pred_semantic_list[i][-idx:].unsqueeze(0).unsqueeze(0)
                             )  # .unsqueeze(0)#mq要多unsqueeze一次
                             if self.is_v2pro != True:
-                                audio_fragment = self.vits_model.decode(_pred_semantic, phones, refer_audio_spec, speed=speed_factor).detach()[0, 0, :]
+                                audio_fragment = self.vits_model.decode(
+                                    _pred_semantic, phones, refer_audio_spec, speed=speed_factor
+                                ).detach()[0, 0, :]
                             else:
-                                audio_fragment = self.vits_model.decode(_pred_semantic, phones, refer_audio_spec, speed=speed_factor,sv_emb=sv_emb).detach()[0, 0, :]
+                                audio_fragment = self.vits_model.decode(
+                                    _pred_semantic, phones, refer_audio_spec, speed=speed_factor, sv_emb=sv_emb
+                                ).detach()[0, 0, :]
                             batch_audio_fragment.append(audio_fragment)  ###试试重建不带上prompt部分
                 else:
                     if parallel_infer:
@@ -1410,7 +1430,7 @@ class TTS:
         raw_entry = self.prompt_cache["refer_spec"][0]
         if isinstance(raw_entry, tuple):
             raw_entry = raw_entry[0]
-        refer_audio_spec = raw_entry.to(dtype=self.precision,device=self.configs.device)
+        refer_audio_spec = raw_entry.to(dtype=self.precision, device=self.configs.device)
 
         fea_ref, ge = self.vits_model.decode_encp(prompt_semantic_tokens, prompt_phones, refer_audio_spec)
         ref_audio: torch.Tensor = self.prompt_cache["raw_audio"]
@@ -1480,7 +1500,7 @@ class TTS:
         raw_entry = self.prompt_cache["refer_spec"][0]
         if isinstance(raw_entry, tuple):
             raw_entry = raw_entry[0]
-        refer_audio_spec = raw_entry.to(dtype=self.precision,device=self.configs.device)
+        refer_audio_spec = raw_entry.to(dtype=self.precision, device=self.configs.device)
 
         fea_ref, ge = self.vits_model.decode_encp(prompt_semantic_tokens, prompt_phones, refer_audio_spec)
         ref_audio: torch.Tensor = self.prompt_cache["raw_audio"]

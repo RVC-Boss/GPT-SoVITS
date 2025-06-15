@@ -6,7 +6,6 @@ import torch.nn as nn
 
 
 class AFF(nn.Module):
-
     def __init__(self, channels=64, r=4):
         super(AFF, self).__init__()
         inter_channels = int(channels // r)
@@ -23,7 +22,6 @@ class AFF(nn.Module):
         xa = torch.cat((x, ds_y), dim=1)
         x_att = self.local_att(xa)
         x_att = 1.0 + torch.tanh(x_att)
-        xo = torch.mul(x, x_att) + torch.mul(ds_y, 2.0-x_att)
+        xo = torch.mul(x, x_att) + torch.mul(ds_y, 2.0 - x_att)
 
         return xo
-

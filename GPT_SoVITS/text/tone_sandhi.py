@@ -655,11 +655,7 @@ class ToneSandhi:
         while i < len(seg):
             word, pos = seg[i]
             merged = False
-            if (
-                i - 1 >= 0
-                and word == "一"
-                and i + 1 < len(seg)
-            ):
+            if i - 1 >= 0 and word == "一" and i + 1 < len(seg):
                 last = new_seg[-1] if new_seg else seg[i - 1]
                 if last[0] == seg[i + 1][0] and last[1] == "v" and seg[i + 1][1] == "v":
                     combined = last[0] + "一" + seg[i + 1][0]
