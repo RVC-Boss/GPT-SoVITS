@@ -109,7 +109,7 @@ def check_details(path_list=None, is_train=False, is_dataset_processing=False):
         if os.path.exists(wav_path):
             ...
         else:
-            gr.Warning(wav_path+i18n("路径错误"))
+            gr.Warning(wav_path + i18n("路径错误"))
         return
     if is_train:
         path_list.append(os.path.join(path_list[0], "2-name2text.txt"))

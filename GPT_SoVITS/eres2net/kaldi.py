@@ -144,7 +144,7 @@ def _get_waveform_and_window_properties(
     )
     assert 0 < window_shift, "`window_shift` must be greater than 0"
     assert padded_window_size % 2 == 0, (
-        "the padded `window_size` must be divisible by two." " use `round_to_power_of_two` or change `frame_length`"
+        "the padded `window_size` must be divisible by two. use `round_to_power_of_two` or change `frame_length`"
     )
     assert 0.0 <= preemphasis_coefficient <= 1.0, "`preemphasis_coefficient` must be between [0,1]"
     assert sample_frequency > 0, "`sample_frequency` must be greater than zero"
@@ -441,7 +441,9 @@ def get_mel_banks(
     high_freq: float,
     vtln_low: float,
     vtln_high: float,
-    vtln_warp_factor: float,device=None,dtype=None
+    vtln_warp_factor: float,
+    device=None,
+    dtype=None,
 ) -> Tuple[Tensor, Tensor]:
     """
     Returns:
@@ -457,9 +459,9 @@ def get_mel_banks(
     if high_freq <= 0.0:
         high_freq += nyquist
 
-    assert (
-        (0.0 <= low_freq < nyquist) and (0.0 < high_freq <= nyquist) and (low_freq < high_freq)
-    ), "Bad values in options: low-freq {} and high-freq {} vs. nyquist {}".format(low_freq, high_freq, nyquist)
+    assert (0.0 <= low_freq < nyquist) and (0.0 < high_freq <= nyquist) and (low_freq < high_freq), (
+        "Bad values in options: low-freq {} and high-freq {} vs. nyquist {}".format(low_freq, high_freq, nyquist)
+    )
 
     # fft-bin width [think of it as Nyquist-freq / half-window-length]
     fft_bin_width = sample_freq / window_length_padded
@@ -475,7 +477,7 @@ def get_mel_banks(
 
     assert vtln_warp_factor == 1.0 or (
         (low_freq < vtln_low < high_freq) and (0.0 < vtln_high < high_freq) and (vtln_low < vtln_high)
-    ), "Bad values in options: vtln-low {} and vtln-high {}, versus " "low-freq {} and high-freq {}".format(
+    ), "Bad values in options: vtln-low {} and vtln-high {}, versus low-freq {} and high-freq {}".format(
         vtln_low, vtln_high, low_freq, high_freq
     )
 
@@ -508,9 +510,12 @@ def get_mel_banks(
         bins[up_idx] = up_slope[up_idx]
         bins[down_idx] = down_slope[down_idx]
 
-    return bins.to(device=device,dtype=dtype)#, center_freqs
+    return bins.to(device=device, dtype=dtype)  # , center_freqs
 
-cache={}
+
+cache = {}
+
+
 def fbank(
     waveform: Tensor,
     blackman_coeff: float = 0.42,
@@ -620,14 +625,34 @@ def fbank(
     # size (num_mel_bins, padded_window_size // 2)
     # print(num_mel_bins, padded_window_size, sample_frequency, low_freq, high_freq, vtln_low, vtln_high, vtln_warp)
 
-    cache_key="%s-%s-%s-%s-%s-%s-%s-%s-%s-%s"%(num_mel_bins, padded_window_size, sample_frequency, low_freq, high_freq, vtln_low, vtln_high, vtln_warp,device,dtype)
+    cache_key = "%s-%s-%s-%s-%s-%s-%s-%s-%s-%s" % (
+        num_mel_bins,
+        padded_window_size,
+        sample_frequency,
+        low_freq,
+        high_freq,
+        vtln_low,
+        vtln_high,
+        vtln_warp,
+        device,
+        dtype,
+    )
     if cache_key not in cache:
         mel_energies = get_mel_banks(
-            num_mel_bins, padded_window_size, sample_frequency, low_freq, high_freq, vtln_low, vtln_high, vtln_warp,device,dtype
+            num_mel_bins,
+            padded_window_size,
+            sample_frequency,
+            low_freq,
+            high_freq,
+            vtln_low,
+            vtln_high,
+            vtln_warp,
+            device,
+            dtype,
         )
-        cache[cache_key]=mel_energies
+        cache[cache_key] = mel_energies
     else:
-        mel_energies=cache[cache_key]
+        mel_energies = cache[cache_key]
 
     # pad right column with zeros and add dimension, size (num_mel_bins, padded_window_size // 2 + 1)
     mel_energies = torch.nn.functional.pad(mel_energies, (0, 1), mode="constant", value=0)
