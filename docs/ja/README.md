@@ -5,12 +5,16 @@
 
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
 
-<img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
+<a href="https://trendshift.io/repositories/7033" target="_blank"><img src="https://trendshift.io/api/badge/repositories/7033" alt="RVC-Boss%2FGPT-SoVITS | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-WebUI.ipynb)
-[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
-[![Huggingface](https://img.shields.io/badge/🤗%20-online%20demo-yellow.svg?style=for-the-badge)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
-[![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
+[![Train In Colab](https://img.shields.io/badge/Colab-Training-F9AB00?style=for-the-badge&logo=googlecolab)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-WebUI.ipynb)
+[![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
+[![Huggingface](https://img.shields.io/badge/HuggingFace-demo-blue.svg?style=for-the-badge&logo=huggingface)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
+[![Image Size](https://img.shields.io/docker/image-size/xxxxrt666/gpt-sovits/latest?style=for-the-badge&logo=docker)](https://hub.docker.com/r/xxxxrt666/gpt-sovits)
+
+[![简体中文](https://img.shields.io/badge/简体中文-阅读文档-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e)
+[![English](https://img.shields.io/badge/English-Read%20Docs-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://rentry.co/GPT-SoVITS-guide#/)
+[![Change Log](https://img.shields.io/badge/Change%20Log-View%20Updates-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/docs/ja/Changelog_JA.md)
 
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | **日本語** | [**한국어**](../ko/README.md) | [**Türkçe**](../tr/README.md)
 
@@ -122,8 +126,9 @@ brew install ffmpeg
 
 - [Docker Hub](https://hub.docker.com/r/xxxxrt666/gpt-sovits) で最新のイメージタグを確認してください
 - 環境に合った適切なイメージタグを選択してください
-- `Lite` とは、Docker イメージに ASR モデルおよび UVR5 モデルが含まれていないことを意味します. UVR5 モデルは手動でダウンロードし、ASR モデルは必要に応じてプログラムが自動的にダウンロードします
+- `Lite` とは、Docker イメージに ASR モデルおよび UVR5 モデルが**含まれていない**ことを意味します. UVR5 モデルは手動でダウンロードし、ASR モデルは必要に応じてプログラムが自動的にダウンロードします
 - Docker Compose 実行時に、対応するアーキテクチャ (amd64 または arm64) のイメージが自動的に取得されます
+- Docker Compose は現在のディレクトリ内の**すべてのファイル**をマウントします. Docker イメージを使用する前に、プロジェクトのルートディレクトリに移動し、**コードを最新の状態に更新**してください
 - オプション：最新の変更を反映させるため、提供されている Dockerfile を使ってローカルでイメージをビルドすることも可能です
 
 #### 環境変数
