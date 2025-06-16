@@ -7,7 +7,7 @@
 
 <img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br>
 
-[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/colab_webui.ipynb)
+[![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Boss/GPT-SoVITS/blob/main/Colab-WebUI.ipynb)
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-online%20demo-yellow.svg?style=for-the-badge)](https://huggingface.co/spaces/lj1995/GPT-SoVITS-v2)
 [![Discord](https://img.shields.io/discord/1198701940511617164?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/dnrgs5GHfG)
@@ -304,7 +304,7 @@ v2 環境から v3 を使用する方法:
 新機能:
 
 1. **V4 は、V3 で発生していた非整数倍アップサンプリングによる金属音の問題を修正し、音声がこもる問題を防ぐためにネイティブに 48kHz 音声を出力します（V3 はネイティブに 24kHz 音声のみ出力）**. 作者は V4 を V3 の直接的な置き換えとして推奨していますが、さらなるテストが必要です.
-   [詳細はこちら](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7))
+   [詳細はこちら](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
 V1/V2/V3 環境から V4 への移行方法:
 
@@ -319,7 +319,7 @@ V1/V2/V3 環境から V4 への移行方法:
 新機能:
 
 1. **V2 と比較してやや高いメモリ使用量ですが、ハードウェアコストと推論速度は維持しつつ、V4 よりも高い性能と音質を実現します. **
-   [詳細はこちら](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90features-(%E5%90%84%E7%89%88%E6%9C%AC%E7%89%B9%E6%80%A7))
+   [詳細はこちら](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90features-(%E5%90%84%E7%89%88%E6%9C%AC%E7%89%B9%E6%80%A7)>)
 
 2. V1/V2 と V2Pro シリーズは類似した特徴を持ち、V3/V4 も同様の機能を持っています. 平均音質が低いトレーニングセットの場合、V1/V2/V2Pro は良好な結果を出すことができますが、V3/V4 では対応できません. また、V3/V4 の合成音声はトレーニング全体ではなく、より参考音声に寄った音質になります.
 
