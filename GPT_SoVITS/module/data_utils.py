@@ -21,7 +21,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
     3) computes spectrograms from audio files.
     """
 
-    def __init__(self, hparams, version=None,val=False):
+    def __init__(self, hparams, version=None, val=False):
         exp_dir = hparams.exp_dir
         self.path2 = "%s/2-name2text.txt" % exp_dir
         self.path4 = "%s/4-cnhubert" % exp_dir
@@ -29,7 +29,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         assert os.path.exists(self.path2)
         assert os.path.exists(self.path4)
         assert os.path.exists(self.path5)
-        self.is_v2Pro=version in {"v2Pro","v2ProPlus"}
+        self.is_v2Pro = version in {"v2Pro", "v2ProPlus"}
         if self.is_v2Pro:
             self.path7 = "%s/7-sv_cn" % exp_dir
             assert os.path.exists(self.path7)
@@ -118,7 +118,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                     ssl = F.pad(ssl.float(), (0, 1), mode="replicate").to(typee)
                 ssl.requires_grad = False
                 if self.is_v2Pro:
-                    sv_emb=torch.load("%s/%s.pt" % (self.path7, audiopath), map_location="cpu")
+                    sv_emb = torch.load("%s/%s.pt" % (self.path7, audiopath), map_location="cpu")
         except:
             traceback.print_exc()
             spec = torch.zeros(1025, 100)
@@ -126,10 +126,10 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
             ssl = torch.zeros(1, 768, 100)
             text = text[-1:]
             if self.is_v2Pro:
-                sv_emb=torch.zeros(1,20480)
+                sv_emb = torch.zeros(1, 20480)
             print("load audio or ssl error!!!!!!", audiopath)
         if self.is_v2Pro:
-            return (ssl, spec, wav, text,sv_emb)
+            return (ssl, spec, wav, text, sv_emb)
         else:
             return (ssl, spec, wav, text)
 
@@ -192,9 +192,9 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 class TextAudioSpeakerCollate:
     """Zero-pads model inputs and targets"""
 
-    def __init__(self, return_ids=False,version=None):
+    def __init__(self, return_ids=False, version=None):
         self.return_ids = return_ids
-        self.is_v2Pro=version in {"v2Pro","v2ProPlus"}
+        self.is_v2Pro = version in {"v2Pro", "v2ProPlus"}
 
     def __call__(self, batch):
         """Collate's training batch from normalized text, audio and speaker identities
@@ -228,7 +228,7 @@ class TextAudioSpeakerCollate:
         text_padded.zero_()
 
         if self.is_v2Pro:
-            sv_embs=torch.FloatTensor(len(batch),20480)
+            sv_embs = torch.FloatTensor(len(batch), 20480)
 
         for i in range(len(ids_sorted_decreasing)):
             row = batch[ids_sorted_decreasing[i]]
@@ -250,11 +250,30 @@ class TextAudioSpeakerCollate:
             text_lengths[i] = text.size(0)
 
             if self.is_v2Pro:
-                sv_embs[i]=row[4]
+                sv_embs[i] = row[4]
         if self.is_v2Pro:
-            return ssl_padded, ssl_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths, text_padded, text_lengths,sv_embs
+            return (
+                ssl_padded,
+                ssl_lengths,
+                spec_padded,
+                spec_lengths,
+                wav_padded,
+                wav_lengths,
+                text_padded,
+                text_lengths,
+                sv_embs,
+            )
         else:
-            return ssl_padded, ssl_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths, text_padded, text_lengths
+            return (
+                ssl_padded,
+                ssl_lengths,
+                spec_padded,
+                spec_lengths,
+                wav_padded,
+                wav_lengths,
+                text_padded,
+                text_lengths,
+            )
 
 
 class TextAudioSpeakerLoaderV3(torch.utils.data.Dataset):

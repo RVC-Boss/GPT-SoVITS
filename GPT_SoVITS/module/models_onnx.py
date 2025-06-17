@@ -762,7 +762,9 @@ class CodePredictor(nn.Module):
 
             return pred_codes.transpose(0, 1)
 
-v2pro_set={"v2Pro","v2ProPlus"}
+
+v2pro_set = {"v2Pro", "v2ProPlus"}
+
 
 class SynthesizerTrn(nn.Module):
     """
@@ -868,7 +870,7 @@ class SynthesizerTrn(nn.Module):
             # self.enc_p.text_embedding.requires_grad_(False)
             # self.enc_p.encoder_text.requires_grad_(False)
             # self.enc_p.mrte.requires_grad_(False)
-        self.is_v2pro=self.version in v2pro_set
+        self.is_v2pro = self.version in v2pro_set
         if self.is_v2pro:
             self.sv_emb = nn.Linear(20480, gin_channels)
             self.ge_to512 = nn.Linear(gin_channels, 512)
@@ -891,7 +893,7 @@ class SynthesizerTrn(nn.Module):
             quantized = dquantized.contiguous().view(1, self.ssl_dim, -1)
 
         if self.is_v2pro:
-            ge_ = self.ge_to512(ge.transpose(2,1)).transpose(2,1)
+            ge_ = self.ge_to512(ge.transpose(2, 1)).transpose(2, 1)
             x, m_p, logs_p, y_mask = self.enc_p(quantized, text, ge_, speed)
         else:
             x, m_p, logs_p, y_mask = self.enc_p(quantized, text, ge, speed)

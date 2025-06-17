@@ -160,7 +160,9 @@ class TextPreprocessor:
                 else:
                     for tmp in LangSegmenter.getTexts(text):
                         if langlist:
-                            if (tmp["lang"] == "en" and langlist[-1] == "en") or (tmp["lang"] != "en" and langlist[-1] != "en"):
+                            if (tmp["lang"] == "en" and langlist[-1] == "en") or (
+                                tmp["lang"] != "en" and langlist[-1] != "en"
+                            ):
                                 textlist[-1] += tmp["text"]
                                 continue
                         if tmp["lang"] == "en":
