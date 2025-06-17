@@ -33,7 +33,7 @@ on_error() {
 
 run_conda_quiet() {
     local output
-    output=$(conda install --yes --quiet "$@" 2>&1) || {
+    output=$(conda install --yes --quiet -c conda-forge "$@" 2>&1) || {
         echo -e "${ERROR} Conda install failed:\n$output"
         exit 1
     }
@@ -59,8 +59,6 @@ if ! command -v conda &>/dev/null; then
     echo -e "${ERROR}Conda Not Found"
     exit 1
 fi
-
-run_conda_quiet gcc
 
 USE_CUDA=false
 USE_ROCM=false
