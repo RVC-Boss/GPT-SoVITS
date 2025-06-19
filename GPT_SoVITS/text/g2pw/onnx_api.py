@@ -3,7 +3,6 @@
 
 import json
 import os
-import traceback
 import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
@@ -23,8 +22,9 @@ from .utils import load_config
 onnxruntime.set_default_logger_severity(3)
 try:
     onnxruntime.preload_dlls()
-except:pass
-    #traceback.print_exc()
+except:
+    pass
+    # traceback.print_exc()
 warnings.filterwarnings("ignore")
 
 model_version = "1.1"

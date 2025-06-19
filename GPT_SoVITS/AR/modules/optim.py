@@ -354,7 +354,7 @@ class ScaledAdam(BatchedOptimizer):
             if ans < 1.0:
                 first_state["num_clipped"] += 1
             if ans < 0.1:
-                logging.warn(f"Scaling gradients by {ans}, model_norm_threshold={model_norm_threshold}")
+                logging.warning(f"Scaling gradients by {ans}, model_norm_threshold={model_norm_threshold}")
                 if self.show_dominant_parameters:
                     assert p.shape[0] == len(param_names)
                     self._show_gradient_dominating_parameter(tuples, tot_sumsq)
@@ -362,7 +362,7 @@ class ScaledAdam(BatchedOptimizer):
 
     def _show_gradient_dominating_parameter(self, tuples: List[Tuple[Tensor, dict, List[str]]], tot_sumsq: Tensor):
         """
-        Show information of parameter wihch dominanting tot_sumsq.
+        Show information of parameter which dominating tot_sumsq.
 
         Args:
            tuples: a list of tuples of (param, state, param_names)
@@ -415,7 +415,7 @@ class ScaledAdam(BatchedOptimizer):
             dominant_grad,
         ) = sorted_by_proportion[dominant_param_name]
         logging.info(
-            f"Parameter Dominanting tot_sumsq {dominant_param_name}"
+            f"Parameter Dominating tot_sumsq {dominant_param_name}"
             f" with proportion {dominant_proportion:.2f},"
             f" where dominant_sumsq=(grad_sumsq*orig_rms_sq)"
             f"={dominant_sumsq:.3e},"

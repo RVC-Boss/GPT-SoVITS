@@ -578,3 +578,19 @@
   - 内容: 优化精度自动检测逻辑, 给 WebUI 前端界面模块增加折叠功能.
   - 类型: 新功能
   - 提交: XXXXRT666, RVC-Boss
+- 2025.06.06 [PR#2427](https://github.com/RVC-Boss/GPT-SoVITS/pull/2427)
+  - 内容: X一X型多音字判断修复
+  - 类型: 修复
+  - 提交: wzy3650
+- 2025.06.05 [PR#2439](https://github.com/RVC-Boss/GPT-SoVITS/pull/2439)
+  - 内容: 配置修复；sovits模型读取修复
+  - 类型: 修复
+  - 提交: wzy3650
+- 2025.06.09 [Commit#8056efe4](https://github.com/RVC-Boss/GPT-SoVITS/commit/8056efe4ab7bbc3610c72ae356a6f37518441f7d)
+  - 内容: 修复ge.sum数值可能爆炸导致推理无声的问题
+  - 类型: 修复
+  - 提交: RVC-Boss
+- 2025.06.10 [Commit#2c0436b9](https://github.com/RVC-Boss/GPT-SoVITS/commit/2c0436b9ce397424ae03476c836fb64c6e5ebcc6)
+  - 内容: 修复实验名结尾出现空格在win中路径不正确的问题
+  - 类型: 修复
+  - 提交: RVC-Boss

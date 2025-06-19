@@ -243,6 +243,7 @@ class ExportGPTSovitsHalf(torch.nn.Module):
         self.sampling_rate: int = hps.data.sampling_rate
         self.hop_length: int = hps.data.hop_length
         self.win_length: int = hps.data.win_length
+        self.hann_window = torch.hann_window(self.win_length, device=device, dtype=torch.float32)
 
     def forward(
         self,
@@ -255,6 +256,7 @@ class ExportGPTSovitsHalf(torch.nn.Module):
         top_k,
     ):
         refer = spectrogram_torch(
+            self.hann_window,
             ref_audio_32k,
             self.filter_length,
             self.sampling_rate,
@@ -321,6 +323,7 @@ class ExportGPTSovitsV4Half(torch.nn.Module):
         self.sampling_rate: int = hps.data.sampling_rate
         self.hop_length: int = hps.data.hop_length
         self.win_length: int = hps.data.win_length
+        self.hann_window = torch.hann_window(self.win_length, device=device, dtype=torch.float32)
 
     def forward(
         self,
@@ -333,6 +336,7 @@ class ExportGPTSovitsV4Half(torch.nn.Module):
         top_k,
     ):
         refer = spectrogram_torch(
+            self.hann_window,
             ref_audio_32k,
             self.filter_length,
             self.sampling_rate,
@@ -402,7 +406,7 @@ class GPTSoVITSV3(torch.nn.Module):
         chunk_len = 934 - fea_ref.shape[2]
         wav_gen_list = []
         idx = 0
-        fea_todo = fea_todo[:,:,:-5]
+        fea_todo = fea_todo[:, :, :-5]
         wav_gen_length = fea_todo.shape[2] * 256
         while 1:
             # current_time = datetime.now()
@@ -434,7 +438,8 @@ class GPTSoVITSV3(torch.nn.Module):
 
         wav_gen = torch.cat(wav_gen_list, 2)
         return wav_gen[0][0][:wav_gen_length]
-    
+
+
 class GPTSoVITSV4(torch.nn.Module):
     def __init__(self, gpt_sovits_half, cfm, hifigan):
         super().__init__()
@@ -461,7 +466,7 @@ class GPTSoVITSV4(torch.nn.Module):
         chunk_len = 1000 - fea_ref.shape[2]
         wav_gen_list = []
         idx = 0
-        fea_todo = fea_todo[:,:,:-10]
+        fea_todo = fea_todo[:, :, :-10]
         wav_gen_length = fea_todo.shape[2] * 480
         while 1:
             # current_time = datetime.now()
@@ -576,6 +581,7 @@ class DictToAttrRecursive(dict):
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 
 v3v4set = {"v3", "v4"}
+
 
 def get_sovits_weights(sovits_path):
     path_sovits_v3 = "GPT_SoVITS/pretrained_models/s2Gv3.pth"
@@ -699,14 +705,13 @@ def export_cfm(
     return export_cfm
 
 
-def export_1(ref_wav_path,ref_wav_text,version="v3"):
+def export_1(ref_wav_path, ref_wav_text, version="v3"):
     if version == "v3":
         sovits = get_sovits_weights("GPT_SoVITS/pretrained_models/s2Gv3.pth")
         init_bigvgan()
     else:
         sovits = get_sovits_weights("GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth")
         init_hifigan()
-    
 
     dict_s1 = torch.load("GPT_SoVITS/pretrained_models/s1v3.ckpt")
     raw_t2s = get_raw_t2s_model(dict_s1).to(device)
@@ -751,9 +756,7 @@ def export_1(ref_wav_path,ref_wav_text,version="v3"):
     # phones1, bert1, norm_text1 = get_phones_and_bert(
     #     "你这老坏蛋，我找了你这么久，真没想到在这里找到你。他说。", "all_zh", "v3"
     # )
-    phones1, bert1, norm_text1 = get_phones_and_bert(
-        ref_wav_text, "auto", "v3"
-    )
+    phones1, bert1, norm_text1 = get_phones_and_bert(ref_wav_text, "auto", "v3")
     phones2, bert2, norm_text2 = get_phones_and_bert(
         "这是一个简单的示例，真没想到这么简单就完成了。The King and His Stories.Once there was a king. He likes to write stories, but his stories were not good. As people were afraid of him, they all said his stories were good.After reading them, the writer at once turned to the soldiers and said: Take me back to prison, please.",
         "auto",
@@ -914,7 +917,7 @@ def export_1(ref_wav_path,ref_wav_text,version="v3"):
             hifigan_model_ = torch.jit.trace(hifigan_model, optimize=True, example_inputs=(cmf_res_rand,))
             hifigan_model_.save("onnx/ad/hifigan_model.pt")
             wav_gen = hifigan_model(cmf_res)
-        
+
         print("wav_gen:", wav_gen.shape, wav_gen.dtype)
         audio = wav_gen[0][0].cpu().detach().numpy()
 
@@ -1149,7 +1152,7 @@ def export_2(version="v3"):
         raw_t2s = raw_t2s.half().to(device)
     t2s_m = T2SModel(raw_t2s).half().to(device)
     t2s_m.eval()
-    t2s_m = torch.jit.script(t2s_m)
+    t2s_m = torch.jit.script(t2s_m).to(device)
     t2s_m.eval()
     # t2s_m.top_k = 15
     logger.info("t2s_m ok")
@@ -1201,7 +1204,6 @@ def export_2(version="v3"):
     gpt_sovits_v3v4 = gpt_sovits_v3 if version == "v3" else gpt_sovits_v4
     sr = 24000 if version == "v3" else 48000
 
-
     time.sleep(5)
     # print("thread:", torch.get_num_threads())
     # print("thread:", torch.get_num_interop_threads())
@@ -1212,14 +1214,14 @@ def export_2(version="v3"):
         "汗流浃背了呀!老弟~ My uncle has two dogs. One is big and the other is small. He likes them very much. He often plays with them. He takes them for a walk every day. He says they are his good friends. He is very happy with them. 最后还是我得了 MVP....",
         gpt_sovits_v3v4,
         "out.wav",
-        sr
+        sr,
     )
 
     test_export(
         "你小子是什么来路.汗流浃背了呀!老弟~ My uncle has two dogs. He is very happy with them. 最后还是我得了 MVP!",
         gpt_sovits_v3v4,
         "out2.wav",
-        sr
+        sr,
     )
 
     # test_export(
@@ -1251,6 +1253,6 @@ def test_export_gpt_sovits_v3():
 
 
 with torch.no_grad():
-    export_1("onnx/ad/ref.wav","你这老坏蛋，我找了你这么久，真没想到在这里找到你。他说。","v4")
-    # export_2("v4")
+    # export_1("onnx/ad/ref.wav","你这老坏蛋，我找了你这么久，真没想到在这里找到你。他说。","v4")
+    export_2("v4")
     # test_export_gpt_sovits_v3()

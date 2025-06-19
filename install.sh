@@ -5,14 +5,60 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 cd "$SCRIPT_DIR" || exit 1
 
-set -e
+RESET="\033[0m"
+BOLD="\033[1m"
+ERROR="\033[1;31m[ERROR]: $RESET"
+WARNING="\033[1;33m[WARNING]: $RESET"
+INFO="\033[1;32m[INFO]: $RESET"
+SUCCESS="\033[1;34m[SUCCESS]: $RESET"
+
+set -eE
+set -o errtrace
+
+trap 'on_error $LINENO "$BASH_COMMAND" $?' ERR
+
+# shellcheck disable=SC2317
+on_error() {
+    local lineno="$1"
+    local cmd="$2"
+    local code="$3"
+
+    echo -e "${ERROR}${BOLD}Command \"${cmd}\" Failed${RESET} at ${BOLD}Line ${lineno}${RESET} with Exit Code ${BOLD}${code}${RESET}"
+    echo -e "${ERROR}${BOLD}Call Stack:${RESET}"
+    for ((i = ${#FUNCNAME[@]} - 1; i >= 1; i--)); do
+        echo -e "  in ${BOLD}${FUNCNAME[i]}()${RESET} at ${BASH_SOURCE[i]}:${BOLD}${BASH_LINENO[i - 1]}${RESET}"
+    done
+    exit "$code"
+}
+
+run_conda_quiet() {
+    local output
+    output=$(conda install --yes --quiet -c conda-forge "$@" 2>&1) || {
+        echo -e "${ERROR} Conda install failed:\n$output"
+        exit 1
+    }
+}
+
+run_pip_quiet() {
+    local output
+    output=$(pip install "$@" 2>&1) || {
+        echo -e "${ERROR} Pip install failed:\n$output"
+        exit 1
+    }
+}
+
+run_wget_quiet() {
+    local output
+    output=$(wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$@" 2>&1) || {
+        echo -e "${ERROR} Wget failed:\n$output"
+        exit 1
+    }
+}
 
 if ! command -v conda &>/dev/null; then
-    echo "Conda Not Found"
+    echo -e "${ERROR}Conda Not Found"
     exit 1
 fi
-
-trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 
 USE_CUDA=false
 USE_ROCM=false
@@ -34,8 +80,8 @@ print_help() {
     echo "  -h, --help                             Show this help message and exit"
     echo ""
     echo "Examples:"
-    echo "  bash install.sh --source HF --download-uvr5"
-    echo "  bash install.sh --source ModelScope"
+    echo "  bash install.sh --device CU128 --source HF --download-uvr5"
+    echo "  bash install.sh --device MPS --source ModelScope"
 }
 
 # Show help if no arguments provided
@@ -59,8 +105,8 @@ while [[ $# -gt 0 ]]; do
             USE_MODELSCOPE=true
             ;;
         *)
-            echo "Error: Invalid Download Source: $2"
-            echo "Choose From: [HF, HF-Mirror, ModelScope]"
+            echo -e "${ERROR}Error: Invalid Download Source: $2"
+            echo -e "${ERROR}Choose From: [HF, HF-Mirror, ModelScope]"
             exit 1
             ;;
         esac
@@ -86,8 +132,8 @@ while [[ $# -gt 0 ]]; do
             USE_CPU=true
             ;;
         *)
-            echo "Error: Invalid Device: $2"
-            echo "Choose From: [CU126, CU128, ROCM, MPS, CPU]"
+            echo -e "${ERROR}Error: Invalid Device: $2"
+            echo -e "${ERROR}Choose From: [CU126, CU128, ROCM, MPS, CPU]"
             exit 1
             ;;
         esac
@@ -102,22 +148,23 @@ while [[ $# -gt 0 ]]; do
         exit 0
         ;;
     *)
-        echo "Unknown Argument: $1"
-        echo "Use -h or --help to see available options."
+        echo -e "${ERROR}Unknown Argument: $1"
+        echo ""
+        print_help
         exit 1
         ;;
     esac
 done
 
 if ! $USE_CUDA && ! $USE_ROCM && ! $USE_CPU; then
-    echo "Error: Device is REQUIRED"
+    echo -e "${ERROR}Error: Device is REQUIRED"
     echo ""
     print_help
     exit 1
 fi
 
 if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
-    echo "Error: Download Source is REQUIRED"
+    echo -e "${ERROR}Error: Download Source is REQUIRED"
     echo ""
     print_help
     exit 1
@@ -125,55 +172,65 @@ fi
 
 # 安装构建工具
 # Install build tools
+echo -e "${INFO}Detected system: $(uname -s) $(uname -r) $(uname -m)"
 if [ "$(uname)" != "Darwin" ]; then
     gcc_major_version=$(command -v gcc >/dev/null 2>&1 && gcc -dumpversion | cut -d. -f1 || echo 0)
     if [ "$gcc_major_version" -lt 11 ]; then
-        echo "Installing GCC & G++..."
-        conda install -c conda-forge gcc=11 gxx=11 -q -y
+        echo -e "${INFO}Installing GCC & G++..."
+        run_conda_quiet gcc=11 gxx=11
+        echo -e "${SUCCESS}GCC & G++ Installed..."
     else
-        echo "GCC >=11"
+        echo -e "${INFO}Detected GCC Version: $gcc_major_version"
+        echo -e "${INFO}Skip Installing GCC & G++ From Conda-Forge"
     fi
 else
     if ! xcode-select -p &>/dev/null; then
-        echo "Installing Xcode Command Line Tools..."
+        echo -e "${INFO}Installing Xcode Command Line Tools..."
         xcode-select --install
-    fi
-    echo "Waiting For Xcode Command Line Tools Installation Complete..."
-    while true; do
-        sleep 20
+        echo -e "${INFO}Waiting For Xcode Command Line Tools Installation Complete..."
+        while true; do
+            sleep 20
 
-        if xcode-select -p &>/dev/null; then
-            echo "Xcode Command Line Tools Installed"
-            break
-        else
-            echo "Installing，Please Wait..."
+            if xcode-select -p &>/dev/null; then
+                echo -e "${SUCCESS}Xcode Command Line Tools Installed"
+                break
+            else
+                echo -e "${INFO}Installing，Please Wait..."
+            fi
+        done
+    else
+        XCODE_PATH=$(xcode-select -p)
+        if [[ "$XCODE_PATH" == *"Xcode.app"* ]]; then
+            echo -e "${WARNING} Detected Xcode path: $XCODE_PATH"
+            echo -e "${WARNING} If your Xcode version does not match your macOS version, it may cause unexpected issues during compilation or package builds."
         fi
-    done
-    conda install -c conda-forge -q -y
+    fi
 fi
 
-echo "Installing ffmpeg and cmake..."
-conda install ffmpeg cmake make -q -y
+echo -e "${INFO}Installing FFmpeg & CMake..."
+run_conda_quiet ffmpeg cmake make
+echo -e "${SUCCESS}FFmpeg & CMake Installed"
 
-echo "Installing unzip..."
-conda install unzip -y --quiet
+echo -e "${INFO}Installing unzip..."
+run_conda_quiet unzip
+echo -e "${SUCCESS}unzip Installed"
 
 if [ "$USE_HF" = "true" ]; then
-    echo "Download Model From HuggingFace"
+    echo -e "${INFO}Download Model From HuggingFace"
     PRETRINED_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
     NLTK_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
     PYOPENJTALK_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
 elif [ "$USE_HF_MIRROR" = "true" ]; then
-    echo "Download Model From HuggingFace-Mirror"
+    echo -e "${INFO}Download Model From HuggingFace-Mirror"
     PRETRINED_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
     G2PW_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
     NLTK_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
     PYOPENJTALK_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
 elif [ "$USE_MODELSCOPE" = "true" ]; then
-    echo "Download Model From ModelScope"
+    echo -e "${INFO}Download Model From ModelScope"
     PRETRINED_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/pretrained_models.zip"
     G2PW_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip"
     UVR5_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/uvr5_weights.zip"
@@ -181,118 +238,129 @@ elif [ "$USE_MODELSCOPE" = "true" ]; then
     PYOPENJTALK_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/open_jtalk_dic_utf_8-1.11.tar.gz"
 fi
 
-if [ "$WORKFLOW" = "true" ]; then
-    WGET_CMD=(wget -nv --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404)
-else
-    WGET_CMD=(wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404)
-fi
-
 if find -L "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
-    echo "Pretrained Model Exists"
+    echo -e "${INFO}Pretrained Model Exists"
+    echo -e "${INFO}Skip Downloading Pretrained Models"
 else
-    echo "Download Pretrained Models"
-    "${WGET_CMD[@]}" "$PRETRINED_URL"
+    echo -e "${INFO}Downloading Pretrained Models..."
+    rm -rf pretrained_models.zip
+    run_wget_quiet "$PRETRINED_URL"
 
     unzip -q -o pretrained_models.zip -d GPT_SoVITS
     rm -rf pretrained_models.zip
+    echo -e "${SUCCESS}Pretrained Models Downloaded"
 fi
 
 if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
-    echo "Download G2PWModel"
-    "${WGET_CMD[@]}" "$G2PW_URL"
+    echo -e "${INFO}Downloading G2PWModel.."
+    rm -rf G2PWModel.zip
+    run_wget_quiet "$G2PW_URL"
 
     unzip -q -o G2PWModel.zip -d GPT_SoVITS/text
     rm -rf G2PWModel.zip
+    echo -e "${SUCCESS}G2PWModel Downloaded"
 else
-    echo "G2PWModel Exists"
+    echo -e "${INFO}G2PWModel Exists"
+    echo -e "${INFO}Skip Downloading G2PWModel"
 fi
 
 if [ "$DOWNLOAD_UVR5" = "true" ]; then
     if find -L "tools/uvr5/uvr5_weights" -mindepth 1 ! -name '.gitignore' | grep -q .; then
-        echo "UVR5 Model Exists"
+        echo -e"${INFO}UVR5 Models Exists"
+        echo -e "${INFO}Skip Downloading UVR5 Models"
     else
-        echo "Download UVR5 Model"
-        "${WGET_CMD[@]}" "$UVR5_URL"
+        echo -e "${INFO}Downloading UVR5 Models..."
+        rm -rf uvr5_weights.zip
+        run_wget_quiet "$UVR5_URL"
 
         unzip -q -o uvr5_weights.zip -d tools/uvr5
         rm -rf uvr5_weights.zip
+        echo -e "${SUCCESS}UVR5 Models Downloaded"
     fi
 fi
 
 if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
-    echo "Checking for CUDA installation..."
+    echo -e "${INFO}Checking For Nvidia Driver Installation..."
     if command -v nvidia-smi &>/dev/null; then
-        echo "CUDA found."
+        echo "${INFO}Nvidia Driver Founded"
     else
+        echo -e "${WARNING}Nvidia Driver Not Found, Fallback to CPU"
         USE_CUDA=false
         USE_CPU=true
-        echo "CUDA not found."
     fi
 fi
 
 if [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
-    echo "Checking for ROCm installation..."
+    echo -e "${INFO}Checking For ROCm Installation..."
     if [ -d "/opt/rocm" ]; then
-        echo "ROCm found."
+        echo -e "${INFO}ROCm Founded"
         if grep -qi "microsoft" /proc/version; then
-            echo "You are running WSL."
+            echo -e "${INFO}WSL2 Founded"
             IS_WSL=true
         else
-            echo "You are NOT running WSL."
             IS_WSL=false
         fi
     else
+        echo -e "${WARNING}ROCm Not Found, Fallback to CPU"
         USE_ROCM=false
         USE_CPU=true
-        echo "ROCm not found."
     fi
 fi
 
 if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
-    echo "Installing PyTorch with CUDA support..."
     if [ "$CUDA" = 128 ]; then
-        pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+        echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
+        run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
     elif [ "$CUDA" = 126 ]; then
-        pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cu126
+        echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
+        run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
     fi
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
-    echo "Installing PyTorch with ROCm support..."
-    pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
+    echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
+    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/rocm6.2"
 elif [ "$USE_CPU" = true ] && [ "$WORKFLOW" = false ]; then
-    echo "Installing PyTorch for CPU..."
-    pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cpu
+    echo -e "${INFO}Installing PyTorch For CPU..."
+    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
 elif [ "$WORKFLOW" = false ]; then
-    echo "Unknown Err"
+    echo -e "${ERROR}Unknown Err"
     exit 1
 fi
+echo -e "${SUCCESS}PyTorch Installed"
 
-echo "Installing Python dependencies from requirements.txt..."
+echo -e "${INFO}Installing Python Dependencies From requirements.txt..."
 
-# 刷新环境
-# Refresh environment
 hash -r
 
-pip install -r extra-req.txt --no-deps --quiet
+run_pip_quiet -r extra-req.txt --no-deps
 
-pip install -r requirements.txt --quiet
+run_pip_quiet -r requirements.txt
+
+echo -e "${SUCCESS}Python Dependencies Installed"
 
 PY_PREFIX=$(python -c "import sys; print(sys.prefix)")
 PYOPENJTALK_PREFIX=$(python -c "import os, pyopenjtalk; print(os.path.dirname(pyopenjtalk.__file__))")
 
-"${WGET_CMD[@]}" "$NLTK_URL" -O nltk_data.zip
+echo -e "${INFO}Downloading NLTK Data..."
+rm -rf nltk_data.zip
+run_wget_quiet "$NLTK_URL" -O nltk_data.zip
 unzip -q -o nltk_data -d "$PY_PREFIX"
 rm -rf nltk_data.zip
+echo -e "${SUCCESS}NLTK Data Downloaded"
 
-"${WGET_CMD[@]}" "$PYOPENJTALK_URL" -O open_jtalk_dic_utf_8-1.11.tar.gz
-tar -xvzf open_jtalk_dic_utf_8-1.11.tar.gz -C "$PYOPENJTALK_PREFIX"
+echo -e "${INFO}Downloading Open JTalk Dict..."
 rm -rf open_jtalk_dic_utf_8-1.11.tar.gz
+run_wget_quiet "$PYOPENJTALK_URL" -O open_jtalk_dic_utf_8-1.11.tar.gz
+tar -xzf open_jtalk_dic_utf_8-1.11.tar.gz -C "$PYOPENJTALK_PREFIX"
+rm -rf open_jtalk_dic_utf_8-1.11.tar.gz
+echo -e "${SUCCESS}Open JTalk Dic Downloaded"
 
 if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ]; then
-    echo "Update to WSL compatible runtime lib..."
+    echo -e "${INFO}Updating WSL Compatible Runtime Lib For ROCm..."
     location=$(pip show torch | grep Location | awk -F ": " '{print $2}')
     cd "${location}"/torch/lib/ || exit
     rm libhsa-runtime64.so*
     cp /opt/rocm/lib/libhsa-runtime64.so.1.2 libhsa-runtime64.so
+    echo -e "${SUCCESS}ROCm Runtime Lib Updated..."
 fi
 
-echo "Installation completed successfully!"
+echo -e "${SUCCESS}Installation Completed"
