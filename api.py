@@ -1169,7 +1169,7 @@ def version_4_cli(
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
         ref_language = "日文"
     elif character_name in ["Ikko", "ikko", "Ikka", "ikka"]:
-        path = "idols/ikka/ikka.wav"
+        path = "idols/ikka/ikko.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/ikko-san-e45.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/ikko-san_e15_s1305_l32.pth"
     if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
@@ -1224,8 +1224,8 @@ async def tts_endpoint(
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
     elif character == "saotome":
         prompt_text = "朝ごはんにはトーストと卵、そしてコーヒーを飲みました。簡単だけど、朝の時間が少し幸せに感じられる瞬間でした。"
-    elif character == "ikka" or character == "Ikka":
-        prompt_text = "言われますけどその通りで朝早く起きるといい空気を吸えて"
+    elif character in ["Ikko", "ikko", "Ikka", "ikka"]:
+        prompt_text = "せおいなげ、まじばな、らぶらぶ、あげあげ、まぼろし"
 
     import warnings
     warnings.warn(f"the character name is {character}. ")
