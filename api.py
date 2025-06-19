@@ -1168,7 +1168,7 @@ def version_4_cli(
         GPT_model_path = "GPT_SoVITS/pretrained_models/saotome-e30.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
         ref_language = "日文"
-    elif character_name == "ikka" or character_name == "Ikka":
+    elif character_name in ["Ikko", "ikko", "Ikka", "ikka"]:
         path = "idols/ikka/ikka.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/ikko-san-e45.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/ikko-san_e15_s1305_l32.pth"
