@@ -1230,7 +1230,7 @@ async def tts_endpoint(
     import warnings
     warnings.warn(f"the character name is {character}. ")
     
-    if (character == "Kurari") or character == "saotome" or character == "ikka" or character == "Ikka":
+    if (character == "Kurari") or character == "saotome" or character == "ikka" or character == "Ikka" or character== "ikko" or character == "Ikko":
         """
         "中文": "all_zh",
         "粤语": "all_yue",
