@@ -1175,7 +1175,10 @@ def version_4_cli(
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/saotome_e9_s522_l32.pth"
         ref_language = "日文"
     elif character_name in ["Ikko", "ikko", "Ikka", "ikka"]:
-        path = "idols/ikka/ikko.wav"
+        if loudness_boost:
+            path = "idols/ikka/ikko_boost.wav"
+        else:
+            path = "idols/ikka/ikko.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/ikko-san-e45.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/ikko-san_e15_s1305_l32.pth"
     if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
