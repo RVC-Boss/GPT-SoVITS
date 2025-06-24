@@ -1158,6 +1158,12 @@ def version_4_cli(
     character_name: str = "Kurari",
     model_id: int = 14,
     version: str = "v1",  # v3 or v4
+    loudness_boost=False,
+    gain=0,
+    normalize=False,
+    energy_scale=1.0,
+    volume_scale=1.0,
+    strain_effect=0.0,
 ):
     # Create a temporary buffer to store the audio
     audio_buffer = io.BytesIO()
@@ -1187,7 +1193,13 @@ def version_4_cli(
         ref_language = ref_language,
         target_text = target_text,
         text_language = text_language,
-        output_path = output_path  # Don't save to file
+        output_path = output_path,  # Don't save to file
+        loudness_boost=loudness_boost,
+        gain=gain,
+        normalize=normalize,
+        energy_scale=energy_scale,
+        volume_scale=volume_scale,
+        strain_effect=strain_effect
     )
     
     # Get the last audio data and sample rate from synthesis result
