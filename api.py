@@ -1177,7 +1177,7 @@ def version_4_cli(
     elif character_name == "Baacharu" or character_name == "baacharu":
         path = "idols/baacharu/baacharu.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/baacharu-e40.ckpt"
-        SoVITS_model_path = "GPT_SoVITS/pretrained_models/baacharu_e15_s1320_l32.pth"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/s2Gv2ProPlus.pth"
         ref_language = "日文"
     elif character_name in ["Ikko", "ikko", "Ikka", "ikka"]:
         if loudness_boost:
@@ -1253,7 +1253,7 @@ async def tts_endpoint(
     elif character in ["Ikko", "ikko", "Ikka", "ikka"]:
         prompt_text = "せおいなげ、まじばな、らぶらぶ、あげあげ、まぼろし"
     elif character in ["Baacharu", "baacharu"]:
-        prompt_text = "僕ねこれね初めてなんでねちょっと行きますよプルプルプルプルしてる"
+        prompt_text = "どーもー、世界初男性バーチャルユーチューバーのばあちゃるです"
     import warnings
     warnings.warn(f"the character name is {character}. ")
 
