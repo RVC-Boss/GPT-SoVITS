@@ -1185,7 +1185,7 @@ def version_4_cli(
         else:
             path = "idols/ikka/ikko.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/ikko-san-e45.ckpt"
-        SoVITS_model_path = "GPT_SoVITS/pretrained_models/ikko-san_e15_s1305_l32.pth"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/s2Gv2ProPlus.pth"
     if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
         GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-hql-e40.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-hql_e20_s1240.pth"
