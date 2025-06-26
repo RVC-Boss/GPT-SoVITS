@@ -60,8 +60,11 @@ Windows 사용자라면 (win>=10에서 테스트됨), [통합 패키지를 다�
 
 ### Linux
 
-**참고 1: Linux의 경우 DML 가속은 Windows의 WSL2 또는 Docker에서만 지원됩니다. Windows를 사용 중이고 AMD GPU가 WSL2에서 ROCm을 사용할 수 없는 경우(아키텍처가 너무 오래되었거나 지원되지 않는 경우), 또는 Intel GPU나 DirectX 12(코어 그래픽 포함)를 지원하는 다른 GPU를 사용하는 경우 DML을 선택하세요.**
-**참고 2: ONNX 모델의 ROCm(AMD GPU) 가속(onnxruntime-rocm 기반)은 ROCm 6.2의 경우 Python 3.9 및 3.10만, ROCm 6.4의 경우 Python 3.9, 3.10 및 3.12만 지원합니다. 다른 Python 버전을 사용하는 경우, GPT-Sovits는 ONNX-Runtime의 CPU 버전을 대신 설치하여 사용합니다.**
+**주의:**
+  
+1. **Linux의 경우 DML 가속은 Windows의 WSL2 또는 Docker에서만 지원됩니다. Windows를 사용 중이고 AMD GPU가 WSL2에서 ROCm을 사용할 수 없는 경우(아키텍처가 너무 오래되었거나 지원되지 않는 경우), 또는 Intel GPU나 DirectX 12(코어 그래픽 포함)를 지원하는 다른 GPU를 사용하는 경우 DML을 선택하세요.**
+  
+2. **ONNX 모델의 ROCm(AMD GPU) 가속(onnxruntime-rocm 기반)은 ROCm 6.2의 경우 Python 3.9 및 3.10만, ROCm 6.4의 경우 Python 3.9, 3.10 및 3.12만 지원합니다. 다른 Python 버전을 사용하는 경우, GPT-Sovits는 ONNX-Runtime의 CPU 버전을 대신 설치하여 사용합니다.**
 
 ```bash
 conda create -n GPTSoVits python=3.10

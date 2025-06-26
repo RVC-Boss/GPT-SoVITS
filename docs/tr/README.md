@@ -60,8 +60,11 @@ Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [entegre
 
 ### Linux
 
-**Not 1: Linux için, DML hızlandırma yalnızca WSL2 veya Windows'ta Docker'da desteklenir. Windows kullanıyorsanız ve AMD GPU'nuz WSL2'de ROCm kullanamıyorsa (mimari çok eski veya basitçe desteklenmiyorsa) veya Intel GPU veya DirectX 12'yi (çekirdek grafikler dahil) destekleyen başka bir GPU kullanıyorsanız, lütfen DML'yi seçin**
-**Not 2: ONNX modellerinin ROCm(AMD GPU) Acceleration'ı (onnxruntime-rocm tarafından desteklenmektedir) yalnızca ROCm 6.2 için Python 3.9 ve 3.10'u; ROCm 6.4 için Python3.9, 3.10 ve 3.12'yi destekler. Diğer Python sürümlerini kullanıyorsanız, GPT-Sovits bunun yerine ONNX-Runtime'ın CPU sürümünü yükleyecek ve kullanacaktır.**
+**Not:**
+  
+1. **Linux için, DML hızlandırma yalnızca WSL2 veya Windows'ta Docker'da desteklenir. Windows kullanıyorsanız ve AMD GPU'nuz WSL2'de ROCm kullanamıyorsa (mimari çok eski veya basitçe desteklenmiyorsa) veya Intel GPU veya DirectX 12'yi (çekirdek grafikler dahil) destekleyen başka bir GPU kullanıyorsanız, lütfen DML'yi seçin.**
+  
+2. **ONNX modellerinin ROCm(AMD GPU) Acceleration'ı (onnxruntime-rocm tarafından desteklenmektedir) yalnızca ROCm 6.2 için Python 3.9 ve 3.10'u; ROCm 6.4 için Python3.9, 3.10 ve 3.12'yi destekler. Diğer Python sürümlerini kullanıyorsanız, GPT-Sovits bunun yerine ONNX-Runtime'ın CPU sürümünü yükleyecek ve kullanacaktır.**
 
 ```bash
 conda create -n GPTSoVits python=3.10

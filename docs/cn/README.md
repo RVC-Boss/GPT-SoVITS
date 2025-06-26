@@ -64,8 +64,11 @@
 
 ### Linux
 
-**注 1：对于 Linux，DML 加速仅支持 Windows 上的 WSL2 或 Docker。如果您使用 Windows，并且您的 AMD GPU 无法在 WSL2 中使用 ROCm（架构太旧或单纯的架构不支持），或者您使用 Intel GPU 或任何其他支持 DirectX 12 的 GPU（包括 核心显卡），请选择 DML**
-**注 2：ONNX 模型的 ROCm（AMD GPU）加速（由 onnxruntime-rocm 支持）仅支持 ROCm 6.2 的 Python 3.9 和 3.10；以及 ROCm 6.4 的 Python3.9、3.10 和 3.12。如果您使用其他 Python 版本，GPT-Sovits 将安装并使用 CPU 版本的 ONNX-Runtime。**
+**注:**
+  
+1. **对于 Linux，DML 加速仅支持 Windows 上的 WSL2 或 Docker。如果您使用 Windows，并且您的 AMD GPU 无法在 WSL2 中使用 ROCm（架构太旧或单纯的架构不支持），或者您使用 Intel GPU 或任何其他支持 DirectX 12 的 GPU（包括 核心显卡），请选择 DML。**
+  
+2. **ONNX 模型的 ROCm（AMD GPU）加速（由 onnxruntime-rocm 支持）仅支持 ROCm 6.2 的 Python 3.9 和 3.10；以及 ROCm 6.4 的 Python3.9、3.10 和 3.12。如果您使用其他 Python 版本，GPT-Sovits 将安装并使用 CPU 版本的 ONNX-Runtime。**
 
 ```bash
 conda create -n GPTSoVits python=3.10

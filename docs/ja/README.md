@@ -60,8 +60,11 @@ Windows ユーザー: (Windows 10 以降でテスト済み)、[統合パッケ�
 
 ### Linux
 
-**注1: Linuxの場合、DMLアクセラレーションはWSL2またはWindows上のDockerでのみサポートされます。Windowsをご利用で、AMD GPUがWSL2でROCmを使用できない場合（アーキテクチャが古すぎるかサポートされていない）、またはIntel GPUまたはDirectX 12（コアグラフィックスを含む）をサポートするその他のGPUをご利用の場合は、DMLを選択してください**
-**注2: ONNXモデルのROCm(AMD GPU)アクセラレーション(onnxruntime-rocm搭載)は、ROCm 6.2ではPython 3.9および3.10のみ、ROCm 6.4ではPython 3.9、3.10、3.12のみをサポートします。その他のPythonバージョンをご利用の場合、GPT-Sovitsは代わりにCPUバージョンのONNX-Runtimeをインストールして使用します。**
+**注:**
+  
+1. **Linuxの場合、DMLアクセラレーションはWSL2またはWindows上のDockerでのみサポートされます。Windowsをご利用で、AMD GPUがWSL2でROCmを使用できない場合（アーキテクチャが古すぎるかサポートされていない）、またはIntel GPUまたはDirectX 12（コアグラフィックスを含む）をサポートするその他のGPUをご利用の場合は、DMLを選択してください。**
+  
+2. **ONNXモデルのROCm(AMD GPU)アクセラレーション(onnxruntime-rocm搭載)は、ROCm 6.2ではPython 3.9および3.10のみ、ROCm 6.4ではPython 3.9、3.10、3.12のみをサポートします。その他のPythonバージョンをご利用の場合、GPT-Sovitsは代わりにCPUバージョンのONNX-Runtimeをインストールして使用します。**
 
 ```bash
 conda create -n GPTSoVits python=3.10
