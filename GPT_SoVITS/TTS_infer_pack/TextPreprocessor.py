@@ -121,33 +121,34 @@ class TextPreprocessor:
 
     def get_phones_and_bert(self, text: str, language: str, version: str, final: bool = False):
         with self.bert_lock:
-            if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
-                # language = language.replace("all_","")
-                formattext = text
-                while "  " in formattext:
-                    formattext = formattext.replace("  ", " ")
-                if language == "all_zh":
-                    if re.search(r"[A-Za-z]", formattext):
-                        formattext = re.sub(r"[a-z]", lambda x: x.group(0).upper(), formattext)
-                        formattext = chinese.mix_text_normalize(formattext)
-                        return self.get_phones_and_bert(formattext, "zh", version)
-                    else:
-                        phones, word2ph, norm_text = self.clean_text_inf(formattext, language, version)
-                        bert = self.get_bert_feature(norm_text, word2ph).to(self.device)
-                elif language == "all_yue" and re.search(r"[A-Za-z]", formattext):
-                    formattext = re.sub(r"[a-z]", lambda x: x.group(0).upper(), formattext)
-                    formattext = chinese.mix_text_normalize(formattext)
-                    return self.get_phones_and_bert(formattext, "yue", version)
-                else:
-                    phones, word2ph, norm_text = self.clean_text_inf(formattext, language, version)
-                    bert = torch.zeros(
-                        (1024, len(phones)),
-                        dtype=torch.float32,
-                    ).to(self.device)
-            elif language in {"zh", "ja", "ko", "yue", "auto", "auto_yue"}:
+            if language in {"all_zh", "all_yue", "all_ja", "all_ko", "zh", "ja", "ko", "yue", "en", "auto", "auto_yue"}:
                 textlist = []
                 langlist = []
-                if language == "auto":
+                if language == "all_zh":
+                    for tmp in LangSegmenter.getTexts(text,"zh"):
+                        langlist.append(tmp["lang"])
+                        textlist.append(tmp["text"])
+                elif language == "all_yue":
+                    for tmp in LangSegmenter.getTexts(text,"zh"):
+                        if tmp["lang"] == "zh":
+                            tmp["lang"] = "yue"
+                        langlist.append(tmp["lang"])
+                        textlist.append(tmp["text"])
+                elif language == "all_ja":
+                    for tmp in LangSegmenter.getTexts(text,"ja"):
+                        langlist.append(tmp["lang"])
+                        textlist.append(tmp["text"])
+                elif language == "all_ko":
+                    for tmp in LangSegmenter.getTexts(text,"ko"):
+                        langlist.append(tmp["lang"])
+                        textlist.append(tmp["text"])
+                elif language == "en":
+                    formattext = text
+                    while "  " in formattext:
+                        formattext = formattext.replace("  ", " ")
+                    langlist.append("en")
+                    textlist.append(formattext)
+                elif language == "auto":
                     for tmp in LangSegmenter.getTexts(text):
                         langlist.append(tmp["lang"])
                         textlist.append(tmp["text"])
