@@ -48,11 +48,12 @@ run_pip_quiet() {
 }
 
 run_wget_quiet() {
-    local output
-    output=$(wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$@" 2>&1) || {
-        echo -e "${ERROR} Wget failed:\n$output"
+    if wget --tries=25 --wait=5 --read-timeout=40 -q --show-progress "$@" 2>&1; then
+        tput cuu1 && tput el
+    else
+        echo -e "${ERROR} Wget failed"
         exit 1
-    }
+    fi
 }
 
 if ! command -v conda &>/dev/null; then
@@ -171,10 +172,13 @@ if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
 fi
 
 case "$(uname -m)" in
-  x86_64|amd64)   SYSROOT_PKG="sysroot_linux-64>=2.28"       ;;
-  aarch64|arm64)  SYSROOT_PKG="sysroot_linux-aarch64>=2.28"  ;;
-  ppc64le)        SYSROOT_PKG="sysroot_linux-ppc64le>=2.28"  ;;
-  *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
+x86_64 | amd64) SYSROOT_PKG="sysroot_linux-64>=2.28" ;;
+aarch64 | arm64) SYSROOT_PKG="sysroot_linux-aarch64>=2.28" ;;
+ppc64le) SYSROOT_PKG="sysroot_linux-ppc64le>=2.28" ;;
+*)
+    echo "Unsupported architecture: $(uname -m)"
+    exit 1
+    ;;
 esac
 
 # Install build tools
@@ -248,10 +252,7 @@ elif [ "$USE_MODELSCOPE" = "true" ]; then
     PYOPENJTALK_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/open_jtalk_dic_utf_8-1.11.tar.gz"
 fi
 
-if find -L "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
-    echo -e "${INFO}Pretrained Model Exists"
-    echo -e "${INFO}Skip Downloading Pretrained Models"
-else
+if [ ! -d "GPT_SoVITS/pretrained_models/sv" ]; then
     echo -e "${INFO}Downloading Pretrained Models..."
     rm -rf pretrained_models.zip
     run_wget_quiet "$PRETRINED_URL"
@@ -259,6 +260,9 @@ else
     unzip -q -o pretrained_models.zip -d GPT_SoVITS
     rm -rf pretrained_models.zip
     echo -e "${SUCCESS}Pretrained Models Downloaded"
+else
+    echo -e "${INFO}Pretrained Model Exists"
+    echo -e "${INFO}Skip Downloading Pretrained Models"
 fi
 
 if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
