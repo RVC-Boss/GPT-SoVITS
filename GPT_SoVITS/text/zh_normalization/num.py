@@ -326,7 +326,11 @@ def num2str(value_string: str) -> str:
 
     result = verbalize_cardinal(integer)
 
-    decimal = decimal.rstrip("0")
+    if decimal.endswith("0"):
+        decimal = decimal.rstrip("0") + "0"
+    else:
+        decimal = decimal.rstrip("0")
+
     if decimal:
         # '.22' is verbalized as '零点二二'
         # '3.20' is verbalized as '三点二
