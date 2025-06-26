@@ -66,10 +66,13 @@ If you are a Windows user (tested with win>=10), you can [download the integrate
 
 ### Linux
 
+**Note 1: For Linux, DML Acceleration only support WSL2 or Docker on Windows. Choose DML, if you use Windows and your AMD GPU cannot use ROCm for WSL2(too old to use or just not supported Architecture) or you use Intel GPU or any other GPUs support DirectX 12(Including Core GPU)**
+**Note 2: The ROCm(AMD GPU) Acceleration of ONNX models(Powered by onnxruntime-rocm) only support Python 3.9 and 3.10 for ROCm 6.2; and Python3.9, 3.10 and 3.12 for ROCm 6.4. If you use other Python versions, GPT-Sovits will install and use CPU version of ONNX-Runtime instead.**
+
 ```bash
 conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <CU126|CU128|ROCM62|ROCM64|DML|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### macOS

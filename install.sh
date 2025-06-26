@@ -62,6 +62,7 @@ fi
 
 USE_CUDA=false
 USE_ROCM=false
+USE_DML=false
 USE_CPU=false
 WORKFLOW=${WORKFLOW:-"false"}
 
@@ -74,10 +75,10 @@ print_help() {
     echo "Usage: bash install.sh [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --device   CU126|CU128|ROCM|MPS|CPU    Specify the Device (REQUIRED)"
-    echo "  --source   HF|HF-Mirror|ModelScope     Specify the model source (REQUIRED)"
-    echo "  --download-uvr5                        Enable downloading the UVR5 model"
-    echo "  -h, --help                             Show this help message and exit"
+    echo "  --device   CU126|CU128|ROCM62|ROCM64|DML|MPS|CPU    Specify the Device (REQUIRED)"
+    echo "  --source   HF|HF-Mirror|ModelScope                  Specify the model source (REQUIRED)"
+    echo "  --download-uvr5                                     Enable downloading the UVR5 model"
+    echo "  -h, --help                                          Show this help message and exit"
     echo ""
     echo "Examples:"
     echo "  bash install.sh --device CU128 --source HF --download-uvr5"
@@ -122,8 +123,15 @@ while [[ $# -gt 0 ]]; do
             CUDA=128
             USE_CUDA=true
             ;;
-        ROCM)
+        ROCM62)
+            ROCM=62
             USE_ROCM=true
+            ;;
+        ROCM64)
+            ROCM=64
+            USE_ROCM=true
+        DML)
+            USE_DML=true
             ;;
         MPS)
             USE_CPU=true
@@ -133,7 +141,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo -e "${ERROR}Error: Invalid Device: $2"
-            echo -e "${ERROR}Choose From: [CU126, CU128, ROCM, MPS, CPU]"
+            echo -e "${ERROR}Choose From: [CU126, CU128, ROCM62, ROCM64, DML, MPS, CPU]"
             exit 1
             ;;
         esac
@@ -156,7 +164,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! $USE_CUDA && ! $USE_ROCM && ! $USE_CPU; then
+if ! $USE_CUDA && ! $USE_ROCM && ! $USE_DML && ! $USE_CPU; then
     echo -e "${ERROR}Error: Device is REQUIRED"
     echo ""
     print_help
@@ -321,21 +329,54 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
     if [ "$CUDA" = 128 ]; then
         echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
         run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
+        run_pip_quiet onnxruntime-gpu
     elif [ "$CUDA" = 126 ]; then
         echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
         run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
+        run_pip_quiet onnxruntime-gpu
     fi
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
-    echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
-    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/rocm6.2"
+    PYTHON_VERSION=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    if [ "$ROCM" = 64 ]; then
+        echo -e "${INFO}Installing PyTorch For ROCm 6.4..."
+        run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/nightly/rocm6.4"
+        if [ "$PYTHON_VERSION" = "3.9" ]; then
+            run_pip_quiet "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.1/onnxruntime_rocm-1.21.0-cp39-cp39-manylinux_2_28_x86_64.whl"
+        elif [ "$PYTHON_VERSION" = "3.10" ]; then
+            run_pip_quiet "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.1/onnxruntime_rocm-1.21.0-cp310-cp310-manylinux_2_28_x86_64.whl"
+        elif [ "$PYTHON_VERSION" = "3.12" ]; then
+            run_pip_quiet "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.1/onnxruntime_rocm-1.21.0-cp312-cp312-manylinux_2_28_x86_64.whl"
+        else
+            echo -e "${ERROR}ROCm 6.4 requires Python 3.9, 3.10 or 3.12. Current Python version is $PYTHON_VERSION."
+            echo -e "${ERROR}The ONNX models cannot use ROCm(GPU) Acceleration. Please reinstall Python with a supported version. Installing CPU version of ONNX-Runtime instead."
+            run_pip_quiet onnxruntime
+        fi
+    elif [ "$ROCM" = 62 ]; then
+        echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
+        run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/rocm6.2"
+        if [ "$PYTHON_VERSION" = "3.9" ]; then
+            run_pip_quiet "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.2/onnxruntime_rocm-1.18.0-cp39-cp39-linux_x86_64.whl"
+        elif [ "$PYTHON_VERSION" = "3.10" ]; then
+            run_pip_quiet "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.2.4/onnxruntime_rocm-1.18.0-cp310-cp310-linux_x86_64.whl"
+        else
+            echo -e "${ERROR}ROCm 6.2 requires Python 3.9 or 3.10. Current Python version is $PYTHON_VERSION."
+            echo -e "${ERROR}The ONNX models cannot use ROCm(GPU) Acceleration. Please reinstall Python with a supported version. Installing CPU version of ONNX-Runtime instead."
+            run_pip_quiet onnxruntime
+        fi
+    fi
+elif [ "$USE_DML" = true ] && [ "$WORKFLOW" = false ]; then
+    echo -e "${INFO}Installing PyTorch For DirectML..."
+    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
+    run_pip_quiet torch-directml onnxruntime-directml
 elif [ "$USE_CPU" = true ] && [ "$WORKFLOW" = false ]; then
     echo -e "${INFO}Installing PyTorch For CPU..."
     run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
+    run_pip_quiet onnxruntime
 elif [ "$WORKFLOW" = false ]; then
     echo -e "${ERROR}Unknown Err"
     exit 1
 fi
-echo -e "${SUCCESS}PyTorch Installed"
+echo -e "${SUCCESS}PyTorch and ONNX-Runtime Installed"
 
 echo -e "${INFO}Installing Python Dependencies From requirements.txt..."
 

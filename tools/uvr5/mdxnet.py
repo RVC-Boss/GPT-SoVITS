@@ -82,6 +82,7 @@ class Predictor:
             os.path.join(args.onnx, self.model_.target_name + ".onnx"),
             providers=[
                 "CUDAExecutionProvider",
+                "ROCMExecutionProvider",
                 "DmlExecutionProvider",
                 "CPUExecutionProvider",
             ],

@@ -93,18 +93,32 @@ class G2PWOnnxConverter:
         sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
         sess_options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
         sess_options.intra_op_num_threads = 2 if torch.cuda.is_available() else 0
+        
+        available_providers = onnxruntime.get_available_providers()
+        providers_priority = []
+        if "CUDAExecutionProvider" in available_providers:
+            providers_priority.append("CUDAExecutionProvider")
+        if "ROCMExecutionProvider" in available_providers:
+            providers_priority.append("ROCMExecutionProvider")
+        if "DmlExecutionProvider" in available_providers:
+            providers_priority.append("DmlExecutionProvider")
+        providers_priority.append("CPUExecutionProvider")
         try:
             self.session_g2pW = onnxruntime.InferenceSession(
                 os.path.join(uncompress_path, "g2pW.onnx"),
                 sess_options=sess_options,
-                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                providers=providers_priority,
             )
+            used_provider = self.session_g2pW.get_providers()[0].split("ExecutionProvider")[0]
+            print(f"Model loads successfully. Using ONNX Runtime provider: {used_provider}")
         except:
             self.session_g2pW = onnxruntime.InferenceSession(
                 os.path.join(uncompress_path, "g2pW.onnx"),
                 sess_options=sess_options,
                 providers=["CPUExecutionProvider"],
             )
+            print(f"Model loads successfully. Using ONNX Runtime provider: CPU")
+            
         self.config = load_config(config_path=os.path.join(uncompress_path, "config.py"), use_default=True)
 
         self.model_source = model_source if model_source else self.config.model_source
