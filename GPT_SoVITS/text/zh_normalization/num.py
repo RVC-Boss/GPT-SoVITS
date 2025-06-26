@@ -256,6 +256,24 @@ def replace_to_range(match) -> str:
     return result
 
 
+RE_VERSION_NUM = re.compile(r"((\d+)(\.\d+)(\.\d+)?(\.\d+)+)")
+def replace_vrsion_num(match) -> str:
+    """
+    Args:
+        match (re.Match)
+    Returns:
+        str
+    """
+    result = ""
+    for c in match.group(1):
+        if c == ".":
+            result += "点"
+        else:
+            result += num2str(c)
+    return result
+
+
+
 def _get_value(value_string: str, use_zero: bool = True) -> List[str]:
     stripped = value_string.lstrip("0")
     if len(stripped) == 0:
