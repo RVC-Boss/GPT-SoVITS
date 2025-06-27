@@ -608,11 +608,8 @@ def get_phones_and_bert(text, language, version, final=False):
             langlist.append(tmp["lang"])
             textlist.append(tmp["text"])
     elif language == "en":
-        formattext = text
-        while "  " in formattext:
-            formattext = formattext.replace("  ", " ")
         langlist.append("en")
-        textlist.append(formattext)
+        textlist.append(text)
     elif language == "auto":
         for tmp in LangSegmenter.getTexts(text):
             langlist.append(tmp["lang"])
