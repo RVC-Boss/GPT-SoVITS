@@ -1,81 +1,38 @@
 js = """
-function createGradioAnimation() {
+function deleteTheme() {
     
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('__theme') !== 'light') { 
-        params.set('__theme', 'light'); // 仅当 __theme 不是 'light' 时设置为 'light'
-        window.location.search = params.toString(); // 更新 URL，触发页面刷新
-    }
-    
-    var container = document.createElement('div');
-    container.id = 'gradio-animation';
-    container.style.fontSize = '2em';
-    container.style.fontWeight = '500';
-    container.style.textAlign = 'center';
-    container.style.marginBottom = '20px';
-    container.style.fontFamily = '-apple-system, sans-serif, Arial, Calibri';
+const params = new URLSearchParams(window.location.search);
+if (params.has('__theme')) {
+    params.delete('__theme');
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.location.replace(newUrl);
+}
 
-    var text = 'Welcome to GPT-SoVITS !';
-    for (var i = 0; i < text.length; i++) {
-        (function(i){
-            setTimeout(function(){
-                var letter = document.createElement('span');
-                letter.style.opacity = '0';
-                letter.style.transition = 'opacity 0.5s';
-                letter.innerText = text[i];
-
-                container.appendChild(letter);
-
-                setTimeout(function() {
-                    letter.style.opacity = '1';
-                }, 50);
-            }, i * 250);
-        })(i);
-    }
-    return 'Animation created';
 }
 """
 
-
 css = """
 /* CSSStyleRule */
-
 .markdown {
-    background-color: lightblue;
     padding: 6px 10px;
 }
 
-.checkbox_info {
-    color: var(--block-title-text-color) !important;
-    font-size: var(--block-title-text-size) !important;
-    font-weight: var(--block-title-text-weight) !important;
-    height: 22px;
-    margin-bottom: 8px !important;
+@media (prefers-color-scheme: light) {
+    .markdown {
+        background-color: lightblue;
+        color: #000;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .markdown {
+        background-color: #4b4b4b;
+        color: rgb(244, 244, 245);
+    }
 }
 
 ::selection {
-    background: #ffc078; !important;
-}
-
-#checkbox_train_dpo input[type="checkbox"]{
-    margin-top: 6px;
-}
-
-#checkbox_train_dpo span {
-    margin-top: 6px;
-}
-
-#checkbox_align_train {
-    padding-top: 18px;
-    padding-bottom: 18px;
-}
-
-#checkbox_align_infer input[type="checkbox"] {
-    margin-top: 10px;
-}
-
-#checkbox_align_infer span {
-    margin-top: 10px;
+    background: #ffc078 !important;
 }
 
 footer {
@@ -91,6 +48,7 @@ footer * {
 }
 
 """
+
 top_html = """
 <div align="center">
     <div style="margin-bottom: 5px; font-size: 15px;">{}</div>

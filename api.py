@@ -199,6 +199,8 @@ def is_full(*items):  # 任意一项为空返回False
 
 
 bigvgan_model = hifigan_model = sv_cn_model = None
+
+
 def clean_hifigan_model():
     global hifigan_model
     if hifigan_model:
@@ -208,6 +210,8 @@ def clean_hifigan_model():
             torch.cuda.empty_cache()
         except:
             pass
+
+
 def clean_bigvgan_model():
     global bigvgan_model
     if bigvgan_model:
@@ -217,6 +221,8 @@ def clean_bigvgan_model():
             torch.cuda.empty_cache()
         except:
             pass
+
+
 def clean_sv_cn_model():
     global sv_cn_model
     if sv_cn_model:
@@ -229,7 +235,7 @@ def clean_sv_cn_model():
 
 
 def init_bigvgan():
-    global bigvgan_model, hifigan_model,sv_cn_model
+    global bigvgan_model, hifigan_model, sv_cn_model
     from BigVGAN import bigvgan
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
@@ -247,7 +253,7 @@ def init_bigvgan():
 
 
 def init_hifigan():
-    global hifigan_model, bigvgan_model,sv_cn_model
+    global hifigan_model, bigvgan_model, sv_cn_model
     hifigan_model = Generator(
         initial_channel=100,
         resblock="1",
@@ -262,7 +268,9 @@ def init_hifigan():
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
     state_dict_g = torch.load(
-        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu", weights_only=False
+        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+        map_location="cpu",
+        weights_only=False,
     )
     print("loading vocoder", hifigan_model.load_state_dict(state_dict_g))
     if is_half == True:
@@ -272,19 +280,21 @@ def init_hifigan():
 
 
 from sv import SV
+
+
 def init_sv_cn():
     global hifigan_model, bigvgan_model, sv_cn_model
     sv_cn_model = SV(device, is_half)
 
 
-resample_transform_dict={}
-def resample(audio_tensor, sr0,sr1,device):
+resample_transform_dict = {}
+
+
+def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    key="%s-%s-%s"%(sr0,sr1,str(device))
+    key = "%s-%s-%s" % (sr0, sr1, str(device))
     if key not in resample_transform_dict:
-        resample_transform_dict[key] = torchaudio.transforms.Resample(
-            sr0, sr1
-        ).to(device)
+        resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
 
 
@@ -370,6 +380,7 @@ from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 
 def get_sovits_weights(sovits_path):
     from config import pretrained_sovits_name
+
     path_sovits_v3 = pretrained_sovits_name["v3"]
     path_sovits_v4 = pretrained_sovits_name["v4"]
     is_exist_s2gv3 = os.path.exists(path_sovits_v3)
@@ -627,15 +638,17 @@ class DictToAttrRecursive(dict):
 
 
 def get_spepc(hps, filename, dtype, device, is_v2pro=False):
-    sr1=int(hps.data.sampling_rate)
-    audio, sr0=torchaudio.load(filename)
-    if sr0!=sr1:
-        audio=audio.to(device)
-        if(audio.shape[0]==2):audio=audio.mean(0).unsqueeze(0)
-        audio=resample(audio,sr0,sr1,device)
+    sr1 = int(hps.data.sampling_rate)
+    audio, sr0 = torchaudio.load(filename)
+    if sr0 != sr1:
+        audio = audio.to(device)
+        if audio.shape[0] == 2:
+            audio = audio.mean(0).unsqueeze(0)
+        audio = resample(audio, sr0, sr1, device)
     else:
-        audio=audio.to(device)
-        if(audio.shape[0]==2):audio=audio.mean(0).unsqueeze(0)
+        audio = audio.to(device)
+        if audio.shape[0] == 2:
+            audio = audio.mean(0).unsqueeze(0)
 
     maxx = audio.abs().max()
     if maxx > 1:
@@ -648,10 +661,10 @@ def get_spepc(hps, filename, dtype, device, is_v2pro=False):
         hps.data.win_length,
         center=False,
     )
-    spec=spec.to(dtype)
-    if is_v2pro==True:
-        audio=resample(audio,sr1,16000,device).to(dtype)
-    return spec,audio
+    spec = spec.to(dtype)
+    if is_v2pro == True:
+        audio = resample(audio, sr1, 16000, device).to(dtype)
+    return spec, audio
 
 
 def pack_audio(audio_bytes, data, rate):
@@ -871,29 +884,29 @@ def get_tts_wav(
         prompt_semantic = codes[0, 0]
         prompt = prompt_semantic.unsqueeze(0).to(device)
 
-        is_v2pro = version in {"v2Pro","v2ProPlus"}
+        is_v2pro = version in {"v2Pro", "v2ProPlus"}
         if version not in {"v3", "v4"}:
             refers = []
             if is_v2pro:
-                sv_emb= [] 
+                sv_emb = []
                 if sv_cn_model == None:
                     init_sv_cn()
             if inp_refs:
                 for path in inp_refs:
-                    try:#####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
-                        refer,audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
+                    try:  #####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
+                        refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
                         refers.append(refer)
                         if is_v2pro:
                             sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
                     except Exception as e:
                         logger.error(e)
             if len(refers) == 0:
-                refers,audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
-                refers=[refers]
+                refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
+                refers = [refers]
                 if is_v2pro:
-                    sv_emb=[sv_cn_model.compute_embedding3(audio_tensor)]
+                    sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
         else:
-            refer,audio_tensor = get_spepc(hps, ref_wav_path, dtype, device)
+            refer, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device)
 
     t1 = ttime()
     # os.environ['version'] = version
@@ -936,14 +949,22 @@ def get_tts_wav(
         if version not in {"v3", "v4"}:
             if is_v2pro:
                 audio = (
-                    vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed,sv_emb=sv_emb)
+                    vq_model.decode(
+                        pred_semantic,
+                        torch.LongTensor(phones2).to(device).unsqueeze(0),
+                        refers,
+                        speed=speed,
+                        sv_emb=sv_emb,
+                    )
                     .detach()
                     .cpu()
                     .numpy()[0, 0]
                 )
             else:
                 audio = (
-                    vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed)
+                    vq_model.decode(
+                        pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed
+                    )
                     .detach()
                     .cpu()
                     .numpy()[0, 0]
@@ -1106,7 +1127,6 @@ def handle(
         )
         if not default_refer.is_ready():
             return JSONResponse({"code": 400, "message": "未指定参考音频且接口无预设"}, status_code=400)
-
 
     if cut_punc == None:
         text = cut_text(text, default_cut_punc)
