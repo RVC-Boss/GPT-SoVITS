@@ -25,6 +25,7 @@ from .chronology import replace_time
 from .constants import F2H_ASCII_LETTERS
 from .constants import F2H_DIGITS
 from .constants import F2H_SPACE
+from .num import RE_VERSION_NUM
 from .num import RE_DECIMAL_NUM
 from .num import RE_DEFAULT_NUM
 from .num import RE_FRAC
@@ -36,6 +37,7 @@ from .num import RE_RANGE
 from .num import RE_TO_RANGE
 from .num import RE_ASMD
 from .num import RE_POWER
+from .num import replace_vrsion_num
 from .num import replace_default_num
 from .num import replace_frac
 from .num import replace_negative_num
@@ -158,6 +160,7 @@ class TextNormalizer:
         sentence = RE_RANGE.sub(replace_range, sentence)
 
         sentence = RE_INTEGER.sub(replace_negative_num, sentence)
+        sentence = RE_VERSION_NUM.sub(replace_vrsion_num, sentence)
         sentence = RE_DECIMAL_NUM.sub(replace_number, sentence)
         sentence = RE_POSITIVE_QUANTIFIERS.sub(replace_positive_quantifier, sentence)
         sentence = RE_DEFAULT_NUM.sub(replace_default_num, sentence)

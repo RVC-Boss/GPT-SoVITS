@@ -181,20 +181,6 @@ def text_normalize(text):
     return dest_text
 
 
-# 不排除英文的文本格式化
-def mix_text_normalize(text):
-    # https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization
-    tx = TextNormalizer()
-    sentences = tx.normalize(text)
-    dest_text = ""
-    for sentence in sentences:
-        dest_text += replace_punctuation_with_en(sentence)
-
-    # 避免重复标点引起的参考泄露
-    dest_text = replace_consecutive_punctuation(dest_text)
-    return dest_text
-
-
 if __name__ == "__main__":
     text = "啊——但是《原神》是由,米哈\游自主，研发的一款全.新开放世界.冒险游戏"
     text = "呣呣呣～就是…大人的鼹鼠党吧？"
