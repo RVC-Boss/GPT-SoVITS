@@ -1186,6 +1186,10 @@ def version_4_cli(
             path = "idols/ikka/ikko.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/ikko-san-e45.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/s2Gv2ProPlus.pth"
+    elif character_name in ["ruroro", "Ruroro"]:
+        path = "idols/ruroro/ruroro.wav"
+        GPT_model_path = "GPT_SoVITS/pretrained_models/ruroro-e40.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/s2Gv2ProPlus.pth"
     if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
         GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-hql-e40.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-hql_e20_s1240.pth"
@@ -1227,7 +1231,7 @@ def version_4_cli(
 @app.get("/")
 async def tts_endpoint(
     prompt_text: str = "今日は友達と一緒に映画を見に行く予定ですが、天気が悪くて少し心配です。",
-    prompt_language: str = "all_ja",
+    prompt_language: str = "日文",
     character: str = "saotome",
     text: str = None,
     text_language: str = None,
@@ -1250,6 +1254,9 @@ async def tts_endpoint(
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
     elif character == "saotome":
         prompt_text = "朝ごはんにはトーストと卵、そしてコーヒーを飲みました。簡単だけど、朝の時間が少し幸せに感じられる瞬間でした。"
+    elif character in ["ruroro", "Ruroro"]:
+        prompt_text = "若是看到自己的朋友改囤原池抽錯或是拿去抽長柱池的話記得把影片分享給他看"
+        prompt_language = "中英混合"
     elif character in ["Ikko", "ikko", "Ikka", "ikka"]:
         prompt_text = "せおいなげ、まじばな、らぶらぶ、あげあげ、まぼろし"
     elif character in ["Baacharu", "baacharu"]:
@@ -1257,7 +1264,7 @@ async def tts_endpoint(
     import warnings
     warnings.warn(f"the character name is {character}. ")
 
-    if character in ["Kurari", "saotome", "ikka", "Ikka", "ikko", "Ikko", "Baacharu", "baacharu"]:
+    if character in ["Kurari", "saotome", "ikka", "Ikka", "ikko", "Ikko", "Baacharu", "baacharu", "ruroro", "Ruroro"]:
         if text_language == "all_ja":
             text_language = "日文"
         elif text_language == "ja":
@@ -1282,7 +1289,7 @@ async def tts_endpoint(
         audio_buffer, sample_rate = version_4_cli(
             character_name=character,
             ref_text=prompt_text,
-            ref_language="日文",
+            ref_language=prompt_language,
             target_text=text,
             text_language=text_language or "日文",
             version=version,
