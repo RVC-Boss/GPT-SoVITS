@@ -1799,9 +1799,16 @@ class TTS:
             f2 = audio_fragments[i + 1]
             w1 = f1[-overlap_len:]
             w2 = f2[:overlap_len]
-            assert w1.shape == w2.shape
-            corr = F.conv1d(w1.view(1, 1, -1), w2.view(1, 1, -1), padding=w2.shape[-1] // 2).view(-1)[:-1]
-            idx = corr.argmax()
+            w2 = w2[-w2.shape[-1]//2:]
+            # assert w1.shape == w2.shape
+            corr = F.conv1d(w1.view(1, 1, -1), w2.view(1, 1, -1)).view(-1)
+
+            squared_sum = F.conv1d(w1.view(1, 1, -1)**2, torch.ones_like(w2).view(1, 1, -1)).view(-1)+ 1e-8
+            idx = (corr/squared_sum.sqrt()).argmax()
+
+            print(f"seg_idx: {idx}")
+
+            # idx = corr.argmax()
             f1_ = f1[: -(overlap_len - idx)]
             audio_fragments[i] = f1_
 
