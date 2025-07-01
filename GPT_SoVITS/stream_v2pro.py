@@ -578,6 +578,7 @@ def export_prov2(
 
     stream_t2s.save(f"{output_path}/t2s.pt")
     torch.jit.trace_module(vits, inputs=inputs, optimize=True).save(f"{output_path}/vits.pt")
+    torch.jit.script(find_best_audio_offset_fast, optimize=True).save(f"{output_path}/find_best_audio_offset_fast.pt")
 
 
 if __name__ == "__main__":
