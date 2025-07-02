@@ -62,6 +62,12 @@
 
 **中国地区的用户可以[在此处下载整合包](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/dkxgpiy9zb96hob4#KTvnO).**
 
+```pwsh
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+pwsh -F install.ps1 --Device <CU126|CU128|CPU> --Source <HF|HF-Mirror|ModelScope> [--DownloadUVR5]
+```
+
 ### Linux
 
 ```bash

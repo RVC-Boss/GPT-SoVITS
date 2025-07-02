@@ -256,6 +256,24 @@ def replace_to_range(match) -> str:
     return result
 
 
+RE_VERSION_NUM = re.compile(r"((\d+)(\.\d+)(\.\d+)?(\.\d+)+)")
+def replace_vrsion_num(match) -> str:
+    """
+    Args:
+        match (re.Match)
+    Returns:
+        str
+    """
+    result = ""
+    for c in match.group(1):
+        if c == ".":
+            result += "点"
+        else:
+            result += num2str(c)
+    return result
+
+
+
 def _get_value(value_string: str, use_zero: bool = True) -> List[str]:
     stripped = value_string.lstrip("0")
     if len(stripped) == 0:
@@ -308,7 +326,11 @@ def num2str(value_string: str) -> str:
 
     result = verbalize_cardinal(integer)
 
-    decimal = decimal.rstrip("0")
+    if decimal.endswith("0"):
+        decimal = decimal.rstrip("0") + "0"
+    else:
+        decimal = decimal.rstrip("0")
+
     if decimal:
         # '.22' is verbalized as '零点二二'
         # '3.20' is verbalized as '三点二

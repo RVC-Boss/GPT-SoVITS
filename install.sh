@@ -48,11 +48,12 @@ run_pip_quiet() {
 }
 
 run_wget_quiet() {
-    local output
-    output=$(wget --tries=25 --wait=5 --read-timeout=40 --retry-on-http-error=404 "$@" 2>&1) || {
-        echo -e "${ERROR} Wget failed:\n$output"
+    if wget --tries=25 --wait=5 --read-timeout=40 -q --show-progress "$@" 2>&1; then
+        tput cuu1 && tput el
+    else
+        echo -e "${ERROR} Wget failed"
         exit 1
-    }
+    fi
 }
 
 if ! command -v conda &>/dev/null; then
@@ -170,7 +171,16 @@ if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
     exit 1
 fi
 
-# 安装构建工具
+case "$(uname -m)" in
+x86_64 | amd64) SYSROOT_PKG="sysroot_linux-64>=2.28" ;;
+aarch64 | arm64) SYSROOT_PKG="sysroot_linux-aarch64>=2.28" ;;
+ppc64le) SYSROOT_PKG="sysroot_linux-ppc64le>=2.28" ;;
+*)
+    echo "Unsupported architecture: $(uname -m)"
+    exit 1
+    ;;
+esac
+
 # Install build tools
 echo -e "${INFO}Detected system: $(uname -s) $(uname -r) $(uname -m)"
 if [ "$(uname)" != "Darwin" ]; then
@@ -178,10 +188,14 @@ if [ "$(uname)" != "Darwin" ]; then
     if [ "$gcc_major_version" -lt 11 ]; then
         echo -e "${INFO}Installing GCC & G++..."
         run_conda_quiet gcc=11 gxx=11
+        run_conda_quiet "$SYSROOT_PKG"
         echo -e "${SUCCESS}GCC & G++ Installed..."
     else
         echo -e "${INFO}Detected GCC Version: $gcc_major_version"
         echo -e "${INFO}Skip Installing GCC & G++ From Conda-Forge"
+        echo -e "${INFO}Installing libstdcxx-ng From Conda-Forge"
+        run_conda_quiet "libstdcxx-ng>=$gcc_major_version"
+        echo -e "${SUCCESS}libstdcxx-ng=$gcc_major_version Installed..."
     fi
 else
     if ! xcode-select -p &>/dev/null; then
@@ -238,10 +252,7 @@ elif [ "$USE_MODELSCOPE" = "true" ]; then
     PYOPENJTALK_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/open_jtalk_dic_utf_8-1.11.tar.gz"
 fi
 
-if find -L "GPT_SoVITS/pretrained_models" -mindepth 1 ! -name '.gitignore' | grep -q .; then
-    echo -e "${INFO}Pretrained Model Exists"
-    echo -e "${INFO}Skip Downloading Pretrained Models"
-else
+if [ ! -d "GPT_SoVITS/pretrained_models/sv" ]; then
     echo -e "${INFO}Downloading Pretrained Models..."
     rm -rf pretrained_models.zip
     run_wget_quiet "$PRETRINED_URL"
@@ -249,6 +260,9 @@ else
     unzip -q -o pretrained_models.zip -d GPT_SoVITS
     rm -rf pretrained_models.zip
     echo -e "${SUCCESS}Pretrained Models Downloaded"
+else
+    echo -e "${INFO}Pretrained Model Exists"
+    echo -e "${INFO}Skip Downloading Pretrained Models"
 fi
 
 if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
