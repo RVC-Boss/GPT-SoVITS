@@ -415,35 +415,21 @@ def test_stream(
 
     colors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan', 'magenta', 'yellow']
 
-    fig, axes = plt.subplots(len(full_audios)+2, 1, figsize=(10, 6))
-
     max_duration = full_audios[-1].shape[0]
+    plt.xlim(0, max_duration)
 
     last_line = 0
-    for i,(ax,a) in enumerate(zip(axes[:-1],full_audios)):
-        ax.plot(a.float().detach().cpu().numpy(), color=colors[i], alpha=0.5, label=f"Audio {i}")
-        ax.axvline(x=last_line, color=colors[i], linestyle='--')
+
+    for i,a in enumerate(full_audios):
+        plt.plot((a+2.0*i).float().detach().cpu().numpy(), color=colors[i], alpha=0.5, label=f"Audio {i}")
+        # plt.axvline(x=last_line, color=colors[i], linestyle='--')
         last_line = a.shape[0]-8*1280
-        ax.axvline(x=last_line, color=colors[i], linestyle='--')
-        ax.set_xlim(0, max_duration)
-        axes[-1].axvline(x=last_line, color=colors[i], linestyle='--')
-        axes[-2].axvline(x=last_line, color=colors[i], linestyle='--')
+        plt.axvline(x=last_line, color=colors[i], linestyle='--')
     
-    axes[-2].plot(audio.float().detach().cpu().numpy(), color='black', label='Final Audio')
-    axes[-2].set_xlim(0, max_duration)
+    plt.plot((audio-2.0).float().detach().cpu().numpy(), color='black', label='Final Audio')
 
-    axes[-1].plot(audio_raw.float().detach().cpu().numpy(), color='black', label='Raw Audio')
-    axes[-1].set_xlim(0, max_duration)
+    plt.plot((audio_raw-4.0).float().detach().cpu().numpy(), color='cyan', label='Raw Audio')
 
-    for i,y in enumerate(y[0][-idx:]):
-        # axes[-1].text(i*1280, 0.05, str(int(y)), fontsize=12, ha='center')
-        axes[-1].axvline(x=i*1280, color='gray', linestyle=':', alpha=0.5)
-        
-
-    # plt.title('Overlapped Waveform Comparison')
-    # plt.xlabel('Sample Number')
-    # plt.ylabel('Amplitude')
-    # plt.tight_layout()
     print("offset_index:", offset_index)
     plt.show()
 
