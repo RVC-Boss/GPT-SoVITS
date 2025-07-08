@@ -14,7 +14,7 @@ def synthesize(GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_
     print("Changing model weights about to be called...")
     test()
     change_gpt_weights(gpt_path=GPT_model_path)
-    change_sovits_weights(sovits_path=SoVITS_model_path)
+    change_sovits_weights(sovits_path=SoVITS_model_path, cat="category")
 
     print("Model weights changed successfully.")
 
