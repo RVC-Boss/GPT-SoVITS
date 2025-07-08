@@ -308,6 +308,7 @@ try:next(change_sovits_weights(sovits_path))
 except:pass
 
 def change_gpt_weights(gpt_path):
+    print(f"the gpt model is updated! and the path is {gpt_path}")
     global hz, max_sec, t2s_model, config
     hz = 50
     dict_s1 = torch.load(gpt_path, map_location="cpu")
