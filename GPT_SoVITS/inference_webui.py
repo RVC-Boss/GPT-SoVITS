@@ -41,6 +41,8 @@ for i in range(3):
     if os.path.exists(pretrained_sovits_name[i]):_[-1].append(pretrained_sovits_name[i])
 pretrained_gpt_name,pretrained_sovits_name = _
 
+def test():
+    print("GPT_SoVITS/inference_cli.py is running")
 
 if os.path.exists(f"./weight.json"):
     pass
@@ -327,7 +329,7 @@ def change_gpt_weights(gpt_path):
 
 
 change_gpt_weights(gpt_path)
-os.environ["HF_ENDPOINT"]          = "https://hf-mirror.com"
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import torch,soundfile
 now_dir = os.getcwd()
 import soundfile

@@ -3,7 +3,7 @@ import os
 import soundfile as sf
 
 from tools.i18n.i18n import I18nAuto
-from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav
+from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav, test
 
 i18n = I18nAuto()
 
@@ -11,8 +11,12 @@ def synthesize(GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_
                energy_scale=1.0, volume_scale=1.0, strain_effect=0.0):
     
     # Change model weights
+    print("Changing model weights about to be called...")
+    test()
     change_gpt_weights(gpt_path=GPT_model_path)
     change_sovits_weights(sovits_path=SoVITS_model_path)
+
+    print("Model weights changed successfully.")
 
     # Synthesize audio
     synthesis_result = get_tts_wav(ref_wav_path=ref_audio_path, 
