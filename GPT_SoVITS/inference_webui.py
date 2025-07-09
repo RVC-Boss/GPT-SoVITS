@@ -305,6 +305,9 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None, c
         data["SoVITS"][version]=sovits_path
     with open("./weight.json","w")as f:f.write(json.dumps(data))
 
+sovits_path = "GPT_SoVITS/pretrained_models/s2G2333k.pth"
+try:next(change_sovits_weights(sovits_path))
+except:pass
 
 def change_gpt_weights(gpt_path):
     print(f"the gpt model is updated! and the path is {gpt_path}")
