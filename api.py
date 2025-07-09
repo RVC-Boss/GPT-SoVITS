@@ -939,7 +939,7 @@ def version_4_cli(
     elif character_name in ["ruroro", "Ruroro"]:
         path = "idols/ruroro/ruroro.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/ruroro-e40.ckpt"
-        SoVITS_model_path = "GPT_SoVITS/pretrained_models/ruroro_e15_s2910_l32.pth"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/s2Gv2ProPlus.pth"
     if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
         GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-hql-e40.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-hql_e20_s1240.pth"
@@ -1005,7 +1005,7 @@ async def tts_endpoint(
     elif character == "saotome":
         prompt_text = "朝ごはんにはトーストと卵、そしてコーヒーを飲みました。簡単だけど、朝の時間が少し幸せに感じられる瞬間でした。"
     elif character in ["ruroro", "Ruroro"]:
-        prompt_text = "若是看到自己的朋友改囤原池抽錯或是拿去抽長柱池的話記得把影片分享給他看"
+        prompt_text = "上季型等級滿等還會再返還680原型這樣每個月的基本花費大概只需要落在500元台幣左右但是可以得到超過等同價值的內容物"
         prompt_language = "中英混合"
     elif character in ["Ikko", "ikko", "Ikka", "ikka"]:
         prompt_text = "せおいなげ、まじばな、らぶらぶ、あげあげ、まぼろし"
