@@ -136,7 +136,7 @@ def get_sovits_weights(sovits_path):
     is_exist_s2gv3=os.path.exists(path_sovits_v3)
 
     version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
-    logger.info(f"the version is: {version}, model version: {model_version}, if lora v3: {if_lora_v3}")
+    logger.info(f"tha path {path_sovits_v3}, the version is: {version}, model version: {model_version}, if lora v3: {if_lora_v3}")
     if if_lora_v3==True and is_exist_s2gv3==False:
         logger.info("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
 
