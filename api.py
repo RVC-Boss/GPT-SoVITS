@@ -939,7 +939,7 @@ def version_4_cli(
     elif character_name in ["ruroro", "Ruroro"]:
         path = "idols/ruroro/ruroro.wav"
         GPT_model_path = "GPT_SoVITS/pretrained_models/ruroro-e40.ckpt"
-        SoVITS_model_path = "GPT_SoVITS/pretrained_models/s2Gv2ProPlus.pth"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/ruroro_e15_s2910_l32.pth"
     if (character_name == "kurari" or character_name=="Kurari") and version == "v2":
         GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-hql-e40.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-hql_e20_s1240.pth"
