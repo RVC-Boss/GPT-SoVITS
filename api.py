@@ -848,13 +848,7 @@ else:
     media_type = "ogg"
 logger.info(f"编码格式: {media_type}")
 
-# 音频数据类型
-if args.sub_type.lower() == 'int32':
-    is_int32 = True
-    logger.info(f"数据类型: int32")
-else:
-    is_int32 = False
-    logger.info(f"数据类型: int16")
+is_int32 = True
 
 # 初始化模型
 cnhubert.cnhubert_base_path = cnhubert_base_path
