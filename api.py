@@ -132,7 +132,7 @@ class Sovits:
 
 from process_ckpt import get_sovits_version_from_path_fast,load_sovits_new
 def get_sovits_weights(sovits_path):
-    path_sovits_v3="GPT_SoVITS/pretrained_models/s2Gv3.pth"
+    path_sovits_v3=sovits_path
     is_exist_s2gv3=os.path.exists(path_sovits_v3)
 
     version, model_version, if_lora_v3=get_sovits_version_from_path_fast(sovits_path)
