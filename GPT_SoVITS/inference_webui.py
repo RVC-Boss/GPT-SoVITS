@@ -306,9 +306,6 @@ def change_sovits_weights(sovits_path,prompt_language=None,text_language=None, c
     with open("./weight.json","w")as f:f.write(json.dumps(data))
 
 
-try:next(change_sovits_weights(sovits_path))
-except:pass
-
 def change_gpt_weights(gpt_path):
     print(f"the gpt model is updated! and the path is {gpt_path}")
     global hz, max_sec, t2s_model, config
