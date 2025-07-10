@@ -6,7 +6,20 @@
 全部按英文识别
 全部按日文识别
 """
+import psutil
+import os
 
+def set_high_priority():
+    """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
+    if os.name != "nt":
+        return # 仅 Windows 有效
+    p = psutil.Process(os.getpid())
+    try:
+        p.nice(psutil.HIGH_PRIORITY_CLASS)
+        print("已将进程优先级设为 High")
+    except psutil.AccessDenied:
+        print("权限不足，无法修改优先级（请用管理员运行）")
+set_high_priority()
 import json
 import logging
 import os
