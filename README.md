@@ -43,8 +43,8 @@ Unseen speakers few-shot fine-tuning demo:
 
 https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
 
-**RTF(inference speed) of GPT-SoVITS**:
-0.028 tested in 4060Ti, 0.014 tested in 4090. You can test our [huggingface demo](https://lj1995-gpt-sovits-proplus.hf.space/) (half H200) to experience high-speed inference .
+**RTF(inference speed) of GPT-SoVITS v2 ProPlus**:
+0.028 tested in 4060Ti, 0.014 tested in 4090 (1400words~=4min, inference time is 3.36s), 0.526 in M4 CPU. You can test our [huggingface demo](https://lj1995-gpt-sovits-proplus.hf.space/) (half H200) to experience high-speed inference .
 
 请不要尬黑GPT-SoVITS推理速度慢，谢谢！
 
