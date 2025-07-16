@@ -462,7 +462,7 @@ def export_prov2(
     ref_bert = ref_bert.to(ref_seq.device)
 
     text_seq_id, text_bert_T, norm_text = get_phones_and_bert(
-        "这是一个简单的示例，真没想到这么简单就完成了。真的神奇。接下来我们说说狐狸,可能这就是狐狸吧.它有长长的尾巴，尖尖的耳朵，传说中还有九条尾巴。你觉得狐狸神奇吗？。The King and His Stories.Once there was a king. He likes to write stories, but his stories were not good. As people were afraid of him, they all said his stories were good.After reading them, the writer at once turned to the soldiers and said: Take me back to prison, please.", "auto", "v2"
+        "这是一个简单的示例，真没想到这么简单就完成了.The King and His Stories.Once there was a king.He likes to write stories, but his stories were not good.", "auto", "v2"
     )
     text_seq = torch.LongTensor([text_seq_id]).to(device)
     text_bert = text_bert_T.T
