@@ -1,15 +1,16 @@
 import argparse
 import os
+import time
 import traceback
-
-os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 import torch
 from faster_whisper import WhisperModel
+from huggingface_hub import snapshot_download
+from huggingface_hub.errors import LocalEntryNotFoundError
 from tqdm import tqdm
 
-from tools.asr.config import check_fw_local_models
+from tools.asr.config import get_models
+from tools.asr.funasr_asr import only_asr
 from tools.my_utils import load_cudnn
 
 # fmt: off
@@ -38,20 +39,54 @@ language_code_list = [
 # fmt: on
 
 
-def execute_asr(input_folder, output_folder, model_size, language, precision):
-    if "-local" in model_size:
-        model_size = model_size[:-6]
-        model_path = f"tools/asr/models/faster-whisper-{model_size}"
+def download_model(model_size: str):
+    if "distil" in model_size:
+        repo_id = "Systran/faster-{}-whisper-{}".format(*model_size.split("-", maxsplit=1))
     else:
-        model_path = model_size
+        repo_id = f"Systran/faster-whisper-{model_size}"
+    model_path = f"tools/asr/models/{repo_id.strip('Systran/')}"
+
+    files: list[str] = [
+        "config.json",
+        "model.bin",
+        "tokenizer.json",
+        "vocabulary.txt",
+    ]
+    if model_size == "large-v3" or "distil" in model_size:
+        files.append("preprocessor_config.json")
+        files.append("vocabulary.json")
+
+        files.remove("vocabulary.txt")
+
+    for attempt in range(2):
+        try:
+            snapshot_download(
+                repo_id=repo_id,
+                allow_patterns=files,
+                local_dir=model_path,
+            )
+            break
+        except LocalEntryNotFoundError:
+            if attempt < 1:
+                time.sleep(2)
+            else:
+                print("[ERROR] LocalEntryNotFoundError and no fallback.")
+                traceback.print_exc()
+                exit(1)
+        except Exception as e:
+            print(f"[ERROR] Unexpected error on attempt {attempt + 1}: {e}")
+            traceback.print_exc()
+            exit(1)
+
+    return model_path
+
+
+def execute_asr(input_folder, output_folder, model_path, language, precision):
     if language == "auto":
         language = None  # 不设置语种由模型自动输出概率最高的语种
-    print("loading faster whisper model:", model_size, model_path)
+    print("loading faster whisper model:", model_path, model_path)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    try:
-        model = WhisperModel(model_path, device=device, compute_type=precision)
-    except:
-        return print(traceback.format_exc())
+    model = WhisperModel(model_path, device=device, compute_type=precision)
 
     input_file_names = os.listdir(input_folder)
     input_file_names.sort()
@@ -73,16 +108,15 @@ def execute_asr(input_folder, output_folder, model_size, language, precision):
 
             if info.language == "zh":
                 print("检测为中文文本, 转 FunASR 处理")
-                if "only_asr" not in globals():
-                    from tools.asr.funasr_asr import only_asr  # 如果用英文就不需要导入下载模型
                 text = only_asr(file_path, language=info.language.lower())
 
             if text == "":
                 for segment in segments:
                     text += segment.text
             output.append(f"{file_path}|{output_file_name}|{info.language.upper()}|{text}")
-        except:
-            print(traceback.format_exc())
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
 
     output_folder = output_folder or "output/asr_opt"
     os.makedirs(output_folder, exist_ok=True)
@@ -107,7 +141,7 @@ if __name__ == "__main__":
         "--model_size",
         type=str,
         default="large-v3",
-        choices=check_fw_local_models(),
+        choices=get_models(),
         help="Model Size of Faster Whisper",
     )
     parser.add_argument(
@@ -123,10 +157,14 @@ if __name__ == "__main__":
     )
 
     cmd = parser.parse_args()
+    model_size = cmd.model_size
+    if model_size == "large":
+        model_size = "large-v3"
+    model_path = download_model(model_size)
     output_file_path = execute_asr(
         input_folder=cmd.input_folder,
         output_folder=cmd.output_folder,
-        model_size=cmd.model_size,
+        model_path=model_path,
         language=cmd.language,
         precision=cmd.precision,
     )
