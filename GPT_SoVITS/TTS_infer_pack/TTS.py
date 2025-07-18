@@ -318,7 +318,7 @@ class TTS_Config:
         if str(self.device) == "cpu" and self.is_half:
             print(f"Warning: Half precision is not supported on CPU, set is_half to False.")
             self.is_half = False
-            
+
         version = self.configs.get("version", None)
         self.version = version
         assert self.version in ["v1", "v2", "v3", "v4", "v2Pro", "v2ProPlus"], "Invalid version!"
@@ -577,6 +577,10 @@ class TTS:
         self.vits_model = vits_model
         if self.configs.is_half and str(self.configs.device) != "cpu":
             self.vits_model = self.vits_model.half()
+
+        self.configs.save_configs()
+
+
 
     def init_t2s_weights(self, weights_path: str):
         print(f"Loading Text2Semantic weights from {weights_path}")
