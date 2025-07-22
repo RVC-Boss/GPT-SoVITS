@@ -957,7 +957,7 @@ def version_4_cli(
             path = "idols/loude-siratori/cheering.wav"
         elif shouting_type == "joyful":
             path = "idols/loude-siratori/joyful.wav"
-        elif shouting_type == "surprised":
+        else:
             path = "idols/loude-siratori/surprised.wav"
 
 
