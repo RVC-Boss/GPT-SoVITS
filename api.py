@@ -914,6 +914,7 @@ def version_4_cli(
     energy_scale=1.0,
     volume_scale=1.0,
     strain_effect=0.0,
+    shouting_type="normal",  # normal, loud, soft, whisper
 ):
     # Create a temporary buffer to store the audio
     audio_buffer = io.BytesIO()
@@ -946,6 +947,20 @@ def version_4_cli(
     elif (character_name == "kurari" or character_name=="Kurari") and version == "v3":
         GPT_model_path = "GPT_SoVITS/pretrained_models/kurari-high-e45.ckpt"
         SoVITS_model_path = "GPT_SoVITS/pretrained_models/kurari-high_e25_s325.pth"
+    elif (character_name == "siratori"):
+        GPT_model_path = "GPT_SoVITS/pretrained_models/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+        SoVITS_model_path = "GPT_SoVITS/pretrained_models/s2Gv2ProPlus.pth"
+
+        if shouting_type == "angry":
+            path = "idols/loude-siratori/angry.wav"
+        elif shouting_type == "cheering":
+            path = "idols/loude-siratori/cheering.wav"
+        elif shouting_type == "joyful":
+            path = "idols/loude-siratori/joyful.wav"
+        elif shouting_type == "surprised":
+            path = "idols/loude-siratori/surprised.wav"
+
+
 
     synthesis_result = synthesize(
         GPT_model_path = GPT_model_path,
@@ -998,7 +1013,8 @@ async def tts_endpoint(
     normalize: str = "false",  # Accept as string from URL, convert to bool
     energy_scale: str = "1.0",  # Accept as string from URL, convert to float
     volume_scale: str = "1.0",  # Accept as string from URL, convert to float
-    strain_effect: str = "0.0"  # Accept as string from URL, convert to float
+    strain_effect: str = "0.0",  # Accept as string from URL, convert to float
+    shouting_type: str = "normal",  # Accept as string from URL, convert to appropriate type
 ):
     if character == "kurari" or character == "Kurari":
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
@@ -1011,10 +1027,18 @@ async def tts_endpoint(
         prompt_text = "せおいなげ、まじばな、らぶらぶ、あげあげ、まぼろし"
     elif character in ["Baacharu", "baacharu"]:
         prompt_text = "どーもー、世界初男性バーチャルユーチューバーのばあちゃるです"
-    import warnings
-    warnings.warn(f"the character name is {character}. ")
+    elif character in ["siratori", "Siratori"] and shouting_type != "normal":
+        if shouting_type == "angry":
+            prompt_text = "Dogs are sitting by the door. kids are talking by the door."
+        elif shouting_type == "cheering":
+            prompt_text = "Kids are talking by the door. Kids are talking by the door."
+        elif shouting_type == "joyful":
+            prompt_text == "Kids are talking by the door. Dogs are sitting by the door."
+        elif shouting_type == "surprised":
+            prompt_text = "Kids are talking by the door. Kids are talking by the door."
+    
 
-    if character in ["Kurari", "saotome", "ikka", "Ikka", "ikko", "Ikko", "Baacharu", "baacharu", "ruroro", "Ruroro"]:
+    if character in ["Kurari", "saotome", "ikka", "Ikka", "ikko", "Ikko", "Baacharu", "baacharu", "ruroro", "Ruroro"] or (character == "siratori" and shouting_type != "normal"):
         if text_language == "all_ja":
             text_language = "日文"
         elif text_language == "ja":
@@ -1048,7 +1072,8 @@ async def tts_endpoint(
             normalize=normalize,
             energy_scale=energy_scale,
             volume_scale=volume_scale,
-            strain_effect=strain_effect
+            strain_effect=strain_effect,
+            shouting_type= shouting_type
         )
 
         if audio_buffer:
