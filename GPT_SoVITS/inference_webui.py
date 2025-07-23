@@ -520,12 +520,16 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                 top_k=15, top_p=1, temperature=1, ref_free=False, speed=1, if_freeze=False, 
                 inp_refs=None, sample_steps=16, if_sr=False, pause_second=0.3, 
                 loudness_boost=False, gain=0, normalize=False, energy_scale=1.0, 
-                volume_scale=1.0, strain_effect=0.0):
+                volume_scale=1.0, strain_effect=0.0, intensity=0):  # Added intensity parameter
     global cache
     if ref_wav_path: pass
     else: gr.Warning(i18n('请上传参考音频'))
     if text: pass
     else: gr.Warning(i18n('请填入推理文本'))
+    
+    # Validate intensity parameter
+    intensity = max(0.0, min(1.0, intensity))  # Clamp to [0, 1]
+    
     t = []
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
@@ -623,6 +627,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         if(i_text in cache and if_freeze == True): pred_semantic = cache[i_text]
         else:
             with torch.no_grad():
+                # Apply intensity to temperature for more emotional variation
+                adjusted_temperature = temperature * (1.0 + intensity * 0.3)  # 0% to 30% increase
+                
                 pred_semantic, idx = t2s_model.model.infer_panel(
                     all_phoneme_ids,
                     all_phoneme_len,
@@ -631,7 +638,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                     # prompt_phone_len=ph_offset,
                     top_k=top_k,
                     top_p=top_p,
-                    temperature=temperature,
+                    temperature=adjusted_temperature,  # Modified temperature
                     early_stop_num=hz * max_sec,
                 )
                 pred_semantic = pred_semantic[:, -idx:].unsqueeze(0)
@@ -648,7 +655,10 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
                     except:
                         traceback.print_exc()
             if len(refers) == 0: refers = [get_spepc(hps, ref_wav_path).to(dtype).to(device)]
-            audio = vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed)[0][0]  # .cpu().detach().numpy()
+            
+            # Apply intensity to speed for subtle tempo variation
+            adjusted_speed = speed * (1.0 + intensity * 0.1)  # 0% to 10% speed increase
+            audio = vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=adjusted_speed)[0][0]
         else:
             refer = get_spepc(hps, ref_wav_path).to(device).to(dtype)
             phoneme_ids0 = torch.LongTensor(phones1).to(device).unsqueeze(0)
@@ -675,7 +685,10 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
             # print("fea_ref", fea_ref, fea_ref.shape)
             # print("mel2", mel2)
             mel2 = mel2.to(dtype)
-            fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge, speed)
+            
+            # Apply intensity to speed for v3
+            adjusted_speed = speed * (1.0 + intensity * 0.1)
+            fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge, adjusted_speed)
             # print("fea_todo", fea_todo)
             # print("ge", ge.abs().mean())
             cfm_resss = []
@@ -705,33 +718,98 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         if max_audio > 1:
             audio = audio / max_audio
 
-        # Apply new parameters
+        # Apply intensity-based audio processing
         audio = audio.to(torch.float32)  # Ensure float32 for processing
+        
+        # Creative intensity-based effects (careful not to create noise)
+        if intensity > 0:
+            # 1. Dynamic range compression (makes loud parts more consistent)
+            if intensity > 0.2:
+                compression_ratio = 1.0 + (intensity * 2.0)  # 1:1 to 3:1 compression
+                threshold = 0.5 - (intensity * 0.2)  # Lower threshold with higher intensity
+                above_threshold = torch.abs(audio) > threshold
+                audio[above_threshold] = torch.sign(audio[above_threshold]) * (
+                    threshold + (torch.abs(audio[above_threshold]) - threshold) / compression_ratio
+                )
+            
+            # 2. Harmonic enhancement (adds brightness without noise)
+            if intensity > 0.3:
+                # Simple harmonic exciter using soft clipping
+                harmonic_amount = intensity * 0.15  # Max 15% harmonics
+                harmonics = torch.tanh(audio * 3.0) * harmonic_amount
+                audio = audio + harmonics
+            
+            # 3. Formant shifting (subtle pitch character change)
+            if intensity > 0.4:
+                # Apply subtle pitch bend without using librosa (to avoid artifacts)
+                formant_shift = 1.0 + (intensity * 0.05)  # Max 5% formant shift
+                # This is a placeholder - actual formant shifting would need more complex processing
+                
+            # 4. Energy boost (frequency-dependent)
+            if intensity > 0.1:
+                # Boost energy proportionally to intensity
+                energy_boost = 1.0 + (intensity * 0.4)  # Max 40% boost
+                audio = audio * energy_boost
+        
+        # Apply original parameters with intensity scaling
         if loudness_boost:
-            # Boost loudness using RMS-based scaling (adjust multiplier as needed)
+            # Scale loudness boost with intensity
             rms = torch.sqrt(torch.mean(audio ** 2))
-            audio = audio * (rms * 1.5) if rms > 0 else audio
+            boost_factor = 1.5 + (intensity * 0.5)  # 1.5x to 2.0x based on intensity
+            audio = audio * (rms * boost_factor) if rms > 0 else audio
         if gain > 0:
-            # Apply gain in dB
-            audio = audio * (10 ** (gain / 20))
+            # Apply gain with intensity scaling
+            adjusted_gain = gain * (1.0 + intensity * 0.3)
+            audio = audio * (10 ** (adjusted_gain / 20))
         if normalize:
             # Normalize to [-1, 1]
             max_abs = torch.abs(audio).max()
             audio = audio / max_abs if max_abs > 0 else audio
         if energy_scale != 1.0:
-            # Scale energy
-            audio = audio * torch.sqrt(torch.tensor(energy_scale))
+            # Scale energy with intensity influence
+            adjusted_energy = energy_scale * (1.0 + intensity * 0.2)
+            audio = audio * torch.sqrt(torch.tensor(adjusted_energy))
         if volume_scale != 1.0:
-            # Direct volume scaling
-            audio = audio * volume_scale
+            # Direct volume scaling with intensity
+            adjusted_volume = volume_scale * (1.0 + intensity * 0.3)
+            audio = audio * adjusted_volume
         if strain_effect > 0.0:
-            # Add strain effect (basic distortion)
-            audio = audio + (audio ** 2 * strain_effect)
+            # Add strain effect with intensity (more careful to avoid noise)
+            adjusted_strain = strain_effect * (1.0 + intensity * 0.5)
+            # Use softer distortion to avoid harsh noise
+            audio = audio + (torch.tanh(audio * 2.0) * adjusted_strain * 0.3)
 
-        # Final clipping check after effects
+        # Advanced intensity-based post-processing
+        if intensity > 0.5:
+            # Subtle saturation for warmth (not harsh distortion)
+            saturation = intensity * 0.1
+            audio = audio * (1 - saturation) + torch.tanh(audio * 1.5) * saturation
+        
+        # Final smart limiting to prevent clipping and maintain quality
+        # Use soft knee compression instead of hard clipping
+        soft_limit = 0.95
+        knee = 0.1
+        
+        above_knee = torch.abs(audio) > (soft_limit - knee)
+        if torch.any(above_knee):
+            # Soft knee compression
+            audio_abs = torch.abs(audio)
+            audio_sign = torch.sign(audio)
+            
+            # Calculate soft knee curve
+            knee_start = soft_limit - knee
+            compressed = torch.where(
+                audio_abs <= knee_start,
+                audio_abs,
+                knee_start + (audio_abs - knee_start) * 0.3  # Gentle compression above knee
+            )
+            
+            audio = audio_sign * compressed
+        
+        # Final safety check
         max_audio = torch.abs(audio).max()
-        if max_audio > 1:
-            audio = audio / max_audio
+        if max_audio > 0.99:
+            audio = audio * (0.99 / max_audio)
 
         audio_opt.append(audio)
         audio_opt.append(zero_wav_torch)  # zero_wav
@@ -740,6 +818,8 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
         t1 = ttime()
 
     print("%.3f\t%.3f\t%.3f\t%.3f" % (t[0], sum(t[1::3]), sum(t[2::3]), sum(t[3::3])))
+    print(f"Intensity applied: {intensity}")  # Log intensity level
+    
     audio_opt = torch.cat(audio_opt, 0)  # np.concatenate
     sr = hps.data.sampling_rate if model_version != "v3" else 24000
     if if_sr == True and sr == 24000:
@@ -750,6 +830,34 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language,
     else:
         audio_opt = audio_opt.cpu().detach().numpy()
     yield sr, (audio_opt * 32767).astype(np.int16)
+
+
+# Helper function for smooth intensity transitions
+def apply_intensity_envelope(audio, intensity, emotion_type=None):
+    """
+    Apply smooth intensity envelope to avoid abrupt changes
+    """
+    if intensity == 0:
+        return audio
+    
+    # Create smooth envelope
+    length = audio.shape[0]
+    envelope = torch.ones_like(audio)
+    
+    # Attack and release times based on intensity
+    attack_samples = int(0.01 * 24000 * (1 - intensity * 0.5))  # Faster attack with higher intensity
+    release_samples = int(0.05 * 24000)
+    
+    # Apply envelope
+    if attack_samples > 0:
+        attack_curve = torch.linspace(0.7, 1.0, attack_samples)
+        envelope[:attack_samples] = attack_curve
+    
+    if release_samples > 0 and length > release_samples:
+        release_curve = torch.linspace(1.0, 0.8, release_samples)
+        envelope[-release_samples:] = release_curve
+    
+    return audio * envelope
 
 def split(todo_text):
     todo_text = todo_text.replace("……", "。").replace("——", "，")

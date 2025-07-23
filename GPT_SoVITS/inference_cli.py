@@ -8,7 +8,7 @@ from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights
 i18n = I18nAuto()
 
 def synthesize(GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_language, target_text, text_language, output_path, loudness_boost=False, gain=0, normalize=False, 
-               energy_scale=1.0, volume_scale=1.0, strain_effect=0.0):
+               energy_scale=1.0, volume_scale=1.0, strain_effect=0.0, intensity=0):
     
     # Change model weights
     print("Changing model weights about to be called...")
@@ -31,7 +31,8 @@ def synthesize(GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_
                                    normalize=normalize, 
                                    energy_scale=energy_scale, 
                                    volume_scale=volume_scale, 
-                                   strain_effect=strain_effect)
+                                   strain_effect=strain_effect,
+                                   intensity=intensity)
     
     result_list = list(synthesis_result)
 

@@ -915,6 +915,7 @@ def version_4_cli(
     volume_scale=1.0,
     strain_effect=0.0,
     shouting_type="normal",  # normal, loud, soft, whisper
+    intesity = 0,
 ):
     # Create a temporary buffer to store the audio
     audio_buffer = io.BytesIO()
@@ -976,7 +977,8 @@ def version_4_cli(
         normalize=normalize,
         energy_scale=energy_scale,
         volume_scale=volume_scale,
-        strain_effect=strain_effect
+        strain_effect=strain_effect,
+        intensity=intesity
     )
     
     # Get the last audio data and sample rate from synthesis result
@@ -1015,6 +1017,7 @@ async def tts_endpoint(
     volume_scale: str = "1.0",  # Accept as string from URL, convert to float
     strain_effect: str = "0.0",  # Accept as string from URL, convert to float
     shouting_type: str = "normal",  # Accept as string from URL, convert to appropriate type
+    intesity: int = 0,
 ):
     if character == "kurari" or character == "Kurari":
         prompt_text = "おはよう〜。今日はどんな1日過ごすー？くらりはね〜いつでもあなたの味方だよ"
@@ -1073,7 +1076,8 @@ async def tts_endpoint(
             energy_scale=energy_scale,
             volume_scale=volume_scale,
             strain_effect=strain_effect,
-            shouting_type= shouting_type
+            shouting_type= shouting_type,
+            intesity=intesity
         )
 
         if audio_buffer:
