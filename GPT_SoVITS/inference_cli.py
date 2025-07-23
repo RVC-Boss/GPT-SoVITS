@@ -18,6 +18,8 @@ def synthesize(GPT_model_path, SoVITS_model_path, ref_audio_path, ref_text, ref_
 
     print("Model weights changed successfully.")
 
+    print(f"cli file inside synthesize func: the intestity is {intensity}")
+
     # Synthesize audio
     synthesis_result = get_tts_wav(ref_wav_path=ref_audio_path, 
                                    prompt_text=ref_text, 
