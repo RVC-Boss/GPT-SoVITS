@@ -1,7 +1,7 @@
 # from f5_tts.model.cfm import CFM
 #
 # from f5_tts.model.backbones.unett import UNetT
-from GPT_SoVITS.f5_tts.model.backbones.dit import DiT
+from f5_tts.model.backbones.dit import DiT
 # from f5_tts.model.backbones.dit import DiTNoCond
 # from f5_tts.model.backbones.dit import DiTNoCondNoT
 # from f5_tts.model.backbones.mmdit import MMDiT
