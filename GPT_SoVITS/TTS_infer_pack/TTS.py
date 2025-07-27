@@ -369,6 +369,7 @@ class TTS_Config:
         configs = deepcopy(self.default_configs)
         if self.configs is not None:
             configs["custom"] = self.update_configs()
+            configs["version"] = self.version
 
         if configs_path is None:
             configs_path = self.configs_path
