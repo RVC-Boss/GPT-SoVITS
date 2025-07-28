@@ -4,7 +4,6 @@ tensorboard==2.19.0
 librosa==0.9.2  
 numba==0.56.4  
 pytorch-lightning==2.5.1  
-gradio==4.24.0  
 ffmpeg-python==0.2.0  
 onnxruntime==1.19.2 #(for macOS)  
 onnxruntime-gpu==1.19.2 #(for non-macOS)  
