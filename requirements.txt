@@ -6,7 +6,7 @@ numba==0.56.4
 
 # TensorFlow ecosystem - MATCHING ORIGINAL
 tensorboard==2.19.0
-tensorflow==2.15.0
+tensorflow>=2.18.0  # Compatible with tensorboard 2.19.0
 
 # PyTorch ecosystem - MATCHING ORIGINAL
 torch>=2.1.0
