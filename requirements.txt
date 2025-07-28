@@ -1,12 +1,12 @@
-# Requirements aligned with original GPT-SoVITS app
-# Core scientific computing - MATCHING ORIGINAL
-numpy==1.23.4
+# Requirements aligned with original GPT-SoVITS app - CONFLICT RESOLVED
+# Core scientific computing - MINIMAL CHANGE TO FIX CONFLICT
+numpy==1.23.5  # Changed from 1.23.4 to satisfy tensorflow>=1.23.5 requirement
 scipy==1.13.1
 numba==0.56.4
 
 # TensorFlow ecosystem - MATCHING ORIGINAL
 tensorboard==2.19.0
-tensorflow==2.15.0  # Compatible with tensorboard 2.19.0
+tensorflow==2.15.0
 
 # PyTorch ecosystem - MATCHING ORIGINAL
 torch>=2.1.0
