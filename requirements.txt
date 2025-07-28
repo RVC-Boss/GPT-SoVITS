@@ -4,6 +4,8 @@ numpy==1.23.5
 scipy==1.10.1
 numba==0.58.1
 
+matplotlib
+
 # TensorFlow ecosystem - COMPATIBLE VERSIONS
 tensorflow==2.15.0
 tensorboard==2.15.2
