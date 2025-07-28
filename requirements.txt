@@ -49,7 +49,7 @@ jieba==0.42.1
 fastapi==0.112.1 # (since <0.112.2)
 uvicorn[standard]==0.24.0
 websockets==12.0
-python-multipart==0.0.6
+python-multipart>=0.0.9
 
 # Additional ML/AI tools - MATCHING ORIGINAL
 modelscope==1.10.0
