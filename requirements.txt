@@ -1,12 +1,12 @@
-# Requirements aligned with original GPT-SoVITS app - CONFLICT RESOLVED
-# Core scientific computing - MINIMAL CHANGE TO FIX CONFLICT
-numpy==1.23.5  # Changed from 1.23.4 to satisfy tensorflow>=1.23.5 requirement
+# WORKING Requirements - Strategic Compromises to Resolve All Conflicts
+# Core scientific computing - WORKING COMBINATION
+numpy==1.26.0  # Satisfies tensorflow 2.19.0 requirement
 scipy==1.13.1
-numba==0.56.4
+numba==0.58.1  # Updated to work with numpy 1.26.0 (was causing numpy<1.24 conflict)
 
-# TensorFlow ecosystem - MATCHING ORIGINAL
+# TensorFlow ecosystem - WORKING COMBINATION  
+tensorflow==2.19.0  # Latest that works with tensorboard 2.19.0
 tensorboard==2.19.0
-tensorflow>=2.18.0  # Compatible with tensorboard 2.19.0
 
 # PyTorch ecosystem - MATCHING ORIGINAL
 torch>=2.1.0
@@ -45,10 +45,10 @@ python-mecab-ko==1.3.7 #(not for Windows)
 jieba_fast==0.53
 jieba==0.42.1
 
-# Web framework - MATCHING ORIGINAL where possible
+# Web framework - WORKING COMBINATION
 fastapi==0.112.1 # (since <0.112.2)
 uvicorn[standard]==0.24.0
-websockets>=10.4,<12.0  # Compatible with both uvicorn and gradio-client
+websockets>=10.4,<12.0  # Compatible with both uvicorn and gradio
 python-multipart>=0.0.9
 
 # Additional ML/AI tools - MATCHING ORIGINAL
