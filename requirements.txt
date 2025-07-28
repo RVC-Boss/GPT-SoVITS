@@ -53,7 +53,7 @@ websockets==12.0
 python-multipart==0.0.6
 
 # Additional ML/AI tools
-modelscope==1.9.5
+modelscope==1.10.0
 x-transformers==1.27.19
 rotary-embedding-torch==0.5.3
 
