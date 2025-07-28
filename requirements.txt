@@ -48,7 +48,7 @@ jieba==0.42.1
 # Web framework - MATCHING ORIGINAL where possible
 fastapi==0.112.1 # (since <0.112.2)
 uvicorn[standard]==0.24.0
-websockets==12.0
+websockets>=10.4,<12.0  # Compatible with both uvicorn and gradio-client
 python-multipart>=0.0.9
 
 # Additional ML/AI tools - MATCHING ORIGINAL
