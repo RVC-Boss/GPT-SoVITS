@@ -30,6 +30,24 @@ import config as global_config
 import logging
 import subprocess
 
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import cv2
+import numpy as np
+import asyncio
+import json
+import time
+import logging
+from datetime import datetime
+from typing import Dict
+
+from face_detector import AgeGenderDetector
+from utils import decode_base64_image
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 import nltk
 nltk.download('averaged_perceptron_tagger_eng')
 
@@ -871,6 +889,45 @@ change_gpt_sovits_weights(gpt_path = gpt_path, sovits_path = sovits_path)
 # 接口部分
 # --------------------------------
 app = FastAPI()
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
+# Global detector instance
+detector = AgeGenderDetector()
+
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+    
+    async def connect(self, websocket: WebSocket, session_id: str):
+        await websocket.accept()
+        self.active_connections[session_id] = websocket
+        logger.info(f"🔌 Connected: {session_id}")
+    
+    def disconnect(self, session_id: str):
+        self.active_connections.pop(session_id, None)
+        logger.info(f"🔌 Disconnected: {session_id}")
+    
+    async def send_message(self, session_id: str, message: dict):
+        websocket = self.active_connections.get(session_id)
+        if websocket:
+            try:
+                await websocket.send_text(json.dumps(message))
+            except:
+                self.disconnect(session_id)
+
+manager = ConnectionManager()
+
+
 
 @app.post("/")
 async def tts_endpoint(request: Request):
@@ -1101,6 +1158,99 @@ async def tts_endpoint(
     print(f"the base path is {refer_wav_path}")
     return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc, top_k, top_p, temperature, speed, inp_refs, sample_steps, if_sr)
 
+@app.post("/analyze_image")
+async def analyze_image(file: UploadFile = File(...)):
+    """Analyze uploaded image"""
+    try:
+        # Read image
+        image_data = await file.read()
+        
+        # Convert to OpenCV format
+        nparr = np.frombuffer(image_data, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image format")
+        
+        # Process image
+        start_time = time.time()
+        results = detector.process_image(image)
+        processing_time = time.time() - start_time
+        
+        # Cleanup periodically
+        if len(detector.face_results) > 50:
+            detector.cleanup_old_results()
+        
+        return {
+            "success": True,
+            "processing_time": round(processing_time, 2),
+            "people": results,
+            "total_people": len(results),
+            "timestamp": datetime.now().isoformat()
+        }
+    
+    except Exception as e:
+        logger.error(f"Image analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.websocket("/ws/{session_id}")
+async def websocket_endpoint(websocket: WebSocket, session_id: str):
+    """WebSocket endpoint for real-time processing"""
+    await manager.connect(websocket, session_id)
+    
+    def result_callback(person_id: str, result: dict):
+        """Callback for when analysis is complete"""
+        asyncio.create_task(manager.send_message(session_id, {
+            "type": "analysis_complete",
+            "person_id": person_id,
+            "result": result,
+            "timestamp": datetime.now().isoformat()
+        }))
+    
+    try:
+        while True:
+            # Receive data
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            if message.get("type") == "frame":
+                # Process frame
+                base64_image = message.get("image")
+                if base64_image:
+                    image = decode_base64_image(base64_image)
+                    if image is not None:
+                        results = detector.process_image(image, callback=result_callback)
+                        
+                        # Send immediate response
+                        await manager.send_message(session_id, {
+                            "type": "frame_processed",
+                            "people": results,
+                            "total_people": len(results),
+                            "timestamp": datetime.now().isoformat()
+                        })
+            
+            elif message.get("type") == "ping":
+                await manager.send_message(session_id, {
+                    "type": "pong",
+                    "timestamp": datetime.now().isoformat()
+                })
+    
+    except WebSocketDisconnect:
+        manager.disconnect(session_id)
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        manager.disconnect(session_id)
+
+@app.get("/stats")
+async def get_stats():
+    """Get system statistics"""
+    return {
+        "active_connections": len(manager.active_connections),
+        "known_persons": len(detector.face_encodings),
+        "cached_results": len(detector.face_results),
+        "analysis_queue_size": detector.analysis_queue.qsize(),
+        "system_time": datetime.now().isoformat()
+    }
 
 if __name__ == "__main__":
     logging.info("the server is running")

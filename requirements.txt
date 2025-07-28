@@ -39,3 +39,17 @@ x-transformers==2.1.37
 torchmetrics==1.5.0  
 attrdict==2.0.1
 activations==0.1.0
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets==12.0
+python-multipart==0.0.6
+opencv-python==4.8.1.78
+pillow==10.1.0
+numpy<2.0
+torch>=2.1.0
+transformers>=4.35.0
+deepface>=0.0.79
+tensorflow>=2.15.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+aiofiles==23.2.1
