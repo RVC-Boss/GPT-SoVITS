@@ -625,18 +625,7 @@ def fbank(
     # size (num_mel_bins, padded_window_size // 2)
     # print(num_mel_bins, padded_window_size, sample_frequency, low_freq, high_freq, vtln_low, vtln_high, vtln_warp)
 
-    cache_key = "%s-%s-%s-%s-%s-%s-%s-%s-%s-%s" % (
-        num_mel_bins,
-        padded_window_size,
-        sample_frequency,
-        low_freq,
-        high_freq,
-        vtln_low,
-        vtln_high,
-        vtln_warp,
-        device,
-        dtype,
-    )
+    cache_key = f"{num_mel_bins}-{padded_window_size}-{sample_frequency}-{low_freq}-{high_freq}-{vtln_low}-{vtln_high}-{vtln_warp}-{device}-{dtype}"
     if cache_key not in cache:
         mel_energies = get_mel_banks(
             num_mel_bins,

@@ -44,7 +44,7 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, skip_optimizer=False
             )
         except:
             traceback.print_exc()
-            print("error, %s is not in the checkpoint" % k)  # shape不对也会，比如text_embedding当cleaner修改时
+            print(f"error, {k} is not in the checkpoint")  # shape不对也会，比如text_embedding当cleaner修改时
             new_state_dict[k] = v
     if hasattr(model, "module"):
         model.module.load_state_dict(new_state_dict)
@@ -67,9 +67,9 @@ from time import time as ttime
 def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
     dir = os.path.dirname(path)
     name = os.path.basename(path)
-    tmp_path = "%s.pth" % (ttime())
+    tmp_path = f"{ttime()}.pth"
     torch.save(fea, tmp_path)
-    shutil.move(tmp_path, "%s/%s" % (dir, name))
+    shutil.move(tmp_path, f"{dir}/{name}")
 
 
 def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path):

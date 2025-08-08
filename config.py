@@ -93,7 +93,7 @@ def get_weights_names():
             continue
         for name in os.listdir(path):
             if name.endswith(".pth"):
-                SoVITS_names.append("%s/%s" % (path, name))
+                SoVITS_names.append(f"{path}/{name}")
     if not SoVITS_names:
         SoVITS_names = [""]
     GPT_names = []
@@ -105,7 +105,7 @@ def get_weights_names():
             continue
         for name in os.listdir(path):
             if name.endswith(".ckpt"):
-                GPT_names.append("%s/%s" % (path, name))
+                GPT_names.append(f"{path}/{name}")
     SoVITS_names = sorted(SoVITS_names, key=custom_sort_key)
     GPT_names = sorted(GPT_names, key=custom_sort_key)
     if not GPT_names:

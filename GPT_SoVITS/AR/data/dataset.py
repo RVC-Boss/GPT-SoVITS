@@ -61,11 +61,7 @@ class Text2SemanticDataset(Dataset):
         )
         # get dict
         self.path2 = phoneme_path  # "%s/2-name2text.txt"%exp_dir#phoneme_path
-        self.path3 = "%s/3-bert" % (
-            os.path.dirname(
-                phoneme_path,
-            )
-        )  # "%s/3-bert"%exp_dir#bert_dir
+        self.path3 = f"{os.path.dirname(phoneme_path)}/3-bert"  # "%s/3-bert"%exp_dir#bert_dir
         self.path6 = semantic_path  # "%s/6-name2semantic.tsv"%exp_dir#semantic_path
         assert os.path.exists(self.path2)
         assert os.path.exists(self.path6)
@@ -219,7 +215,7 @@ class Text2SemanticDataset(Dataset):
         semantic_ids_len = len(semantic_ids)
 
         flag = 0
-        path_bert = "%s/%s.pt" % (self.path3, item_name)
+        path_bert = f"{self.path3}/{item_name}.pt"
         if os.path.exists(path_bert) == True:
             bert_feature = torch.load(path_bert, map_location="cpu")
         else:

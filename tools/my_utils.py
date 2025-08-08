@@ -103,7 +103,7 @@ def check_details(path_list=None, is_train=False, is_dataset_processing=False):
         wav_name = clean_path(wav_name)
         if audio_path != "" and audio_path != None:
             wav_name = os.path.basename(wav_name)
-            wav_path = "%s/%s" % (audio_path, wav_name)
+            wav_path = f"{audio_path}/{wav_name}"
         else:
             wav_path = wav_name
         if os.path.exists(wav_path):

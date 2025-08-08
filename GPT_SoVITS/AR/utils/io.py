@@ -26,5 +26,5 @@ def write_args(args, path):
         args_file.write(str(sys.argv))
         args_file.write("\n==> args:\n")
         for k, v in sorted(args_dict.items()):
-            args_file.write("  %s: %s\n" % (str(k), str(v)))
+            args_file.write(f"  {str(k)}: {str(v)}\n")
         args_file.close()

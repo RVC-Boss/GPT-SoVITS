@@ -16,7 +16,7 @@ from models.model import APNet_BWE_Model
 class AP_BWE:
     def __init__(self, device, DictToAttrRecursive, checkpoint_file=None):
         if checkpoint_file == None:
-            checkpoint_file = "%s/24kto48k/g_24kto48k.zip" % (AP_BWE_main_dir_path)
+            checkpoint_file = f"{AP_BWE_main_dir_path}/24kto48k/g_24kto48k.zip"
             if os.path.exists(checkpoint_file) == False:
                 raise FileNotFoundError
         config_file = os.path.join(os.path.split(checkpoint_file)[0], "config.json")

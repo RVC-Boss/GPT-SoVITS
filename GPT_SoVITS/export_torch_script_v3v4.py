@@ -505,7 +505,7 @@ def init_bigvgan():
     from BigVGAN import bigvgan
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
-        "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+        f"{now_dir}/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x",
         use_cuda_kernel=False,
     )  # if True, RuntimeError: Ninja is required to load C++ extensions
     # remove weight norm in the model and set to eval mode
@@ -533,7 +533,7 @@ def init_hifigan():
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
     state_dict_g = torch.load(
-        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu"
+        f"{now_dir}/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth", map_location="cpu"
     )
     print("loading vocoder", hifigan_model.load_state_dict(state_dict_g))
     if is_half == True:
@@ -1042,7 +1042,7 @@ def test_export(
     wav_gen = wav_gen[:, :, :wav_gen_length]
 
     audio = wav_gen[0][0].cpu().detach().numpy()
-    logger.info("end bigvgan %s", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    logger.info(f"end bigvgan {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     sr = 24000
     soundfile.write(output, (audio * 32768).astype(np.int16), sr)
 
@@ -1115,7 +1115,7 @@ def test_export(
     wav_gen = torch.cat([wav_gen, zero_wav_torch], 0)
 
     audio = wav_gen.cpu().detach().numpy()
-    logger.info("end bigvgan %s", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    logger.info(f"end bigvgan {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     soundfile.write(output, (audio * 32768).astype(np.int16), out_sr)
 
 

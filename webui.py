@@ -25,7 +25,7 @@ if os.path.exists(tmp):
     for name in os.listdir(tmp):
         if name == "jieba.cache":
             continue
-        path = "%s/%s" % (tmp, name)
+        path = f"{tmp}/{name}"
         delete = os.remove if os.path.isfile(path) else shutil.rmtree
         try:
             delete(path)
@@ -40,18 +40,17 @@ for path in site.getsitepackages():
     if "packages" in path:
         site_packages_roots.append(path)
 if site_packages_roots == []:
-    site_packages_roots = ["%s/runtime/Lib/site-packages" % now_dir]
+    site_packages_roots = [f"{now_dir}/runtime/Lib/site-packages"]
 # os.environ["OPENBLAS_NUM_THREADS"] = "4"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 os.environ["all_proxy"] = ""
 for site_packages_root in site_packages_roots:
     if os.path.exists(site_packages_root):
         try:
-            with open("%s/users.pth" % (site_packages_root), "w") as f:
+            with open(f"{site_packages_root}/users.pth", "w") as f:
                 f.write(
                     # "%s\n%s/runtime\n%s/tools\n%s/tools/asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
-                    "%s\n%s/GPT_SoVITS/BigVGAN\n%s/tools\n%s/tools/asr\n%s/GPT_SoVITS\n%s/tools/uvr5"
-                    % (now_dir, now_dir, now_dir, now_dir, now_dir, now_dir)
+                    f"{now_dir}\n{now_dir}/GPT_SoVITS/BigVGAN\n{now_dir}/tools\n{now_dir}/tools/asr\n{now_dir}/GPT_SoVITS\n{now_dir}/tools/uvr5"
                 )
             break
         except PermissionError:
@@ -136,6 +135,159 @@ def set_default():
     default_batch_size_s1 = max(1, default_batch_size_s1)
     default_max_batch_size = default_batch_size * 3
 
+# ==================== DRY UTILITY FUNCTIONS ====================
+
+class ProcessManager:
+    """Centralized process management to eliminate repetitive code"""
+    
+    def __init__(self):
+        self.processes = {}
+    
+    def create_process(self, process_name, cmd, wait=False, env_updates=None):
+        """Create and manage a process with consistent UI updates"""
+        if self.processes.get(process_name) is None:
+            if env_updates:
+                os.environ.update(env_updates)
+            
+            print(cmd)
+            p = Popen(cmd, shell=True)
+            self.processes[process_name] = p
+            
+            if wait:
+                p.wait()
+                self.processes[process_name] = None
+            
+            return True
+        return False
+    
+    def kill_process(self, process_name, process_display_name=""):
+        """Kill a process with consistent error handling"""
+        if self.processes.get(process_name) is not None:
+            kill_process(self.processes[process_name].pid, process_display_name)
+            self.processes[process_name] = None
+            return True
+        return False
+    
+    def get_process_status(self, process_name):
+        """Get current process status"""
+        return self.processes.get(process_name)
+
+# Global process manager
+process_manager = ProcessManager()
+
+def create_ui_yield(process_name, status, visible_states=None):
+    """Create consistent UI yield patterns"""
+    if visible_states is None:
+        visible_states = {"opened": (False, True), "closed": (True, False), "finish": (True, False), "occupy": (False, True)}
+    
+    visible_open, visible_close = visible_states.get(status, (True, False))
+    
+    return (
+        process_info(process_name, status),
+        {"__type__": "update", "visible": visible_open},
+        {"__type__": "update", "visible": visible_close},
+    )
+
+def create_command_builder():
+    """Factory for building subprocess commands"""
+    class CommandBuilder:
+        def __init__(self):
+            self.base_cmd = f'"{python_exec}" -s'
+        
+        def build(self, script_path, *args):
+            """Build a command with consistent formatting"""
+            cmd_parts = [self.base_cmd, script_path]
+            cmd_parts.extend(str(arg) for arg in args)
+            return " ".join(cmd_parts)
+        
+        def build_with_paths(self, script_path, *paths):
+            """Build command with quoted paths"""
+            cmd_parts = [self.base_cmd, script_path]
+            cmd_parts.extend(f'"{path}"' for path in paths)
+            return " ".join(cmd_parts)
+    
+    return CommandBuilder()
+
+# Global command builder
+cmd_builder = create_command_builder()
+
+def setup_gpu_environment(gpu_numbers, is_half_flag=None):
+    """Setup GPU environment variables consistently"""
+    env_updates = {
+        "_CUDA_VISIBLE_DEVICES": fix_gpu_numbers(gpu_numbers.replace("-", ",")),
+    }
+    if is_half_flag is not None:
+        env_updates["is_half"] = str(is_half_flag)
+    return env_updates
+
+def create_multi_gpu_config(gpu_numbers, base_config, script_path):
+    """Create configuration for multi-GPU processing"""
+    gpu_names = gpu_numbers.split("-")
+    all_parts = len(gpu_names)
+    processes = []
+    
+    for i_part in range(all_parts):
+        config = base_config.copy()
+        config.update({
+            "i_part": str(i_part),
+            "all_parts": str(all_parts),
+            "_CUDA_VISIBLE_DEVICES": fix_gpu_number(gpu_names[i_part]),
+        })
+        os.environ.update(config)
+        
+        cmd = cmd_builder.build(script_path)
+        print(cmd)
+        p = Popen(cmd, shell=True)
+        processes.append(p)
+    
+    return processes
+
+def merge_output_files(opt_dir, file_pattern, output_file, header=None):
+    """Merge multiple output files into a single file"""
+    opt = []
+    if header:
+        opt.append(header)
+    
+    all_parts = len([f for f in os.listdir(opt_dir) if f.startswith(file_pattern.split("-")[0])])
+    
+    for i_part in range(all_parts):
+        file_path = f"{opt_dir}/{file_pattern.format(i_part)}"
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf8") as f:
+                content = f.read().strip("\n").split("\n")
+                opt.extend(content)
+            os.remove(file_path)
+    
+    with open(output_file, "w", encoding="utf8") as f:
+        f.write("\n".join(opt) + "\n")
+    
+    return opt
+
+# ==================== END DRY UTILITY FUNCTIONS ====================
+
+def create_process_handler(process_name, process_display_name, script_path, env_updates=None, wait=False, additional_args=None):
+    """Generic process handler to eliminate repetitive open/close patterns"""
+    
+    def open_process(*args):
+        process_var = globals().get(f"p_{process_name}")
+        
+        if process_var is None:
+            cmd = cmd_builder.build(script_path, *(additional_args or []))
+            
+            if process_manager.create_process(process_name, cmd, wait=wait, env_updates=env_updates):
+                yield create_ui_yield(process_display_name, "opened")
+                globals()[f"p_{process_name}"] = process_manager.get_process_status(process_name)
+            else:
+                yield create_ui_yield(process_display_name, "occupy")
+        else:
+            yield create_ui_yield(process_display_name, "occupy")
+    
+    def close_process():
+        if process_manager.kill_process(process_name, process_display_name):
+            globals()[f"p_{process_name}"] = None
+        return create_ui_yield(process_display_name, "closed")
+    
+    return open_process, close_process
 
 set_default()
 
@@ -234,7 +386,7 @@ system = platform.system()
 
 def kill_process(pid, process_name=""):
     if system == "Windows":
-        cmd = "taskkill /t /f /pid %s" % pid
+        cmd = f"taskkill /t /f /pid {pid}"
         # os.system(cmd)
         subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
@@ -273,27 +425,17 @@ def change_label(path_list):
     if p_label is None:
         check_for_existance([path_list])
         path_list = my_utils.clean_path(path_list)
-        cmd = '"%s" -s tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s' % (
-            python_exec,
-            path_list,
-            webui_port_subfix,
-            is_share,
-        )
-        yield (
-            process_info(process_name_subfix, "opened"),
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
-        )
-        print(cmd)
-        p_label = Popen(cmd, shell=True)
+        cmd = cmd_builder.build_with_paths("tools/subfix_webui.py", path_list) + f" --webui_port {webui_port_subfix} --is_share {is_share}"
+        
+        if process_manager.create_process("label", cmd):
+            yield create_ui_yield(process_name_subfix, "opened")
+            p_label = process_manager.get_process_status("label")
+        else:
+            yield create_ui_yield(process_name_subfix, "occupy")
     else:
-        kill_process(p_label.pid, process_name_subfix)
+        process_manager.kill_process("label", process_name_subfix)
         p_label = None
-        yield (
-            process_info(process_name_subfix, "closed"),
-            {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},
-        )
+        yield create_ui_yield(process_name_subfix, "closed")
 
 
 process_name_uvr5 = i18n("人声分离WebUI")
@@ -302,28 +444,17 @@ process_name_uvr5 = i18n("人声分离WebUI")
 def change_uvr5():
     global p_uvr5
     if p_uvr5 is None:
-        cmd = '"%s" -s tools/uvr5/webui.py "%s" %s %s %s' % (
-            python_exec,
-            infer_device,
-            is_half,
-            webui_port_uvr5,
-            is_share,
-        )
-        yield (
-            process_info(process_name_uvr5, "opened"),
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
-        )
-        print(cmd)
-        p_uvr5 = Popen(cmd, shell=True)
+        cmd = cmd_builder.build("tools/uvr5/webui.py", infer_device, is_half, webui_port_uvr5, is_share)
+        
+        if process_manager.create_process("uvr5", cmd):
+            yield create_ui_yield(process_name_uvr5, "opened")
+            p_uvr5 = process_manager.get_process_status("uvr5")
+        else:
+            yield create_ui_yield(process_name_uvr5, "occupy")
     else:
-        kill_process(p_uvr5.pid, process_name_uvr5)
+        process_manager.kill_process("uvr5", process_name_uvr5)
         p_uvr5 = None
-        yield (
-            process_info(process_name_uvr5, "closed"),
-            {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},
-        )
+        yield create_ui_yield(process_name_uvr5, "closed")
 
 
 process_name_tts = i18n("TTS推理WebUI")
@@ -331,37 +462,30 @@ process_name_tts = i18n("TTS推理WebUI")
 
 def change_tts_inference(bert_path, cnhubert_base_path, gpu_number, gpt_path, sovits_path, batched_infer_enabled):
     global p_tts_inference
-    if batched_infer_enabled:
-        cmd = '"%s" -s GPT_SoVITS/inference_webui_fast.py "%s"' % (python_exec, language)
-    else:
-        cmd = '"%s" -s GPT_SoVITS/inference_webui.py "%s"' % (python_exec, language)
-    # #####v3暂不支持加速推理
-    # if version=="v3":
-    #     cmd = '"%s" GPT_SoVITS/inference_webui.py "%s"'%(python_exec, language)
+    script = "GPT_SoVITS/inference_webui_fast.py" if batched_infer_enabled else "GPT_SoVITS/inference_webui.py"
+    cmd = cmd_builder.build_with_paths(script, language)
+    
     if p_tts_inference is None:
-        os.environ["gpt_path"] = gpt_path
-        os.environ["sovits_path"] = sovits_path
-        os.environ["cnhubert_base_path"] = cnhubert_base_path
-        os.environ["bert_path"] = bert_path
-        os.environ["_CUDA_VISIBLE_DEVICES"] = fix_gpu_number(gpu_number)
-        os.environ["is_half"] = str(is_half)
-        os.environ["infer_ttswebui"] = str(webui_port_infer_tts)
-        os.environ["is_share"] = str(is_share)
-        yield (
-            process_info(process_name_tts, "opened"),
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
-        )
-        print(cmd)
-        p_tts_inference = Popen(cmd, shell=True)
+        env_updates = {
+            "gpt_path": gpt_path,
+            "sovits_path": sovits_path,
+            "cnhubert_base_path": cnhubert_base_path,
+            "bert_path": bert_path,
+            "_CUDA_VISIBLE_DEVICES": fix_gpu_number(gpu_number),
+            "is_half": str(is_half),
+            "infer_ttswebui": str(webui_port_infer_tts),
+            "is_share": str(is_share),
+        }
+        
+        if process_manager.create_process("tts_inference", cmd, env_updates=env_updates):
+            yield create_ui_yield(process_name_tts, "opened")
+            p_tts_inference = process_manager.get_process_status("tts_inference")
+        else:
+            yield create_ui_yield(process_name_tts, "occupy")
     else:
-        kill_process(p_tts_inference.pid, process_name_tts)
+        process_manager.kill_process("tts_inference", process_name_tts)
         p_tts_inference = None
-        yield (
-            process_info(process_name_tts, "closed"),
-            {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},
-        )
+        yield create_ui_yield(process_name_tts, "closed")
 
 
 from tools.asr.config import asr_dict
@@ -375,56 +499,32 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_
         asr_inp_dir = my_utils.clean_path(asr_inp_dir)
         asr_opt_dir = my_utils.clean_path(asr_opt_dir)
         check_for_existance([asr_inp_dir])
-        cmd = f'"{python_exec}" -s tools/asr/{asr_dict[asr_model]["path"]}'
-        cmd += f' -i "{asr_inp_dir}"'
-        cmd += f' -o "{asr_opt_dir}"'
-        cmd += f" -s {asr_model_size}"
-        cmd += f" -l {asr_lang}"
-        cmd += f" -p {asr_precision}"
+        
+        cmd = cmd_builder.build("tools/asr/" + asr_dict[asr_model]["path"])
+        cmd += f' -i "{asr_inp_dir}" -o "{asr_opt_dir}" -s {asr_model_size} -l {asr_lang} -p {asr_precision}'
+        
         output_file_name = os.path.basename(asr_inp_dir)
         output_folder = asr_opt_dir or "output/asr_opt"
         output_file_path = os.path.abspath(f"{output_folder}/{output_file_name}.list")
-        yield (
-            process_info(process_name_asr, "opened"),
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
-            {"__type__": "update"},
-            {"__type__": "update"},
-            {"__type__": "update"},
-        )
-        print(cmd)
-        p_asr = Popen(cmd, shell=True)
-        p_asr.wait()
+        
+        yield create_ui_yield(process_name_asr, "opened") + ({"__type__": "update"}, {"__type__": "update"}, {"__type__": "update"})
+        
+        if process_manager.create_process("asr", cmd, wait=True):
+            yield create_ui_yield(process_name_asr, "finish") + (
+                {"__type__": "update", "value": output_file_path},
+                {"__type__": "update", "value": output_file_path},
+                {"__type__": "update", "value": asr_inp_dir},
+            )
         p_asr = None
-        yield (
-            process_info(process_name_asr, "finish"),
-            {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "value": output_file_path},
-            {"__type__": "update", "value": output_file_path},
-            {"__type__": "update", "value": asr_inp_dir},
-        )
     else:
-        yield (
-            process_info(process_name_asr, "occupy"),
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
-            {"__type__": "update"},
-            {"__type__": "update"},
-            {"__type__": "update"},
-        )
+        yield create_ui_yield(process_name_asr, "occupy") + ({"__type__": "update"}, {"__type__": "update"}, {"__type__": "update"})
 
 
 def close_asr():
     global p_asr
-    if p_asr is not None:
-        kill_process(p_asr.pid, process_name_asr)
+    if process_manager.kill_process("asr", process_name_asr):
         p_asr = None
-    return (
-        process_info(process_name_asr, "closed"),
-        {"__type__": "update", "visible": True},
-        {"__type__": "update", "visible": False},
-    )
+    return create_ui_yield(process_name_asr, "closed")
 
 
 process_name_denoise = i18n("语音降噪")
@@ -436,51 +536,27 @@ def open_denoise(denoise_inp_dir, denoise_opt_dir):
         denoise_inp_dir = my_utils.clean_path(denoise_inp_dir)
         denoise_opt_dir = my_utils.clean_path(denoise_opt_dir)
         check_for_existance([denoise_inp_dir])
-        cmd = '"%s" -s tools/cmd-denoise.py -i "%s" -o "%s" -p %s' % (
-            python_exec,
-            denoise_inp_dir,
-            denoise_opt_dir,
-            "float16" if is_half == True else "float32",
-        )
+        
+        precision = "float16" if is_half == True else "float32"
+        cmd = cmd_builder.build_with_paths("tools/cmd-denoise.py", denoise_inp_dir, denoise_opt_dir) + f" -p {precision}"
 
-        yield (
-            process_info(process_name_denoise, "opened"),
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
-            {"__type__": "update"},
-            {"__type__": "update"},
-        )
-        print(cmd)
-        p_denoise = Popen(cmd, shell=True)
-        p_denoise.wait()
+        yield create_ui_yield(process_name_denoise, "opened") + ({"__type__": "update"}, {"__type__": "update"})
+        
+        if process_manager.create_process("denoise", cmd, wait=True):
+            yield create_ui_yield(process_name_denoise, "finish") + (
+                {"__type__": "update", "value": denoise_opt_dir},
+                {"__type__": "update", "value": denoise_opt_dir},
+            )
         p_denoise = None
-        yield (
-            process_info(process_name_denoise, "finish"),
-            {"__type__": "update", "visible": True},
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "value": denoise_opt_dir},
-            {"__type__": "update", "value": denoise_opt_dir},
-        )
     else:
-        yield (
-            process_info(process_name_denoise, "occupy"),
-            {"__type__": "update", "visible": False},
-            {"__type__": "update", "visible": True},
-            {"__type__": "update"},
-            {"__type__": "update"},
-        )
+        yield create_ui_yield(process_name_denoise, "occupy") + ({"__type__": "update"}, {"__type__": "update"})
 
 
 def close_denoise():
     global p_denoise
-    if p_denoise is not None:
-        kill_process(p_denoise.pid, process_name_denoise)
+    if process_manager.kill_process("denoise", process_name_denoise):
         p_denoise = None
-    return (
-        process_info(process_name_denoise, "closed"),
-        {"__type__": "update", "visible": True},
-        {"__type__": "update", "visible": False},
-    )
+    return create_ui_yield(process_name_denoise, "closed")
 
 
 p_train_SoVITS = None
@@ -513,8 +589,8 @@ def open1Ba(
         with open(config_file) as f:
             data = f.read()
             data = json.loads(data)
-        s2_dir = "%s/%s" % (exp_root, exp_name)
-        os.makedirs("%s/logs_s2_%s" % (s2_dir, version), exist_ok=True)
+        s2_dir = f"{exp_root}/{exp_name}"
+        os.makedirs(f"{s2_dir}/logs_s2_{version}", exist_ok=True)
         if check_for_existance([s2_dir], is_train=True):
             check_details([s2_dir], is_train=True)
         if is_half == False:
@@ -536,13 +612,13 @@ def open1Ba(
         data["save_weight_dir"] = SoVITS_weight_version2root[version]
         data["name"] = exp_name
         data["version"] = version
-        tmp_config_path = "%s/tmp_s2.json" % tmp
+        tmp_config_path = f"{tmp}/tmp_s2.json"
         with open(tmp_config_path, "w") as f:
             f.write(json.dumps(data))
         if version in ["v1", "v2", "v2Pro", "v2ProPlus"]:
-            cmd = '"%s" -s GPT_SoVITS/s2_train.py --config "%s"' % (python_exec, tmp_config_path)
+            cmd = f'"{python_exec}" -s GPT_SoVITS/s2_train.py --config "{tmp_config_path}"'
         else:
-            cmd = '"%s" -s GPT_SoVITS/s2_train_v3_lora.py --config "%s"' % (python_exec, tmp_config_path)
+            cmd = f'"{python_exec}" -s GPT_SoVITS/s2_train_v3_lora.py --config "{tmp_config_path}"'
         yield (
             process_info(process_name_sovits, "opened"),
             {"__type__": "update", "visible": False},
@@ -607,8 +683,8 @@ def open1Bb(
         ) as f:
             data = f.read()
             data = yaml.load(data, Loader=yaml.FullLoader)
-        s1_dir = "%s/%s" % (exp_root, exp_name)
-        os.makedirs("%s/logs_s1" % (s1_dir), exist_ok=True)
+        s1_dir = f"{exp_root}/{exp_name}"
+        os.makedirs(f"{s1_dir}/logs_s1", exist_ok=True)
         if check_for_existance([s1_dir], is_train=True):
             check_details([s1_dir], is_train=True)
         if is_half == False:
@@ -623,18 +699,18 @@ def open1Bb(
         data["train"]["if_dpo"] = if_dpo
         data["train"]["half_weights_save_dir"] = GPT_weight_version2root[version]
         data["train"]["exp_name"] = exp_name
-        data["train_semantic_path"] = "%s/6-name2semantic.tsv" % s1_dir
-        data["train_phoneme_path"] = "%s/2-name2text.txt" % s1_dir
-        data["output_dir"] = "%s/logs_s1_%s" % (s1_dir, version)
+        data["train_semantic_path"] = f"{s1_dir}/6-name2semantic.tsv"
+        data["train_phoneme_path"] = f"{s1_dir}/2-name2text.txt"
+        data["output_dir"] = f"{s1_dir}/logs_s1_{version}"
         # data["version"]=version
 
         os.environ["_CUDA_VISIBLE_DEVICES"] = fix_gpu_numbers(gpu_numbers.replace("-", ","))
         os.environ["hz"] = "25hz"
-        tmp_config_path = "%s/tmp_s1.yaml" % tmp
+        tmp_config_path = f"{tmp}/tmp_s1.yaml"
         with open(tmp_config_path, "w") as f:
             f.write(yaml.dump(data, default_flow_style=False))
-        # cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" --train_semantic_path "%s/6-name2semantic.tsv" --train_phoneme_path "%s/2-name2text.txt" --output_dir "%s/logs_s1"'%(python_exec,tmp_config_path,s1_dir,s1_dir,s1_dir)
-        cmd = '"%s" -s GPT_SoVITS/s1_train.py --config_file "%s" ' % (python_exec, tmp_config_path)
+        # cmd = f'"{python_exec}" GPT_SoVITS/s1_train.py --config_file "{tmp_config_path}" --train_semantic_path "{s1_dir}/6-name2semantic.tsv" --train_phoneme_path "{s1_dir}/2-name2text.txt" --output_dir "{s1_dir}/logs_s1"'
+        cmd = f'"{python_exec}" -s GPT_SoVITS/s1_train.py --config_file "{tmp_config_path}" '
         yield (
             process_info(process_name_gpt, "opened"),
             {"__type__": "update", "visible": False},
@@ -711,20 +787,7 @@ def open_slice(inp, opt_root, threshold, min_length, min_interval, hop_size, max
         return
     if ps_slice == []:
         for i_part in range(n_parts):
-            cmd = '"%s" -s tools/slice_audio.py "%s" "%s" %s %s %s %s %s %s %s %s %s' % (
-                python_exec,
-                inp,
-                opt_root,
-                threshold,
-                min_length,
-                min_interval,
-                hop_size,
-                max_sil_kept,
-                _max,
-                alpha,
-                i_part,
-                n_parts,
-            )
+            cmd = f'"{python_exec}" -s tools/slice_audio.py "{inp}" "{opt_root}" {threshold} {min_length} {min_interval} {hop_size} {max_sil_kept} {_max} {alpha} {i_part} {n_parts}'
             print(cmd)
             p = Popen(cmd, shell=True)
             ps_slice.append(p)
@@ -786,7 +849,7 @@ def open1a(inp_text, inp_wav_dir, exp_name, gpu_numbers, bert_pretrained_dir):
         check_details([inp_text, inp_wav_dir], is_dataset_processing=True)
     exp_name = exp_name.rstrip(" ")
     if ps1a == []:
-        opt_dir = "%s/%s" % (exp_root, exp_name)
+        opt_dir = f"{exp_root}/{exp_name}"
         config = {
             "inp_text": inp_text,
             "inp_wav_dir": inp_wav_dir,
@@ -806,7 +869,7 @@ def open1a(inp_text, inp_wav_dir, exp_name, gpu_numbers, bert_pretrained_dir):
                 }
             )
             os.environ.update(config)
-            cmd = '"%s" -s GPT_SoVITS/prepare_datasets/1-get-text.py' % python_exec
+            cmd = f'"{python_exec}" -s GPT_SoVITS/prepare_datasets/1-get-text.py'
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1a.append(p)
@@ -819,11 +882,11 @@ def open1a(inp_text, inp_wav_dir, exp_name, gpu_numbers, bert_pretrained_dir):
             p.wait()
         opt = []
         for i_part in range(all_parts):
-            txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
+            txt_path = f"{opt_dir}/2-name2text-{i_part}.txt"
             with open(txt_path, "r", encoding="utf8") as f:
                 opt += f.read().strip("\n").split("\n")
             os.remove(txt_path)
-        path_text = "%s/2-name2text.txt" % opt_dir
+        path_text = f"{opt_dir}/2-name2text.txt"
         with open(path_text, "w", encoding="utf8") as f:
             f.write("\n".join(opt) + "\n")
         ps1a = []
@@ -880,7 +943,7 @@ def open1b(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, ssl_pretrained
             "inp_text": inp_text,
             "inp_wav_dir": inp_wav_dir,
             "exp_name": exp_name,
-            "opt_dir": "%s/%s" % (exp_root, exp_name),
+            "opt_dir": f"{exp_root}/{exp_name}",
             "cnhubert_base_dir": ssl_pretrained_dir,
             "sv_path": sv_path,
             "is_half": str(is_half),
@@ -896,7 +959,7 @@ def open1b(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, ssl_pretrained
                 }
             )
             os.environ.update(config)
-            cmd = '"%s" -s GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py' % python_exec
+            cmd = f'"{python_exec}" -s GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py'
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1b.append(p)
@@ -918,7 +981,7 @@ def open1b(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, ssl_pretrained
                     }
                 )
                 os.environ.update(config)
-                cmd = '"%s" -s GPT_SoVITS/prepare_datasets/2-get-sv.py' % python_exec
+                cmd = f'"{python_exec}" -s GPT_SoVITS/prepare_datasets/2-get-sv.py'
                 print(cmd)
                 p = Popen(cmd, shell=True)
                 ps1b.append(p)
@@ -965,7 +1028,7 @@ def open1c(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, pretrained_s2G
         check_details([inp_text, inp_wav_dir], is_dataset_processing=True)
     exp_name = exp_name.rstrip(" ")
     if ps1c == []:
-        opt_dir = "%s/%s" % (exp_root, exp_name)
+        opt_dir = f"{exp_root}/{exp_name}"
         config_file = (
             "GPT_SoVITS/configs/s2.json"
             if version not in {"v2Pro", "v2ProPlus"}
@@ -990,7 +1053,7 @@ def open1c(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, pretrained_s2G
                 }
             )
             os.environ.update(config)
-            cmd = '"%s" -s GPT_SoVITS/prepare_datasets/3-get-semantic.py' % python_exec
+            cmd = f'"{python_exec}" -s GPT_SoVITS/prepare_datasets/3-get-semantic.py'
             print(cmd)
             p = Popen(cmd, shell=True)
             ps1c.append(p)
@@ -1002,9 +1065,9 @@ def open1c(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, pretrained_s2G
         for p in ps1c:
             p.wait()
         opt = ["item_name\tsemantic_audio"]
-        path_semantic = "%s/6-name2semantic.tsv" % opt_dir
+        path_semantic = f"{opt_dir}/6-name2semantic.tsv"
         for i_part in range(all_parts):
-            semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
+            semantic_path = f"{opt_dir}/6-name2semantic-{i_part}.tsv"
             with open(semantic_path, "r", encoding="utf8") as f:
                 opt += f.read().strip("\n").split("\n")
             os.remove(semantic_path)
@@ -1063,10 +1126,10 @@ def open1abc(
         check_details([inp_text, inp_wav_dir], is_dataset_processing=True)
     exp_name = exp_name.rstrip(" ")
     if ps1abc == []:
-        opt_dir = "%s/%s" % (exp_root, exp_name)
+        opt_dir = f"{exp_root}/{exp_name}"
         try:
             #############################1a
-            path_text = "%s/2-name2text.txt" % opt_dir
+            path_text = f"{opt_dir}/2-name2text.txt"
             if os.path.exists(path_text) == False or (
                 os.path.exists(path_text) == True
                 and len(open(path_text, "r", encoding="utf8").read().strip("\n").split("\n")) < 2
@@ -1090,7 +1153,7 @@ def open1abc(
                         }
                     )
                     os.environ.update(config)
-                    cmd = '"%s" -s GPT_SoVITS/prepare_datasets/1-get-text.py' % python_exec
+                    cmd = f'"{python_exec}" -s GPT_SoVITS/prepare_datasets/1-get-text.py'
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
@@ -1103,8 +1166,8 @@ def open1abc(
                     p.wait()
 
                 opt = []
-                for i_part in range(all_parts):  # txt_path="%s/2-name2text-%s.txt"%(opt_dir,i_part)
-                    txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
+                for i_part in range(all_parts):  # txt_path=f"{opt_dir}/2-name2text-{i_part}.txt"
+                    txt_path = f"{opt_dir}/2-name2text-{i_part}.txt"
                     with open(txt_path, "r", encoding="utf8") as f:
                         opt += f.read().strip("\n").split("\n")
                     os.remove(txt_path)
@@ -1137,7 +1200,7 @@ def open1abc(
                     }
                 )
                 os.environ.update(config)
-                cmd = '"%s" -s GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py' % python_exec
+                cmd = f'"{python_exec}" -s GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py'
                 print(cmd)
                 p = Popen(cmd, shell=True)
                 ps1abc.append(p)
@@ -1159,7 +1222,7 @@ def open1abc(
                         }
                     )
                     os.environ.update(config)
-                    cmd = '"%s" -s GPT_SoVITS/prepare_datasets/2-get-sv.py' % python_exec
+                    cmd = f'"{python_exec}" -s GPT_SoVITS/prepare_datasets/2-get-sv.py'
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
@@ -1172,7 +1235,7 @@ def open1abc(
                 {"__type__": "update", "visible": True},
             )
             #############################1c
-            path_semantic = "%s/6-name2semantic.tsv" % opt_dir
+            path_semantic = f"{opt_dir}/6-name2semantic.tsv"
             if os.path.exists(path_semantic) == False or (
                 os.path.exists(path_semantic) == True and os.path.getsize(path_semantic) < 31
             ):
@@ -1199,7 +1262,7 @@ def open1abc(
                         }
                     )
                     os.environ.update(config)
-                    cmd = '"%s" -s GPT_SoVITS/prepare_datasets/3-get-semantic.py' % python_exec
+                    cmd = f'"{python_exec}" -s GPT_SoVITS/prepare_datasets/3-get-semantic.py'
                     print(cmd)
                     p = Popen(cmd, shell=True)
                     ps1abc.append(p)
@@ -1213,7 +1276,7 @@ def open1abc(
 
                 opt = ["item_name\tsemantic_audio"]
                 for i_part in range(all_parts):
-                    semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
+                    semantic_path = f"{opt_dir}/6-name2semantic-{i_part}.tsv"
                     with open(semantic_path, "r", encoding="utf8") as f:
                         opt += f.read().strip("\n").split("\n")
                     os.remove(semantic_path)
@@ -1294,7 +1357,7 @@ def switch_version(version_):
 if os.path.exists("GPT_SoVITS/text/G2PWModel"):
     ...
 else:
-    cmd = '"%s" -s GPT_SoVITS/download.py' % python_exec
+    cmd = f'"{python_exec}" -s GPT_SoVITS/download.py'
     p = Popen(cmd, shell=True)
     p.wait()
 
@@ -1553,7 +1616,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         with gr.Row():
                             gpu_numbers1a = gr.Textbox(
                                 label=i18n("GPU卡号以-分割，每个卡号一个进程"),
-                                value="%s-%s" % (gpus, gpus),
+                                value=f"{gpus}-{gpus}",
                                 interactive=True,
                             )
                         with gr.Row():
@@ -1578,7 +1641,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         with gr.Row():
                             gpu_numbers1Ba = gr.Textbox(
                                 label=i18n("GPU卡号以-分割，每个卡号一个进程"),
-                                value="%s-%s" % (gpus, gpus),
+                                value=f"{gpus}-{gpus}",
                                 interactive=True,
                             )
                         with gr.Row():
@@ -1603,7 +1666,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         with gr.Row():
                             gpu_numbers1c = gr.Textbox(
                                 label=i18n("GPU卡号以-分割，每个卡号一个进程"),
-                                value="%s-%s" % (gpus, gpus),
+                                value=f"{gpus}-{gpus}",
                                 interactive=True,
                             )
                         with gr.Row():
@@ -1770,7 +1833,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                             with gr.Row():
                                 gpu_numbers1Ba = gr.Textbox(
                                     label=i18n("GPU卡号以-分割，每个卡号一个进程"),
-                                    value="%s" % (gpus),
+                                    value=f"{gpus}",
                                     interactive=True,
                                 )
                     with gr.Row():
@@ -1835,7 +1898,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                             with gr.Row():
                                 gpu_numbers1Bb = gr.Textbox(
                                     label=i18n("GPU卡号以-分割，每个卡号一个进程"),
-                                    value="%s" % (gpus),
+                                    value=f"{gpus}",
                                     interactive=True,
                                 )
                     with gr.Row():
