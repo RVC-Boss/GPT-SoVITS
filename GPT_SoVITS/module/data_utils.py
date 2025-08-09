@@ -23,15 +23,15 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
     def __init__(self, hparams, version=None, val=False):
         exp_dir = hparams.exp_dir
-        self.path2 = "%s/2-name2text.txt" % exp_dir
-        self.path4 = "%s/4-cnhubert" % exp_dir
-        self.path5 = "%s/5-wav32k" % exp_dir
+        self.path2 = f"{exp_dir}/2-name2text.txt"
+        self.path4 = f"{exp_dir}/4-cnhubert"
+        self.path5 = f"{exp_dir}/5-wav32k"
         assert os.path.exists(self.path2)
         assert os.path.exists(self.path4)
         assert os.path.exists(self.path5)
         self.is_v2Pro = version in {"v2Pro", "v2ProPlus"}
         if self.is_v2Pro:
-            self.path7 = "%s/7-sv_cn" % exp_dir
+            self.path7 = f"{exp_dir}/7-sv_cn"
             assert os.path.exists(self.path7)
         names4 = set([name[:-3] for name in list(os.listdir(self.path4))])  # 去除.pt后缀
         names5 = set(os.listdir(self.path5))
@@ -85,7 +85,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                 skipped_phone += 1
                 continue
 
-            size = os.path.getsize("%s/%s" % (self.path5, audiopath))
+            size = os.path.getsize(f"{self.path5}/{audiopath}")
             duration = size / self.sampling_rate / 2
 
             if duration == 0:
@@ -110,9 +110,9 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         audiopath, phoneme_ids = audiopath_sid_text
         text = torch.FloatTensor(phoneme_ids)
         try:
-            spec, wav = self.get_audio("%s/%s" % (self.path5, audiopath))
+            spec, wav = self.get_audio(f"{self.path5}/{audiopath}")
             with torch.no_grad():
-                ssl = torch.load("%s/%s.pt" % (self.path4, audiopath), map_location="cpu")
+                ssl = torch.load(f"{self.path4}/{audiopath}.pt", map_location="cpu")
                 if ssl.shape[-1] != spec.shape[-1]:
                     typee = ssl.dtype
                     ssl = F.pad(ssl.float(), (0, 1), mode="replicate").to(typee)

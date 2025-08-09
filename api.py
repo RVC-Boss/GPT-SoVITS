@@ -147,7 +147,7 @@ import sys
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
+sys.path.append(f"{now_dir}/GPT_SoVITS")
 
 import signal
 from text.LangSegmenter import LangSegmenter
@@ -239,7 +239,7 @@ def init_bigvgan():
     from BigVGAN import bigvgan
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
-        "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+        f"{now_dir}/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x",
         use_cuda_kernel=False,
     )  # if True, RuntimeError: Ninja is required to load C++ extensions
     # remove weight norm in the model and set to eval mode
@@ -268,7 +268,7 @@ def init_hifigan():
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
     state_dict_g = torch.load(
-        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+        f"{now_dir}/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth",
         map_location="cpu",
         weights_only=False,
     )
@@ -292,7 +292,7 @@ resample_transform_dict = {}
 
 def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    key = "%s-%s-%s" % (sr0, sr1, str(device))
+    key = f"{sr0}-{sr1}-{str(device)}"
     if key not in resample_transform_dict:
         resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
@@ -391,7 +391,7 @@ def get_sovits_weights(sovits_path):
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
 
     if if_lora_v3 == True and is_exist == False:
-        logger.info("SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version)
+        logger.info(f"SoVITS {model_version} 底模缺失，无法加载相应 LoRA 权重")
 
     dict_s2 = load_sovits_new(sovits_path)
     hps = dict_s2["config"]

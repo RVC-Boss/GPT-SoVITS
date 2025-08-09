@@ -180,6 +180,8 @@ def get_bert_feature(text, word2ph):
     for i in range(len(word2ph)):
         repeat_feature = res[i].repeat(word2ph[i], 1)
         phone_level_feature.append(repeat_feature)
+    if len(phone_level_feature) == 0:
+        return torch.empty((res.shape[1], 0), dtype=res.dtype, device=res.device)
     phone_level_feature = torch.cat(phone_level_feature, dim=0)
     return phone_level_feature.T
 
@@ -235,7 +237,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if if_lora_v3 == True and is_exist == False:
-        info = path_sovits + "SoVITS %s" % model_version + i18n("底模缺失，无法加载相应 LoRA 权重")
+        info = path_sovits + f"SoVITS {model_version}" + i18n("底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -320,7 +322,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         vq_model = vq_model.to(device)
     vq_model.eval()
     if if_lora_v3 == False:
-        print("loading sovits_%s" % model_version, vq_model.load_state_dict(dict_s2["weight"], strict=False))
+        print(f"loading sovits_{model_version}", vq_model.load_state_dict(dict_s2["weight"], strict=False))
     else:
         path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
         print(
@@ -335,7 +337,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             init_lora_weights=True,
         )
         vq_model.cfm = get_peft_model(vq_model.cfm, lora_config)
-        print("loading sovits_%s_lora%s" % (model_version, lora_rank))
+        print(f"loading sovits_{model_version}_lora{lora_rank}")
         vq_model.load_state_dict(dict_s2["weight"], strict=False)
         vq_model.cfm = vq_model.cfm.merge_and_unload()
         # torch.save(vq_model.state_dict(),"merge_win.pth")
@@ -442,7 +444,7 @@ def init_bigvgan():
     from BigVGAN import bigvgan
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
-        "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+        f"{now_dir}/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x",
         use_cuda_kernel=False,
     )  # if True, RuntimeError: Ninja is required to load C++ extensions
     # remove weight norm in the model and set to eval mode
@@ -472,7 +474,7 @@ def init_hifigan():
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
     state_dict_g = torch.load(
-        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+        f"{now_dir}/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth",
         map_location="cpu",
         weights_only=False,
     )
@@ -508,7 +510,7 @@ resample_transform_dict = {}
 
 def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    key = "%s-%s-%s" % (sr0, sr1, str(device))
+    key = f"{sr0}-{sr1}-{str(device)}"
     if key not in resample_transform_dict:
         resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
@@ -1062,7 +1064,7 @@ def cut2(inp):
 
 def cut3(inp):
     inp = inp.strip("\n")
-    opts = ["%s" % item for item in inp.strip("。").split("。")]
+    opts = [f"{item}" for item in inp.strip("。").split("。")]
     opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 

@@ -92,19 +92,16 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 need_reformat = 1
                 traceback.print_exc()
             if need_reformat == 1:
-                tmp_path = "%s/%s.reformatted.wav" % (
-                    os.path.join(os.environ["TEMP"]),
-                    os.path.basename(inp_path),
-                )
+                tmp_path = f"{os.path.join(os.environ['TEMP'])}/{os.path.basename(inp_path)}.reformatted.wav"
                 os.system(f'ffmpeg -i "{inp_path}" -vn -acodec pcm_s16le -ac 2 -ar 44100 "{tmp_path}" -y')
                 inp_path = tmp_path
             try:
                 if done == 0:
                     pre_fun._path_audio_(inp_path, save_root_ins, save_root_vocal, format0, is_hp3)
-                infos.append("%s->Success" % (os.path.basename(inp_path)))
+                infos.append(f"{os.path.basename(inp_path)}->Success")
                 yield "\n".join(infos)
             except:
-                infos.append("%s->%s" % (os.path.basename(inp_path), traceback.format_exc()))
+                infos.append(f"{os.path.basename(inp_path)}->{traceback.format_exc()}")
                 yield "\n".join(infos)
     except:
         infos.append(traceback.format_exc())

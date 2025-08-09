@@ -105,7 +105,7 @@ from typing import Generator
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
+sys.path.append(f"{now_dir}/GPT_SoVITS")
 
 import argparse
 import subprocess

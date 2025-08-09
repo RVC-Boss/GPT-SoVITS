@@ -46,7 +46,7 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
     global hann_window
     dtype_device = str(y.dtype) + "_" + str(y.device)
     # wnsize_dtype_device = str(win_size) + '_' + dtype_device
-    key = "%s-%s-%s-%s-%s" % (dtype_device, n_fft, sampling_rate, hop_size, win_size)
+    key = f"{dtype_device}-{n_fft}-{sampling_rate}-{hop_size}-{win_size}"
     # if wnsize_dtype_device not in hann_window:
     if key not in hann_window:
         # hann_window[wnsize_dtype_device] = torch.hann_window(win_size).to(dtype=y.dtype, device=y.device)
@@ -78,7 +78,7 @@ def spec_to_mel_torch(spec, n_fft, num_mels, sampling_rate, fmin, fmax):
     global mel_basis
     dtype_device = str(spec.dtype) + "_" + str(spec.device)
     # fmax_dtype_device = str(fmax) + '_' + dtype_device
-    key = "%s-%s-%s-%s-%s-%s" % (dtype_device, n_fft, num_mels, sampling_rate, fmin, fmax)
+    key = f"{dtype_device}-{n_fft}-{num_mels}-{sampling_rate}-{fmin}-{fmax}"
     # if fmax_dtype_device not in mel_basis:
     if key not in mel_basis:
         mel = librosa_mel_fn(sr=sampling_rate, n_fft=n_fft, n_mels=num_mels, fmin=fmin, fmax=fmax)
@@ -99,16 +99,7 @@ def mel_spectrogram_torch(y, n_fft, num_mels, sampling_rate, hop_size, win_size,
     global mel_basis, hann_window
     dtype_device = str(y.dtype) + "_" + str(y.device)
     # fmax_dtype_device = str(fmax) + '_' + dtype_device
-    fmax_dtype_device = "%s-%s-%s-%s-%s-%s-%s-%s" % (
-        dtype_device,
-        n_fft,
-        num_mels,
-        sampling_rate,
-        hop_size,
-        win_size,
-        fmin,
-        fmax,
-    )
+    fmax_dtype_device = f"{dtype_device}-{n_fft}-{num_mels}-{sampling_rate}-{hop_size}-{win_size}-{fmin}-{fmax}"
     # wnsize_dtype_device = str(win_size) + '_' + dtype_device
     wnsize_dtype_device = fmax_dtype_device
     if fmax_dtype_device not in mel_basis:

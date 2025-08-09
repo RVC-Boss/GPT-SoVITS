@@ -41,7 +41,7 @@ resample_transform_dict = {}
 
 def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    key = "%s-%s-%s" % (sr0, sr1, str(device))
+    key = f"{sr0}-{sr1}-{str(device)}"
     if key not in resample_transform_dict:
         resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
@@ -489,7 +489,7 @@ class TTS:
         path_sovits = self.configs.default_configs[model_version]["vits_weights_path"]
 
         if if_lora_v3 == True and os.path.exists(path_sovits) == False:
-            info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version)
+            info = path_sovits + i18n(f"SoVITS {model_version} 底模缺失，无法加载相应 LoRA 权重")
             raise FileExistsError(info)
 
         # dict_s2 = torch.load(weights_path, map_location=self.configs.device,weights_only=False)
@@ -608,7 +608,7 @@ class TTS:
                 self.empty_cache()
 
             self.vocoder = BigVGAN.from_pretrained(
-                "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+                f"{now_dir}/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x",
                 use_cuda_kernel=False,
             )  # if True, RuntimeError: Ninja is required to load C++ extensions
             # remove weight norm in the model and set to eval mode
@@ -641,7 +641,7 @@ class TTS:
             )
             self.vocoder.remove_weight_norm()
             state_dict_g = torch.load(
-                "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+                f"{now_dir}/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth",
                 map_location="cpu",
                 weights_only=False,
             )
