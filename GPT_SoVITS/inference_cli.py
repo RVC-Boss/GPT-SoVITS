@@ -10,40 +10,45 @@ i18n = I18nAuto()
 LANGUAGE_CHOICES = ["中文", "英文", "日文", "韩文", "粤语"]
 MIXED_LANGUAGE_CHOICES = ["中英混合", "日英混合", "粤英混合", "韩英混合", "多语种混合"]
 
+SLICE_METHOD_CHOICES = ["凑四句一切", "凑50字一切", "按标点符号切", "按中文句号。切", "按英文句号.切"]
 
-def synthesize(
-    GPT_model_path,
-    SoVITS_model_path,
-    ref_audio_path,
-    ref_text,
-    ref_language,
-    target_text,
-    target_language,
-    output_path,
-):
+def synthesize(args: argparse.Namespace):
 
     # Change model weights
-    change_gpt_weights(gpt_path=GPT_model_path)
-    change_sovits_weights(sovits_path=SoVITS_model_path)
+    change_gpt_weights(gpt_path=args.gpt_path)
+    change_sovits_weights(sovits_path=args.sovits_path)
+
+    params = {
+        "ref_wav_path": args.ref_audio,
+        "prompt_text": args.ref_text,
+        "prompt_language": i18n(args.ref_language),
+        "text": args.target_text,
+        "text_language": i18n(args.target_language),
+    }
+
+    # region - optional params
+    if args.how_to_cut: params["how_to_cut"] = i18n(args.slicer)
+    if args.top_k: params["top_k"] = args.top_k
+    if args.top_p: params["top_p"] = args.top_p
+    if args.temperature: params["temperature"] = args.temperature
+    if args.ref_free: params["ref_free"] = args.ref_free
+    if args.speed: params["speed"] = args.speed
+    if args.if_freeze: params["if_freeze"] = args.if_freeze
+    if args.inp_refs: params["inp_refs"] = args.inp_refs
+    if args.sample_steps: params["sample_steps"] = args.sample_steps
+    if args.if_sr: params["if_sr"] = args.if_sr
+    if args.pause_second: params["pause_second"] = args.pause_second
+    # endregion - optional params
 
     # Synthesize audio
-    synthesis_result = get_tts_wav(
-        ref_wav_path=ref_audio_path,
-        prompt_text=ref_text,
-        prompt_language=i18n(ref_language),
-        text=target_text,
-        text_language=i18n(target_language),
-        top_p=1,
-        temperature=1,
-    )
+    synthesis_result = get_tts_wav(**params)
 
     result_list = list(synthesis_result)
 
     if result_list:
         last_sampling_rate, last_audio_data = result_list[-1]
-        # Create output directory if it doesn't exist
-        os.makedirs(output_path, exist_ok=True)
-        output_wav_path = os.path.join(output_path, "output.wav")
+        os.makedirs(args.output_path, exist_ok=True) # Create output directory if it doesn't exist
+        output_wav_path = os.path.join(args.output_path, "output.wav")
         sf.write(output_wav_path, last_audio_data, last_sampling_rate)
         print(f"Audio saved to {output_wav_path}")
 
@@ -51,7 +56,7 @@ def synthesize(
 def build_parser():
     parser = argparse.ArgumentParser(description="GPT-SoVITS Command Line Tool")
 
-    # input settings
+    # reference settings
     parser.add_argument("--ref_audio", required=True, help="Path to the reference audio file")
     parser.add_argument("--ref_text", required=True, help="Transcript of the reference audio")
     parser.add_argument("--ref_language", required=True,
@@ -62,8 +67,24 @@ def build_parser():
     parser.add_argument("--target_language", required=True,
                        choices=LANGUAGE_CHOICES+MIXED_LANGUAGE_CHOICES,
                        help="Language of the target text")
+    parser.add_argument("--slicer", required=False,
+                       choices=SLICE_METHOD_CHOICES, help="Slicer method")
     parser.add_argument("--output_path", required=True, help="Path to the output directory")
 
+    # region - inference settings
+    parser.add_argument("--top_k", required=False, type=int, help="Top-k value")
+    parser.add_argument("--top_p", required=False, type=float, help="Top-p value")
+    parser.add_argument("--temperature", required=False, type=float, help="Temperature value")
+    parser.add_argument("--ref_free", required=False, type=bool, help="Reference free value")
+    parser.add_argument("--speed", required=False, type=float, help="Speed value")
+    parser.add_argument("--if_freeze", required=False, type=bool, help="If freeze value")
+    parser.add_argument("--inp_refs", required=False, type=str, help="Input references")
+    parser.add_argument("--sample_steps", required=False, type=int, help="Sample steps value")
+    parser.add_argument("--if_sr", required=False, type=bool, help="If super resolution value")
+    parser.add_argument("--pause_second", required=False, type=float, help="Pause second value")
+    # endregion - inference settings
+
+    # region - model selection
     sub = parser.add_subparsers(dest="mode", required=True)
 
     # Mode 1: provide model paths directly
@@ -80,6 +101,7 @@ def build_parser():
     p_sel.add_argument("--sovits_version", required=True, choices=available_sovits_versions, help="Version of the SoVITS model")
     p_sel.add_argument("--gpt_epoch", type=int, help="Epoch of the GPT model")
     p_sel.add_argument("--sovits_epoch", type=int, help="Epoch of the SoVITS model")
+    # endregion - model selection
 
     return parser
 
@@ -138,16 +160,7 @@ def main():
     args.target_text = args.target_text.replace("'", "").replace('"', "")
 
 
-    synthesize(
-        args.gpt_path,
-        args.sovits_path,
-        args.ref_audio,
-        args.ref_text,
-        args.ref_language,
-        args.target_text,
-        args.target_language,
-        args.output_path,
-    )
+    synthesize(args)
 
 
 if __name__ == "__main__":
