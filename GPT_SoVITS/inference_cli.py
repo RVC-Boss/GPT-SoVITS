@@ -7,6 +7,9 @@ from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights
 
 i18n = I18nAuto()
 
+LANGUAGE_CHOICES = ["中文", "英文", "日文", "韩文", "粤语"]
+MIXED_LANGUAGE_CHOICES = ["中英混合", "日英混合", "粤英混合", "韩英混合", "多语种混合"]
+
 
 def synthesize(
     GPT_model_path,
@@ -52,12 +55,12 @@ def build_parser():
     parser.add_argument("--ref_audio", required=True, help="Path to the reference audio file")
     parser.add_argument("--ref_text", required=True, help="Transcript of the reference audio")
     parser.add_argument("--ref_language", required=True,
-                       choices=["中文", "英文", "日文", "韩文", "粤语"], help="Language of the reference audio")
+                       choices=LANGUAGE_CHOICES, help="Language of the reference audio")
 
     # output settings
     parser.add_argument("--target_text", required=True, help="Text to be synthesized")
     parser.add_argument("--target_language", required=True,
-                       choices=["中文", "英文", "日文", "中英混合", "日英混合", "多语种混合"],
+                       choices=LANGUAGE_CHOICES+MIXED_LANGUAGE_CHOICES,
                        help="Language of the target text")
     parser.add_argument("--output_path", required=True, help="Path to the output directory")
 
