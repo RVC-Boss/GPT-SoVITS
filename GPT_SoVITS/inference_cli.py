@@ -27,7 +27,7 @@ def synthesize(args: argparse.Namespace):
     }
 
     # region - optional params
-    if args.how_to_cut: params["how_to_cut"] = i18n(args.slicer)
+    if args.slicer: params["how_to_cut"] = i18n(args.slicer)
     if args.top_k: params["top_k"] = args.top_k
     if args.top_p: params["top_p"] = args.top_p
     if args.temperature: params["temperature"] = args.temperature
@@ -46,9 +46,9 @@ def synthesize(args: argparse.Namespace):
     result_list = list(synthesis_result)
 
     if result_list:
-        last_sampling_rate, last_audio_data = result_list[-1]
         os.makedirs(args.output_path, exist_ok=True) # Create output directory if it doesn't exist
         output_wav_path = os.path.join(args.output_path, "output.wav")
+        last_sampling_rate, last_audio_data = result_list[-1]
         sf.write(output_wav_path, last_audio_data, last_sampling_rate)
         print(f"Audio saved to {output_wav_path}")
 
