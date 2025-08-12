@@ -47,7 +47,10 @@ def synthesize(args: argparse.Namespace):
 
     if result_list:
         os.makedirs(args.output_path, exist_ok=True) # Create output directory if it doesn't exist
-        output_wav_path = os.path.join(args.output_path, "output.wav")
+        if args.output_path.endswith(".wav"):
+            output_wav_path = args.output_path
+        else:
+            output_wav_path = os.path.join(args.output_path, "output.wav")
         last_sampling_rate, last_audio_data = result_list[-1]
         sf.write(output_wav_path, last_audio_data, last_sampling_rate)
         print(f"Audio saved to {output_wav_path}")
