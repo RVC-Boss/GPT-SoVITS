@@ -180,6 +180,8 @@ def get_bert_feature(text, word2ph):
     for i in range(len(word2ph)):
         repeat_feature = res[i].repeat(word2ph[i], 1)
         phone_level_feature.append(repeat_feature)
+    if len(phone_level_feature) == 0:
+        return torch.empty((res.shape[1], 0), dtype=res.dtype, device=res.device)
     phone_level_feature = torch.cat(phone_level_feature, dim=0)
     return phone_level_feature.T
 
