@@ -1,15 +1,24 @@
+import logging
 import os
 import re
 
 import cn2an
-from pypinyin import lazy_pinyin, Style
+import jieba_fast
+import jieba_fast.posseg as psg
+from pypinyin import Style, lazy_pinyin
 from pypinyin.contrib.tone_convert import to_finals_tone3, to_initials
 
-from text.symbols import punctuation
-from text.tone_sandhi import ToneSandhi
-from text.zh_normalization.text_normlization import TextNormalizer
+from .g2pw import G2PWPinyin, correct_pronunciation
+from .symbols import punctuation
+from .tone_sandhi import ToneSandhi
+from .zh_normalization.text_normlization import TextNormalizer
 
-normalizer = lambda x: cn2an.transform(x, "an2cn")
+jieba_fast.setLogLevel(logging.CRITICAL)
+
+
+def normalizer(x):
+    return cn2an.transform(x, "an2cn")
+
 
 current_file_path = os.path.dirname(__file__)
 pinyin_to_symbol_map = {
@@ -17,20 +26,11 @@ pinyin_to_symbol_map = {
     for line in open(os.path.join(current_file_path, "opencpop-strict.txt")).readlines()
 }
 
-import jieba_fast
-import logging
 
-jieba_fast.setLogLevel(logging.CRITICAL)
-import jieba_fast.posseg as psg
+parent_directory = os.path.dirname(current_file_path)
 
-# is_g2pw_str = os.environ.get("is_g2pw", "True")##默认开启
-# is_g2pw = False#True if is_g2pw_str.lower() == 'true' else False
-is_g2pw = True  # True if is_g2pw_str.lower() == 'true' else False
+is_g2pw = True
 if is_g2pw:
-    # print("当前使用g2pw进行拼音推理")
-    from text.g2pw import G2PWPinyin, correct_pronunciation
-
-    parent_directory = os.path.dirname(current_file_path)
     g2pw = G2PWPinyin(
         model_dir="GPT_SoVITS/text/G2PWModel",
         model_source=os.environ.get("bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"),
@@ -139,7 +139,7 @@ not_erhua = {
 }
 
 
-def _merge_erhua(initials: list[str], finals: list[str], word: str, pos: str) -> list[list[str]]:
+def _merge_erhua(initials: list[str], finals: list[str], word: str, pos: str) -> tuple[list[str], list[str]]:
     """
     Do erhub.
     """

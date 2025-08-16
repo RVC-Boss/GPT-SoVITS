@@ -1,7 +1,9 @@
-from torch.nn.functional import *
-from torch.nn.functional import (
-    _canonical_mask,
-)
+from typing import Optional
+
+import torch
+from torch.nn.functional import _canonical_mask, linear, scaled_dot_product_attention
+
+Tensor = torch.Tensor
 
 
 def multi_head_attention_forward_patched(
@@ -30,8 +32,8 @@ def multi_head_attention_forward_patched(
     static_v: Optional[Tensor] = None,
     average_attn_weights: bool = True,
     is_causal: bool = False,
-    cache=None,
-) -> Tuple[Tensor, Optional[Tensor]]:
+    cache: dict | None = None,
+) -> Tensor:
     # set up shape vars
     _, _, embed_dim = query.shape
     attn_mask = _canonical_mask(
@@ -48,6 +50,7 @@ def multi_head_attention_forward_patched(
     proj_qkv = proj_qkv.unflatten(-1, (3, query.size(-1))).unsqueeze(0).transpose(0, -2).squeeze(-2).contiguous()
     q, k, v = proj_qkv[0], proj_qkv[1], proj_qkv[2]
 
+    assert cache
     if cache["first_infer"] == 1:
         cache["k"][cache["stage"]] = k
         cache["v"][cache["stage"]] = v
@@ -66,6 +69,7 @@ def multi_head_attention_forward_patched(
         target_type=q.dtype,
         check_other=False,
     )
+    assert attn_mask
     attn_mask = attn_mask.unsqueeze(0)
 
     q = q.view(-1, num_heads, head_dim).transpose(0, 1)

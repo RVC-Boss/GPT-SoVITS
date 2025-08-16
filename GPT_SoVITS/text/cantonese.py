@@ -1,13 +1,17 @@
 # reference: https://huggingface.co/spaces/Naozumi0512/Bert-VITS2-Cantonese-Yue/blob/main/text/chinese.py
 
 import re
+
 import cn2an
 import ToJyutping
 
-from text.symbols import punctuation
-from text.zh_normalization.text_normlization import TextNormalizer
+from .symbols import punctuation
+from .zh_normalization.text_normlization import TextNormalizer
 
-normalizer = lambda x: cn2an.transform(x, "an2cn")
+
+def normalizer(x):
+    return cn2an.transform(x, "an2cn")
+
 
 INITIALS = [
     "aa",
@@ -192,12 +196,6 @@ def get_jyutping(text):
             jyutping_array.append(syllable)
 
     return jyutping_array
-
-
-def get_bert_feature(text, word2ph):
-    from text import chinese_bert
-
-    return chinese_bert.get_bert_feature(text, word2ph)
 
 
 def g2p(text):

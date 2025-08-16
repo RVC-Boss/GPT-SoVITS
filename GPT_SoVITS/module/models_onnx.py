@@ -1,23 +1,21 @@
 import math
 from typing import Optional
+
 import torch
 from torch import nn
+from torch.nn import Conv1d, Conv2d, ConvTranspose1d
 from torch.nn import functional as F
+from torch.nn.utils import remove_weight_norm, spectral_norm
+from torch.nn.utils import weight_norm
 
-from module import commons
-from module import modules
-from module import attentions_onnx as attentions
+from GPT_SoVITS.f5_tts.model import DiT
+from GPT_SoVITS.text import symbols as symbols_v1
+from GPT_SoVITS.text import symbols2 as symbols_v2
 
-from f5_tts.model import DiT
-
-from torch.nn import Conv1d, ConvTranspose1d, Conv2d
-from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-from module.commons import init_weights, get_padding
-from module.quantize import ResidualVectorQuantizer
-
-# from text import symbols
-from text import symbols as symbols_v1
-from text import symbols2 as symbols_v2
+from . import attentions_onnx as attentions
+from . import commons, modules
+from .commons import get_padding, init_weights
+from .quantize import ResidualVectorQuantizer
 
 
 class StochasticDurationPredictor(nn.Module):
@@ -459,7 +457,7 @@ class DiscriminatorP(torch.nn.Module):
         super(DiscriminatorP, self).__init__()
         self.period = period
         self.use_spectral_norm = use_spectral_norm
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if use_spectral_norm is False else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(
@@ -536,7 +534,7 @@ class DiscriminatorP(torch.nn.Module):
 class DiscriminatorS(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(DiscriminatorS, self).__init__()
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if use_spectral_norm is False else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(Conv1d(1, 16, 15, 1, padding=7)),
@@ -1057,7 +1055,7 @@ class SynthesizerTrnV3(nn.Module):
             100,
             DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2, conv_layers=4)),
         )  # text_dim is condition feature dim
-        if freeze_quantizer == True:
+        if freeze_quantizer is True:
             set_no_grad(self.ssl_proj)
             set_no_grad(self.quantizer)
             set_no_grad(self.enc_p)

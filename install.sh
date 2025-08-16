@@ -34,7 +34,7 @@ on_error() {
 run_conda_quiet() {
     local output
     output=$(conda install --yes --quiet -c conda-forge "$@" 2>&1) || {
-        echo -e "${ERROR} Conda install failed:\n$output"
+        echo -e "${ERROR}Conda install failed:\n$output"
         exit 1
     }
 }
@@ -42,7 +42,7 @@ run_conda_quiet() {
 run_pip_quiet() {
     local output
     output=$(pip install "$@" 2>&1) || {
-        echo -e "${ERROR} Pip install failed:\n$output"
+        echo -e "${ERROR}Pip install failed:\n$output"
         exit 1
     }
 }
@@ -51,7 +51,7 @@ run_wget_quiet() {
     if wget --tries=25 --wait=5 --read-timeout=40 -q --show-progress "$@" 2>&1; then
         tput cuu1 && tput el
     else
-        echo -e "${ERROR} Wget failed"
+        echo -e "${ERROR}Wget failed"
         exit 1
     fi
 }
@@ -75,15 +75,20 @@ print_help() {
     echo "Usage: bash install.sh [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --device   CU126|CU128|ROCM|MPS|CPU    Specify the Device (REQUIRED)"
+    echo "  --device   CU126|CU128|ROCM|MLX|CPU    Specify the Device (REQUIRED)"
     echo "  --source   HF|HF-Mirror|ModelScope     Specify the model source (REQUIRED)"
     echo "  --download-uvr5                        Enable downloading the UVR5 model"
     echo "  -h, --help                             Show this help message and exit"
     echo ""
     echo "Examples:"
     echo "  bash install.sh --device CU128 --source HF --download-uvr5"
-    echo "  bash install.sh --device MPS --source ModelScope"
+    echo "  bash install.sh --device MLX --source ModelScope"
 }
+
+if ! python3 -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)"; then
+    echo -e "${ERROR}Python version < 3.10"
+    exit 1
+fi
 
 # Show help if no arguments provided
 if [[ $# -eq 0 ]]; then
@@ -106,7 +111,7 @@ while [[ $# -gt 0 ]]; do
             USE_MODELSCOPE=true
             ;;
         *)
-            echo -e "${ERROR}Error: Invalid Download Source: $2"
+            echo -e "${ERROR}Invalid Download Source: $2"
             echo -e "${ERROR}Choose From: [HF, HF-Mirror, ModelScope]"
             exit 1
             ;;
@@ -126,15 +131,15 @@ while [[ $# -gt 0 ]]; do
         ROCM)
             USE_ROCM=true
             ;;
-        MPS)
-            USE_CPU=true
+        MLX)
+            USE_MLX=true
             ;;
         CPU)
             USE_CPU=true
             ;;
         *)
-            echo -e "${ERROR}Error: Invalid Device: $2"
-            echo -e "${ERROR}Choose From: [CU126, CU128, ROCM, MPS, CPU]"
+            echo -e "${ERROR}Invalid Device: $2"
+            echo -e "${ERROR}Choose From: [CU126, CU128, ROCM, MLX, CPU]"
             exit 1
             ;;
         esac
@@ -157,15 +162,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! $USE_CUDA && ! $USE_ROCM && ! $USE_CPU; then
-    echo -e "${ERROR}Error: Device is REQUIRED"
+if ! $USE_CUDA && ! $USE_ROCM && ! $USE_MLX && ! $USE_CPU; then
+    echo -e "${ERROR}Device is REQUIRED"
     echo ""
     print_help
     exit 1
 fi
 
 if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
-    echo -e "${ERROR}Error: Download Source is REQUIRED"
+    echo -e "${ERROR}Download Source is REQUIRED"
     echo ""
     print_help
     exit 1
@@ -215,14 +220,14 @@ else
     else
         XCODE_PATH=$(xcode-select -p)
         if [[ "$XCODE_PATH" == *"Xcode.app"* ]]; then
-            echo -e "${WARNING} Detected Xcode path: $XCODE_PATH"
-            echo -e "${WARNING} If your Xcode version does not match your macOS version, it may cause unexpected issues during compilation or package builds."
+            echo -e "${WARNING}Detected Xcode path: $XCODE_PATH"
+            echo -e "${WARNING}If your Xcode version does not match your macOS version, it may cause unexpected issues during compilation or package builds."
         fi
     fi
 fi
 
 echo -e "${INFO}Installing FFmpeg & CMake..."
-run_conda_quiet ffmpeg cmake make
+run_conda_quiet ffmpeg=7 cmake make
 echo -e "${SUCCESS}FFmpeg & CMake Installed"
 
 echo -e "${INFO}Installing unzip..."
@@ -296,7 +301,7 @@ fi
 if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
     echo -e "${INFO}Checking For Nvidia Driver Installation..."
     if command -v nvidia-smi &>/dev/null; then
-        echo "${INFO}Nvidia Driver Founded"
+        echo -e "${INFO}Nvidia Driver Founded"
     else
         echo -e "${WARNING}Nvidia Driver Not Found, Fallback to CPU"
         USE_CUDA=false
@@ -322,13 +327,29 @@ if [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
 fi
 
 if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
+    CUDAVERSION=$(nvidia-smi | grep "CUDA Version" | sed -E 's/.*CUDA Version: ([0-9]+\.[0-9]+).*/\1/')
+    echo -e "${INFO}Maximum CUDA Version Supported By Current Driver: $CUDAVERSION"
     if [ "$CUDA" = 128 ]; then
+        if awk "BEGIN {exit !($CUDAVERSION < 12.8)}"; then
+            echo -r "${WARNING}CUDA 12.8 Is Not Supported By Current Driver"
+        fi
         echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
         run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
+        run_conda_quiet cuda-nvcc=12.8
     elif [ "$CUDA" = 126 ]; then
+        if awk "BEGIN {exit !($CUDAVERSION < 12.6)}"; then
+            echo -r "${WARNING}CUDA 12.6 Is Not Supported By Current Driver"
+        fi
         echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
         run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
+        run_conda_quiet cuda-nvcc=12.6
     fi
+    run_pip_quiet psutil ninja packaging wheel "setuptools>=42"
+    run_pip_quiet flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
+elif [ "$USE_MLX" = true ] && [ "$WORKFLOW" = false ]; then
+    echo -e "${INFO}Installing MLX & PyTorch For MPS..."
+    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
+    run_pip_quiet mlx
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
     run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/rocm6.2"
@@ -344,6 +365,8 @@ echo -e "${SUCCESS}PyTorch Installed"
 echo -e "${INFO}Installing Python Dependencies From requirements.txt..."
 
 hash -r
+
+run_pip_quiet torchcodec
 
 run_pip_quiet -r extra-req.txt --no-deps
 

@@ -257,6 +257,8 @@ def replace_to_range(match) -> str:
 
 
 RE_VERSION_NUM = re.compile(r"((\d+)(\.\d+)(\.\d+)?(\.\d+)+)")
+
+
 def replace_vrsion_num(match) -> str:
     """
     Args:
@@ -271,7 +273,6 @@ def replace_vrsion_num(match) -> str:
         else:
             result += num2str(c)
     return result
-
 
 
 def _get_value(value_string: str, use_zero: bool = True) -> List[str]:

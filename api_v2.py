@@ -98,29 +98,26 @@ RESP:
 
 """
 
+import argparse
 import os
+import signal
+import subprocess
 import sys
 import traceback
+import wave
+from io import BytesIO
 from typing import Generator
 
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
-
-import argparse
-import subprocess
-import wave
-import signal
 import numpy as np
 import soundfile as sf
-from fastapi import FastAPI, Response
-from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
-from io import BytesIO
-from tools.i18n.i18n import I18nAuto
-from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
-from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
+from fastapi import FastAPI, Response
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
+
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
+from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
+from tools.i18n.i18n import I18nAuto
 
 # print(sys.path)
 i18n = I18nAuto()

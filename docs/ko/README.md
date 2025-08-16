@@ -19,14 +19,13 @@
 [![Change Log](https://img.shields.io/badge/Change%20Log-View%20Updates-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/docs/en/Changelog_EN.md)
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 
-
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | [**日本語**](../ja/README.md) | **한국어** | [**Türkçe**](../tr/README.md)
 
 </div>
 
 ---
 
-## 기능:
+## 기능
 
 1. **제로샷 텍스트 음성 변환 (TTS):** 5초의 음성 샘플을 입력하면 즉시 텍스트를 음성으로 변환할 수 있습니다.
 
@@ -40,7 +39,16 @@
 
 보지 못한 발화자의 퓨샷(few-shot) 파인튜닝 데모:
 
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+<https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
+
+## 추론 속도
+
+| Device      | RTF   | Batch Size | Backend                     |
+| ----------- | ----- | ---------- | --------------------------- |
+| RTX 5090    | 0.05  | 1          | Flash Attn Varlen CUDAGraph |
+| Apple M4    | 0.21  | 1          | MLX Quantized Affined       |
+| RTX 4090    | 0.014 | 24         | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028 | 28         | Flash Attn Varlen CUDAGraph |
 
 **사용자 설명서: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
@@ -54,8 +62,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 | Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
 | Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
-| Python 3.9     | PyTorch 2.5.1    | Apple silicon |
-| Python 3.11    | PyTorch 2.7.0    | Apple silicon |
+| Python 3.9     | PyTorch 2.5.1    | Apple Silicon |
+| Python 3.11    | PyTorch 2.7.0    | Apple Silicon |
 | Python 3.9     | PyTorch 2.2.2    | CPU           |
 
 ### Windows
@@ -85,7 +93,7 @@ bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScop
 ```bash
 conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### 수동 설치
@@ -106,13 +114,13 @@ pip install -r requirements.txt
 
 ```bash
 conda activate GPTSoVits
-conda install ffmpeg
+conda install ffmpeg=7 -c conda-forge
 ```
 
 ##### Ubuntu/Debian 사용자
 
 ```bash
-sudo apt install ffmpeg
+sudo apt install ffmpeg=7
 sudo apt install libsox-dev
 ```
 
@@ -200,7 +208,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 텍스트 음성 합성(TTS) 주석 .list 파일 형식:
 
-```
+```text
 vocal_path|speaker_name|language|text
 ```
 
@@ -212,7 +220,7 @@ vocal_path|speaker_name|language|text
 
 예시:
 
-```
+```text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
@@ -230,14 +238,6 @@ V1으로 전환하려면, `go-webui-v1.bat`을 더블 클릭하거나 `go-webui-
 ```bash
 python webui.py <언어(옵션)>
 ```
-
-V1으로 전환하려면,
-
-```bash
-python webui.py v1 <언어(옵션)>
-```
-
-또는 WebUI에서 수동으로 버전을 전환하십시오.
 
 ### 미세 조정
 
@@ -259,7 +259,7 @@ python webui.py v1 <언어(옵션)>
 #### 기타
 
 ```bash
-python GPT_SoVITS/inference_webui.py <언어(옵션)>
+python -m GPT_SoVITS.inference_webui <language(optional)> -b <backend> -p <port>
 ```
 
 또는
@@ -312,7 +312,7 @@ v2 환경에서 v3 사용하기:
 
 3. v3 사전 훈련된 모델(s1v3.ckpt, s2Gv3.pth, 그리고 models--nvidia--bigvgan_v2_24khz_100band_256x 폴더)을 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 다운로드하여 `GPT_SoVITS/pretrained_models` 폴더에 넣습니다.
 
-   추가: 오디오 슈퍼 해상도 모델에 대해서는 [다운로드 방법](../../tools/AP_BWE_main/24kto48k/readme.txt)을 참고하세요.
+   추가: 오디오 슈퍼 해상도 모델에 대해서는 [다운로드 방법](../../tools/AP_BWE/24kto48k/readme.txt)을 참고하세요.
 
 ## V4 릴리스 노트
 

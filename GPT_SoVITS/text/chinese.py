@@ -1,26 +1,28 @@
+import logging
 import os
 import re
 
 import cn2an
-from pypinyin import lazy_pinyin, Style
+import jieba_fast
+import jieba_fast.posseg as psg
+from pypinyin import Style, lazy_pinyin
 
-from text.symbols import punctuation
-from text.tone_sandhi import ToneSandhi
-from text.zh_normalization.text_normlization import TextNormalizer
+from .symbols import punctuation
+from .tone_sandhi import ToneSandhi
+from .zh_normalization.text_normlization import TextNormalizer
 
-normalizer = lambda x: cn2an.transform(x, "an2cn")
+jieba_fast.setLogLevel(logging.CRITICAL)
+
+
+def normalizer(x):
+    return cn2an.transform(x, "an2cn")
+
 
 current_file_path = os.path.dirname(__file__)
 pinyin_to_symbol_map = {
     line.split("\t")[0]: line.strip().split("\t")[1]
     for line in open(os.path.join(current_file_path, "opencpop-strict.txt")).readlines()
 }
-
-import jieba_fast
-import logging
-
-jieba_fast.setLogLevel(logging.CRITICAL)
-import jieba_fast.posseg as psg
 
 
 rep_map = {

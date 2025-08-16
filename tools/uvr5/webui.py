@@ -1,22 +1,18 @@
-import logging
 import os
+import sys
 import traceback
 
+import ffmpeg
 import gradio as gr
+import torch
 
 from tools.i18n.i18n import I18nAuto
 from tools.my_utils import clean_path
+from tools.uvr5.bsroformer import Roformer_Loader
+from tools.uvr5.mdxnet import MDXNetDereverb
+from tools.uvr5.vr import AudioPre, AudioPreDeEcho
 
 i18n = I18nAuto()
-
-logger = logging.getLogger(__name__)
-import sys
-
-import ffmpeg
-import torch
-from bsroformer import Roformer_Loader
-from mdxnet import MDXNetDereverb
-from vr import AudioPre, AudioPreDeEcho
 
 weight_uvr5_root = "tools/uvr5/uvr5_weights"
 uvr5_names = []
@@ -78,7 +74,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             paths = [path.name for path in paths]
         for path in paths:
             inp_path = os.path.join(inp_root, path)
-            if os.path.isfile(inp_path) == False:
+            if os.path.isfile(inp_path) is False:
                 continue
             need_reformat = 1
             done = 0
@@ -168,7 +164,7 @@ with gr.Blocks(title="UVR5 WebUI", analytics_enabled=False) as app:
                     "h4",
                 )
             )
-            with gr.Row():
+            with gr.Row(equal_height=True):
                 with gr.Column():
                     model_choose = gr.Dropdown(label=i18n("模型"), choices=uvr5_names)
                     dir_wav_input = gr.Textbox(
@@ -197,9 +193,9 @@ with gr.Blocks(title="UVR5 WebUI", analytics_enabled=False) as app:
                         interactive=True,
                     )
                     with gr.Column():
-                        with gr.Row():
+                        with gr.Row(equal_height=True):
                             but2 = gr.Button(i18n("转换"), variant="primary")
-                        with gr.Row():
+                        with gr.Row(equal_height=True):
                             vc_output4 = gr.Textbox(label=i18n("输出信息"), lines=3)
                 but2.click(
                     uvr,

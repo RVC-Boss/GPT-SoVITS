@@ -1,44 +1,28 @@
+import os
+import shutil
 import traceback
 from collections import OrderedDict
 from time import time as ttime
-import shutil
-import os
+from typing import Any
+
 import torch
+
+from GPT_SoVITS.module.models import set_serialization
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
+set_serialization()
 
 
-def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
+def save(fea, path):  # fix issue: torch.save doesn't support chinese path
     dir = os.path.dirname(path)
     name = os.path.basename(path)
-    tmp_path = "%s.pth" % (ttime())
+    tmp_path = f"{ttime()}.pth"
     torch.save(fea, tmp_path)
-    shutil.move(tmp_path, "%s/%s" % (dir, name))
+    shutil.move(tmp_path, f"{dir}/{name}")
 
 
-from io import BytesIO
-
-model_version2byte = {
-    "v3": b"03",
-    "v4": b"04",
-    "v2Pro": b"05",
-    "v2ProPlus": b"06",
-}
-
-
-def my_save2(fea, path, model_version):
-    bio = BytesIO()
-    torch.save(fea, bio)
-    bio.seek(0)
-    data = bio.getvalue()
-    byte = model_version2byte[model_version]
-    data = byte + data[2:]
-    with open(path, "wb") as f:
-        f.write(data)
-
-
-def savee(ckpt, name, epoch, steps, hps, model_version=None, lora_rank=None):
+def save_ckpt(ckpt, name, epoch, steps, hps, lora_rank=None):
     try:
         opt = OrderedDict()
         opt["weight"] = {}
@@ -46,93 +30,57 @@ def savee(ckpt, name, epoch, steps, hps, model_version=None, lora_rank=None):
             if "enc_q" in key:
                 continue
             opt["weight"][key] = ckpt[key].half()
-        opt["config"] = hps
-        opt["info"] = "%sepoch_%siteration" % (epoch, steps)
+        opt["config"] = hps.to_dict()
+        opt["info"] = f"{epoch}epoch_{steps}iteration"
         if lora_rank:
             opt["lora_rank"] = lora_rank
-            my_save2(opt, "%s/%s.pth" % (hps.save_weight_dir, name), model_version)
-        elif model_version != None and "Pro" in model_version:
-            my_save2(opt, "%s/%s.pth" % (hps.save_weight_dir, name), model_version)
-        else:
-            my_save(opt, "%s/%s.pth" % (hps.save_weight_dir, name))
+        save(opt, f"{hps.save_weight_dir}/{name}.pth")
         return "Success."
-    except:
+    except Exception:
         return traceback.format_exc()
 
 
-"""
-00:v1
-01:v2
-02:v3
-03:v3lora
-04:v4lora
-05:v2Pro
-06:v2ProPlus
-"""
-head2version = {
-    b"00": ["v1", "v1", False],
-    b"01": ["v2", "v2", False],
-    b"02": ["v2", "v3", False],
-    b"03": ["v2", "v3", True],
-    b"04": ["v2", "v4", True],
-    b"05": ["v2", "v2Pro", False],
-    b"06": ["v2", "v2ProPlus", False],
-}
-hash_pretrained_dict = {
-    "dc3c97e17592963677a4a1681f30c653": ["v2", "v2", False],  # s2G488k.pth#sovits_v1_pretrained
-    "43797be674a37c1c83ee81081941ed0f": ["v2", "v3", False],  # s2Gv3.pth#sovits_v3_pretrained
-    "6642b37f3dbb1f76882b69937c95a5f3": ["v2", "v2", False],  # s2G2333K.pth#sovits_v2_pretrained
-    "4f26b9476d0c5033e04162c486074374": ["v2", "v4", False],  # s2Gv4.pth#sovits_v4_pretrained
-    "c7e9fce2223f3db685cdfa1e6368728a": ["v2", "v2Pro", False],  # s2Gv2Pro.pth#sovits_v2Pro_pretrained
-    "66b313e39455b57ab1b0bc0b239c9d0a": ["v2", "v2ProPlus", False],  # s2Gv2ProPlus.pth#sovits_v2ProPlus_pretrained
-}
-import hashlib
-
-
-def get_hash_from_file(sovits_path):
-    with open(sovits_path, "rb") as f:
-        data = f.read(8192)
-    hash_md5 = hashlib.md5()
-    hash_md5.update(data)
-    return hash_md5.hexdigest()
-
-
-def get_sovits_version_from_path_fast(sovits_path):
-    ###1-if it is pretrained sovits models, by hash
-    hash = get_hash_from_file(sovits_path)
-    if hash in hash_pretrained_dict:
-        return hash_pretrained_dict[hash]
-    ###2-new weights, by head
-    with open(sovits_path, "rb") as f:
-        version = f.read(2)
-    if version != b"PK":
-        return head2version[version]
-    ###3-old weights, by file size
-    if_lora_v3 = False
-    size = os.path.getsize(sovits_path)
+def inspect_version(
+    f: str,
+) -> tuple[str, str, bool, Any, dict]:
     """
-            v1weights:about 82942KB
-                half thr:82978KB
-            v2weights:about 83014KB
-            v3weights:about 750MB
+
+    Returns:
+        tuple[model_version, lang_version, is_lora, hps, state_dict]
     """
-    if size < 82978 * 1024:
-        model_version = version = "v1"
-    elif size < 700 * 1024 * 1024:
-        model_version = version = "v2"
+    dict_s2 = torch.load(f, map_location="cpu", mmap=True)
+    hps = dict_s2["config"]
+    version: str | None = None
+    if "version" in hps.keys():
+        version = hps["version"]
+    is_lora = "lora_rank" in dict_s2.keys()
+
+    if version is not None:
+        # V3 V4 Lora & Finetuned V2 Pro
+        lang_version = "v2"
+        model_version = version
     else:
-        version = "v2"
-        model_version = "v3"
-    return version, model_version, if_lora_v3
+        # V2 Pro Pretrain
+        if hps["model"]["gin_channels"] == 1024:
+            if hps["model"]["upsample_initial_channel"] == 768:
+                lang_version = "v2"
+                model_version = "v2ProPlus"
+            else:
+                lang_version = "v2"
+                model_version = "v2Pro"
 
+            return model_version, lang_version, is_lora, hps, dict_s2
 
-def load_sovits_new(sovits_path):
-    f = open(sovits_path, "rb")
-    meta = f.read(2)
-    if meta != b"PK":
-        data = b"PK" + f.read()
-        bio = BytesIO()
-        bio.write(data)
-        bio.seek(0)
-        return torch.load(bio, map_location="cpu", weights_only=False)
-    return torch.load(sovits_path, map_location="cpu", weights_only=False)
+        # Old V1/V2
+        if "dec.conv_pre.weight" in dict_s2["weight"].keys():
+            if dict_s2["weight"]["enc_p.text_embedding.weight"].shape[0] == 322:
+                lang_version = model_version = "v1"
+            else:
+                lang_version = model_version = "v2"
+        else:  # Old Finetuned V3 & V3/V4 Pretrain
+            lang_version = "v2"
+            model_version = "v3"
+            if dict_s2["info"] == "pretrained_s2G_v4":
+                model_version = "v4"
+
+    return model_version, lang_version, is_lora, hps, dict_s2

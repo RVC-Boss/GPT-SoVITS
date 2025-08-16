@@ -19,14 +19,13 @@
 [![Change Log](https://img.shields.io/badge/Change%20Log-View%20Updates-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/docs/en/Changelog_EN.md)
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=for-the-badge&logo=opensourceinitiative)](https://github.com/RVC-Boss/GPT-SoVITS/blob/main/LICENSE)
 
-
 [**English**](../../README.md) | [**中文简体**](../cn/README.md) | **日本語** | [**한국어**](../ko/README.md) | [**Türkçe**](../tr/README.md)
 
 </div>
 
 ---
 
-## 機能:
+## 機能
 
 1. **Zero-Shot TTS:** たった 5 秒間の音声サンプルで、即座にテキストからその音声に変換できます.
 
@@ -40,7 +39,16 @@
 
 声の事前学習無しかつ Few-Shot でトレーニングされたモデルのデモ:
 
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+<https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
+
+## 推論速度
+
+| Device      | RTF   | Batch Size | Backend                     |
+| ----------- | ----- | ---------- | --------------------------- |
+| RTX 5090    | 0.05  | 1          | Flash Attn Varlen CUDAGraph |
+| Apple M4    | 0.21  | 1          | MLX Quantized Affined       |
+| RTX 4090    | 0.014 | 24         | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028 | 28         | Flash Attn Varlen CUDAGraph |
 
 **ユーザーマニュアル: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
@@ -48,15 +56,13 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 ### テスト済みの環境
 
-| Python Version | PyTorch Version  | Device        |
-| -------------- | ---------------- | ------------- |
-| Python 3.10    | PyTorch 2.5.1    | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
-| Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
-| Python 3.9     | PyTorch 2.5.1    | Apple silicon |
-| Python 3.11    | PyTorch 2.7.0    | Apple silicon |
-| Python 3.9     | PyTorch 2.2.2    | CPU           |
+| Python Version | PyTorch Version | Device        |
+| -------------- | --------------- | ------------- |
+| Python 3.10    | PyTorch 2.5.1   | CUDA 12.4     |
+| Python 3.11    | PyTorch 2.5.1   | CUDA 12.4     |
+| Python 3.11    | PyTorch 2.7.0   | CUDA 12.8     |
+| Python 3.11    | PyTorch 2.8.0   | Apple Silicon |
+| Python 3.10    | PyTorch 2.8.0   | CPU           |
 
 ### Windows
 
@@ -79,7 +85,7 @@ bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScop
 ```bash
 conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### 手動インストール
@@ -100,13 +106,13 @@ pip install -r requirements.txt
 
 ```bash
 conda activate GPTSoVits
-conda install ffmpeg
+conda install ffmpeg=7 -c conda-forge
 ```
 
 ##### Ubuntu/Debian ユーザー
 
 ```bash
-sudo apt install ffmpeg
+sudo apt install ffmpeg=7
 sudo apt install libsox-dev
 ```
 
@@ -194,7 +200,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 TTS アノテーション .list ファイル形式:
 
-```
+```text
 vocal_path|speaker_name|language|text
 ```
 
@@ -206,7 +212,7 @@ vocal_path|speaker_name|language|text
 
 例:
 
-```
+```text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
@@ -224,14 +230,6 @@ V1 に切り替えたい場合は、`go-webui-v1.bat`をダブルクリックす
 ```bash
 python webui.py <言語(オプション)>
 ```
-
-V1 に切り替えたい場合は
-
-```bash
-python webui.py v1 <言語(オプション)>
-```
-
-または WebUI で手動でバージョンを切り替えてください.
 
 ### 微調整
 
@@ -253,7 +251,7 @@ python webui.py v1 <言語(オプション)>
 #### その他
 
 ```bash
-python GPT_SoVITS/inference_webui.py <言語(オプション)>
+python -m GPT_SoVITS.inference_webui <language(optional)> -b <backend> -p <port>
 ```
 
 または
@@ -306,7 +304,7 @@ v2 環境から v3 を使用する方法:
 
 3. v3 の事前学習済みモデル (s1v3.ckpt、s2Gv3.pth、models--nvidia--bigvgan_v2_24khz_100band_256x フォルダ) を[Huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) からダウンロードし、GPT_SoVITS/pretrained_models フォルダに配置します.
 
-   追加: 音声超解像モデルについては、[ダウンロード方法](../../tools/AP_BWE_main/24kto48k/readme.txt)を参照してください.
+   追加: 音声超解像モデルについては、[ダウンロード方法](../../tools/AP_BWE/24kto48k/readme.txt)を参照してください.
 
 ## V4 リリースノート
 

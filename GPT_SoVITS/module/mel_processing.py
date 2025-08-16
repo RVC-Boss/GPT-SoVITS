@@ -1,5 +1,4 @@
 import torch
-import torch.utils.data
 from librosa.filters import mel as librosa_mel_fn
 
 MAX_WAV_VALUE = 32768.0
@@ -67,10 +66,10 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
         pad_mode="reflect",
         normalized=False,
         onesided=True,
-        return_complex=False,
+        return_complex=True,
     )
 
-    spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-8)
+    spec = spec.abs().pow_(2).add_(1e-8).sqrt_()
     return spec
 
 
@@ -132,10 +131,10 @@ def mel_spectrogram_torch(y, n_fft, num_mels, sampling_rate, hop_size, win_size,
         pad_mode="reflect",
         normalized=False,
         onesided=True,
-        return_complex=False,
+        return_complex=True,
     )
 
-    spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-8)
+    spec = spec.abs().pow_(2).add_(1e-8).sqrt_()
 
     spec = torch.matmul(mel_basis[fmax_dtype_device], spec)
     spec = spectral_normalize_torch(spec)

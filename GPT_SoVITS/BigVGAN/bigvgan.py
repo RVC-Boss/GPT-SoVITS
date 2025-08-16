@@ -4,22 +4,22 @@
 # Adapted from https://github.com/jik876/hifi-gan under the MIT license.
 #   LICENSE is in incl_licenses directory.
 
-import os
 import json
+import os
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 import torch
 import torch.nn as nn
+from huggingface_hub import PyTorchModelHubMixin, hf_hub_download
 from torch.nn import Conv1d, ConvTranspose1d
-from torch.nn.utils import weight_norm, remove_weight_norm
+from torch.nn.utils import remove_weight_norm
+from torch.nn.utils import weight_norm
 
 from . import activations
-from .utils0 import init_weights, get_padding
 from .alias_free_activation.torch.act import Activation1d as TorchActivation1d
 from .env import AttrDict
-
-from huggingface_hub import PyTorchModelHubMixin, hf_hub_download
+from .utils0 import get_padding, init_weights
 
 
 def load_hparams_from_json(path) -> AttrDict:

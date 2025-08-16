@@ -1,32 +1,38 @@
 # modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/train_t2s.py
-import os
-
-if "_CUDA_VISIBLE_DEVICES" in os.environ:
-    os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 import argparse
 import logging
+import os
 import platform
+from collections import OrderedDict
 from pathlib import Path
+from typing import Any
 
 import torch
-from AR.data.data_module import Text2SemanticDataModule
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
-from AR.utils.io import load_yaml_config
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger  # WandbLogger
-from pytorch_lightning.strategies import DDPStrategy
+from pytorch_lightning.strategies import DDPStrategy, SingleDeviceStrategy
+from pytorch_lightning.strategies.strategy import Strategy
+
+from GPT_SoVITS.AR.data.data_module import Text2SemanticDataModule
+from GPT_SoVITS.AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from GPT_SoVITS.AR.utils import get_newest_ckpt
+from GPT_SoVITS.AR.utils.io import load_yaml_config
+from GPT_SoVITS.process_ckpt import save
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 torch.set_float32_matmul_precision("high")
-from collections import OrderedDict
-
-from AR.utils import get_newest_ckpt
-from process_ckpt import my_save
 
 
-class my_model_ckpt(ModelCheckpoint):
+os.environ["MASTER_ADDR"] = "localhost"
+if platform.system() == "Windows":
+    os.environ["USE_LIBUV"] = "0"
+
+torch.set_grad_enabled(True)
+
+
+class ARModelCheckpoint(ModelCheckpoint):
     def __init__(
         self,
         config,
@@ -44,40 +50,31 @@ class my_model_ckpt(ModelCheckpoint):
         self.config = config
 
     def on_train_epoch_end(self, trainer, pl_module):
-        # if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
         if self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
+            self._save_topk_checkpoint(trainer, monitor_candidates)
+            if self.if_save_latest is True:  # 如果设置只保存最后一个ckpt，在保存下一个ckpt后要清理掉之前的所有ckpt
+                to_clean = list(os.listdir(self.dirpath))
+                for name in to_clean:
+                    try:
+                        os.remove(f"{self.dirpath}/{name}")
+                    except Exception as _:
+                        pass
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
-                if (
-                    self.if_save_latest == True
-                ):  ####如果设置只保存最后一个ckpt，在保存下一个ckpt后要清理掉之前的所有ckpt
-                    to_clean = list(os.listdir(self.dirpath))
-                self._save_topk_checkpoint(trainer, monitor_candidates)
-                if self.if_save_latest == True:
-                    for name in to_clean:
-                        try:
-                            os.remove("%s/%s" % (self.dirpath, name))
-                        except:
-                            pass
-                if self.if_save_every_weights == True:
-                    to_save_od = OrderedDict()
+                if self.if_save_every_weights is True:
+                    to_save_od: OrderedDict[str, Any] = OrderedDict()
                     to_save_od["weight"] = OrderedDict()
                     dictt = trainer.strategy._lightning_module.state_dict()
                     for key in dictt:
                         to_save_od["weight"][key] = dictt[key].half()
                     to_save_od["config"] = self.config
-                    to_save_od["info"] = "GPT-e%s" % (trainer.current_epoch + 1)
+                    to_save_od["info"] = f"GPT-e{trainer.current_epoch + 1}"
                     # torch.save(
                     # print(os.environ)
                     if os.environ.get("LOCAL_RANK", "0") == "0":
-                        my_save(
+                        save(
                             to_save_od,
-                            "%s/%s-e%s.ckpt"
-                            % (
-                                self.half_weights_save_dir,
-                                self.exp_name,
-                                trainer.current_epoch + 1,
-                            ),
+                            f"{self.half_weights_save_dir}/{self.exp_name}-e{trainer.current_epoch + 1}.ckpt",
                         )
             self._save_last_checkpoint(trainer, monitor_candidates)
 
@@ -91,8 +88,19 @@ def main(args):
     ckpt_dir = output_dir / "ckpt"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
+    if torch.cuda.is_available():
+        if torch.cuda.device_count() > 1:
+            strategy: Strategy = DDPStrategy(
+                process_group_backend="nccl" if platform.system() != "Windows" else "gloo", find_unused_parameters=False
+            )
+        else:
+            strategy = SingleDeviceStrategy("cuda:0")
+    else:
+        strategy = SingleDeviceStrategy("cpu")
+
     seed_everything(config["train"]["seed"], workers=True)
-    ckpt_callback: ModelCheckpoint = my_model_ckpt(
+
+    ckpt_callback: ModelCheckpoint = ARModelCheckpoint(
         config=config,
         if_save_latest=config["train"]["if_save_latest"],
         if_save_every_weights=config["train"]["if_save_every_weights"],
@@ -106,20 +114,15 @@ def main(args):
         dirpath=ckpt_dir,
     )
     logger = TensorBoardLogger(name=output_dir.stem, save_dir=output_dir)
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["USE_LIBUV"] = "0"
+
     trainer: Trainer = Trainer(
         max_epochs=config["train"]["epochs"],
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
-        # val_check_interval=9999999999999999999999,###不要验证
-        # check_val_every_n_epoch=None,
         limit_val_batches=0,
         devices=-1 if torch.cuda.is_available() else 1,
         benchmark=False,
         fast_dev_run=False,
-        strategy=DDPStrategy(process_group_backend="nccl" if platform.system() != "Windows" else "gloo")
-        if torch.cuda.is_available()
-        else "auto",
+        strategy=strategy,
         precision=config["train"]["precision"],
         logger=logger,
         num_sanity_val_steps=0,
@@ -133,8 +136,6 @@ def main(args):
         config,
         train_semantic_path=config["train_semantic_path"],
         train_phoneme_path=config["train_phoneme_path"],
-        # dev_semantic_path=args.dev_semantic_path,
-        # dev_phoneme_path=args.dev_phoneme_path
     )
 
     try:

@@ -40,9 +40,19 @@ function Write-Info($msg) {
     Write-Host "[INFO]:" -ForegroundColor Green -NoNewline
     Write-Host " $msg"
 }
+function Write-Warning($msg) {
+    Write-Host "[Warning]:" -ForegroundColor Yellow -NoNewline
+    Write-Host " $msg"
+}
 function Write-Success($msg) {
     Write-Host "[SUCCESS]:" -ForegroundColor Blue -NoNewline
     Write-Host " $msg"
+}
+
+python -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Python version < 3.10"
+    exit 1
 }
 
 
@@ -137,7 +147,7 @@ chcp 65001
 Set-Location $PSScriptRoot
 
 Write-Info "Installing FFmpeg & CMake..."
-Invoke-Conda  ffmpeg cmake
+Invoke-Conda  ffmpeg=7 cmake vc14_runtime
 Write-Success "FFmpeg & CMake Installed"
 
 $PretrainedURL  = ""
@@ -208,12 +218,30 @@ if ($DownloadUVR5) {
 
 switch ($Device) {
     "CU128" {
+        $cudaLine = nvidia-smi | Select-String "CUDA Version"
+        $version = ($cudaLine -split "CUDA Version:")[1].Trim()
+        Write-Info "Maximum CUDA Version Supported By Current Driver: $version"
+        if ([version](nvidia-smi | Select-String "CUDA Version" | ForEach-Object { ($_ -split "CUDA Version:")[1].Trim() }) -ge [version]"12.8") {
+            Write-Warning "CUDA 12.8 Is Not Supported By Current Driver"
+        }
         Write-Info "Installing PyTorch For CUDA 12.8..."
         Invoke-Pip torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
+        Invoke-Conda cuda-nvcc=12.8
+        Invoke-Pip psutil ninja packaging wheel "setuptools>=42"
+        Invoke-Pip flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
     }
     "CU126" {
+        $cudaLine = nvidia-smi | Select-String "CUDA Version"
+        $version = ($cudaLine -split "CUDA Version:")[1].Trim()
+        Write-Info "Maximum CUDA Version Supported By Current Driver: $version"
+        if ([version](nvidia-smi | Select-String "CUDA Version" | ForEach-Object { ($_ -split "CUDA Version:")[1].Trim() }) -ge [version]"12.8") {
+            Write-Warning "CUDA 12.6 Is Not Supported By Current Driver"
+        }
         Write-Info "Installing PyTorch For CUDA 12.6..."
         Invoke-Pip torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
+        Invoke-Conda cuda-nvcc=12.6
+        Invoke-Pip psutil ninja packaging wheel "setuptools>=42"
+        Invoke-Pip flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
     }
     "CPU" {
         Write-Info "Installing PyTorch For CPU..."
@@ -223,6 +251,7 @@ switch ($Device) {
 Write-Success "PyTorch Installed"
 
 Write-Info "Installing Python Dependencies From requirements.txt..."
+Invoke-Pip --pre torchcodec --index-url https://download.pytorch.org/whl/nightly/cpu
 Invoke-Pip -r extra-req.txt --no-deps
 Invoke-Pip -r requirements.txt
 Write-Success "Python Dependencies Installed"

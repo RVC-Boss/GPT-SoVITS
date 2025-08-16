@@ -6,32 +6,26 @@
 全部按英文识别
 全部按日文识别
 """
-import psutil
-import os
 
-def set_high_priority():
-    """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
-    if os.name != "nt":
-        return # 仅 Windows 有效
-    p = psutil.Process(os.getpid())
-    try:
-        p.nice(psutil.HIGH_PRIORITY_CLASS)
-        print("已将进程优先级设为 High")
-    except psutil.AccessDenied:
-        print("权限不足，无法修改优先级（请用管理员运行）")
-set_high_priority()
-import json
+import argparse
+import contextlib
 import logging
 import os
 import random
 import re
-import sys
+from functools import partial
 
+import gradio as gr
+import psutil
 import torch
 
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
+from config import change_choices, custom_sort_key, get_dtype, get_weights_names, pretrained_sovits_name
+from config import infer_device as default_device
+from GPT_SoVITS.process_ckpt import inspect_version
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method
+from GPT_SoVITS.TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
+from tools.assets import css, js, top_html
+from tools.i18n.i18n import I18nAuto, scan_language_list
 
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -41,44 +35,128 @@ logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 
-
-infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
-infer_ttswebui = int(infer_ttswebui)
-is_share = os.environ.get("is_share", "False")
-is_share = eval(is_share)
-if "_CUDA_VISIBLE_DEVICES" in os.environ:
-    os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
-
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
-gpt_path = os.environ.get("gpt_path", None)
-sovits_path = os.environ.get("sovits_path", None)
-cnhubert_base_path = os.environ.get("cnhubert_base_path", None)
-bert_path = os.environ.get("bert_path", None)
-version = model_version = os.environ.get("version", "v2")
-
-import gradio as gr
-from TTS_infer_pack.text_segmentation_method import get_method
-from TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
-
-from tools.assets import css, js, top_html
-from tools.i18n.i18n import I18nAuto, scan_language_list
-
-language = os.environ.get("language", "Auto")
-language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
-i18n = I18nAuto(language=language)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
-# os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
+def set_high_priority():
+    if os.name != "nt":
+        return
+    p = psutil.Process(os.getpid())
+    with contextlib.suppress(psutil.AccessDenied):
+        p.nice(psutil.HIGH_PRIORITY_CLASS)
+        print("已将进程优先级设为 High")
 
-if torch.cuda.is_available():
-    device = "cuda"
-# elif torch.backends.mps.is_available():
-#     device = "mps"
-else:
-    device = "cpu"
 
-# is_half = False
-# device = "cpu"
+set_high_priority()
+
+
+_LANG_RE = re.compile(r"^[a-z]{2}[_-][A-Z]{2}$")
+
+
+def lang_type(text: str) -> str:
+    if text == "Auto":
+        return text
+    if not _LANG_RE.match(text):
+        raise argparse.ArgumentTypeError(f"Unspported Format: {text}, Expected ll_CC/ll-CC")
+    ll, cc = re.split(r"[_-]", text)
+    language = f"{ll}_{cc}"
+    if language in scan_language_list():
+        return language
+    else:
+        return "Auto"
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="inference_webui",
+        description="python -s inference_webui.py zh_CN -i naive",
+    )
+    p.add_argument(
+        "language",
+        nargs="?",
+        default="Auto",
+        type=lang_type,
+        help="Language Code, Such as zh_CN, en-US",
+    )
+    p.add_argument(
+        "--device",
+        "-d",
+        default=str(default_device),
+        help="Inference Device",
+        required=False,
+    )
+    p.add_argument(
+        "--port",
+        "-p",
+        default=9872,
+        type=int,
+        help="WebUI Binding Port",
+        required=False,
+    )
+    p.add_argument(
+        "--share",
+        "-s",
+        default=False,
+        action="store_true",
+        help="Gradio Share Link",
+        required=False,
+    )
+    p.add_argument(
+        "--cnhubert",
+        default="GPT_SoVITS/pretrained_models/chinese-hubert-base",
+        help="CNHuBERT Pretrain",
+        required=False,
+    )
+    p.add_argument(
+        "--bert",
+        default="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
+        help="BERT Pretrain",
+        required=False,
+    )
+    p.add_argument(
+        "--gpt",
+        default="",
+        help="GPT Model",
+        required=False,
+    )
+    p.add_argument(
+        "--sovits",
+        default="",
+        help="SoVITS Model",
+        required=False,
+    )
+
+    return p
+
+
+args = build_parser().parse_args()
+
+
+infer_ttswebui = int(args.port)
+is_share = args.share
+
+infer_device = torch.device(args.device)
+device = infer_device
+
+if torch.mps.is_available():
+    device = torch.device("cpu")
+
+dtype = get_dtype(device.index)
+is_half = dtype == torch.float16
+
+i18n = I18nAuto(language=args.language)
+change_choices_gradio = partial(change_choices, i18n=i18n)
+
+SoVITS_names, GPT_names = get_weights_names(i18n)
+
+gpt_path = str(args.gpt) or GPT_names[0][-1]
+sovits_path = str(args.sovits) or SoVITS_names[0][-1]
+
+cnhubert_base_path = str(args.cuhubert)
+bert_path = str(args.bert)
+
+version = model_version = "v2"
+
 
 dict_language_v1 = {
     i18n("中文"): "all_zh",  # 全部按中文识别
@@ -112,10 +190,6 @@ cut_method = {
     i18n("按标点符号切"): "cut5",
 }
 
-from config import change_choices, get_weights_names, name2gpt_path, name2sovits_path
-
-SoVITS_names, GPT_names = get_weights_names()
-from config import pretrained_sovits_name
 
 path_sovits_v3 = pretrained_sovits_name["v3"]
 path_sovits_v4 = pretrained_sovits_name["v4"]
@@ -128,12 +202,8 @@ tts_config.is_half = is_half
 # tts_config.version = version
 tts_config.update_version(version)
 if gpt_path is not None:
-    if "！" in gpt_path or "!" in gpt_path:
-        gpt_path = name2gpt_path[gpt_path]
     tts_config.t2s_weights_path = gpt_path
 if sovits_path is not None:
-    if "！" in sovits_path or "!" in sovits_path:
-        sovits_path = name2sovits_path[sovits_path]
     tts_config.vits_weights_path = sovits_path
 if cnhubert_base_path is not None:
     tts_config.cnhuhbert_base_path = cnhubert_base_path
@@ -201,62 +271,31 @@ def inference(
         gr.Warning(i18n("V3不支持无参考文本模式，请填写参考文本！"))
 
 
-def custom_sort_key(s):
-    # 使用正则表达式提取字符串中的数字部分和非数字部分
-    parts = re.split("(\d+)", s)
-    # 将数字部分转换为整数，非数字部分保持不变
-    parts = [int(part) if part.isdigit() else part for part in parts]
-    return parts
-
-
-if os.path.exists("./weight.json"):
-    pass
-else:
-    with open("./weight.json", "w", encoding="utf-8") as file:
-        json.dump({"GPT": {}, "SoVITS": {}}, file)
-
-with open("./weight.json", "r", encoding="utf-8") as file:
-    weight_data = file.read()
-    weight_data = json.loads(weight_data)
-    gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, GPT_names[-1]))
-    sovits_path = os.environ.get("sovits_path", weight_data.get("SoVITS", {}).get(version, SoVITS_names[0]))
-    if isinstance(gpt_path, list):
-        gpt_path = gpt_path[0]
-    if isinstance(sovits_path, list):
-        sovits_path = sovits_path[0]
-
-from process_ckpt import get_sovits_version_from_path_fast
-
 v3v4set = {"v3", "v4"}
 
 
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
-    if "！" in sovits_path or "!" in sovits_path:
-        sovits_path = name2sovits_path[sovits_path]
-    global version, model_version, dict_language, if_lora_v3
-    version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
-    # print(sovits_path,version, model_version, if_lora_v3)
+    global version, model_version, dict_language, is_lora
+    model_version, version, is_lora, _, __ = inspect_version(sovits_path)
+    # print(sovits_path,version, model_version, is_lora)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
-    if if_lora_v3 == True and is_exist == False:
-        info = path_sovits + "SoVITS %s" % model_version + i18n("底模缺失，无法加载相应 LoRA 权重")
+    if is_lora is True and is_exist is False:
+        info = path_sovits + f"SoVITS {model_version}" + i18n("底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
-            prompt_text_update, prompt_language_update = (
-                {"__type__": "update"},
-                {"__type__": "update", "value": prompt_language},
-            )
+            prompt_text_update, prompt_language_update = gr.skip(), gr.skip()
         else:
-            prompt_text_update = {"__type__": "update", "value": ""}
-            prompt_language_update = {"__type__": "update", "value": i18n("中文")}
+            prompt_text_update = gr.update(value="")
+            prompt_language_update = gr.update(value=i18n("中文"))
         if text_language in list(dict_language.keys()):
-            text_update, text_language_update = {"__type__": "update"}, {"__type__": "update", "value": text_language}
+            text_update, text_language_update = gr.skip(), gr.skip()
         else:
-            text_update = {"__type__": "update", "value": ""}
-            text_language_update = {"__type__": "update", "value": i18n("中文")}
+            text_update = gr.update(value="")
+            text_language_update = gr.update(value=i18n("中文"))
         if model_version in v3v4set:
             visible_sample_steps = True
             visible_inp_refs = False
@@ -264,42 +303,42 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             visible_sample_steps = False
             visible_inp_refs = True
         yield (
-            {"__type__": "update", "choices": list(dict_language.keys())},
-            {"__type__": "update", "choices": list(dict_language.keys())},
+            gr.update(choices=list(dict_language.keys())),
+            gr.update(choices=list(dict_language.keys())),
             prompt_text_update,
             prompt_language_update,
             text_update,
             text_language_update,
-            {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
-            {"__type__": "update", "visible": visible_inp_refs},
-            {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
-            {"__type__": "update", "value": i18n("模型加载中，请等待"), "interactive": False},
+            gr.update(
+                visible=visible_sample_steps,
+                value=32 if model_version == "v3" else 8,
+                choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
+            ),
+            gr.update(visible=visible_inp_refs),
+            gr.update(interactive=True if model_version not in v3v4set else False),
+            gr.update(value=i18n("模型加载中，请等待"), interactive=False),
         )
 
     tts_pipeline.init_vits_weights(sovits_path)
     yield (
-        {"__type__": "update", "choices": list(dict_language.keys())},
-        {"__type__": "update", "choices": list(dict_language.keys())},
+        gr.update(choices=list(dict_language.keys())),
+        gr.update(choices=list(dict_language.keys())),
         prompt_text_update,
         prompt_language_update,
         text_update,
         text_language_update,
-        {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
-        {"__type__": "update", "visible": visible_inp_refs},
-        {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
-        {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
+        gr.update(
+            visible=visible_sample_steps,
+            value=32 if model_version == "v3" else 8,
+            choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
+        ),
+        gr.update(visible=visible_inp_refs),
+        gr.update(interactive=True if model_version not in v3v4set else False),
+        gr.update(value=i18n("合成语音"), interactive=True),
     )
-    with open("./weight.json") as f:
-        data = f.read()
-        data = json.loads(data)
-        data["SoVITS"][version] = sovits_path
-    with open("./weight.json", "w") as f:
-        f.write(json.dumps(data))
 
 
 def change_gpt_weights(gpt_path):
-    if "！" in gpt_path or "!" in gpt_path:
-        gpt_path = name2gpt_path[gpt_path]
     tts_pipeline.init_t2s_weights(gpt_path)
 
 
@@ -315,7 +354,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
     with gr.Column():
         # with gr.Group():
         gr.Markdown(value=i18n("模型切换"))
-        with gr.Row():
+        with gr.Row(equal_height=True):
             GPT_dropdown = gr.Dropdown(
                 label=i18n("GPT模型列表"),
                 choices=sorted(GPT_names, key=custom_sort_key),
@@ -329,20 +368,24 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 interactive=True,
             )
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
-            refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
+            refresh_button.click(fn=change_choices_gradio, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
 
-    with gr.Row():
+    with gr.Row(equal_height=True):
         with gr.Column():
             gr.Markdown(value=i18n("*请上传并填写参考信息"))
-            with gr.Row():
-                inp_ref = gr.Audio(label=i18n("主参考音频(请上传3~10秒内参考音频，超过会报错！)"), type="filepath")
+            with gr.Row(equal_height=True):
+                inp_ref = gr.Audio(
+                    label=i18n("主参考音频(请上传3~10秒内参考音频，超过会报错！)"),
+                    type="filepath",
+                    waveform_options={"show_recording_waveform": False},
+                )
                 inp_refs = gr.File(
                     label=i18n("辅参考音频(可选多个，或不选)"),
                     file_count="multiple",
                     visible=True if model_version != "v3" else False,
                 )
             prompt_text = gr.Textbox(label=i18n("主参考音频的文本"), value="", lines=2)
-            with gr.Row():
+            with gr.Row(equal_height=True):
                 prompt_language = gr.Dropdown(
                     label=i18n("主参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文")
                 )
@@ -368,26 +411,26 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
 
     with gr.Group():
         gr.Markdown(value=i18n("推理设置"))
-        with gr.Row():
+        with gr.Row(equal_height=True):
             with gr.Column():
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     batch_size = gr.Slider(
                         minimum=1, maximum=200, step=1, label=i18n("batch_size"), value=20, interactive=True
                     )
                     sample_steps = gr.Radio(
                         label=i18n("采样步数(仅对V3/4生效)"), value=32, choices=[4, 8, 16, 32, 64, 128], visible=True
                     )
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     fragment_interval = gr.Slider(
                         minimum=0.01, maximum=1, step=0.01, label=i18n("分段间隔(秒)"), value=0.3, interactive=True
                     )
                     speed_factor = gr.Slider(
                         minimum=0.6, maximum=1.65, step=0.05, label="语速", value=1.0, interactive=True
                     )
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     top_k = gr.Slider(minimum=1, maximum=100, step=1, label=i18n("top_k"), value=5, interactive=True)
                     top_p = gr.Slider(minimum=0, maximum=1, step=0.05, label=i18n("top_p"), value=1, interactive=True)
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     temperature = gr.Slider(
                         minimum=0, maximum=1, step=0.05, label=i18n("temperature"), value=1, interactive=True
                     )
@@ -396,7 +439,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     )
 
             with gr.Column():
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     how_to_cut = gr.Dropdown(
                         label=i18n("怎么切"),
                         choices=[
@@ -415,7 +458,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         label=i18n("音频超采样(仅对V3生效))"), value=False, interactive=True, show_label=True
                     )
 
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     parallel_infer = gr.Checkbox(label=i18n("并行推理"), value=True, interactive=True, show_label=True)
                     split_bucket = gr.Checkbox(
                         label=i18n("数据分桶(并行推理时会降低一点计算量)"),
@@ -424,12 +467,15 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         show_label=True,
                     )
 
-                with gr.Row():
+                with gr.Row(equal_height=True):
                     seed = gr.Number(label=i18n("随机种子"), value=-1)
                     keep_random = gr.Checkbox(label=i18n("保持随机"), value=True, interactive=True, show_label=True)
 
-                output = gr.Audio(label=i18n("输出的语音"))
-                with gr.Row():
+                output = gr.Audio(
+                    label=i18n("输出的语音"),
+                    waveform_options={"show_recording_waveform": False},
+                )
+                with gr.Row(equal_height=True):
                     inference_button = gr.Button(i18n("合成语音"), variant="primary")
                     stop_infer = gr.Button(i18n("终止合成"), variant="primary")
 
@@ -485,7 +531,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 "文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"
             )
         )
-        with gr.Row():
+        with gr.Row(equal_height=True):
             text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"), value="", lines=4)
             with gr.Column():
                 _how_to_cut = gr.Radio(

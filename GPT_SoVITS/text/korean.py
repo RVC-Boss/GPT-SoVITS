@@ -1,12 +1,16 @@
 # reference: https://github.com/ORI-Muchim/MB-iSTFT-VITS-Korean/blob/main/text/korean.py
 
-import re
-from jamo import h2j, j2hcj
-import ko_pron
-from g2pk2 import G2p
-
 import importlib
 import os
+import re
+import shutil
+import sys
+
+import ko_pron
+from g2pk2 import G2p
+from jamo import h2j, j2hcj
+
+from .symbols2 import symbols
 
 # 防止win下无法读取模型
 if os.name == "nt":
@@ -21,14 +25,11 @@ if os.name == "nt":
             else:
                 installpath = spam_spec.submodule_search_locations[0]
                 if not (re.match(r"^[A-Za-z0-9_/\\:.\-]*$", installpath)):
-                    import sys
                     from eunjeon import Mecab as _Mecab
 
                     class Mecab(_Mecab):
                         def get_dicpath(installpath):
                             if not (re.match(r"^[A-Za-z0-9_/\\:.\-]*$", installpath)):
-                                import shutil
-
                                 python_dir = os.getcwd()
                                 if installpath[: len(python_dir)].upper() == python_dir.upper():
                                     dicpath = os.path.join(os.path.relpath(installpath, python_dir), "data", "mecabrc")
@@ -55,8 +56,6 @@ if os.name == "nt":
 
     G2p = win_G2p
 
-
-from text.symbols2 import symbols
 
 # This is a list of Korean classifiers preceded by pure Korean numerals.
 _korean_classifiers = (

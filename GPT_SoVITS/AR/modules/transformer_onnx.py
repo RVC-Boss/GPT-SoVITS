@@ -2,19 +2,14 @@
 import copy
 import numbers
 from functools import partial
-from typing import Any
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
-from AR.modules.activation_onnx import MultiheadAttention
-from AR.modules.scaling import BalancedDoubleSwish
-from torch import nn
-from torch import Tensor
+from torch import Tensor, nn
 from torch.nn import functional as F
+
+from GPT_SoVITS.AR.modules.activation_onnx import MultiheadAttention
+from GPT_SoVITS.AR.modules.scaling import BalancedDoubleSwish
 
 _shape_t = Union[int, List[int], torch.Size]
 

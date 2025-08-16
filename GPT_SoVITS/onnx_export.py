@@ -1,18 +1,20 @@
+import json
+import os
+
+import onnxruntime
+import soundfile
 import torch
 import torchaudio
-from AR.models.t2s_lightning_module_onnx import Text2SemanticLightningModule
-from feature_extractor import cnhubert
-from module.models_onnx import SynthesizerTrn, symbols_v1, symbols_v2
 from torch import nn
+
+from GPT_SoVITS.AR.models.t2s_lightning_module_onnx import Text2SemanticLightningModule
+from GPT_SoVITS.feature_extractor import cnhubert
+from GPT_SoVITS.module.models_onnx import SynthesizerTrn, symbols_v1, symbols_v2
+from GPT_SoVITS.text import cleaned_text_to_sequence
 
 cnhubert_base_path = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 cnhubert.cnhubert_base_path = cnhubert_base_path
 ssl_model = cnhubert.get_model()
-import json
-import os
-
-import soundfile
-from text import cleaned_text_to_sequence
 
 
 def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False):
@@ -232,8 +234,6 @@ class GptSoVits(nn.Module):
         pred_semantic = self.t2s(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
         audio = self.vits(text_seq, pred_semantic, ref_audio)
         if debug:
-            import onnxruntime
-
             sess = onnxruntime.InferenceSession("onnx/koharu/koharu_vits.onnx", providers=["CPU"])
             audio1 = sess.run(
                 None,
@@ -343,7 +343,7 @@ def export(vits_path, gpt_path, project_name, vits_model="v2"):
 
     try:
         os.mkdir(f"onnx/{project_name}")
-    except:
+    except Exception:
         pass
 
     ssl_content = ssl(ref_audio_16k).float()
@@ -387,7 +387,7 @@ def export(vits_path, gpt_path, project_name, vits_model="v2"):
 if __name__ == "__main__":
     try:
         os.mkdir("onnx")
-    except:
+    except Exception:
         pass
 
     gpt_path = "GPT_weights/nahida-e25.ckpt"

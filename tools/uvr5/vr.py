@@ -1,19 +1,19 @@
-import os
-
-parent_directory = os.path.dirname(os.path.abspath(__file__))
 import logging
-
-logger = logging.getLogger(__name__)
+import os
 
 import librosa
 import numpy as np
 import soundfile as sf
 import torch
-from lib.lib_v5 import nets_61968KB as Nets
-from lib.lib_v5 import spec_utils
-from lib.lib_v5.model_param_init import ModelParameters
-from lib.lib_v5.nets_new import CascadedNet
-from lib.utils import inference
+
+from tools.uvr5.lib.lib_v5 import nets_61968KB as Nets
+from tools.uvr5.lib.lib_v5 import spec_utils
+from tools.uvr5.lib.lib_v5.model_param_init import ModelParameters
+from tools.uvr5.lib.lib_v5.nets_new import CascadedNet
+from tools.uvr5.lib.utils import inference
+
+logger = logging.getLogger(__name__)
+parent_directory = os.path.dirname(os.path.abspath(__file__))
 
 
 class AudioPre:
@@ -106,7 +106,7 @@ class AudioPre:
         y_spec_m = pred * X_phase
         v_spec_m = X_spec_m - y_spec_m
 
-        if is_hp3 == True:
+        if is_hp3 is True:
             ins_root, vocal_root = vocal_root, ins_root
 
         if ins_root is not None:
@@ -118,7 +118,7 @@ class AudioPre:
             else:
                 wav_instrument = spec_utils.cmb_spectrogram_to_wave(y_spec_m, self.mp)
             logger.info("%s instruments done" % name)
-            if is_hp3 == True:
+            if is_hp3 is True:
                 head = "vocal_"
             else:
                 head = "instrument_"
@@ -149,7 +149,7 @@ class AudioPre:
                         except:
                             pass
         if vocal_root is not None:
-            if is_hp3 == True:
+            if is_hp3 is True:
                 head = "instrument_"
             else:
                 head = "vocal_"

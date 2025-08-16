@@ -1,11 +1,11 @@
 import math
+from typing import Optional
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from module import commons
-
-from typing import Optional
+from . import commons
 
 
 class LayerNorm(nn.Module):
