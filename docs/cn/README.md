@@ -232,13 +232,13 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|zh|我爱玩原神.
 #### 其他
 
 ```bash
-python webui.py <language(optional)>
+PYTHONPATH=. python webui.py <language(optional)>
 ```
 
 若想使用 V1,则
 
 ```bash
-python webui.py v1 <language(optional)>
+PYTHONPATH=. python webui.py v1 <language(optional)>
 ```
 
 或者在 webUI 内动态切换
@@ -269,7 +269,7 @@ python GPT_SoVITS/inference_webui.py <language(optional)>
 或者
 
 ```bash
-python webui.py
+PYTHONPATH=. python webui.py
 ```
 
 然后在 `1-GPT-SoVITS-TTS/1C-推理` 中打开推理 webUI

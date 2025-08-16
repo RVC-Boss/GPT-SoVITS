@@ -240,13 +240,13 @@ if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-
 #### Others
 
 ```bash
-python webui.py <language(optional)>
+PYTHONPATH=. python webui.py <language(optional)>
 ```
 
 if you want to switch to V1,then
 
 ```bash
-python webui.py v1 <language(optional)>
+PYTHONPATH=. python webui.py v1 <language(optional)>
 ```
 
 Or maunally switch version in WebUI
@@ -277,7 +277,7 @@ python GPT_SoVITS/inference_webui.py <language(optional)>
 OR
 
 ```bash
-python webui.py
+PYTHONPATH=. python webui.py
 ```
 
 then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`

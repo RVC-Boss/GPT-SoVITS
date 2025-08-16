@@ -31,6 +31,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Windows CUDA 12.9
+        if: ${{ runner.os == 'Windows' && matrix.torch_cuda == '12.8' }}
+        uses: Jimver/cuda-toolkit
+        id: cuda-toolkit-win-129
+        with:
+          cuda: 12.9.1
+          method: "network"
+          sub-packages: '["nvcc", "cudart", "visual_studio_integration"]'
+
       - name: Run Build and Upload Script
         shell: pwsh
         run: |
