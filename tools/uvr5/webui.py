@@ -168,7 +168,7 @@ with gr.Blocks(title="UVR5 WebUI", analytics_enabled=False) as app:
                     "h4",
                 )
             )
-            with gr.Row():
+            with gr.Row(equal_height=True):
                 with gr.Column():
                     model_choose = gr.Dropdown(label=i18n("模型"), choices=uvr5_names)
                     dir_wav_input = gr.Textbox(
@@ -197,9 +197,9 @@ with gr.Blocks(title="UVR5 WebUI", analytics_enabled=False) as app:
                         interactive=True,
                     )
                     with gr.Column():
-                        with gr.Row():
+                        with gr.Row(equal_height=True):
                             but2 = gr.Button(i18n("转换"), variant="primary")
-                        with gr.Row():
+                        with gr.Row(equal_height=True):
                             vc_output4 = gr.Textbox(label=i18n("输出信息"), lines=3)
                 but2.click(
                     uvr,

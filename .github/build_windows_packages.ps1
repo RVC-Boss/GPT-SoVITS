@@ -115,12 +115,17 @@ Remove-Item $ffDir.FullName -Recurse -Force
 Write-Host "[INFO] Installing PyTorch..."
 & ".\runtime\python.exe" -m ensurepip
 & ".\runtime\python.exe" -m pip install --upgrade pip --no-warn-script-location
+
 switch ($cuda) {
     "cu124" {
-        & ".\runtime\python.exe" -m pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cu124 --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install psutil ninja packaging wheel "setuptools>=42" --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124 --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
     }
     "cu128" {
+        & ".\runtime\python.exe" -m pip install psutil ninja packaging wheel "setuptools>=42" --no-warn-script-location
         & ".\runtime\python.exe" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128 --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
     }
     default {
         Write-Error "Unsupported CUDA version: $cuda"

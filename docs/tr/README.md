@@ -229,13 +229,13 @@ V1'e geçmek istiyorsanız, `go-webui-v1.bat` dosyasına çift tıklayın veya `
 #### Diğerleri
 
 ```bash
-python webui.py <dil(isteğe bağlı)>
+PYTHONPATH=. python webui.py <dil(isteğe bağlı)>
 ```
 
 V1'e geçmek istiyorsanız,
 
 ```bash
-python webui.py v1 <dil(isteğe bağlı)>
+PYTHONPATH=. python webui.py v1 <dil(isteğe bağlı)>
 ```
 
 veya WebUI'de manuel olarak sürüm değiştirin.
@@ -266,7 +266,7 @@ python GPT_SoVITS/inference_webui.py <dil(isteğe bağlı)>
 VEYA
 
 ```bash
-python webui.py
+PYTHONPATH=. python webui.py
 ```
 
 ardından çıkarım webui'sini `1-GPT-SoVITS-TTS/1C-inference` adresinde açın.

@@ -222,13 +222,13 @@ V1 に切り替えたい場合は、`go-webui-v1.bat`をダブルクリックす
 #### その他
 
 ```bash
-python webui.py <言語(オプション)>
+PYTHONPATH=. python webui.py <言語(オプション)>
 ```
 
 V1 に切り替えたい場合は
 
 ```bash
-python webui.py v1 <言語(オプション)>
+PYTHONPATH=. python webui.py v1 <言語(オプション)>
 ```
 
 または WebUI で手動でバージョンを切り替えてください.
@@ -259,7 +259,7 @@ python GPT_SoVITS/inference_webui.py <言語(オプション)>
 または
 
 ```bash
-python webui.py
+PYTHONPATH=. python webui.py
 ```
 
 その後、`1-GPT-SoVITS-TTS/1C-inference`で推論 webui を開きます.

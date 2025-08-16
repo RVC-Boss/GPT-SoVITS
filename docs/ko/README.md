@@ -228,13 +228,13 @@ V1으로 전환하려면, `go-webui-v1.bat`을 더블 클릭하거나 `go-webui-
 #### 기타
 
 ```bash
-python webui.py <언어(옵션)>
+PYTHONPATH=. python webui.py <언어(옵션)>
 ```
 
 V1으로 전환하려면,
 
 ```bash
-python webui.py v1 <언어(옵션)>
+PYTHONPATH=. python webui.py v1 <언어(옵션)>
 ```
 
 또는 WebUI에서 수동으로 버전을 전환하십시오.
@@ -265,7 +265,7 @@ python GPT_SoVITS/inference_webui.py <언어(옵션)>
 또는
 
 ```bash
-python webui.py
+PYTHONPATH=. python webui.py
 ```
 
 그런 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.

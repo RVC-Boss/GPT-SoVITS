@@ -127,7 +127,7 @@ while [[ $# -gt 0 ]]; do
             USE_ROCM=true
             ;;
         MPS)
-            USE_CPU=true
+            USE_MPS=true
             ;;
         CPU)
             USE_CPU=true
@@ -157,7 +157,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! $USE_CUDA && ! $USE_ROCM && ! $USE_CPU; then
+if ! $USE_CUDA && ! $USE_ROCM && ! $USE_MPS && ! $USE_CPU; then
     echo -e "${ERROR}Error: Device is REQUIRED"
     echo ""
     print_help
@@ -322,13 +322,29 @@ if [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
 fi
 
 if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
+    CUDAVERSION=$(nvidia-smi | grep "CUDA Version" | sed -E 's/.*CUDA Version: ([0-9]+\.[0-9]+).*/\1/')
+    echo -e "${INFO}Maximum CUDA Version Supported By Current Driver: $CUDAVERSION"
     if [ "$CUDA" = 128 ]; then
+        if awk "BEGIN {exit !($CUDAVERSION < 12.8)}"; then
+            echo -r "${WARNING}CUDA 12.8 Is Not Supported By Current Driver"
+        fi
         echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
         run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
+        run_conda_quiet cuda-nvcc=12.8
     elif [ "$CUDA" = 126 ]; then
+        if awk "BEGIN {exit !($CUDAVERSION < 12.6)}"; then
+            echo -r "${WARNING}CUDA 12.6 Is Not Supported By Current Driver"
+        fi
         echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
         run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
+        run_conda_quiet cuda-nvcc=12.6
     fi
+    run_pip_quiet psutil ninja packaging wheel "setuptools>=42"
+    run_pip_quiet flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
+elif [ "$USE_MPS" = true ] && [ "$WORKFLOW" = false ]; then
+    echo -e "${INFO}Installing PyTorch For MPS..."
+    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
+    run_pip_quiet mlx mlx-lm
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
     run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/rocm6.2"

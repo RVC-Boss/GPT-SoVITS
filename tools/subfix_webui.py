@@ -1,4 +1,5 @@
 import sys
+
 from tools.i18n.i18n import I18nAuto, scan_language_list
 
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
@@ -314,7 +315,7 @@ if __name__ == "__main__":
                 "Submit Text: 将当前页所有文本框内容手工保存到内存和文件(翻页前后或者退出标注页面前如果没点这个按钮，你再翻回来就回滚了，白忙活。)"
             )
         )
-        with gr.Row():
+        with gr.Row(equal_height=True):
             btn_change_index = gr.Button("Change Index")
             btn_submit_change = gr.Button("Submit Text")
             btn_merge_audio = gr.Button("Merge Audio")
@@ -322,7 +323,7 @@ if __name__ == "__main__":
             btn_previous_index = gr.Button("Previous Index")
             btn_next_index = gr.Button("Next Index")
 
-        with gr.Row():
+        with gr.Row(equal_height=True):
             index_slider = gr.Slider(minimum=0, maximum=g_max_json_index, value=g_index, step=1, label="Index", scale=3)
             splitpoint_slider = gr.Slider(
                 minimum=0, maximum=120.0, value=0, step=0.1, label="Audio Split Point(s)", scale=3
@@ -331,18 +332,23 @@ if __name__ == "__main__":
             btn_save_json = gr.Button("Save File", visible=True, scale=1)
             btn_invert_selection = gr.Button("Invert Selection", scale=1)
 
-        with gr.Row():
+        with gr.Row(equal_height=True):
             with gr.Column():
                 for _ in range(0, g_batch):
-                    with gr.Row():
+                    with gr.Row(equal_height=True):
                         text = gr.Textbox(label="Text", visible=True, scale=5)
-                        audio_output = gr.Audio(label="Output Audio", visible=True, scale=5)
+                        audio_output = gr.Audio(
+                            label="Output Audio",
+                            visible=True,
+                            scale=5,
+                            waveform_options={"show_recording_waveform": False},
+                        )
                         audio_check = gr.Checkbox(label="Yes", show_label=True, info="Choose Audio", scale=1)
                         g_text_list.append(text)
                         g_audio_list.append(audio_output)
                         g_checkbox_list.append(audio_check)
 
-        with gr.Row():
+        with gr.Row(equal_height=True):
             batchsize_slider = gr.Slider(
                 minimum=1, maximum=g_batch, value=g_batch, step=1, label="Batch Size", scale=3, interactive=False
             )
