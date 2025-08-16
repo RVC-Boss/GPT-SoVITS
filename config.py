@@ -161,7 +161,7 @@ def get_device_dtype_sm(idx: int) -> tuple[torch.device, torch.dtype, float, flo
     is_16_series = bool(re.search(r"16\d{2}", name)) and sm_version == 7.5
     if mem_gb < 4 or sm_version < 5.3:
         return cpu, torch.float32, 0.0, 0.0
-    if sm_version == 6.1 or is_16_series == True:
+    if sm_version == 6.1 or is_16_series is True:
         return cuda, torch.float32, sm_version, mem_gb
     if sm_version > 6.1:
         return cuda, torch.float16, sm_version, mem_gb
@@ -216,3 +216,22 @@ class Config:
         self.webui_port_subfix = webui_port_subfix
 
         self.api_port = api_port
+
+
+def get_implement(device: torch.device):
+    if torch.cuda.is_available():
+        idx = device.index
+        capability = torch.cuda.get_device_capability(idx)
+        major, minor = capability
+        sm_version = major + minor / 10.0
+        if sm_version >= 7.5:
+            return "flash_attn"
+        else:
+            if sys.platform == "linux":
+                return "sage_attn"
+            else:
+                return "naive"
+    elif torch.mps.is_available():
+        return "mlx"
+    else:
+        return "naive"
