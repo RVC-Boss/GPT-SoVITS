@@ -4,6 +4,7 @@ from AR.models.t2s_lightning_module_onnx import Text2SemanticLightningModule
 from feature_extractor import cnhubert
 from module.models_onnx import SynthesizerTrn, symbols_v1, symbols_v2
 from torch import nn
+from sv import SV
 
 cnhubert_base_path = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 cnhubert.cnhubert_base_path = cnhubert_base_path
@@ -190,14 +191,18 @@ class T2SModel(nn.Module):
 
 
 class VitsModel(nn.Module):
-    def __init__(self, vits_path):
+    def __init__(self, vits_path, version:str = 'v2'):
         super().__init__()
         dict_s2 = torch.load(vits_path, map_location="cpu")
         self.hps = dict_s2["config"]
         if dict_s2["weight"]["enc_p.text_embedding.weight"].shape[0] == 322:
             self.hps["model"]["version"] = "v1"
         else:
-            self.hps["model"]["version"] = "v2"
+            self.hps["model"]["version"] = version
+
+        self.sv_model = None
+        if version == "v2ProPlus" or version == "v2Pro":
+            self.sv_model = SV("cpu", False)
 
         self.hps = DictToAttrRecursive(self.hps)
         self.hps.model.semantic_frame_rate = "25hz"
@@ -219,6 +224,9 @@ class VitsModel(nn.Module):
             self.hps.data.win_length,
             center=False,
         )
+        if self.sv_model is not None:
+            sv_emb=self.sv_model.compute_embedding3_onnx(ref_audio)
+            return self.vq_model(pred_semantic, text_seq, refer, sv_emb=sv_emb)[0, 0]
         return self.vq_model(pred_semantic, text_seq, refer)[0, 0]
 
 
@@ -274,8 +282,8 @@ class SSLModel(nn.Module):
         return self.ssl.model(ref_audio_16k)["last_hidden_state"].transpose(1, 2)
 
 
-def export(vits_path, gpt_path, project_name, vits_model="v2"):
-    vits = VitsModel(vits_path)
+def export(vits_path, gpt_path, project_name, voice_model_version="v2"):
+    vits = VitsModel(vits_path, version=voice_model_version)
     gpt = T2SModel(gpt_path, vits)
     gpt_sovits = GptSoVits(vits, gpt)
     ssl = SSLModel()
@@ -297,7 +305,7 @@ def export(vits_path, gpt_path, project_name, vits_model="v2"):
                     "y",
                     "e4",
                 ],
-                version=vits_model,
+                version=voice_model_version,
             )
         ]
     )
@@ -330,7 +338,7 @@ def export(vits_path, gpt_path, project_name, vits_model="v2"):
                     "y",
                     "e4",
                 ],
-                version=vits_model,
+                version=voice_model_version,
             )
         ]
     )
@@ -349,9 +357,8 @@ def export(vits_path, gpt_path, project_name, vits_model="v2"):
     ssl_content = ssl(ref_audio_16k).float()
 
     # debug = False
-    debug = True
-
-    # gpt_sovits.export(ref_seq, text_seq, ref_bert, text_bert, ref_audio_sr, ssl_content, project_name)
+    debug = False
+    gpt_sovits.export(ref_seq, text_seq, ref_bert, text_bert, ref_audio_sr, ssl_content, project_name)
 
     if debug:
         a, b = gpt_sovits(ref_seq, text_seq, ref_bert, text_bert, ref_audio_sr, ssl_content, debug=debug)
@@ -361,7 +368,7 @@ def export(vits_path, gpt_path, project_name, vits_model="v2"):
         a = gpt_sovits(ref_seq, text_seq, ref_bert, text_bert, ref_audio_sr, ssl_content).detach().cpu().numpy()
         soundfile.write("out.wav", a, vits.hps.data.sampling_rate)
 
-    if vits_model == "v1":
+    if voice_model_version == "v1":
         symbols = symbols_v1
     else:
         symbols = symbols_v2
@@ -390,9 +397,16 @@ if __name__ == "__main__":
     except:
         pass
 
-    gpt_path = "GPT_weights/nahida-e25.ckpt"
-    vits_path = "SoVITS_weights/nahida_e30_s3930.pth"
-    exp_path = "nahida"
-    export(vits_path, gpt_path, exp_path)
+    # gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
+    # exp_path = "v2_export"
+    # version = "v2"
+    # export(vits_path, gpt_path, exp_path, version)
 
-    # soundfile.write("out.wav", a, vits.hps.data.sampling_rate)
+    gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
+    exp_path = "v2proplus_export"
+    version = "v2ProPlus"
+    export(vits_path, gpt_path, exp_path, version)
+
+
