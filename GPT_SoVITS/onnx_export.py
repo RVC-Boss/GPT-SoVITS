@@ -236,22 +236,9 @@ class GptSoVits(nn.Module):
         self.vits = vits
         self.t2s = t2s
 
-    def forward(self, ref_seq, text_seq, ref_bert, text_bert, ref_audio, ssl_content, debug=False):
+    def forward(self, ref_seq, text_seq, ref_bert, text_bert, ref_audio, ssl_content):
         pred_semantic = self.t2s(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
         audio = self.vits(text_seq, pred_semantic, ref_audio)
-        if debug:
-            import onnxruntime
-
-            sess = onnxruntime.InferenceSession("onnx/koharu/koharu_vits.onnx", providers=["CPU"])
-            audio1 = sess.run(
-                None,
-                {
-                    "text_seq": text_seq.detach().cpu().numpy(),
-                    "pred_semantic": pred_semantic.detach().cpu().numpy(),
-                    "ref_audio": ref_audio.detach().cpu().numpy(),
-                },
-            )
-            return audio, audio1
         return audio
 
     def export(self, ref_seq, text_seq, ref_bert, text_bert, ref_audio, ssl_content, project_name):
@@ -356,17 +343,7 @@ def export(vits_path, gpt_path, project_name, voice_model_version="v2"):
 
     ssl_content = ssl(ref_audio_16k).float()
 
-    # debug = False
-    debug = False
     gpt_sovits.export(ref_seq, text_seq, ref_bert, text_bert, ref_audio_sr, ssl_content, project_name)
-
-    if debug:
-        a, b = gpt_sovits(ref_seq, text_seq, ref_bert, text_bert, ref_audio_sr, ssl_content, debug=debug)
-        soundfile.write("out1.wav", a.cpu().detach().numpy(), vits.hps.data.sampling_rate)
-        soundfile.write("out2.wav", b[0], vits.hps.data.sampling_rate)
-    else:
-        a = gpt_sovits(ref_seq, text_seq, ref_bert, text_bert, ref_audio_sr, ssl_content).detach().cpu().numpy()
-        soundfile.write("out.wav", a, vits.hps.data.sampling_rate)
 
     if voice_model_version == "v1":
         symbols = symbols_v1

@@ -2,7 +2,7 @@ from torch.nn.functional import *
 from torch.nn.functional import (
     _canonical_mask,
 )
-from typing import Tuple
+from typing import Tuple, Optional
 
 
 def multi_head_attention_forward_patched(
