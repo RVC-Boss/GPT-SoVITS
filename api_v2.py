@@ -33,14 +33,14 @@ POST:
     "text_split_method": "cut0",  # str. text split method, see text_segmentation_method.py for details.
     "batch_size": 1,              # int. batch size for inference
     "batch_threshold": 0.75,      # float. threshold for batch splitting.
-    "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
+    "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
     "speed_factor":1.0,           # float. control the speed of the synthesized audio.
     "streaming_mode": False,      # bool. whether to return a streaming response.
     "seed": -1,                   # int. random seed for reproducibility.
     "parallel_infer": True,       # bool. whether to use parallel inference.
-    "repetition_penalty": 1.35    # float. repetition penalty for T2S model.
+    "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
     "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-    "super_sampling": False,       # bool. whether to use super-sampling for audio when using VITS model V3.
+    "super_sampling": False       # bool. whether to use super-sampling for audio when using VITS model V3.
 }
 ```
 

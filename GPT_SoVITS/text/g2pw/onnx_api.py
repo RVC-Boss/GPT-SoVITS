@@ -3,7 +3,6 @@
 
 import json
 import os
-import traceback
 import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
@@ -23,8 +22,9 @@ from .utils import load_config
 onnxruntime.set_default_logger_severity(3)
 try:
     onnxruntime.preload_dlls()
-except:pass
-    #traceback.print_exc()
+except:
+    pass
+    # traceback.print_exc()
 warnings.filterwarnings("ignore")
 
 model_version = "1.1"
@@ -93,13 +93,13 @@ class G2PWOnnxConverter:
         sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
         sess_options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
         sess_options.intra_op_num_threads = 2 if torch.cuda.is_available() else 0
-        try:
+        if "CUDAExecutionProvider" in onnxruntime.get_available_providers():
             self.session_g2pW = onnxruntime.InferenceSession(
                 os.path.join(uncompress_path, "g2pW.onnx"),
                 sess_options=sess_options,
                 providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
             )
-        except:
+        else:
             self.session_g2pW = onnxruntime.InferenceSession(
                 os.path.join(uncompress_path, "g2pW.onnx"),
                 sess_options=sess_options,

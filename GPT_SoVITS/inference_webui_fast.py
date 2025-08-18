@@ -6,7 +6,20 @@
 全部按英文识别
 全部按日文识别
 """
+import psutil
+import os
 
+def set_high_priority():
+    """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
+    if os.name != "nt":
+        return # 仅 Windows 有效
+    p = psutil.Process(os.getpid())
+    try:
+        p.nice(psutil.HIGH_PRIORITY_CLASS)
+        print("已将进程优先级设为 High")
+    except psutil.AccessDenied:
+        print("权限不足，无法修改优先级（请用管理员运行）")
+set_high_priority()
 import json
 import logging
 import os
@@ -112,7 +125,8 @@ is_exist_s2gv4 = os.path.exists(path_sovits_v4)
 tts_config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
 tts_config.device = device
 tts_config.is_half = is_half
-tts_config.version = version
+# tts_config.version = version
+tts_config.update_version(version)
 if gpt_path is not None:
     if "！" in gpt_path or "!" in gpt_path:
         gpt_path = name2gpt_path[gpt_path]

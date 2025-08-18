@@ -199,6 +199,8 @@ def is_full(*items):  # 任意一项为空返回False
 
 
 bigvgan_model = hifigan_model = sv_cn_model = None
+
+
 def clean_hifigan_model():
     global hifigan_model
     if hifigan_model:
@@ -208,6 +210,8 @@ def clean_hifigan_model():
             torch.cuda.empty_cache()
         except:
             pass
+
+
 def clean_bigvgan_model():
     global bigvgan_model
     if bigvgan_model:
@@ -217,6 +221,8 @@ def clean_bigvgan_model():
             torch.cuda.empty_cache()
         except:
             pass
+
+
 def clean_sv_cn_model():
     global sv_cn_model
     if sv_cn_model:
@@ -229,7 +235,7 @@ def clean_sv_cn_model():
 
 
 def init_bigvgan():
-    global bigvgan_model, hifigan_model,sv_cn_model
+    global bigvgan_model, hifigan_model, sv_cn_model
     from BigVGAN import bigvgan
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
@@ -247,7 +253,7 @@ def init_bigvgan():
 
 
 def init_hifigan():
-    global hifigan_model, bigvgan_model,sv_cn_model
+    global hifigan_model, bigvgan_model, sv_cn_model
     hifigan_model = Generator(
         initial_channel=100,
         resblock="1",
@@ -262,7 +268,9 @@ def init_hifigan():
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
     state_dict_g = torch.load(
-        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,), map_location="cpu", weights_only=False
+        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+        map_location="cpu",
+        weights_only=False,
     )
     print("loading vocoder", hifigan_model.load_state_dict(state_dict_g))
     if is_half == True:
@@ -272,19 +280,21 @@ def init_hifigan():
 
 
 from sv import SV
+
+
 def init_sv_cn():
     global hifigan_model, bigvgan_model, sv_cn_model
     sv_cn_model = SV(device, is_half)
 
 
-resample_transform_dict={}
-def resample(audio_tensor, sr0,sr1,device):
+resample_transform_dict = {}
+
+
+def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    key="%s-%s-%s"%(sr0,sr1,str(device))
+    key = "%s-%s-%s" % (sr0, sr1, str(device))
     if key not in resample_transform_dict:
-        resample_transform_dict[key] = torchaudio.transforms.Resample(
-            sr0, sr1
-        ).to(device)
+        resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
 
 
@@ -370,6 +380,7 @@ from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 
 def get_sovits_weights(sovits_path):
     from config import pretrained_sovits_name
+
     path_sovits_v3 = pretrained_sovits_name["v3"]
     path_sovits_v4 = pretrained_sovits_name["v4"]
     is_exist_s2gv3 = os.path.exists(path_sovits_v3)
@@ -532,66 +543,65 @@ from text import chinese
 
 
 def get_phones_and_bert(text, language, version, final=False):
-    if language in {"en", "all_zh", "all_ja", "all_ko", "all_yue"}:
-        formattext = text
-        while "  " in formattext:
-            formattext = formattext.replace("  ", " ")
-        if language == "all_zh":
-            if re.search(r"[A-Za-z]", formattext):
-                formattext = re.sub(r"[a-z]", lambda x: x.group(0).upper(), formattext)
-                formattext = chinese.mix_text_normalize(formattext)
-                return get_phones_and_bert(formattext, "zh", version)
+    text = re.sub(r' {2,}', ' ', text)
+    textlist = []
+    langlist = []
+    if language == "all_zh":
+        for tmp in LangSegmenter.getTexts(text,"zh"):
+            langlist.append(tmp["lang"])
+            textlist.append(tmp["text"])
+    elif language == "all_yue":
+        for tmp in LangSegmenter.getTexts(text,"zh"):
+            if tmp["lang"] == "zh":
+                tmp["lang"] = "yue"
+            langlist.append(tmp["lang"])
+            textlist.append(tmp["text"])
+    elif language == "all_ja":
+        for tmp in LangSegmenter.getTexts(text,"ja"):
+            langlist.append(tmp["lang"])
+            textlist.append(tmp["text"])
+    elif language == "all_ko":
+        for tmp in LangSegmenter.getTexts(text,"ko"):
+            langlist.append(tmp["lang"])
+            textlist.append(tmp["text"])
+    elif language == "en":
+        langlist.append("en")
+        textlist.append(text)
+    elif language == "auto":
+        for tmp in LangSegmenter.getTexts(text):
+            langlist.append(tmp["lang"])
+            textlist.append(tmp["text"])
+    elif language == "auto_yue":
+        for tmp in LangSegmenter.getTexts(text):
+            if tmp["lang"] == "zh":
+                tmp["lang"] = "yue"
+            langlist.append(tmp["lang"])
+            textlist.append(tmp["text"])
+    else:
+        for tmp in LangSegmenter.getTexts(text):
+            if langlist:
+                if (tmp["lang"] == "en" and langlist[-1] == "en") or (tmp["lang"] != "en" and langlist[-1] != "en"):
+                    textlist[-1] += tmp["text"]
+                    continue
+            if tmp["lang"] == "en":
+                langlist.append(tmp["lang"])
             else:
-                phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
-                bert = get_bert_feature(norm_text, word2ph).to(device)
-        elif language == "all_yue" and re.search(r"[A-Za-z]", formattext):
-            formattext = re.sub(r"[a-z]", lambda x: x.group(0).upper(), formattext)
-            formattext = chinese.mix_text_normalize(formattext)
-            return get_phones_and_bert(formattext, "yue", version)
-        else:
-            phones, word2ph, norm_text = clean_text_inf(formattext, language, version)
-            bert = torch.zeros(
-                (1024, len(phones)),
-                dtype=torch.float16 if is_half == True else torch.float32,
-            ).to(device)
-    elif language in {"zh", "ja", "ko", "yue", "auto", "auto_yue"}:
-        textlist = []
-        langlist = []
-        if language == "auto":
-            for tmp in LangSegmenter.getTexts(text):
-                langlist.append(tmp["lang"])
-                textlist.append(tmp["text"])
-        elif language == "auto_yue":
-            for tmp in LangSegmenter.getTexts(text):
-                if tmp["lang"] == "zh":
-                    tmp["lang"] = "yue"
-                langlist.append(tmp["lang"])
-                textlist.append(tmp["text"])
-        else:
-            for tmp in LangSegmenter.getTexts(text):
-                if langlist:
-                    if (tmp["lang"] == "en" and langlist[-1] == "en") or (tmp["lang"] != "en" and langlist[-1] != "en"):
-                        textlist[-1] += tmp["text"]
-                        continue
-                if tmp["lang"] == "en":
-                    langlist.append(tmp["lang"])
-                else:
-                    # 因无法区别中日韩文汉字,以用户输入为准
-                    langlist.append(language)
-                textlist.append(tmp["text"])
-        phones_list = []
-        bert_list = []
-        norm_text_list = []
-        for i in range(len(textlist)):
-            lang = langlist[i]
-            phones, word2ph, norm_text = clean_text_inf(textlist[i], lang, version)
-            bert = get_bert_inf(phones, word2ph, norm_text, lang)
-            phones_list.append(phones)
-            norm_text_list.append(norm_text)
-            bert_list.append(bert)
-        bert = torch.cat(bert_list, dim=1)
-        phones = sum(phones_list, [])
-        norm_text = "".join(norm_text_list)
+                # 因无法区别中日韩文汉字,以用户输入为准
+                langlist.append(language)
+            textlist.append(tmp["text"])
+    phones_list = []
+    bert_list = []
+    norm_text_list = []
+    for i in range(len(textlist)):
+        lang = langlist[i]
+        phones, word2ph, norm_text = clean_text_inf(textlist[i], lang, version)
+        bert = get_bert_inf(phones, word2ph, norm_text, lang)
+        phones_list.append(phones)
+        norm_text_list.append(norm_text)
+        bert_list.append(bert)
+    bert = torch.cat(bert_list, dim=1)
+    phones = sum(phones_list, [])
+    norm_text = "".join(norm_text_list)
 
     if not final and len(phones) < 6:
         return get_phones_and_bert("." + text, language, version, final=True)
@@ -628,15 +638,17 @@ class DictToAttrRecursive(dict):
 
 
 def get_spepc(hps, filename, dtype, device, is_v2pro=False):
-    sr1=int(hps.data.sampling_rate)
-    audio, sr0=torchaudio.load(filename)
-    if sr0!=sr1:
-        audio=audio.to(device)
-        if(audio.shape[0]==2):audio=audio.mean(0).unsqueeze(0)
-        audio=resample(audio,sr0,sr1,device)
+    sr1 = int(hps.data.sampling_rate)
+    audio, sr0 = torchaudio.load(filename)
+    if sr0 != sr1:
+        audio = audio.to(device)
+        if audio.shape[0] == 2:
+            audio = audio.mean(0).unsqueeze(0)
+        audio = resample(audio, sr0, sr1, device)
     else:
-        audio=audio.to(device)
-        if(audio.shape[0]==2):audio=audio.mean(0).unsqueeze(0)
+        audio = audio.to(device)
+        if audio.shape[0] == 2:
+            audio = audio.mean(0).unsqueeze(0)
 
     maxx = audio.abs().max()
     if maxx > 1:
@@ -649,10 +661,10 @@ def get_spepc(hps, filename, dtype, device, is_v2pro=False):
         hps.data.win_length,
         center=False,
     )
-    spec=spec.to(dtype)
-    if is_v2pro==True:
-        audio=resample(audio,sr1,16000,device).to(dtype)
-    return spec,audio
+    spec = spec.to(dtype)
+    if is_v2pro == True:
+        audio = resample(audio, sr1, 16000, device).to(dtype)
+    return spec, audio
 
 
 def pack_audio(audio_bytes, data, rate):
@@ -872,29 +884,29 @@ def get_tts_wav(
         prompt_semantic = codes[0, 0]
         prompt = prompt_semantic.unsqueeze(0).to(device)
 
-        is_v2pro = version in {"v2Pro","v2ProPlus"}
+        is_v2pro = version in {"v2Pro", "v2ProPlus"}
         if version not in {"v3", "v4"}:
             refers = []
             if is_v2pro:
-                sv_emb= [] 
+                sv_emb = []
                 if sv_cn_model == None:
                     init_sv_cn()
             if inp_refs:
                 for path in inp_refs:
-                    try:#####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
-                        refer,audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
+                    try:  #####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
+                        refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
                         refers.append(refer)
                         if is_v2pro:
                             sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
                     except Exception as e:
                         logger.error(e)
             if len(refers) == 0:
-                refers,audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
-                refers=[refers]
+                refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
+                refers = [refers]
                 if is_v2pro:
-                    sv_emb=[sv_cn_model.compute_embedding3(audio_tensor)]
+                    sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
         else:
-            refer,audio_tensor = get_spepc(hps, ref_wav_path, dtype, device)
+            refer, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device)
 
     t1 = ttime()
     # os.environ['version'] = version
@@ -937,14 +949,22 @@ def get_tts_wav(
         if version not in {"v3", "v4"}:
             if is_v2pro:
                 audio = (
-                    vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed,sv_emb=sv_emb)
+                    vq_model.decode(
+                        pred_semantic,
+                        torch.LongTensor(phones2).to(device).unsqueeze(0),
+                        refers,
+                        speed=speed,
+                        sv_emb=sv_emb,
+                    )
                     .detach()
                     .cpu()
                     .numpy()[0, 0]
                 )
             else:
                 audio = (
-                    vq_model.decode(pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed)
+                    vq_model.decode(
+                        pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed
+                    )
                     .detach()
                     .cpu()
                     .numpy()[0, 0]
@@ -1107,7 +1127,6 @@ def handle(
         )
         if not default_refer.is_ready():
             return JSONResponse({"code": 400, "message": "未指定参考音频且接口无预设"}, status_code=400)
-
 
     if cut_punc == None:
         text = cut_text(text, default_cut_punc)

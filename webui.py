@@ -86,13 +86,10 @@ from config import (
 from tools import my_utils
 from tools.my_utils import check_details, check_for_existance
 
-# os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
-try:
-    import gradio.analytics as analytics
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-    analytics.version_check = lambda: None
-except:
-    ...
+# os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
 import gradio as gr
 
 n_cpu = cpu_count()
@@ -507,7 +504,7 @@ def open1Ba(
 ):
     global p_train_SoVITS
     if p_train_SoVITS == None:
-        exp_name=exp_name.rstrip(" ")
+        exp_name = exp_name.rstrip(" ")
         config_file = (
             "GPT_SoVITS/configs/s2.json"
             if version not in {"v2Pro", "v2ProPlus"}
@@ -604,7 +601,7 @@ def open1Bb(
 ):
     global p_train_GPT
     if p_train_GPT == None:
-        exp_name=exp_name.rstrip(" ")
+        exp_name = exp_name.rstrip(" ")
         with open(
             "GPT_SoVITS/configs/s1longer.yaml" if version == "v1" else "GPT_SoVITS/configs/s1longer-v2.yaml"
         ) as f:

@@ -594,3 +594,33 @@
   - 内容: 修复实验名结尾出现空格在win中路径不正确的问题
   - 类型: 修复
   - 提交: RVC-Boss
+- 2025.06.10 [Commit#746cb536](https://github.com/RVC-Boss/GPT-SoVITS/commit/746cb536c68b1fe6ce3ca7e882235375b8a8dd89)
+  - 内容: 语种分割优化
+  - 类型: 优化
+  - 提交: KamioRinn
+- 2025.06.11 [Commit#dd2b9253](https://github.com/RVC-Boss/GPT-SoVITS/commit/dd2b9253aabb09db32db7a3344570ed9df043351)
+  - 内容: 修复并行推理对v2pro支持bug
+  - 类型: 修复
+  - 提交: YYuX-1145
+- 2025.06.11 [Commit#ed89a023](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed89a023378dabba9d4b6580235bb9742245816d)
+  - 内容: v2pro对ge提取时会出现数值溢出的问题修复
+  - 类型: 修复
+  - 提交: RVC-Boss
+- 2025.06.11 [Commit#37f5abfc](https://github.com/RVC-Boss/GPT-SoVITS/commit/6fdc67ca83418306f11e90b9139278313ac5c3e9)[Commit#6fdc67ca](https://github.com/RVC-Boss/GPT-SoVITS/commit/37f5abfcb4a6553652235909db2e124b6f8ff3a5)
+  - 内容: install.sh逻辑优化
+  - 类型: 优化
+  - 提交: XXXXRT666
+- 2025.06.27 [Commit#90ebefa7](https://github.com/RVC-Boss/GPT-SoVITS/commit/90ebefa78fd544da36eebe0b2003620879c921b0)
+  - 内容: onnxruntime加载逻辑优化（对gpu/cpu的判断）
+  - 类型: 优化
+  - 提交: KamioRinn
+- 2025.06.27 [Commit#6df61f58](https://github.com/RVC-Boss/GPT-SoVITS/commit/6df61f58e4d18d4c2ad9d1eddd6a1bd690034c23)
+  - 内容: 语言分割及格式化优化
+  - 类型: 优化
+  - 提交: KamioRinn
+- 2025.07.10 [Commit#426e1a2bb](https://github.com/RVC-Boss/GPT-SoVITS/commit/426e1a2bb43614af2479b877c37acfb0591e952f)
+  - 内容: 提升推理进程优先级（修复win11下可能GPU利用率受限的问题）
+  - 类型: 修复
+  - 提交: XianYue0125
+
+

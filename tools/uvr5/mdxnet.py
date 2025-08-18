@@ -190,14 +190,14 @@ class Predictor:
             opt_path_vocal = path_vocal[:-4] + ".%s" % format
             opt_path_other = path_other[:-4] + ".%s" % format
             if os.path.exists(path_vocal):
-                os.system("ffmpeg -i \"%s\" -vn \"%s\" -q:a 2 -y" % (path_vocal, opt_path_vocal))
+                os.system('ffmpeg -i "%s" -vn "%s" -q:a 2 -y' % (path_vocal, opt_path_vocal))
                 if os.path.exists(opt_path_vocal):
                     try:
                         os.remove(path_vocal)
                     except:
                         pass
             if os.path.exists(path_other):
-                os.system("ffmpeg -i \"%s\" -vn \"%s\" -q:a 2 -y" % (path_other, opt_path_other))
+                os.system('ffmpeg -i "%s" -vn "%s" -q:a 2 -y' % (path_other, opt_path_other))
                 if os.path.exists(opt_path_other):
                     try:
                         os.remove(path_other)
