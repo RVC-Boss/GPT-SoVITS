@@ -162,13 +162,14 @@ class StepVitsModel(nn.Module):
     def ref_handle(self, ref_audio_32k):
         refer = spectrogram_torch(
             self.hann_window,
-            ref_audio_32k,
+            ref_audio_32k.float(),
             self.hps.data.filter_length,
             self.hps.data.sampling_rate,
             self.hps.data.hop_length,
             self.hps.data.win_length,
             center=False,
         )
+        refer = refer.to(ref_audio_32k.dtype)
         ref_audio_16k = resamplex(ref_audio_32k, 32000, 16000).to(ref_audio_32k.dtype).to(ref_audio_32k.device)
         sv_emb = self.sv(ref_audio_16k)
         return refer, sv_emb
