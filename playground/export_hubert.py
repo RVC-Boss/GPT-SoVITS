@@ -67,7 +67,7 @@ class HubertONNXExporter:
             print(f"[Error] ONNX model not found at {self.onnx_path}")
             return False
             
-    def _load_and_preprocess_audio(self, audio_path, max_length=32000):
+    def _load_and_preprocess_audio(self, audio_path, max_length=160000):
         """Load and preprocess audio file"""
         waveform, sample_rate = torchaudio.load(audio_path)
         
@@ -80,10 +80,18 @@ class HubertONNXExporter:
         if waveform.shape[0] > 1:
             waveform = waveform[0:1]
         
-        # Limit length for testing (2 seconds at 16kHz)
+        # Limit length for testing (10 seconds at 16kHz)
         if waveform.shape[1] > max_length:
             waveform = waveform[:, :max_length]
-            
+
+        # make a zero tensor that has length 3200*0.3
+        zero_tensor = torch.zeros((1, 9600), dtype=torch.float32)
+
+        print("waveform shape and zero wave shape", waveform.shape, zero_tensor.shape)
+
+        # concate zero_tensor with waveform
+        waveform = torch.cat([waveform, zero_tensor], dim=1)
+
         return waveform
         
     def test_torch_vs_onnx(self, audio_path="playground/ref/audio.wav"):
