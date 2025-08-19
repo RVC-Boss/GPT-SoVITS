@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import torchaudio
 from AR.models.t2s_lightning_module_onnx import Text2SemanticLightningModule
 from feature_extractor import cnhubert
@@ -38,6 +39,27 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
     )
     spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
     return spec
+
+def resample_audio(audio: torch.Tensor, orig_sr: int, target_sr: int) -> torch.Tensor:
+    """
+    Resample audio from orig_sr to target_sr using linear interpolation.
+    audio: (batch, channels, samples) or (channels, samples) or (samples,)
+    """
+    if audio.dim() == 1:
+        audio = audio.unsqueeze(0).unsqueeze(0)
+    elif audio.dim() == 2:
+        audio = audio.unsqueeze(0)
+    # audio shape: (batch, channels, samples)
+    batch, channels, samples = audio.shape
+    new_samples = int(samples * target_sr / orig_sr)
+    audio = audio.view(batch * channels, 1, samples)
+    resampled = F.interpolate(audio, size=new_samples, mode='linear', align_corners=False)
+    resampled = resampled.view(batch, channels, new_samples)
+    if resampled.shape[0] == 1 and resampled.shape[1] == 1:
+        resampled = resampled.squeeze(0).squeeze(0)
+    elif resampled.shape[0] == 1:
+        resampled = resampled.squeeze(0)
+    return resampled
 
 
 class DictToAttrRecursive(dict):
@@ -225,7 +247,7 @@ class VitsModel(nn.Module):
             center=False,
         )
         if self.sv_model is not None:
-            sv_emb=self.sv_model.compute_embedding3_onnx(ref_audio)
+            sv_emb=self.sv_model.compute_embedding3_onnx(resample_audio(ref_audio, 32000, 16000))
             return self.vq_model(pred_semantic, text_seq, refer, sv_emb=sv_emb)[0, 0]
         return self.vq_model(pred_semantic, text_seq, refer)[0, 0]
 
@@ -292,7 +314,7 @@ def export(vits_path, gpt_path, project_name, voice_model_version="v2"):
                     "y",
                     "e4",
                 ],
-                version=voice_model_version,
+                version='v2',
             )
         ]
     )
@@ -325,7 +347,7 @@ def export(vits_path, gpt_path, project_name, voice_model_version="v2"):
                     "y",
                     "e4",
                 ],
-                version=voice_model_version,
+                version='v2',
             )
         ]
     )
@@ -379,6 +401,11 @@ if __name__ == "__main__":
     # exp_path = "v2_export"
     # version = "v2"
     # export(vits_path, gpt_path, exp_path, version)
+
+    # gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
+    # exp_path = "v2pro_export"
+    # version = "v2Pro"
 
     gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
     vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"

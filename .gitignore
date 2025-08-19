@@ -194,3 +194,4 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 onnx/
+*.onnx
