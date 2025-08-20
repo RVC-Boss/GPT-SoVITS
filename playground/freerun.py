@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "onnx/v2pro_export/v2pro"
+MODEL_PATH = "onnx/v2proplus_export/v2proplus"
 
 def audio_postprocess(
     audios,
@@ -31,42 +31,7 @@ def audio_postprocess(
 
     return audio
 
-# def load_and_preprocess_audio(audio_path, max_length=160000):
-#     """Load and preprocess audio file to 16k"""
-#     waveform, sample_rate = torchaudio.load(audio_path)
-    
-#     # Resample to 16kHz if needed
-#     if sample_rate != 16000:
-#         resampler = torchaudio.transforms.Resample(sample_rate, 16000)
-#         waveform = resampler(waveform)
-    
-#     # Take first channel
-#     if waveform.shape[0] > 1:
-#         waveform = waveform[0:1]
-    
-#     # Limit length for testing (10 seconds at 16kHz)
-#     if waveform.shape[1] > max_length:
-#         waveform = waveform[:, :max_length]
-
-#     # make a zero tensor that has length 3200*0.3
-#     zero_tensor = torch.zeros((1, 4800), dtype=torch.float32)
-
-#     # concate zero_tensor with waveform
-#     waveform = torch.cat([waveform, zero_tensor], dim=1)
-
-#     return waveform
-
-# def get_audio_hubert(audio_path):
-#     """Get HuBERT features for the audio file"""
-#     waveform = load_and_preprocess_audio(audio_path)
-#     ort_session = ort.InferenceSession("playground/hubert/chinese-hubert-base.onnx")
-#     ort_inputs = {ort_session.get_inputs()[0].name: waveform.numpy()}
-#     hubert_feature = ort_session.run(None, ort_inputs)[0].astype(np.float32)
-#     # transpose axis 1 and 2 with numpy
-#     hubert_feature = hubert_feature.transpose(0, 2, 1)
-#     return hubert_feature
-
-def load_and_preprocess_audio(audio_path):
+def load_audio(audio_path):
     """Load and preprocess audio file to 32k"""
     waveform, sample_rate = torchaudio.load(audio_path)
 
@@ -81,15 +46,13 @@ def load_and_preprocess_audio(audio_path):
 
     return waveform
 
-def get_audio_hubert(audio_path):
+def audio_preprocess(audio_path):
     """Get HuBERT features for the audio file"""
-    waveform = load_and_preprocess_audio(audio_path)
-    ort_session = ort.InferenceSession(MODEL_PATH + "_export_hubertssl.onnx")
+    waveform = load_audio(audio_path)
+    ort_session = ort.InferenceSession(MODEL_PATH + "_export_audio_preprocess.onnx")
     ort_inputs = {ort_session.get_inputs()[0].name: waveform.numpy()}
-    [hubert_feature, spectrum] = ort_session.run(None, ort_inputs)
-    # transpose axis 1 and 2 with numpy
-    # hubert_feature = hubert_feature.transpose(0, 2, 1)
-    return hubert_feature, spectrum
+    [hubert_feature, spectrum, sv_emb] = ort_session.run(None, ort_inputs)
+    return hubert_feature, spectrum, sv_emb
 
 def preprocess_text(text:str):
     preprocessor = TextPreprocessorOnnx("playground/bert")
@@ -108,7 +71,7 @@ def preprocess_text(text:str):
 [ref_phones, ref_bert] = preprocess_text("今日江苏苏州荷花市集开张热闹与浪漫交织")
 
 
-[audio_prompt_hubert, spectrum] = get_audio_hubert("playground/ref/audio.wav")
+[audio_prompt_hubert, spectrum, sv_emb] = audio_preprocess("playground/ref/audio.wav")
 
 
 encoder = ort.InferenceSession(MODEL_PATH+"_export_t2s_encoder.onnx")
@@ -131,7 +94,6 @@ sdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
 # })
 
 
-stop = False
 for idx in tqdm(range(1, 1500)):
     # [1, N] [N_layer, N, 1, 512] [N_layer, N, 1, 512] [1, N, 512] [1] [1, N, 512] [1, N]
     [y, k, v, y_emb, logits, samples] = sdec.run(None, {
@@ -160,8 +122,8 @@ vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
 [audio] = vtis.run(None, {
     "text_seq": input_phones,
     "pred_semantic": pred_semantic,
-    "ref_audio": ref_audio,
-    "spectrum": spectrum.astype(np.float32)
+    "spectrum": spectrum.astype(np.float32),
+    "sv_emb": sv_emb.astype(np.float32)
 })
 
 audio_postprocess([audio])
