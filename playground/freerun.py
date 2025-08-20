@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "playground/v2pro_export/v2pro"
+MODEL_PATH = "onnx/v2pro_export/v2pro"
 
 def audio_postprocess(
     audios,
