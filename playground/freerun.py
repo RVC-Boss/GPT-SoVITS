@@ -31,39 +31,64 @@ def audio_postprocess(
 
     return audio
 
-def load_and_preprocess_audio(audio_path, max_length=160000):
-    """Load and preprocess audio file to 16k"""
-    waveform, sample_rate = torchaudio.load(audio_path)
+# def load_and_preprocess_audio(audio_path, max_length=160000):
+#     """Load and preprocess audio file to 16k"""
+#     waveform, sample_rate = torchaudio.load(audio_path)
     
-    # Resample to 16kHz if needed
-    if sample_rate != 16000:
-        resampler = torchaudio.transforms.Resample(sample_rate, 16000)
+#     # Resample to 16kHz if needed
+#     if sample_rate != 16000:
+#         resampler = torchaudio.transforms.Resample(sample_rate, 16000)
+#         waveform = resampler(waveform)
+    
+#     # Take first channel
+#     if waveform.shape[0] > 1:
+#         waveform = waveform[0:1]
+    
+#     # Limit length for testing (10 seconds at 16kHz)
+#     if waveform.shape[1] > max_length:
+#         waveform = waveform[:, :max_length]
+
+#     # make a zero tensor that has length 3200*0.3
+#     zero_tensor = torch.zeros((1, 4800), dtype=torch.float32)
+
+#     # concate zero_tensor with waveform
+#     waveform = torch.cat([waveform, zero_tensor], dim=1)
+
+#     return waveform
+
+# def get_audio_hubert(audio_path):
+#     """Get HuBERT features for the audio file"""
+#     waveform = load_and_preprocess_audio(audio_path)
+#     ort_session = ort.InferenceSession("playground/hubert/chinese-hubert-base.onnx")
+#     ort_inputs = {ort_session.get_inputs()[0].name: waveform.numpy()}
+#     hubert_feature = ort_session.run(None, ort_inputs)[0].astype(np.float32)
+#     # transpose axis 1 and 2 with numpy
+#     hubert_feature = hubert_feature.transpose(0, 2, 1)
+#     return hubert_feature
+
+def load_and_preprocess_audio(audio_path):
+    """Load and preprocess audio file to 32k"""
+    waveform, sample_rate = torchaudio.load(audio_path)
+
+    # Resample to 32kHz if needed
+    if sample_rate != 32000:
+        resampler = torchaudio.transforms.Resample(sample_rate, 32000)
         waveform = resampler(waveform)
     
     # Take first channel
     if waveform.shape[0] > 1:
         waveform = waveform[0:1]
-    
-    # Limit length for testing (10 seconds at 16kHz)
-    if waveform.shape[1] > max_length:
-        waveform = waveform[:, :max_length]
-
-    # make a zero tensor that has length 3200*0.3
-    zero_tensor = torch.zeros((1, 4800), dtype=torch.float32)
-
-    # concate zero_tensor with waveform
-    waveform = torch.cat([waveform, zero_tensor], dim=1)
 
     return waveform
 
 def get_audio_hubert(audio_path):
     """Get HuBERT features for the audio file"""
     waveform = load_and_preprocess_audio(audio_path)
-    ort_session = ort.InferenceSession("playground/hubert/chinese-hubert-base.onnx")
+    ort_session = ort.InferenceSession(MODEL_PATH + "_export_hubertssl.onnx")
     ort_inputs = {ort_session.get_inputs()[0].name: waveform.numpy()}
     hubert_feature = ort_session.run(None, ort_inputs)[0].astype(np.float32)
     # transpose axis 1 and 2 with numpy
-    hubert_feature = hubert_feature.transpose(0, 2, 1)
+    # hubert_feature = hubert_feature.transpose(0, 2, 1)
     return hubert_feature
 
 def preprocess_text(text:str):
