@@ -4,6 +4,8 @@ import onnx
 from tqdm import tqdm
 import torchaudio
 import torch
+from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
+
 
 MODEL_PATH = "playground/v2proplus_export/v2proplus"
 
@@ -30,7 +32,7 @@ def audio_postprocess(
     return audio
 
 def load_and_preprocess_audio(audio_path, max_length=160000):
-    """Load and preprocess audio file"""
+    """Load and preprocess audio file to 16k"""
     waveform, sample_rate = torchaudio.load(audio_path)
     
     # Resample to 16kHz if needed
@@ -49,8 +51,6 @@ def load_and_preprocess_audio(audio_path, max_length=160000):
     # make a zero tensor that has length 3200*0.3
     zero_tensor = torch.zeros((1, 9600), dtype=torch.float32)
 
-    print("waveform shape and zero wave shape", waveform.shape, zero_tensor.shape)
-
     # concate zero_tensor with waveform
     waveform = torch.cat([waveform, zero_tensor], dim=1)
 
@@ -64,13 +64,25 @@ def get_audio_hubert(audio_path):
     hubert_feature = ort_session.run(None, ort_inputs)[0].astype(np.float32)
     # transpose axis 1 and 2 with numpy
     hubert_feature = hubert_feature.transpose(0, 2, 1)
-    print("Hubert feature shape:", hubert_feature.shape)
     return hubert_feature
 
-input_phones = np.load("playground/ref/input_phones.npy")
-input_bert = np.load("playground/ref/input_bert.npy").T.astype(np.float32)
-ref_phones = np.load("playground/ref/ref_phones.npy")
-ref_bert = np.load("playground/ref/ref_bert.npy").T.astype(np.float32)
+def preprocess_text(text:str):
+    preprocessor = TextPreprocessorOnnx("playground/bert")
+    [phones, bert_features, norm_text] = preprocessor.segment_and_extract_feature_for_text(text, 'all_zh', 'v2')
+    phones = np.expand_dims(np.array(phones, dtype=np.int64), axis=0)
+    return phones, bert_features.T.astype(np.float32)
+
+
+# input_phones_saved = np.load("playground/ref/input_phones.npy")
+# input_bert_saved = np.load("playground/ref/input_bert.npy").T.astype(np.float32)
+[input_phones, input_bert] = preprocess_text("震撼视角,感受成都世运会,闭幕式烟花")
+
+
+# ref_phones = np.load("playground/ref/ref_phones.npy")
+# ref_bert = np.load("playground/ref/ref_bert.npy").T.astype(np.float32)
+[ref_phones, ref_bert] = preprocess_text("今日江苏苏州荷花市集开张热闹与浪漫交织")
+
+
 audio_prompt_hubert = get_audio_hubert("playground/ref/audio.wav")
 
 
@@ -83,8 +95,6 @@ encoder = ort.InferenceSession(MODEL_PATH+"_export_t2s_encoder.onnx")
     "ref_bert": ref_bert,
     "ssl_content": audio_prompt_hubert
 })
-
-print(x.shape, prompts.shape)
 
 fsdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_fsdec.onnx")
 sdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
@@ -124,6 +134,7 @@ if sample_rate != 32000:
     resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=32000)
     waveform = resampler(waveform)
 ref_audio = waveform.numpy().astype(np.float32)
+
 vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
 
 [audio] = vtis.run(None, {
@@ -131,6 +142,5 @@ vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
     "pred_semantic": pred_semantic,
     "ref_audio": ref_audio
 })
-print(audio.shape, audio.dtype, audio.min(), audio.max())
 
 audio_postprocess([audio])

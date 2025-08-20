@@ -402,15 +402,16 @@ if __name__ == "__main__":
     # version = "v2"
     # export(vits_path, gpt_path, exp_path, version)
 
-    # gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
-    # vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
-    # exp_path = "v2pro_export"
-    # version = "v2Pro"
-
     gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
-    vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
-    exp_path = "v2proplus_export"
-    version = "v2ProPlus"
+    vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
+    exp_path = "v2pro_export"
+    version = "v2Pro"
     export(vits_path, gpt_path, exp_path, version)
+
+    # gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
+    # exp_path = "v2proplus_export"
+    # version = "v2ProPlus"
+    # export(vits_path, gpt_path, exp_path, version)
 
 

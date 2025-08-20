@@ -33,7 +33,7 @@ rotary_embedding_torch
 ToJyutping 
 g2pk2
 ko_pron
-opencc
+opencc==1.1.6
 python_mecab_ko; sys_platform != 'win32'
 fastapi[standard]>=0.115.2
 x_transformers
