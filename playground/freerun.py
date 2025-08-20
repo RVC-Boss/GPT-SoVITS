@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "playground/v2proplus_export/v2proplus"
+MODEL_PATH = "playground/v2pro_export/v2pro"
 
 def audio_postprocess(
     audios,
@@ -49,7 +49,7 @@ def load_and_preprocess_audio(audio_path, max_length=160000):
         waveform = waveform[:, :max_length]
 
     # make a zero tensor that has length 3200*0.3
-    zero_tensor = torch.zeros((1, 9600), dtype=torch.float32)
+    zero_tensor = torch.zeros((1, 4800), dtype=torch.float32)
 
     # concate zero_tensor with waveform
     waveform = torch.cat([waveform, zero_tensor], dim=1)
@@ -75,7 +75,7 @@ def preprocess_text(text:str):
 
 # input_phones_saved = np.load("playground/ref/input_phones.npy")
 # input_bert_saved = np.load("playground/ref/input_bert.npy").T.astype(np.float32)
-[input_phones, input_bert] = preprocess_text("震撼视角,感受成都世运会,闭幕式烟花")
+[input_phones, input_bert] = preprocess_text("震撼视角,感受开幕式,闭幕式烟花")
 
 
 # ref_phones = np.load("playground/ref/ref_phones.npy")
@@ -88,7 +88,7 @@ audio_prompt_hubert = get_audio_hubert("playground/ref/audio.wav")
 
 encoder = ort.InferenceSession(MODEL_PATH+"_export_t2s_encoder.onnx")
 
-[x, prompts] = encoder.run(None, {
+[y, k, v, y_emb, x_example] = encoder.run(None, {
     "text_seq": input_phones,
     "text_bert": input_bert,
     "ref_seq": ref_phones,
@@ -96,17 +96,15 @@ encoder = ort.InferenceSession(MODEL_PATH+"_export_t2s_encoder.onnx")
     "ssl_content": audio_prompt_hubert
 })
 
-fsdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_fsdec.onnx")
+# fsdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_fsdec.onnx")
 sdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
 
 # for i in tqdm(range(10000)):
-[y, k, v, y_emb, x_example] = fsdec.run(None, {
-    "x": x,
-    "prompts": prompts
-})
+# [y, k, v, y_emb, x_example] = fsdec.run(None, {
+#     "x": x,
+#     "prompts": prompts
+# })
 
-
-prefix_len = prompts.shape[1]
 
 stop = False
 for idx in tqdm(range(1, 1500)):
@@ -129,6 +127,7 @@ waveform, sample_rate = torchaudio.load("playground/ref/audio.wav")
 if sample_rate != 32000:
     resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=32000)
     waveform = resampler(waveform)
+print(f"Waveform shape: {waveform.shape}")
 ref_audio = waveform.numpy().astype(np.float32)
 
 vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")

@@ -94,6 +94,7 @@ class T2SEncoder(nn.Module):
     def __init__(self, t2s, vits):
         super().__init__()
         self.encoder = t2s.onnx_encoder
+        self.fsdc = t2s.first_stage_decoder
         self.vits = vits
 
     def forward(self, ref_seq, text_seq, ref_bert, text_bert, ssl_content):
@@ -103,7 +104,8 @@ class T2SEncoder(nn.Module):
         all_phoneme_ids = torch.cat([ref_seq, text_seq], 1)
         bert = bert.unsqueeze(0)
         prompt = prompt_semantic.unsqueeze(0)
-        return self.encoder(all_phoneme_ids, bert), prompt
+        return self.fsdc(self.encoder(all_phoneme_ids, bert), prompt)
+        
 
 
 class T2SModel(nn.Module):
@@ -130,20 +132,13 @@ class T2SModel(nn.Module):
         early_stop_num = self.t2s_model.early_stop_num
 
         # [1,N] [1,N] [N, 1024] [N, 1024] [1, 768, N]
-        x, prompts = self.onnx_encoder(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
-
-        prefix_len = prompts.shape[1]
-
-        # [1,N,512] [1,N]
-        y, k, v, y_emb, x_example = self.first_stage_decoder(x, prompts)
+        y, k, v, y_emb, x_example = self.onnx_encoder(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
 
         stop = False
         for idx in range(1, 1500):
             # [1, N] [N_layer, N, 1, 512] [N_layer, N, 1, 512] [1, N, 512] [1] [1, N, 512] [1, N]
             enco = self.stage_decoder(y, k, v, y_emb, x_example)
             y, k, v, y_emb, logits, samples = enco
-            if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
-                stop = True
             if torch.argmax(logits, dim=-1)[0] == self.t2s_model.EOS or samples[0, 0] == self.t2s_model.EOS:
                 stop = True
             if stop:
@@ -167,7 +162,7 @@ class T2SModel(nn.Module):
             (ref_seq, text_seq, ref_bert, text_bert, ssl_content),
             f"onnx/{project_name}/{project_name}_t2s_encoder.onnx",
             input_names=["ref_seq", "text_seq", "ref_bert", "text_bert", "ssl_content"],
-            output_names=["x", "prompts"],
+            output_names=["y", "k", "v", "y_emb", "x_example"],
             dynamic_axes={
                 "ref_seq": {1: "ref_length"},
                 "text_seq": {1: "text_length"},
@@ -177,22 +172,22 @@ class T2SModel(nn.Module):
             },
             opset_version=16,
         )
-        x, prompts = self.onnx_encoder(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
+        y, k, v, y_emb, x_example = self.onnx_encoder(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
 
-        torch.onnx.export(
-            self.first_stage_decoder,
-            (x, prompts),
-            f"onnx/{project_name}/{project_name}_t2s_fsdec.onnx",
-            input_names=["x", "prompts"],
-            output_names=["y", "k", "v", "y_emb", "x_example"],
-            dynamic_axes={
-                "x": {1: "x_length"},
-                "prompts": {1: "prompts_length"},
-            },
-            verbose=False,
-            opset_version=16,
-        )
-        y, k, v, y_emb, x_example = self.first_stage_decoder(x, prompts)
+        # torch.onnx.export(
+        #     self.first_stage_decoder,
+        #     (x, prompts),
+        #     f"onnx/{project_name}/{project_name}_t2s_fsdec.onnx",
+        #     input_names=["x", "prompts"],
+        #     output_names=["y", "k", "v", "y_emb", "x_example"],
+        #     dynamic_axes={
+        #         "x": {1: "x_length"},
+        #         "prompts": {1: "prompts_length"},
+        #     },
+        #     verbose=False,
+        #     opset_version=16,
+        # )
+        # y, k, v, y_emb, x_example = self.first_stage_decoder(x, prompts)
 
         torch.onnx.export(
             self.stage_decoder,
