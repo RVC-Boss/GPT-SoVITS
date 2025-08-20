@@ -86,10 +86,10 @@ def get_audio_hubert(audio_path):
     waveform = load_and_preprocess_audio(audio_path)
     ort_session = ort.InferenceSession(MODEL_PATH + "_export_hubertssl.onnx")
     ort_inputs = {ort_session.get_inputs()[0].name: waveform.numpy()}
-    hubert_feature = ort_session.run(None, ort_inputs)[0].astype(np.float32)
+    [hubert_feature, spectrum] = ort_session.run(None, ort_inputs)
     # transpose axis 1 and 2 with numpy
     # hubert_feature = hubert_feature.transpose(0, 2, 1)
-    return hubert_feature
+    return hubert_feature, spectrum
 
 def preprocess_text(text:str):
     preprocessor = TextPreprocessorOnnx("playground/bert")
@@ -100,7 +100,7 @@ def preprocess_text(text:str):
 
 # input_phones_saved = np.load("playground/ref/input_phones.npy")
 # input_bert_saved = np.load("playground/ref/input_bert.npy").T.astype(np.float32)
-[input_phones, input_bert] = preprocess_text("震撼视角,感受开幕式,闭幕式烟花")
+[input_phones, input_bert] = preprocess_text("像大雨匆匆打击过的屋檐")
 
 
 # ref_phones = np.load("playground/ref/ref_phones.npy")
@@ -108,7 +108,7 @@ def preprocess_text(text:str):
 [ref_phones, ref_bert] = preprocess_text("今日江苏苏州荷花市集开张热闹与浪漫交织")
 
 
-audio_prompt_hubert = get_audio_hubert("playground/ref/audio.wav")
+[audio_prompt_hubert, spectrum] = get_audio_hubert("playground/ref/audio.wav")
 
 
 encoder = ort.InferenceSession(MODEL_PATH+"_export_t2s_encoder.onnx")
@@ -160,7 +160,8 @@ vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
 [audio] = vtis.run(None, {
     "text_seq": input_phones,
     "pred_semantic": pred_semantic,
-    "ref_audio": ref_audio
+    "ref_audio": ref_audio,
+    "spectrum": spectrum.astype(np.float32)
 })
 
 audio_postprocess([audio])
