@@ -63,7 +63,7 @@ def preprocess_text(text:str):
 
 # input_phones_saved = np.load("playground/ref/input_phones.npy")
 # input_bert_saved = np.load("playground/ref/input_bert.npy").T.astype(np.float32)
-[input_phones, input_bert] = preprocess_text("天上的风筝在天上飞，地上的人儿在地上追")
+[input_phones, input_bert] = preprocess_text("地上的人儿吵吵闹闹在地上追")
 
 
 # ref_phones = np.load("playground/ref/ref_phones.npy")
@@ -74,29 +74,33 @@ def preprocess_text(text:str):
 [audio_prompt_hubert, spectrum, sv_emb] = audio_preprocess("playground/ref/audio.wav")
 
 
-init_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_init_step.onnx")
+t2s_combined = ort.InferenceSession(MODEL_PATH+"_export_t2s_combined.onnx")
 
-[y, k, v, y_emb, x_example, fake_logits, fake_samples] = init_step.run(None, {
+[y, k, v, y_emb, x_example, fake_logits, fake_samples] = t2s_combined.run(None, {
+    "if_init_step": np.array(True, dtype=bool),
     "input_text_phones": input_phones,
     "input_text_bert": input_bert,
     "ref_text_phones": ref_phones,
     "ref_text_bert": ref_bert,
-    "hubert_ssl_content": audio_prompt_hubert
+    "hubert_ssl_content": audio_prompt_hubert,
+    "iy":np.empty((1, 0), dtype=np.int64),
+    "ik":np.empty((24, 0, 1, 512), dtype=np.float32),
+    "iv":np.empty((24, 0, 1, 512), dtype=np.float32),
+    "iy_emb":np.empty((1, 0, 512), dtype=np.float32),
+    "ix_example":np.empty((1, 0), dtype=np.float32)
 })
 
-# fsdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_fsdec.onnx")
-sdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
-
-# for i in tqdm(range(10000)):
-# [y, k, v, y_emb, x_example] = fsdec.run(None, {
-#     "x": x,
-#     "prompts": prompts
-# })
 
 
 for idx in tqdm(range(1, 1500)):
     # [1, N] [N_layer, N, 1, 512] [N_layer, N, 1, 512] [1, N, 512] [1] [1, N, 512] [1, N]
-    [y, k, v, y_emb, fake_x_example, logits, samples] = sdec.run(None, {
+    [y, k, v, y_emb, fake_x_example, logits, samples] = t2s_combined.run(None, {
+        "if_init_step": np.array(False, dtype=bool),
+        "input_text_phones": np.empty((1, 0), dtype=np.int64),
+        "input_text_bert": np.empty((0, 1024), dtype=np.float32),
+        "ref_text_phones": np.empty((1, 0), dtype=np.int64),
+        "ref_text_bert": np.empty((0, 1024), dtype=np.float32),
+        "hubert_ssl_content": np.empty((1, 768, 0), dtype=np.float32),
         "iy": y,
         "ik": k,
         "iv": v,
