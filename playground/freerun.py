@@ -77,11 +77,11 @@ def preprocess_text(text:str):
 init_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_init_step.onnx")
 
 [y, k, v, y_emb, x_example] = init_step.run(None, {
-    "text_seq": input_phones,
-    "text_bert": input_bert,
-    "ref_seq": ref_phones,
-    "ref_bert": ref_bert,
-    "ssl_content": audio_prompt_hubert
+    "input_text_phones": input_phones,
+    "input_text_bert": input_bert,
+    "ref_text_phones": ref_phones,
+    "ref_text_bert": ref_bert,
+    "hubert_ssl_content": audio_prompt_hubert
 })
 
 # fsdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_fsdec.onnx")
@@ -120,7 +120,7 @@ ref_audio = waveform.numpy().astype(np.float32)
 vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
 
 [audio] = vtis.run(None, {
-    "text_seq": input_phones,
+    "input_text_phones": input_phones,
     "pred_semantic": pred_semantic,
     "spectrum": spectrum.astype(np.float32),
     "sv_emb": sv_emb.astype(np.float32)
