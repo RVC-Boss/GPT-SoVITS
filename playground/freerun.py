@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "onnx/v1_export/v1"
+MODEL_PATH = "onnx/v2proplus_export/v2proplus"
 
 def audio_postprocess(
     audios,
@@ -56,7 +56,7 @@ def audio_preprocess(audio_path):
 
 def preprocess_text(text:str):
     preprocessor = TextPreprocessorOnnx("playground/bert")
-    [phones, bert_features, norm_text] = preprocessor.segment_and_extract_feature_for_text(text, 'all_zh', 'v1')
+    [phones, bert_features, norm_text] = preprocessor.segment_and_extract_feature_for_text(text, 'all_zh', 'v2')
     phones = np.expand_dims(np.array(phones, dtype=np.int64), axis=0)
     return phones, bert_features.T.astype(np.float32)
 
@@ -76,7 +76,7 @@ def preprocess_text(text:str):
 
 init_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_init_step.onnx")
 
-[y, k, v, y_emb, x_example] = init_step.run(None, {
+[y, k, v, y_emb, x_example, fake_logits, fake_samples] = init_step.run(None, {
     "input_text_phones": input_phones,
     "input_text_bert": input_bert,
     "ref_text_phones": ref_phones,
@@ -96,7 +96,7 @@ sdec = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
 
 for idx in tqdm(range(1, 1500)):
     # [1, N] [N_layer, N, 1, 512] [N_layer, N, 1, 512] [1, N, 512] [1] [1, N, 512] [1, N]
-    [y, k, v, y_emb, logits, samples] = sdec.run(None, {
+    [y, k, v, y_emb, fake_x_example, logits, samples] = sdec.run(None, {
         "iy": y,
         "ik": k,
         "iv": v,
@@ -123,7 +123,7 @@ vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
     "input_text_phones": input_phones,
     "pred_semantic": pred_semantic,
     "spectrum": spectrum.astype(np.float32),
-    # "sv_emb": sv_emb.astype(np.float32)
+    "sv_emb": sv_emb.astype(np.float32)
 })
 
 audio_postprocess([audio])

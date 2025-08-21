@@ -6,7 +6,7 @@ from feature_extractor import cnhubert
 from module.models_onnx import SynthesizerTrn, symbols_v1, symbols_v2
 from torch import nn
 from sv import SV
-
+import onnx
 cnhubert_base_path = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 from transformers import HubertModel, HubertConfig
 import json
@@ -103,9 +103,20 @@ class T2SInitStep(nn.Module):
         all_phoneme_ids = torch.cat([ref_seq, text_seq], 1)
         bert = bert.unsqueeze(0)
         prompt = prompt_semantic.unsqueeze(0)
-        return self.fsdc(self.encoder(all_phoneme_ids, bert), prompt)
-        
+        [y, k, v, y_emb, x_example]  = self.fsdc(self.encoder(all_phoneme_ids, bert), prompt)
+        fake_logits = torch.randn((1, 1025))  # Dummy logits for ONNX export
+        fake_samples = torch.randn((1, 1))  # Dummy samples for ONNX export
+        return y, k, v, y_emb, x_example, fake_logits, fake_samples
 
+class T2SStageStep(nn.Module):
+    def __init__(self, stage_decoder):
+        super().__init__()
+        self.stage_decoder = stage_decoder
+
+    def forward(self, iy, ik, iv, iy_emb, ix_example):
+        [y, k, v, y_emb, logits, samples] = self.stage_decoder(iy, ik, iv, iy_emb, ix_example)
+        fake_x_example = torch.randn((1, 512))  # Dummy x_example for ONNX export
+        return y, k, v, y_emb, fake_x_example, logits, samples
 
 class T2SModel(nn.Module):
     def __init__(self, t2s_path, vits_model):
@@ -131,12 +142,13 @@ class T2SModel(nn.Module):
         early_stop_num = self.t2s_model.early_stop_num
 
         # [1,N] [1,N] [N, 1024] [N, 1024] [1, 768, N]
-        y, k, v, y_emb, x_example = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
+        y, k, v, y_emb, x_example, fake_logits, fake_samples = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
 
         for idx in tqdm(range(1, 20)): # This is a fake one! do take this as reference
             # [1, N] [N_layer, N, 1, 512] [N_layer, N, 1, 512] [1, N, 512] [1] [1, N, 512] [1, N]
             enco = self.stage_decoder(y, k, v, y_emb, x_example)
             y, k, v, y_emb, logits, samples = enco
+            print(logits.shape, samples.shape)
             if torch.argmax(logits, dim=-1)[0] == self.t2s_model.EOS or samples[0, 0] == self.t2s_model.EOS:
                 break
         y[0, -1] = 0
@@ -158,7 +170,7 @@ class T2SModel(nn.Module):
             (ref_seq, text_seq, ref_bert, text_bert, ssl_content),
             f"onnx/{project_name}/{project_name}_t2s_init_step.onnx",
             input_names=["ref_text_phones", "input_text_phones", "ref_text_bert", "input_text_bert", "hubert_ssl_content"],
-            output_names=["y", "k", "v", "y_emb", "x_example"],
+            output_names=["y", "k", "v", "y_emb", "x_example", 'logits', 'samples'],
             dynamic_axes={
                 "ref_text_phones": {1: "ref_length"},
                 "input_text_phones": {1: "text_length"},
@@ -168,35 +180,22 @@ class T2SModel(nn.Module):
             },
             opset_version=16,
         )
-        y, k, v, y_emb, x_example = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
+        y, k, v, y_emb, x_example, fake_logits, fake_samples = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
 
-        # torch.onnx.export(
-        #     self.first_stage_decoder,
-        #     (x, prompts),
-        #     f"onnx/{project_name}/{project_name}_t2s_fsdec.onnx",
-        #     input_names=["x", "prompts"],
-        #     output_names=["y", "k", "v", "y_emb", "x_example"],
-        #     dynamic_axes={
-        #         "x": {1: "x_length"},
-        #         "prompts": {1: "prompts_length"},
-        #     },
-        #     verbose=False,
-        #     opset_version=16,
-        # )
-        # y, k, v, y_emb, x_example = self.first_stage_decoder(x, prompts)
-
+        stage_step = T2SStageStep(self.stage_decoder)
         torch.onnx.export(
-            self.stage_decoder,
+            stage_step,
             (y, k, v, y_emb, x_example),
             f"onnx/{project_name}/{project_name}_t2s_sdec.onnx",
             input_names=["iy", "ik", "iv", "iy_emb", "ix_example"],
-            output_names=["y", "k", "v", "y_emb", "logits", "samples"],
+            output_names=["y", "k", "v", "y_emb","x_example", "logits", "samples"],
             dynamic_axes={
                 "iy": {1: "iy_length"},
                 "ik": {1: "ik_length"},
                 "iv": {1: "iv_length"},
                 "iy_emb": {1: "iy_emb_length"},
                 "ix_example": {1: "ix_example_length"},
+                "x_example": {1: "x_example_length"}
             },
             verbose=False,
             opset_version=16,
@@ -303,6 +302,20 @@ class AudioPreprocess(nn.Module):
 
         return ssl_content, spectrum, sv_emb
 
+# def combineInitStepAndStageStep(init_step_onnx_path, stage_step_onnx_path):
+#     init_step_model = onnx.load(init_step_onnx_path)
+#     stage_step_model = onnx.load(stage_step_onnx_path)
+
+#     # Combine the models (this is a simplified example; actual combination logic may vary)
+#     combined_graph = helper.make_graph(
+#         nodes=init_step_model.graph.node + stage_step_model.graph.node,
+#         name="combined_graph",
+#         inputs=init_step_model.graph.input,
+#         outputs=stage_step_model.graph.output
+#     )
+
+#     combined_model = helper.make_model(combined_graph, producer_name='onnx-combiner')
+#     onnx.save(combined_model, f"onnx/{project_name}/{project_name}_combined.onnx")
 
 def export(vits_path, gpt_path, project_name, voice_model_version="v2"):
     vits = VitsModel(vits_path, version=voice_model_version)
@@ -366,33 +379,23 @@ def export(vits_path, gpt_path, project_name, voice_model_version="v2"):
     )
     ref_bert = torch.randn((ref_seq.shape[1], 1024)).float()
     text_bert = torch.randn((text_seq.shape[1], 1024)).float()
-    ref_audio = torch.randn((1, 48000 * 5)).float()
-    # ref_audio = torch.tensor([load_audio("rec.wav", 48000)]).float()
-    ref_audio32k = torchaudio.functional.resample(ref_audio, 48000, 32000).float()
+    ref_audio32k = torch.randn((1, 32000 * 5)).float() - 0.5
 
-    try:
-        os.mkdir(f"onnx/{project_name}")
-    except:
-        pass
-
-    torch.onnx.export(preprocessor, (ref_audio32k,), f"onnx/{project_name}/{project_name}_audio_preprocess.onnx",
-                      input_names=["audio32k"],
-                      output_names=["hubert_ssl_output", "spectrum", "sv_emb"],
-                      dynamic_axes={
-                          "audio32k": {1: "sequence_length"},
-                          "hubert_ssl_output": {2: "hubert_length"},
-                          "spectrum": {2: "spectrum_length"}
-                      })
+    os.makedirs(f"onnx/{project_name}", exist_ok=True)
 
     [ssl_content, spectrum, sv_emb] = preprocessor(ref_audio32k)
     gpt_sovits(ref_seq, text_seq, ref_bert, text_bert, ssl_content.float(), spectrum.float(), sv_emb.float())
     # exit()
     gpt_sovits.export(ref_seq, text_seq, ref_bert, text_bert, ssl_content.float(), spectrum.float(), sv_emb.float(), project_name)
 
-    if voice_model_version == "v1":
-        symbols = symbols_v1
-    else:
-        symbols = symbols_v2
+    torch.onnx.export(preprocessor, (ref_audio32k,), f"onnx/{project_name}/{project_name}_audio_preprocess.onnx",
+                    input_names=["audio32k"],
+                    output_names=["hubert_ssl_output", "spectrum", "sv_emb"],
+                    dynamic_axes={
+                        "audio32k": {1: "sequence_length"},
+                        "hubert_ssl_output": {2: "hubert_length"},
+                        "spectrum": {2: "spectrum_length"}
+                    })
 
 if __name__ == "__main__":
     try:
@@ -400,23 +403,25 @@ if __name__ == "__main__":
     except:
         pass
 
-    gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
-    vits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
-    exp_path = "v1_export"
-    version = "v1"
-    export(vits_path, gpt_path, exp_path, version)
 
-    gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
-    vits_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
-    exp_path = "v2_export"
-    version = "v2"
-    export(vits_path, gpt_path, exp_path, version)
 
-    gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
-    vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
-    exp_path = "v2pro_export"
-    version = "v2Pro"
-    export(vits_path, gpt_path, exp_path, version)
+    # gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
+    # exp_path = "v1_export"
+    # version = "v1"
+    # export(vits_path, gpt_path, exp_path, version)
+
+    # gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
+    # exp_path = "v2_export"
+    # version = "v2"
+    # export(vits_path, gpt_path, exp_path, version)
+
+    # gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
+    # exp_path = "v2pro_export"
+    # version = "v2Pro"
+    # export(vits_path, gpt_path, exp_path, version)
 
     gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
     vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
