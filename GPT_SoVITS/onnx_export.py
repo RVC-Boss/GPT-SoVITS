@@ -206,7 +206,7 @@ class T2SModel(nn.Module):
 class VitsModel(nn.Module):
     def __init__(self, vits_path, version:str = 'v2'):
         super().__init__()
-        dict_s2 = torch.load(vits_path, map_location="cpu")
+        dict_s2 = torch.load(vits_path, map_location="cpu", weights_only=False)
         self.hps = dict_s2["config"]
         if dict_s2["weight"]["enc_p.text_embedding.weight"].shape[0] == 322:
             self.hps["model"]["version"] = "v1"
@@ -400,11 +400,11 @@ if __name__ == "__main__":
     except:
         pass
 
-    # gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
-    # vits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
-    # exp_path = "v1_export"
-    # version = "v1"
-    # export(vits_path, gpt_path, exp_path, version)
+    gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
+    vits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
+    exp_path = "v1_export"
+    version = "v1"
+    export(vits_path, gpt_path, exp_path, version)
 
     gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
     vits_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"

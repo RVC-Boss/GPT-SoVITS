@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "onnx/v2proplus_export/v2proplus"
+MODEL_PATH = "onnx/v1_export/v1"
 
 def audio_postprocess(
     audios,
@@ -56,7 +56,7 @@ def audio_preprocess(audio_path):
 
 def preprocess_text(text:str):
     preprocessor = TextPreprocessorOnnx("playground/bert")
-    [phones, bert_features, norm_text] = preprocessor.segment_and_extract_feature_for_text(text, 'all_zh', 'v2')
+    [phones, bert_features, norm_text] = preprocessor.segment_and_extract_feature_for_text(text, 'all_zh', 'v1')
     phones = np.expand_dims(np.array(phones, dtype=np.int64), axis=0)
     return phones, bert_features.T.astype(np.float32)
 
@@ -123,7 +123,7 @@ vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
     "input_text_phones": input_phones,
     "pred_semantic": pred_semantic,
     "spectrum": spectrum.astype(np.float32),
-    "sv_emb": sv_emb.astype(np.float32)
+    # "sv_emb": sv_emb.astype(np.float32)
 })
 
 audio_postprocess([audio])
