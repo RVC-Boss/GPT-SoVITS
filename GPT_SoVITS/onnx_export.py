@@ -225,7 +225,8 @@ class VitsModel(nn.Module):
         )
         self.vq_model.eval()
         self.vq_model.load_state_dict(dict_s2["weight"], strict=False)
-        #filter_length: 2048 sampling_rate: 32000 hop_length: 640 win_length: 2048
+        # print(f"filter_length:{self.hps.data.filter_length} sampling_rate:{self.hps.data.sampling_rate} hop_length:{self.hps.data.hop_length} win_length:{self.hps.data.win_length}")
+        #v2 filter_length: 2048 sampling_rate: 32000 hop_length: 640 win_length: 2048
     def forward(self, text_seq, pred_semantic, spectrum, sv_emb):
         if self.is_v2p:
             return self.vq_model(pred_semantic, text_seq, spectrum, sv_emb=sv_emb)[0, 0]
@@ -251,7 +252,7 @@ class GptSoVits(nn.Module):
             self.vits,
             (text_seq, pred_semantic, spectrum, sv_emb),
             f"onnx/{project_name}/{project_name}_vits.onnx",
-            input_names=["text_seq", "pred_semantic", "spectrum", "sv_emb"],
+            input_names=["input_text_phones", "pred_semantic", "spectrum", "sv_emb"],
             output_names=["audio"],
             dynamic_axes={
                 "input_text_phones": {1: "text_length"},
@@ -399,19 +400,25 @@ if __name__ == "__main__":
     except:
         pass
 
+    # gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
+    # exp_path = "v1_export"
+    # version = "v1"
+    # export(vits_path, gpt_path, exp_path, version)
+
     gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
     vits_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
     exp_path = "v2_export"
     version = "v2"
     export(vits_path, gpt_path, exp_path, version)
 
-    gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
     vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
     exp_path = "v2pro_export"
     version = "v2Pro"
     export(vits_path, gpt_path, exp_path, version)
 
-    gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
     vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
     exp_path = "v2proplus_export"
     version = "v2ProPlus"
