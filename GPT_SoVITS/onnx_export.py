@@ -89,7 +89,7 @@ class DictToAttrRecursive(dict):
             raise AttributeError(f"Attribute {item} not found")
 
 
-class T2SEncoder(nn.Module):
+class T2SInitStep(nn.Module):
     def __init__(self, t2s, vits):
         super().__init__()
         self.encoder = t2s.onnx_encoder
@@ -122,7 +122,7 @@ class T2SModel(nn.Module):
         self.t2s_model.model.early_stop_num = torch.LongTensor([self.hz * self.max_sec])
         self.t2s_model = self.t2s_model.model
         self.t2s_model.init_onnx()
-        self.onnx_encoder = T2SEncoder(self.t2s_model, self.vits_model)
+        self.init_step = T2SInitStep(self.t2s_model, self.vits_model)
         self.first_stage_decoder = self.t2s_model.first_stage_decoder
         self.stage_decoder = self.t2s_model.stage_decoder
         # self.t2s_model = torch.jit.script(self.t2s_model)
@@ -131,7 +131,7 @@ class T2SModel(nn.Module):
         early_stop_num = self.t2s_model.early_stop_num
 
         # [1,N] [1,N] [N, 1024] [N, 1024] [1, 768, N]
-        y, k, v, y_emb, x_example = self.onnx_encoder(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
+        y, k, v, y_emb, x_example = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
 
         for idx in tqdm(range(1, 20)): # This is a fake one! do take this as reference
             # [1, N] [N_layer, N, 1, 512] [N_layer, N, 1, 512] [1, N, 512] [1] [1, N, 512] [1, N]
@@ -144,19 +144,19 @@ class T2SModel(nn.Module):
         return y[:, -idx:].unsqueeze(0)
 
     def export(self, ref_seq, text_seq, ref_bert, text_bert, ssl_content, project_name, dynamo=False):
-        # self.onnx_encoder = torch.jit.script(self.onnx_encoder)
+        # self.init_step = torch.jit.script(self.init_step)
         if dynamo:
             export_options = torch.onnx.ExportOptions(dynamic_shapes=True)
-            onnx_encoder_export_output = torch.onnx.dynamo_export(
-                self.onnx_encoder, (ref_seq, text_seq, ref_bert, text_bert, ssl_content), export_options=export_options
+            init_step_export_output = torch.onnx.dynamo_export(
+                self.init_step, (ref_seq, text_seq, ref_bert, text_bert, ssl_content), export_options=export_options
             )
-            onnx_encoder_export_output.save(f"onnx/{project_name}/{project_name}_t2s_encoder.onnx")
+            init_step_export_output.save(f"onnx/{project_name}/{project_name}_t2s_init_step.onnx")
             return
 
         torch.onnx.export(
-            self.onnx_encoder,
+            self.init_step,
             (ref_seq, text_seq, ref_bert, text_bert, ssl_content),
-            f"onnx/{project_name}/{project_name}_t2s_encoder.onnx",
+            f"onnx/{project_name}/{project_name}_t2s_init_step.onnx",
             input_names=["ref_seq", "text_seq", "ref_bert", "text_bert", "ssl_content"],
             output_names=["y", "k", "v", "y_emb", "x_example"],
             dynamic_axes={
@@ -168,7 +168,7 @@ class T2SModel(nn.Module):
             },
             opset_version=16,
         )
-        y, k, v, y_emb, x_example = self.onnx_encoder(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
+        y, k, v, y_emb, x_example = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content)
 
         # torch.onnx.export(
         #     self.first_stage_decoder,

@@ -63,7 +63,7 @@ def preprocess_text(text:str):
 
 # input_phones_saved = np.load("playground/ref/input_phones.npy")
 # input_bert_saved = np.load("playground/ref/input_bert.npy").T.astype(np.float32)
-[input_phones, input_bert] = preprocess_text("像大雨匆匆打击过的屋檐")
+[input_phones, input_bert] = preprocess_text("天上的风筝在天上飞，地上的人儿在地上追")
 
 
 # ref_phones = np.load("playground/ref/ref_phones.npy")
@@ -74,9 +74,9 @@ def preprocess_text(text:str):
 [audio_prompt_hubert, spectrum, sv_emb] = audio_preprocess("playground/ref/audio.wav")
 
 
-encoder = ort.InferenceSession(MODEL_PATH+"_export_t2s_encoder.onnx")
+init_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_init_step.onnx")
 
-[y, k, v, y_emb, x_example] = encoder.run(None, {
+[y, k, v, y_emb, x_example] = init_step.run(None, {
     "text_seq": input_phones,
     "text_bert": input_bert,
     "ref_seq": ref_phones,
