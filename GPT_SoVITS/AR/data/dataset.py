@@ -176,6 +176,9 @@ class Text2SemanticDataset(Dataset):
 
         min_num = 100  # 20直接不补#30补了也不存ckpt
         leng = len(self.semantic_phoneme)
+        print("leng: ", leng)
+        if leng == 0:
+            leng = min_num
         if leng < min_num:
             tmp1 = self.semantic_phoneme
             tmp2 = self.item_names
