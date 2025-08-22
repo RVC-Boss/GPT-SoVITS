@@ -264,17 +264,9 @@ class GptSoVits(nn.Module):
 class AudioPreprocess(nn.Module):
     def __init__(self):
         super().__init__()
-        self.config = HubertConfig.from_pretrained(cnhubert_base_path)
-        self.config._attn_implementation = "eager"  # Use standard attention
-        self.config.apply_spec_augment = False      # Disable masking for inference
-        self.config.layerdrop = 0.0                 # Disable layer dropout
         
         # Load the model
-        self.model = HubertModel.from_pretrained(
-            cnhubert_base_path,
-            config=self.config, 
-            local_files_only=True
-        )
+        self.model = HubertModel.from_pretrained(cnhubert_base_path, local_files_only=True)
         self.model.eval()
 
         self.sv_model = SV("cpu", False)
@@ -292,7 +284,7 @@ class AudioPreprocess(nn.Module):
 
         sv_emb = self.sv_model.compute_embedding3_onnx(ref_audio_16k)
 
-        zero_tensor = torch.zeros((1, 4800), dtype=torch.float32)
+        zero_tensor = torch.zeros((1, 9600), dtype=torch.float32)
         ref_audio_16k = ref_audio_16k.unsqueeze(0)
         # concate zero_tensor with waveform
         ref_audio_16k = torch.cat([ref_audio_16k, zero_tensor], dim=1)
@@ -452,11 +444,12 @@ if __name__ == "__main__":
     # version = "v1"
     # export(vits_path, gpt_path, exp_path, version)
 
-    # gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
-    # vits_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
-    # exp_path = "v2_export"
-    # version = "v2"
-    # export(vits_path, gpt_path, exp_path, version)
+    gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    vits_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
+    exp_path = "v2_export"
+    version = "v2"
+    export(vits_path, gpt_path, exp_path, version)
+    combineInitStepAndStageStep('onnx/v2_export/v2_export_t2s_init_step.onnx', 'onnx/v2_export/v2_export_t2s_sdec.onnx', 'onnx/v2_export/v2_export_t2s_combined.onnx')
 
     # gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
     # vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
@@ -464,11 +457,11 @@ if __name__ == "__main__":
     # version = "v2Pro"
     # export(vits_path, gpt_path, exp_path, version)
 
-    gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
-    vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
-    exp_path = "v2proplus_export"
-    version = "v2ProPlus"
-    export(vits_path, gpt_path, exp_path, version)
-    combineInitStepAndStageStep('onnx/v2proplus_export/v2proplus_export_t2s_init_step.onnx', 'onnx/v2proplus_export/v2proplus_export_t2s_sdec.onnx', 'onnx/v2proplus_export/v2proplus_export_t2s_combined.onnx')
+    # gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
+    # exp_path = "v2proplus_export"
+    # version = "v2ProPlus"
+    # export(vits_path, gpt_path, exp_path, version)
+    # combineInitStepAndStageStep('onnx/v2proplus_export/v2proplus_export_t2s_init_step.onnx', 'onnx/v2proplus_export/v2proplus_export_t2s_sdec.onnx', 'onnx/v2proplus_export/v2proplus_export_t2s_combined.onnx')
 
 

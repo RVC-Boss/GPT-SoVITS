@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "onnx/v2proplus_export/v2proplus"
+MODEL_PATH = "onnx/v2_export/v2"
 
 def audio_postprocess(
     audios,
@@ -63,7 +63,7 @@ def preprocess_text(text:str):
 
 # input_phones_saved = np.load("playground/ref/input_phones.npy")
 # input_bert_saved = np.load("playground/ref/input_bert.npy").T.astype(np.float32)
-[input_phones, input_bert] = preprocess_text("地上的人儿吵吵闹闹在地上追")
+[input_phones, input_bert] = preprocess_text("天上的风筝在天上飞，地上的人儿在地上追。")
 
 
 # ref_phones = np.load("playground/ref/ref_phones.npy")
@@ -73,8 +73,12 @@ def preprocess_text(text:str):
 
 [audio_prompt_hubert, spectrum, sv_emb] = audio_preprocess("playground/ref/audio.wav")
 
+np.save("playground/ref/audio_prompt_hubert.npy", audio_prompt_hubert.astype(np.float16))
+
+# audio_prompt_hubert_saved = np.load("playground/ref/audio_prompt_hubert.npy").astype(np.float32)
 
 t2s_combined = ort.InferenceSession(MODEL_PATH+"_export_t2s_combined.onnx")
+# t2s_init_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_init_step.onnx")
 
 [y, k, v, y_emb, x_example, fake_logits, fake_samples] = t2s_combined.run(None, {
     "if_init_step": np.array(True, dtype=bool),
@@ -90,7 +94,7 @@ t2s_combined = ort.InferenceSession(MODEL_PATH+"_export_t2s_combined.onnx")
     "ix_example":np.empty((1, 0), dtype=np.float32)
 })
 
-
+# t2s_stage_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
 
 for idx in tqdm(range(1, 1500)):
     # [1, N] [N_layer, N, 1, 512] [N_layer, N, 1, 512] [1, N, 512] [1] [1, N, 512] [1, N]
@@ -113,13 +117,6 @@ y[0, -1] = 0
 
 
 pred_semantic = np.expand_dims(y[:, -idx:], axis=0)
-# Read and resample reference audio
-waveform, sample_rate = torchaudio.load("playground/ref/audio.wav")
-if sample_rate != 32000:
-    resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=32000)
-    waveform = resampler(waveform)
-print(f"Waveform shape: {waveform.shape}")
-ref_audio = waveform.numpy().astype(np.float32)
 
 vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
 
@@ -127,7 +124,7 @@ vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
     "input_text_phones": input_phones,
     "pred_semantic": pred_semantic,
     "spectrum": spectrum.astype(np.float32),
-    "sv_emb": sv_emb.astype(np.float32)
+    # "sv_emb": sv_emb.astype(np.float32)
 })
 
 audio_postprocess([audio])
