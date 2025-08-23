@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "onnx/v2_export/v2"
+MODEL_PATH = "onnx/v2proplus_export/v2proplus"
 
 def audio_postprocess(
     audios,
@@ -73,9 +73,12 @@ def preprocess_text(text:str):
 
 [audio_prompt_hubert, spectrum, sv_emb] = audio_preprocess("playground/ref/audio.wav")
 
-np.save("playground/ref/audio_prompt_hubert.npy", audio_prompt_hubert.astype(np.float16))
-
 # audio_prompt_hubert_saved = np.load("playground/ref/audio_prompt_hubert.npy").astype(np.float32)
+
+top_k = np.array([15], dtype=np.int64)
+top_p = np.array([1.0], dtype=np.float32)
+repetition_penalty = np.array([1.0], dtype=np.float32)
+temperature = np.array([1.0], dtype=np.float32)
 
 t2s_combined = ort.InferenceSession(MODEL_PATH+"_export_t2s_combined.onnx")
 # t2s_init_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_init_step.onnx")
@@ -91,7 +94,11 @@ t2s_combined = ort.InferenceSession(MODEL_PATH+"_export_t2s_combined.onnx")
     "ik":np.empty((24, 0, 1, 512), dtype=np.float32),
     "iv":np.empty((24, 0, 1, 512), dtype=np.float32),
     "iy_emb":np.empty((1, 0, 512), dtype=np.float32),
-    "ix_example":np.empty((1, 0), dtype=np.float32)
+    "ix_example":np.empty((1, 0), dtype=np.float32),
+    "top_k": top_k,
+    "top_p": top_p,
+    "repetition_penalty": repetition_penalty,
+    "temperature": temperature
 })
 
 # t2s_stage_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
@@ -109,7 +116,11 @@ for idx in tqdm(range(1, 1500)):
         "ik": k,
         "iv": v,
         "iy_emb": y_emb,
-        "ix_example": x_example
+        "ix_example": x_example,
+        "top_k": top_k,
+        "top_p": top_p,
+        "repetition_penalty": repetition_penalty,
+        "temperature": temperature
     })
     if np.argmax(logits, axis=-1)[0] == 1024 or samples[0, 0] == 1024: # 1024 is the EOS token
         break
@@ -124,7 +135,7 @@ vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
     "input_text_phones": input_phones,
     "pred_semantic": pred_semantic,
     "spectrum": spectrum.astype(np.float32),
-    # "sv_emb": sv_emb.astype(np.float32)
+    "sv_emb": sv_emb.astype(np.float32)
 })
 
 audio_postprocess([audio])

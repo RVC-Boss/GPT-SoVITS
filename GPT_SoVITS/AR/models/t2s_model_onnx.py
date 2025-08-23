@@ -61,7 +61,7 @@ def logits_to_probs(
     )
     logits = logits.masked_fill(indices_to_remove, -float("Inf"))
 
-    logits = logits / max(temperature, 1e-5)
+    logits = logits / torch.max(temperature, torch.tensor(1e-5, device=temperature.device, dtype=temperature.dtype))
 
     # if top_k is not None: # To be captured by onnx
     v, _ = torch.topk(logits, top_k)
