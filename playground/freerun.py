@@ -68,7 +68,7 @@ def preprocess_text(text:str):
 
 # ref_phones = np.load("playground/ref/ref_phones.npy")
 # ref_bert = np.load("playground/ref/ref_bert.npy").T.astype(np.float32)
-[ref_phones, ref_bert] = preprocess_text("今日江苏苏州荷花市集开张热闹与浪漫交织")
+[ref_phones, ref_bert] = preprocess_text("近日江苏苏州荷花市集开张热闹与浪漫交织")
 
 
 [audio_prompt_hubert, spectrum, sv_emb] = audio_preprocess("playground/ref/audio.wav")
@@ -113,7 +113,7 @@ for idx in tqdm(range(1, 1500)):
     })
     if np.argmax(logits, axis=-1)[0] == 1024 or samples[0, 0] == 1024: # 1024 is the EOS token
         break
-y[0, -1] = 0
+y = y[:,:-1]
 
 
 pred_semantic = np.expand_dims(y[:, -idx:], axis=0)
