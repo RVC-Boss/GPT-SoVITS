@@ -1025,8 +1025,28 @@ def fbank_onnx(
 ) -> Tensor:
     r"""ONNX-compatible fbank function with hardcoded parameters from traced call:
     num_mel_bins=80, sample_frequency=16000, dither=0
-    
-    All other parameters use their traced default values.
+    blackman_coeff: float = 0.42,
+    channel: int = -1,
+    energy_floor: float = 1.0,
+    frame_length: float = 25.0,
+    frame_shift: float = 10.0,
+    high_freq: float = 0.0,
+    htk_compat: bool = False,
+    low_freq: float = 20.0,
+    min_duration: float = 0.0,
+    preemphasis_coefficient: float = 0.97,
+    raw_energy: bool = True,
+    remove_dc_offset: bool = True,
+    round_to_power_of_two: bool = True,
+    snip_edges: bool = True,
+    subtract_mean: bool = False,
+    use_energy: bool = False,
+    use_log_fbank: bool = True,
+    use_power: bool = True,
+    vtln_high: float = -500.0,
+    vtln_low: float = 100.0,
+    vtln_warp: float = 1.0,
+    window_type: str = POVEY
     
     Args:
         waveform (Tensor): Tensor of audio of size (c, n) where c is in the range [0,2)
