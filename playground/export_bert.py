@@ -86,6 +86,25 @@ def export_bert_to_onnx(
         print(f"Copied tokenizer.json to: {dest_tokenizer_path}")
     else:
         print("Warning: tokenizer.json not found")
+
+    # Copy config.json if it exists
+    if tokenizer_cache_dir and os.path.isdir(tokenizer_cache_dir):
+        config_json_path = os.path.join(tokenizer_cache_dir, "config.json")
+    else:
+        # For models from HuggingFace cache
+        cache_dir = os.path.expanduser("~/.cache/huggingface/transformers")
+        config_json_path = None
+        for root, dirs, files in os.walk(cache_dir):
+            if "config.json" in files and model_name.replace("/", "--") in root:
+                config_json_path = os.path.join(root, "config.json")
+                break
+    
+    if config_json_path and os.path.exists(config_json_path):
+        dest_config_path = os.path.join(output_dir, "config.json")
+        shutil.copy2(config_json_path, dest_config_path)
+        print(f"Copied config.json to: {dest_config_path}")
+    else:
+        print("Warning: config.json not found")
     
     print(f"Model exported successfully to: {output_dir}")
     return combined_model, onnx_path

@@ -11,6 +11,7 @@ onnx
 onnxruntime; platform_machine == "aarch64" or platform_machine == "arm64"
 onnxruntime-gpu; platform_machine == "x86_64" or platform_machine == "AMD64"
 onnxsim
+onnxruntime-tools
 tqdm
 funasr==1.0.27
 cn2an

@@ -194,7 +194,9 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+#onnx
 onnx/
 *.onnx
 tokenizer.json
 output.wav
+config.json
