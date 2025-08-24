@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "onnx/v2proplus_export/v2proplus"
+MODEL_PATH = "onnx/v2_export/v2"
 
 def audio_postprocess(
     audios,
@@ -135,7 +135,7 @@ vtis = ort.InferenceSession(MODEL_PATH+"_export_vits.onnx")
     "input_text_phones": input_phones,
     "pred_semantic": pred_semantic,
     "spectrum": spectrum.astype(np.float32),
-    "sv_emb": sv_emb.astype(np.float32)
+    # "sv_emb": sv_emb.astype(np.float32)
 })
 
 audio_postprocess([audio])
