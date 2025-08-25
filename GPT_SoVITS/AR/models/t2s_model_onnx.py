@@ -128,7 +128,7 @@ class T2SFirstStageDecoder(nn.Module):
         self.early_stop_num = early_stop_num
         self.num_layers = num_layers
 
-    def forward(self, x, prompt, top_k = None, top_p = None, repetition_penalty = None, temperature = None):
+    def forward(self, x, prompt, top_k = None, top_p = None, repetition_penalty = None, temperature = None, first_infer = None):
         if top_k is None:
             top_k = torch.LongTensor([15]).to(device=x.device)
         if top_p is None:
@@ -146,7 +146,7 @@ class T2SFirstStageDecoder(nn.Module):
             "k": None,
             "v": None,
             "y_emb": None,
-            "first_infer": 1,
+            "first_infer": first_infer,
             "stage": 0,
         }
 
@@ -216,7 +216,7 @@ class T2SStageDecoder(nn.Module):
         self.early_stop_num = early_stop_num
         self.num_layers = num_layers
 
-    def forward(self, y, k, v, y_emb, x_example, top_k = None, top_p = None, repetition_penalty = None, temperature = None):
+    def forward(self, y, k, v, y_emb, x_example, top_k = None, top_p = None, repetition_penalty = None, temperature = None, first_infer = None):
         if top_k is None:
             top_k = torch.LongTensor([15]).to(device=y.device)
         if top_p is None:
@@ -231,7 +231,7 @@ class T2SStageDecoder(nn.Module):
             "k": torch.nn.functional.pad(k, (0, 0, 0, 0, 0, 1)),
             "v": torch.nn.functional.pad(v, (0, 0, 0, 0, 0, 1)),
             "y_emb": y_emb,
-            "first_infer": 0,
+            "first_infer": first_infer,
             "stage": 0,
         }
 
@@ -336,11 +336,11 @@ class Text2SemanticDecoder(nn.Module):
         prefix_len = prompts.shape[1]
 
         x = self.onnx_encoder(x, bert_feature)
-        y, k, v, y_emb, x_example = self.first_stage_decoder(x, prompts, top_k=top_k)
+        y, k, v, y_emb, x_example = self.first_stage_decoder(x, prompts, top_k=top_k, first_infer=torch.LongTensor([1]))
 
         stop = False
         for idx in tqdm(range(1, 1500)):
-            enco = self.stage_decoder(y, k, v, y_emb, x_example, top_k=top_k)
+            enco = self.stage_decoder(y, k, v, y_emb, x_example, top_k=top_k, first_infer=torch.LongTensor([0]))
             y, k, v, y_emb, logits, samples = enco
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
                 stop = True

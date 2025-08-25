@@ -98,7 +98,8 @@ t2s_combined = ort.InferenceSession(MODEL_PATH+"_export_t2s_combined.onnx")
     "top_k": top_k,
     "top_p": top_p,
     "repetition_penalty": repetition_penalty,
-    "temperature": temperature
+    "temperature": temperature,
+    "if_init_step": np.array([True], dtype=bool)
 })
 
 # t2s_stage_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
@@ -120,7 +121,8 @@ for idx in tqdm(range(1, 1500)):
         "top_k": top_k,
         "top_p": top_p,
         "repetition_penalty": repetition_penalty,
-        "temperature": temperature
+        "temperature": temperature,
+        "if_init_step": np.array([False], dtype=bool)
     })
     if np.argmax(logits, axis=-1)[0] == 1024 or samples[0, 0] == 1024: # 1024 is the EOS token
         break

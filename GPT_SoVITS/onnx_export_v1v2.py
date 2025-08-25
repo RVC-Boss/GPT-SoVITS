@@ -112,14 +112,15 @@ class T2SInitStep(nn.Module):
         self.fsdc = t2s.first_stage_decoder
         self.vits = vits
 
-    def forward(self, ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k=None, top_p=None, repetition_penalty=None, temperature=None):
+    def forward(self, ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k=None, top_p=None, repetition_penalty=None, temperature=None, first_infer=None):
+        first_infer = first_infer.to(torch.int64)
         codes = self.vits.extract_latent(ssl_content)
         prompt_semantic = codes[0, 0]
         bert = torch.cat([ref_bert.transpose(0, 1), text_bert.transpose(0, 1)], 1)
         all_phoneme_ids = torch.cat([ref_seq, text_seq], 1)
         bert = bert.unsqueeze(0)
         prompt = prompt_semantic.unsqueeze(0)
-        [y, k, v, y_emb, x_example]  = self.fsdc(self.encoder(all_phoneme_ids, bert), prompt, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)
+        [y, k, v, y_emb, x_example]  = self.fsdc(self.encoder(all_phoneme_ids, bert), prompt, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature, first_infer=first_infer)
         fake_logits = torch.zeros((1, 1025), dtype=torch.float32)  # Dummy logits for ONNX export
         fake_samples = torch.zeros((1, 1), dtype=torch.int32)  # Dummy samples for ONNX export
         return y, k, v, y_emb, x_example, fake_logits, fake_samples
@@ -129,8 +130,9 @@ class T2SStageStep(nn.Module):
         super().__init__()
         self.stage_decoder = stage_decoder
 
-    def forward(self, iy, ik, iv, iy_emb, ix_example, top_k=None, top_p=None, repetition_penalty=None, temperature=None):
-        [y, k, v, y_emb, logits, samples] = self.stage_decoder(iy, ik, iv, iy_emb, ix_example, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)
+    def forward(self, iy, ik, iv, iy_emb, ix_example, top_k=None, top_p=None, repetition_penalty=None, temperature=None, first_infer=None):
+        first_infer = first_infer.to(torch.int64)
+        [y, k, v, y_emb, logits, samples] = self.stage_decoder(iy, ik, iv, iy_emb, ix_example, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature, first_infer=first_infer)
         fake_x_example = torch.zeros((1, 512), dtype=torch.float32)  # Dummy x_example for ONNX export
         return y, k, v, y_emb, fake_x_example, logits, samples
 
@@ -155,10 +157,10 @@ class T2SModel(nn.Module):
 
     def forward(self, ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k=None, top_p=None, repetition_penalty=None, temperature=None):
         # [1,N] [1,N] [N, 1024] [N, 1024] [1, 768, N]
-        y, k, v, y_emb, x_example, fake_logits, fake_samples = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)
+        y, k, v, y_emb, x_example, fake_logits, fake_samples = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature, first_infer=torch.LongTensor([1]))
 
         for idx in range(5): # This is a fake one! DO NOT take this as reference
-            enco = self.stage_decoder(y, k, v, y_emb, x_example, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)
+            enco = self.stage_decoder(y, k, v, y_emb, x_example, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature, first_infer=torch.LongTensor([0]))
             y, k, v, y_emb, logits, samples = enco
             # if torch.argmax(logits, dim=-1)[0] == self.t2s_model.EOS or samples[0, 0] == self.t2s_model.EOS:
             #     break
@@ -168,9 +170,9 @@ class T2SModel(nn.Module):
     def export(self, ref_seq, text_seq, ref_bert, text_bert, ssl_content, project_name, top_k=None, top_p=None, repetition_penalty=None, temperature=None):
         torch.onnx.export(
             self.init_step,
-            (ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k, top_p, repetition_penalty, temperature),
+            (ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k, top_p, repetition_penalty, temperature, torch.Tensor([True]).to(torch.bool)),
             f"onnx/{project_name}/{project_name}_t2s_init_step.onnx",
-            input_names=["ref_text_phones", "input_text_phones", "ref_text_bert", "input_text_bert", "hubert_ssl_content", "top_k", "top_p", "repetition_penalty", "temperature"],
+            input_names=["ref_text_phones", "input_text_phones", "ref_text_bert", "input_text_bert", "hubert_ssl_content", "top_k", "top_p", "repetition_penalty", "temperature", "if_init_step"],
             output_names=["y", "k", "v", "y_emb", "x_example", 'logits', 'samples'],
             dynamic_axes={
                 "ref_text_phones": {1: "ref_length"},
@@ -180,16 +182,17 @@ class T2SModel(nn.Module):
                 "hubert_ssl_content": {2: "ssl_length"},
             },
             opset_version=16,
+            do_constant_folding=False
         )
-        simplify_onnx_model(f"onnx/{project_name}/{project_name}_t2s_init_step.onnx")
-        y, k, v, y_emb, x_example, fake_logits, fake_samples = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)
+        # simplify_onnx_model(f"onnx/{project_name}/{project_name}_t2s_init_step.onnx")
+        y, k, v, y_emb, x_example, fake_logits, fake_samples = self.init_step(ref_seq, text_seq, ref_bert, text_bert, ssl_content, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature, first_infer=torch.Tensor([True]).to(torch.bool))
 
         stage_step = T2SStageStep(self.stage_decoder)
         torch.onnx.export(
             stage_step,
-            (y, k, v, y_emb, x_example, top_k, top_p, repetition_penalty, temperature),
+            (y, k, v, y_emb, x_example, top_k, top_p, repetition_penalty, temperature, torch.Tensor([False]).to(torch.bool)),
             f"onnx/{project_name}/{project_name}_t2s_stage_step.onnx",
-            input_names=["iy", "ik", "iv", "iy_emb", "ix_example", "top_k", "top_p", "repetition_penalty", "temperature"],
+            input_names=["iy", "ik", "iv", "iy_emb", "ix_example", "top_k", "top_p", "repetition_penalty", "temperature", "if_init_step"],
             output_names=["y", "k", "v", "y_emb","x_example", "logits", "samples"],
             dynamic_axes={
                 "iy": {1: "iy_length"},
@@ -329,7 +332,7 @@ def combineInitStepAndStageStep(init_step_onnx_path, stage_step_onnx_path, combi
 
     # Define the inputs for the main graph
     # 1. The boolean condition to select the branch
-    cond_input = helper.make_tensor_value_info('if_init_step', TensorProto.BOOL, [])
+    # cond_input = helper.make_tensor_value_info('if_init_step', TensorProto.BOOL, [])
 
     main_outputs = [output for output in init_step_model.graph.output]
 
@@ -346,7 +349,7 @@ def combineInitStepAndStageStep(init_step_onnx_path, stage_step_onnx_path, combi
     main_graph = helper.make_graph(
         nodes=[if_node],
         name="t2s_combined_graph",
-        inputs=[cond_input] + data_inputs_init + data_inputs_stage,
+        inputs= data_inputs_init + data_inputs_stage,
         outputs=main_outputs
     )
 
@@ -483,29 +486,29 @@ if __name__ == "__main__":
 
     # 因为io太频繁，可能导致模型导出出错(wsl非常明显)，请自行重试
 
-    gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
-    vits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
-    exp_path = "v1_export"
-    version = "v1"
-    export(vits_path, gpt_path, exp_path, version)
+    # gpt_path = "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/s2G488k.pth"
+    # exp_path = "v1_export"
+    # version = "v1"
+    # export(vits_path, gpt_path, exp_path, version)
 
     gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
     vits_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth"
     exp_path = "v2_export"
     version = "v2"
-    export(vits_path, gpt_path, exp_path, version)
+    export(vits_path, gpt_path, exp_path, version, t2s_model_combine = True)
     
 
-    gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
-    vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
-    exp_path = "v2pro_export"
-    version = "v2Pro"
-    export(vits_path, gpt_path, exp_path, version)
+    # gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth"
+    # exp_path = "v2pro_export"
+    # version = "v2Pro"
+    # export(vits_path, gpt_path, exp_path, version)
 
-    gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
-    vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
-    exp_path = "v2proplus_export"
-    version = "v2ProPlus"
-    export(vits_path, gpt_path, exp_path, version, t2s_model_combine = True, half_precision=True)
+    # gpt_path = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
+    # vits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
+    # exp_path = "v2proplus_export"
+    # version = "v2ProPlus"
+    # export(vits_path, gpt_path, exp_path, version, t2s_model_combine = True, half_precision=True)
 
 
