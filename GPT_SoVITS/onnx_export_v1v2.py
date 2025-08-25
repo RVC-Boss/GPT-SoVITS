@@ -462,6 +462,19 @@ def export(vits_path, gpt_path, project_name, voice_model_version, t2s_model_com
         convert_onnx_to_half(f"onnx/{project_name}/{project_name}_t2s_init_step.onnx")
         convert_onnx_to_half(f"onnx/{project_name}/{project_name}_t2s_stage_step.onnx")
 
+    configJson = {
+        "project_name": project_name,
+        "type": "GPTSoVits",
+        "version" : voice_model_version,
+        "bert_base_path": 'GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large',
+        "cnhuhbert_base_path": 'GPT_SoVITS/pretrained_models/chinese-hubert-base',
+        "t2s_weights_path": gpt_path,
+        "vits_weights_path": vits_path,
+        "half_precision": half_precision
+    }
+    with open(f"onnx/{project_name}/config.json", "w", encoding="utf-8") as f:
+        json.dump(configJson, f, ensure_ascii=False, indent=4)
+
 if __name__ == "__main__":
     try:
         os.mkdir("onnx")
