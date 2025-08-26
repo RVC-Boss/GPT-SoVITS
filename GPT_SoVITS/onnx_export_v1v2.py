@@ -124,8 +124,8 @@ class T2SInitStage(nn.Module):
         x_seq_len = torch.onnx.operators.shape_as_tensor(x)[1]
         y_seq_len = torch.onnx.operators.shape_as_tensor(prompt)[1]
 
-        init_k = torch.zeros((self.num_layers, (x_seq_len + y_seq_len), 1, 512), dtype=torch.float)
-        init_v = torch.zeros((self.num_layers, (x_seq_len + y_seq_len), 1, 512), dtype=torch.float)
+        init_k = torch.zeros(((x_seq_len + y_seq_len), self.num_layers, 512), dtype=torch.float)
+        init_v = torch.zeros(((x_seq_len + y_seq_len), self.num_layers, 512), dtype=torch.float)
 
         return x, prompt, init_k, init_v, x_seq_len, y_seq_len
 
@@ -210,8 +210,8 @@ class T2SModel(nn.Module):
             dynamic_axes={
                 "ix": {1: "ix_length"},
                 "iy": {1: "iy_length"},
-                "ik": {1: "ik_length"},
-                "iv": {1: "iv_length"},
+                "ik": {0: "ik_length"},
+                "iv": {0: "iv_length"},
                 "iy_emb": {1: "iy_emb_length"},
             },
             verbose=False,

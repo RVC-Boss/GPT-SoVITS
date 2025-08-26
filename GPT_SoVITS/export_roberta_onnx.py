@@ -157,7 +157,7 @@ def main():
     parser = argparse.ArgumentParser(description="Export BERT model to ONNX")
     parser.add_argument("--model_name", type=str, default="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large", 
                        help="Pretrained BERT model name")
-    parser.add_argument("--output_dir", type=str, default="playground/bert",
+    parser.add_argument("--output_dir", type=str, default="playground/chinese-roberta-wwm-ext-large",
                        help="Output directory path")
     parser.add_argument("--max_seq_length", type=int, default=512,
                        help="Maximum sequence length")

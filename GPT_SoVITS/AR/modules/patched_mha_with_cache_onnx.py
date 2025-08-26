@@ -51,20 +51,18 @@ def multi_head_attention_forward_patched(
 
     # 使用动态形状推断来统一处理kv cache首步和后续步骤形状差异
     # # k,v : [N, 1, 512] at first time, [1, 1, 512] afterwards
-    # # cache_k, cache_v : [1, N, 1, 512] size increasement is prepared outside
-    first_infer_mask = cache["first_infer"]
-    cache_k = cache["k"][cache["stage"]]
-    cache_v = cache["v"][cache["stage"]]
+    # # cache_k, cache_v : [N, 1, 512] for one head, N size increasement is prepared outside
+    # cache["k"][:, cache["stage"]:cache["stage"]+1, :]
+    # cache["v"][:, cache["stage"]:cache["stage"]+1, :]
     # Magic to get an index of either -1 or -N according to if first_infer_mask is set
     minus_one = torch.tensor([-1]).to(k.device).to(torch.int64)
-    multipled = minus_one * first_infer_mask * (cache['x_seq_len'] + cache['y_seq_len'])
+    multipled = minus_one * cache["first_infer"] * (cache['x_seq_len'] + cache['y_seq_len'])
     index_offset = torch.min(minus_one, multipled)
-    cache_k[index_offset :, :, :] = k
-    cache_v[index_offset :, :, :] = v
-    cache["k"][cache["stage"]] = cache_k
-    cache["v"][cache["stage"]] = cache_v
-    k = cache_k
-    v = cache_v
+    # 首次时 index 为 -N，后续index 为 -1
+    cache["k"][index_offset:, cache["stage"]:cache["stage"]+1, :] = k
+    cache["v"][index_offset:, cache["stage"]:cache["stage"]+1, :] = v
+    k = cache["k"][:, cache["stage"]:cache["stage"]+1, :]
+    v = cache["v"][:, cache["stage"]:cache["stage"]+1, :]
 
     cache["stage"] = (cache["stage"] + 1) % cache["all_stage"]
 

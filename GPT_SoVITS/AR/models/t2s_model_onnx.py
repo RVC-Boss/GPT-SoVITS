@@ -273,8 +273,8 @@ class Text2SemanticDecoder(nn.Module):
         x_seq_len = x.shape[1]
         y_seq_len = prompts.shape[1]
 
-        init_k = torch.zeros((self.num_layers, (x_seq_len + y_seq_len), 1, 512), dtype=torch.float)
-        init_v = torch.zeros((self.num_layers, (x_seq_len + y_seq_len), 1, 512), dtype=torch.float)
+        init_k = torch.zeros(((x_seq_len + y_seq_len), self.num_layers, 512), dtype=torch.float)
+        init_v = torch.zeros(((x_seq_len + y_seq_len), self.num_layers, 512), dtype=torch.float)
 
         empty_tensor = torch.empty((1,0,512)).to(torch.float)
 
