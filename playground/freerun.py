@@ -7,7 +7,7 @@ import torch
 from TTS_infer_pack.TextPreprocessor_onnx import TextPreprocessorOnnx
 
 
-MODEL_PATH = "onnx/v2_export/v2"
+MODEL_PATH = "onnx/v1_export/v1"
 
 def audio_postprocess(
     audios,
@@ -80,49 +80,52 @@ top_p = np.array([1.0], dtype=np.float32)
 repetition_penalty = np.array([1.0], dtype=np.float32)
 temperature = np.array([1.0], dtype=np.float32)
 
-t2s_combined = ort.InferenceSession(MODEL_PATH+"_export_t2s_combined.onnx")
+t2s_init_stage = ort.InferenceSession(MODEL_PATH+"_export_t2s_init_stage.onnx")
 # t2s_init_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_init_step.onnx")
 
-[y, k, v, y_emb, x_example, fake_logits, fake_samples] = t2s_combined.run(None, {
-    "if_init_step": np.array(True, dtype=bool),
+[x, prompts, init_k, init_v, x_seq_len, y_seq_len] = t2s_init_stage.run(None, {
     "input_text_phones": input_phones,
     "input_text_bert": input_bert,
     "ref_text_phones": ref_phones,
     "ref_text_bert": ref_bert,
     "hubert_ssl_content": audio_prompt_hubert,
-    "iy":np.empty((1, 0), dtype=np.int64),
-    "ik":np.empty((24, 0, 1, 512), dtype=np.float32),
-    "iv":np.empty((24, 0, 1, 512), dtype=np.float32),
-    "iy_emb":np.empty((1, 0, 512), dtype=np.float32),
-    "ix_example":np.empty((1, 0), dtype=np.float32),
+})
+empty_tensor = np.empty((1,0,512)).astype(np.float32)
+
+t2s_stage_decoder = ort.InferenceSession(MODEL_PATH+"_export_t2s_stage_decoder.onnx")
+y, k, v, y_emb, logits, samples = t2s_stage_decoder.run(None, {
+    "ix": x,
+    "iy": prompts,
+    "ik": init_k,
+    "iv": init_v,
+    "iy_emb": empty_tensor,
     "top_k": top_k,
     "top_p": top_p,
     "repetition_penalty": repetition_penalty,
     "temperature": temperature,
-    "if_init_step": np.array([True], dtype=bool)
+    "if_init_step": np.array([1]).astype(np.int64),
+    "x_seq_len": np.array([x_seq_len]).astype(np.int64),
+    "y_seq_len": np.array([y_seq_len]).astype(np.int64)
 })
 
-# t2s_stage_step = ort.InferenceSession(MODEL_PATH+"_export_t2s_sdec.onnx")
-
 for idx in tqdm(range(1, 1500)):
+    k = np.pad(k, ((0,0), (0,1), (0,0), (0,0)))
+    v = np.pad(v, ((0,0), (0,1), (0,0), (0,0)))
+    y_seq_len = np.array([y.shape[1]]).astype(np.int64)
     # [1, N] [N_layer, N, 1, 512] [N_layer, N, 1, 512] [1, N, 512] [1] [1, N, 512] [1, N]
-    [y, k, v, y_emb, fake_x_example, logits, samples] = t2s_combined.run(None, {
-        "if_init_step": np.array(False, dtype=bool),
-        "input_text_phones": np.empty((1, 0), dtype=np.int64),
-        "input_text_bert": np.empty((0, 1024), dtype=np.float32),
-        "ref_text_phones": np.empty((1, 0), dtype=np.int64),
-        "ref_text_bert": np.empty((0, 1024), dtype=np.float32),
-        "hubert_ssl_content": np.empty((1, 768, 0), dtype=np.float32),
+    [y, k, v, y_emb, logits, samples] = t2s_stage_decoder.run(None, {
+        "ix": empty_tensor,
         "iy": y,
         "ik": k,
         "iv": v,
         "iy_emb": y_emb,
-        "ix_example": x_example,
         "top_k": top_k,
         "top_p": top_p,
         "repetition_penalty": repetition_penalty,
         "temperature": temperature,
-        "if_init_step": np.array([False], dtype=bool)
+        "if_init_step": np.array([0]).astype(np.int64),
+        "x_seq_len": np.array([x_seq_len]).astype(np.int64),
+        "y_seq_len": y_seq_len
     })
     if np.argmax(logits, axis=-1)[0] == 1024 or samples[0, 0] == 1024: # 1024 is the EOS token
         break
