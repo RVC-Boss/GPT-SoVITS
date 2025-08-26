@@ -57,7 +57,7 @@ def multi_head_attention_forward_patched(
     cache_v = cache["v"][cache["stage"]]
     # Magic to get an index of either -1 or -N according to if first_infer_mask is set
     minus_one = torch.tensor([-1]).to(k.device).to(torch.int64)
-    multipled = minus_one * first_infer_mask * torch.onnx.operators.shape_as_tensor(query)[0]
+    multipled = minus_one * first_infer_mask * (cache['x_seq_len'] + cache['y_seq_len'])
     index_offset = torch.min(minus_one, multipled)
     cache_k[index_offset :, :, :] = k
     cache_v[index_offset :, :, :] = v
