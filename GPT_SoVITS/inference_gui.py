@@ -9,7 +9,7 @@ from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
 
-from inference_webui import gpt_path, sovits_path, change_gpt_weights, change_sovits_weights, get_tts_wav
+from inference_webui import gpt_path, sovits_path, change_gpt_weights, change_sovits_weights, get_tts_wav, load_models
 
 
 class GPTSoVITSGUI(QMainWindow):
@@ -281,6 +281,7 @@ class GPTSoVITSGUI(QMainWindow):
         target_text = self.target_text_input.text()
         output_path = self.output_input.text()
 
+        load_models()
         if GPT_model_path != self.GPT_Path:
             change_gpt_weights(gpt_path=GPT_model_path)
             self.GPT_Path = GPT_model_path
