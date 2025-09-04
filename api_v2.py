@@ -439,7 +439,7 @@ async def tts_post_endpoint(request: TTS_Request):
 
 
 @APP.get("/set_refer_audio")
-async def set_refer_aduio(refer_audio_path: str = None):
+async def set_refer_audio(refer_audio_path: str = None):
     try:
         tts_pipeline.set_ref_audio(refer_audio_path)
     except Exception as e:
@@ -448,7 +448,7 @@ async def set_refer_aduio(refer_audio_path: str = None):
 
 
 # @APP.post("/set_refer_audio")
-# async def set_refer_aduio_post(audio_file: UploadFile = File(...)):
+# async def set_refer_audio_post(audio_file: UploadFile = File(...)):
 #     try:
 #         # 检查文件类型，确保是音频文件
 #         if not audio_file.content_type.startswith("audio/"):
