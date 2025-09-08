@@ -11,9 +11,9 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-version = os.environ.get("version", None)
-
 from GPT_SoVITS.text import cleaned_text_to_sequence
+
+version = os.environ.get("version", None)
 
 # from config import exp_dir
 

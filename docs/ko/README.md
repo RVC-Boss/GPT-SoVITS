@@ -259,7 +259,7 @@ python webui.py <언어(옵션)>
 #### 기타
 
 ```bash
-PYTHONPATH=. python GPT_SoVITS/inference_webui.py <language(optional)> -b <backend> -p <port>
+python -m GPT_SoVITS.inference_webui <language(optional)> -b <backend> -p <port>
 ```
 
 또는

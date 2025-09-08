@@ -60,6 +60,7 @@ logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 logging.getLogger("multipart.multipart").setLevel(logging.ERROR)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 
 def set_high_priority():
@@ -90,7 +91,7 @@ def lang_type(text: str) -> str:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="inference_webui",
-        description=f"PYTHONPATH=. python -s GPT_SoVITS/inference_webui.py zh_CN -b {backends[-1]}",
+        description=f"python -s -m GPT_SoVITS.inference_webui zh_CN -b {backends[-1]}",
     )
     p.add_argument(
         "language",
@@ -691,6 +692,8 @@ def get_tts_wav(
     pause_second=0.3,
 ):
     torch.set_grad_enabled(False)
+    ttfb_time = ttime()
+
     if ref_wav_path:
         pass
     else:
@@ -918,6 +921,8 @@ def get_tts_wav(
             with torch.inference_mode():
                 wav_gen = vocoder_model(cfm_res)  # type: ignore
                 audio = wav_gen[0][0]
+        if i_text == 0:
+            ttfb_time = ttime() - ttfb_time
         max_audio = torch.abs(audio).max()  # 简单防止16bit爆音
         if max_audio > 1:
             audio = audio / max_audio
@@ -954,6 +959,10 @@ def get_tts_wav(
     console.print(f">> Time Stamps: {t0:.3f}\t{t1:.3f}\t{t2:.3f}\t{t3:.3f}")
     console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
     console.print(f">> RTF: {rtf_value:.2f}")
+    if ttfb_time > 2:
+        console.print(f">> TTFB: {ttfb_time:.3f} s")
+    else:
+        console.print(f">> TTFB: {ttfb_time * 1000:.3f} ms")
 
     gr.Info(f"{infer_speed_avg:.2f} Token/s", title="Infer Speed")
     gr.Info(f"{rtf_value:.2f}", title="RTF")

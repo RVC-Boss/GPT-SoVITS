@@ -75,7 +75,7 @@ class T2SEngine(T2SEngineProtocol):
                 transient=True,
             ) as progress,
         ):
-            max_token = min(1800 - int(session.input_pos.max()), 1500)
+            max_token = min(2000 - int(session.input_pos.max()), 1500)
 
             task = progress.add_task("T2S Decoding", total=max_token)
             for idx in range(1500):

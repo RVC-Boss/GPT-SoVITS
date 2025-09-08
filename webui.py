@@ -44,11 +44,11 @@ from tools.assets import css, js, top_html
 from tools.i18n.i18n import I18nAuto, scan_language_list
 from tools.my_utils import check_details, check_for_existance
 
-os.environ["PYTHONPATH"] = now_dir = os.getcwd()
 os.environ["version"] = version = "v2Pro"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "INFO"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 os.environ["all_proxy"] = ""
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 
 backends_gradio = [(b.replace("-", " "), b) for b in backends]
@@ -86,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 args = build_parser().parse_args()
 
-tmp = os.path.join(now_dir, "TEMP")
+tmp = "TEMP"
 os.makedirs(tmp, exist_ok=True)
 os.environ["TEMP"] = tmp
 if os.path.exists(tmp):
@@ -794,11 +794,10 @@ def open1a(
         opt_dir = f"{exp_root}/{exp_name}"
 
         env = os.environ.copy()
-        env["PYTHONPATH"] = os.getcwd()
 
         # fmt: off
         cmd = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/1-get-text.py",
+            python_exec, "-s", "-m", "GPT_SoVITS.prepare_datasets.1_get_text",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--bert", bert_pretrained_dir,
@@ -884,11 +883,10 @@ def open1b(
         opt_dir = f"{exp_root}/{exp_name}"
 
         env = os.environ.copy()
-        env["PYTHONPATH"] = os.getcwd()
 
         # fmt: off
         cmd = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/2-get-hubert-sv-wav32k.py",
+            python_exec, "-s", "GPT_SoVITS/prepare_datasets/2_get_hubert_sv_wav32k.py",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--cnhubert", ssl_pretrained_dir,
@@ -977,11 +975,10 @@ def open1c(
         opt_dir = f"{exp_root}/{exp_name}"
 
         env = os.environ.copy()
-        env["PYTHONPATH"] = os.getcwd()
 
         # fmt: off
         cmd = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/3-get-semantic.py",
+            python_exec, "-s", "GPT_SoVITS/prepare_datasets/3_get_semantic.py",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--pretrained-s2g", pretrained_s2G_path,
@@ -1073,12 +1070,11 @@ def open1abc(
         opt_dir = f"{exp_root}/{exp_name}"
 
         env = os.environ.copy()
-        env["PYTHONPATH"] = os.getcwd()
 
         # Step 1
         # fmt: off
         cmd_1 = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/1-get-text.py",
+            python_exec, "-s", "GPT_SoVITS/prepare_datasets/1_get_text.py",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--bert", bert_pretrained_dir,
@@ -1124,7 +1120,7 @@ def open1abc(
         # Step 2
         # fmt: off
         cmd_2 = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/2-get-hubert-sv-wav32k.py",
+            python_exec, "-s", "GPT_SoVITS/prepare_datasets/2_get_hubert_sv_wav32k.py",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--cnhubert", ssl_pretrained_dir,
@@ -1175,7 +1171,7 @@ def open1abc(
         # Step 3
         # fmt: off
         cmd_3 = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/3-get-semantic.py",
+            python_exec, "-s", "GPT_SoVITS/prepare_datasets/3_get_semantic.py",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--pretrained-s2g", pretrained_s2G_path,

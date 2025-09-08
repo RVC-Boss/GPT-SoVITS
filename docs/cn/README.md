@@ -265,7 +265,7 @@ python webui.py <language(optional)>
 #### 其他
 
 ```bash
-PYTHONPATH=. python GPT_SoVITS/inference_webui.py <language(optional)> -b <backend> -p <port>
+python -m GPT_SoVITS.inference_webui <language(optional)> -b <backend> -p <port>
 ```
 
 或者

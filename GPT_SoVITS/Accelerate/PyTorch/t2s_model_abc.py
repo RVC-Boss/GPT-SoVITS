@@ -55,7 +55,7 @@ class SinePositionalEmbedding(nn.Module):
         scale: bool = False,
         alpha: bool = False,
         max_batch_size: int = 10,
-        max_seq_len: int = 1800,
+        max_seq_len: int = 2000,
     ):
         super().__init__()
         self.embedding_dim = embedding_dim
@@ -106,8 +106,9 @@ class SinePositionalEmbedding(nn.Module):
             embedded_x (Tensor): [batch_size, seq_len, embed_dim]
         """
 
-        pe_values = self.pe[:, : x.shape[-2]]
-        return x * self.x_scale + self.alpha.item() * pe_values
+        batch_size = x.shape[0]
+        pe_values = self.pe[:batch_size, : x.shape[-2]]
+        return x * self.x_scale + self.alpha * pe_values
 
 
 class KVCacheABC(nn.Module, ABC, KVCacheProtocol):
@@ -290,7 +291,7 @@ class AttentionABC(nn.Module, ABC):
     def prefill(self, x: Tensor, kv_cache: KVCacheProtocol, attn_mask: Tensor) -> Tensor:
         bsz, seqlen, _ = x.shape
 
-        q, k, v = self.in_proj(x.unsqueeze(0)).chunk(3, dim=-1)
+        q, k, v = self.in_proj(x).chunk(3, dim=-1)
 
         q, k, v = map(lambda x: x.contiguous().view(bsz, seqlen, self.n_head, self.head_dim), (q, k, v))
 
@@ -416,7 +417,7 @@ class T2SDecoderABC(nn.Module, ABC, T2SDecoderProtocol):
     def __init__(
         self,
         config: dict,
-        max_seq_length: int = 1800,
+        max_seq_length: int = 2000,
         max_batch_size: int = 10,
     ) -> None:
         super().__init__()

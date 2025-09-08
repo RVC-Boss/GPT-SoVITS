@@ -251,13 +251,13 @@ python webui.py <言語(オプション)>
 #### その他
 
 ```bash
-PYTHONPATH=. python GPT_SoVITS/inference_webui.py <language(optional)> -b <backend> -p <port>
+python -m GPT_SoVITS.inference_webui <language(optional)> -b <backend> -p <port>
 ```
 
 または
 
 ```bash
-PYTHONPATH=. python webui.py
+python webui.py
 ```
 
 その後、`1-GPT-SoVITS-TTS/1C-inference`で推論 webui を開きます.

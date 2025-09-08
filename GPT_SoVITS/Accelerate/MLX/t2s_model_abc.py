@@ -43,7 +43,7 @@ class SinePositionalEmbedding(nn.Module):
         embedding_dim: int,
         scale: bool = False,
         max_batch_size: int = 10,
-        max_seq_len: int = 1800,
+        max_seq_len: int = 2000,
     ):
         super().__init__()
         self.embedding_dim = embedding_dim
@@ -278,7 +278,7 @@ class AttentionABC(ABC, nn.Module):
     def prefill(self, x: Array, kv_cache: KVCache | KVCacheQ, attn_mask: Array):
         bsz, seqlen, _ = cast(tuple[int, ...], x.shape)
 
-        q, k, v = self.in_proj(mx.expand_dims(x, 0)).split(3, axis=-1)
+        q, k, v = self.in_proj(x).split(3, axis=-1)
 
         q, k, v = map(lambda x: x.reshape(bsz, seqlen, self.n_head, self.head_dim), (q, k, v))
 
@@ -413,7 +413,7 @@ class T2SDecoderABC(nn.Module, T2SDecoderProtocol):
     def __init__(
         self,
         config: dict,
-        max_seq_length: int = 1800,
+        max_seq_length: int = 2000,
         max_batch_size: int = 10,
     ) -> None:
         super().__init__()

@@ -18,7 +18,7 @@ speakers.json
 ref_audios
 tools/AP_BWE/24kto48k/*
 !tools/AP_BWE/24kto48k/readme.txt
-onnx
+onnx_export
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -91,7 +91,7 @@ class T2SDecoder(T2SDecoderABC):
     def __init__(
         self,
         config: dict,
-        max_seq_length: int = 1800,
+        max_seq_length: int = 2000,
         max_batch_size: int = 10,
     ) -> None:
         super().__init__(config, max_seq_length, max_batch_size)

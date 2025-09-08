@@ -1,7 +1,6 @@
 import enum
 import os
 import os.path as osp
-import platform
 import queue
 import sys
 import time
@@ -16,7 +15,7 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 from torch.multiprocessing.spawn import spawn
 from transformers import BertForMaskedLM, BertTokenizerFast
 
-from GPT_SoVITS.Accelerate.logger import console, logger, SpeedColumnIteration
+from GPT_SoVITS.Accelerate.logger import SpeedColumnIteration, console, logger
 from GPT_SoVITS.text.cleaner import clean_text
 from tools.my_utils import clean_path
 
@@ -302,16 +301,8 @@ def is_powershell_env(env: dict) -> bool:
 
 
 def get_prog_name() -> str:
-    system = platform.system()
-    env = os.environ.copy()
-    script_rel = osp.join("GPT_SoVITS", "prepare_datasets", osp.basename(__file__))
-    if system == "Windows":
-        if is_powershell_env(env):
-            return rf"$env:PYTHONPATH='.'; python -s {script_rel}"
-        else:
-            return rf"set PYTHONPATH=. && python -s {script_rel}"
-    else:
-        return f"PYTHONPATH=. python -s {script_rel}"
+    script_rel = ".".join(["GPT_SoVITS", "prepare_datasets", osp.basename(__file__)]).strip(".py")
+    return f"python -s -m {script_rel}"
 
 
 if __name__ == "__main__":

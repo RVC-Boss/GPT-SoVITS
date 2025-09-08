@@ -273,13 +273,13 @@ Double-click `go-webui-v2.bat` or use `go-webui-v2.ps1` ,then open the inference
 #### Others
 
 ```bash
-PYTHONPATH=. python GPT_SoVITS/inference_webui.py <language(optional)> -b <backend> -p <port>
+python -m GPT_SoVITS.inference_webui <language(optional)> -b <backend> -p <port>
 ```
 
 OR
 
 ```bash
-PYTHONPATH=. python webui.py
+python webui.py
 ```
 
 then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
