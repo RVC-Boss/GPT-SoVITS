@@ -4,18 +4,18 @@ import torch
 
 
 def feature_loss(fmap_r, fmap_g):
-    loss = 0
+    loss = torch.tensor(0).to(fmap_r[0][0].device)
     for dr, dg in zip(fmap_r, fmap_g):
         for rl, gl in zip(dr, dg):
             rl = rl.float().detach()
             gl = gl.float()
-            loss += torch.mean(torch.abs(rl - gl))
+            loss = torch.mean(torch.abs(rl - gl)) + loss
 
     return loss * 2
 
 
 def discriminator_loss(disc_real_outputs, disc_generated_outputs):
-    loss = 0
+    loss = torch.tensor(0).to(disc_real_outputs[0].device)
     r_losses = []
     g_losses = []
     for dr, dg in zip(disc_real_outputs, disc_generated_outputs):
@@ -23,7 +23,7 @@ def discriminator_loss(disc_real_outputs, disc_generated_outputs):
         dg = dg.float()
         r_loss = torch.mean((1 - dr) ** 2)
         g_loss = torch.mean(dg**2)
-        loss += r_loss + g_loss
+        loss = r_loss + g_loss + loss
         r_losses.append(r_loss.item())
         g_losses.append(g_loss.item())
 
@@ -31,13 +31,13 @@ def discriminator_loss(disc_real_outputs, disc_generated_outputs):
 
 
 def generator_loss(disc_outputs):
-    loss = 0
+    loss = torch.tensor(0).to(disc_outputs[0].device)
     gen_losses = []
     for dg in disc_outputs:
         dg = dg.float()
         l = torch.mean((1 - dg) ** 2)
         gen_losses.append(l)
-        loss += l
+        loss = l + loss
 
     return loss, gen_losses
 

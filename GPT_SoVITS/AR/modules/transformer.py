@@ -2,19 +2,14 @@
 import copy
 import numbers
 from functools import partial
-from typing import Any
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
-from AR.modules.activation import MultiheadAttention
-from AR.modules.scaling import BalancedDoubleSwish
-from torch import nn
-from torch import Tensor
+from torch import Tensor, nn
 from torch.nn import functional as F
+
+from .activation import MultiheadAttention
+from .scaling import BalancedDoubleSwish
 
 _shape_t = Union[int, List[int], torch.Size]
 
@@ -55,7 +50,7 @@ class LayerNorm(nn.Module):
             nn.init.ones_(self.weight)
             nn.init.zeros_(self.bias)
 
-    def forward(self, input: Tensor, embedding: Any = None) -> Tensor:
+    def forward(self, input: Tensor, embedding: Any = None) -> tuple[Tensor, Any] | Tensor:
         if isinstance(input, tuple):
             input, embedding = input
             return (
@@ -128,7 +123,7 @@ class TransformerEncoder(nn.Module):
         src_key_padding_mask: Optional[Tensor] = None,
         return_layer_states: bool = False,
         cache=None,
-    ) -> Tensor:
+    ) -> Tensor | tuple[list[Tensor], Tensor]:
         r"""Pass the input through the encoder layers in turn.
 
         Args:
@@ -186,11 +181,11 @@ class TransformerEncoderLayer(nn.Module):
         norm_first: bool = False,
         device=None,
         dtype=None,
-        linear1_self_attention_cls: nn.Module = nn.Linear,
-        linear2_self_attention_cls: nn.Module = nn.Linear,
-        linear1_feedforward_cls: nn.Module = nn.Linear,
-        linear2_feedforward_cls: nn.Module = nn.Linear,
-        layer_norm_cls: nn.Module = LayerNorm,
+        linear1_self_attention_cls: type[nn.Module] = nn.Linear,
+        linear2_self_attention_cls: type[nn.Module] = nn.Linear,
+        linear1_feedforward_cls: type[nn.Module] = nn.Linear,
+        linear2_feedforward_cls: type[nn.Module] = nn.Linear,
+        layer_norm_cls: type[nn.Module] = LayerNorm,
         layer_norm_eps: float = 1e-5,
         adaptive_layer_norm=False,
     ) -> None:
@@ -260,7 +255,7 @@ class TransformerEncoderLayer(nn.Module):
         src_mask: Optional[Tensor] = None,
         src_key_padding_mask: Optional[Tensor] = None,
         cache=None,
-    ) -> Tensor:
+    ) -> Tensor | tuple[Tensor, Any]:
         r"""Pass the input through the encoder layer.
 
         Args:

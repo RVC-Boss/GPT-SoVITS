@@ -27,7 +27,7 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 ---
 
-## Features:
+## Features
 
 1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
 
@@ -41,12 +41,16 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 Unseen speakers few-shot fine-tuning demo:
 
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+<https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
-**RTF(inference speed) of GPT-SoVITS v2 ProPlus**:
-0.028 tested in 4060Ti, 0.014 tested in 4090 (1400words~=4min, inference time is 3.36s), 0.526 in M4 CPU. You can test our [huggingface demo](https://lj1995-gpt-sovits-proplus.hf.space/) (half H200) to experience high-speed inference .
+## Infer Speed
 
-请不要尬黑GPT-SoVITS推理速度慢，谢谢！
+| Device      | RTF   | Batch Size | Backend                     |
+| ----------- | ----- | ---------- | --------------------------- |
+| RTX 5090    | 0.05  | 1          | Flash Attn Varlen CUDAGraph |
+| Apple M4    | 0.21  | 1          | MLX Quantized Affined       |
+| RTX 4090    | 0.014 | 24         | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028 | 28         | Flash Attn Varlen CUDAGraph |
 
 **User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
@@ -56,15 +60,13 @@ For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/
 
 ### Tested Environments
 
-| Python Version | PyTorch Version  | Device        |
-| -------------- | ---------------- | ------------- |
-| Python 3.10    | PyTorch 2.5.1    | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
-| Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
-| Python 3.9     | PyTorch 2.5.1    | Apple silicon |
-| Python 3.11    | PyTorch 2.7.0    | Apple silicon |
-| Python 3.9     | PyTorch 2.2.2    | CPU           |
+| Python Version | PyTorch Version | Device        |
+| -------------- | --------------- | ------------- |
+| Python 3.10    | PyTorch 2.5.1   | CUDA 12.4     |
+| Python 3.11    | PyTorch 2.5.1   | CUDA 12.4     |
+| Python 3.11    | PyTorch 2.7.0   | CUDA 12.8     |
+| Python 3.11    | PyTorch 2.8.0   | Apple Silicon |
+| Python 3.10    | PyTorch 2.8.0   | CPU           |
 
 ### Windows
 
@@ -97,7 +99,7 @@ Install the program by running the following commands:
 ```bash
 conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
-bash install.sh --device <MPS|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
+bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
 ### Install Manually
@@ -118,13 +120,13 @@ pip install -r requirements.txt
 
 ```bash
 conda activate GPTSoVits
-conda install ffmpeg
+conda install ffmpeg=7 -c conda-forge
 ```
 
 ##### Ubuntu/Debian Users
 
 ```bash
-sudo apt install ffmpeg
+sudo apt install ffmpeg=7
 sudo apt install libsox-dev
 ```
 
@@ -214,7 +216,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 The TTS annotation .list file format:
 
-```
+```text
 
 vocal_path|speaker_name|language|text
 
@@ -230,7 +232,7 @@ Language dictionary:
 
 Example:
 
-```
+```text
 
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 
@@ -250,14 +252,6 @@ if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-
 ```bash
 python webui.py <language(optional)>
 ```
-
-if you want to switch to V1,then
-
-```bash
-python webui.py v1 <language(optional)>
-```
-
-Or maunally switch version in WebUI
 
 ### Finetune
 
@@ -279,7 +273,7 @@ Double-click `go-webui-v2.bat` or use `go-webui-v2.ps1` ,then open the inference
 #### Others
 
 ```bash
-python GPT_SoVITS/inference_webui.py <language(optional)>
+python -m GPT_SoVITS.inference_webui <language(optional)> -b <backend> -p <port>
 ```
 
 OR
@@ -332,7 +326,7 @@ Use v3 from v2 environment:
 
 3. Download v3 pretrained models (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS/pretrained_models`.
 
-   additional: for Audio Super Resolution model, you can read [how to download](./tools/AP_BWE_main/24kto48k/readme.txt)
+   additional: for Audio Super Resolution model, you can read [how to download](./tools/AP_BWE/24kto48k/readme.txt)
 
 ## V4 Release Notes
 

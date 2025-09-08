@@ -1,7 +1,9 @@
 # modified from https://github.com/CjangCjengh/vits/blob/main/text/japanese.py
-import re
-import os
 import hashlib
+import os
+import re
+
+from .symbols import punctuation
 
 try:
     import pyopenjtalk
@@ -76,8 +78,6 @@ except Exception:
     # failed to load user dictionary, ignore.
     pass
 
-
-from text.symbols import punctuation
 
 # Regular expression matching Japanese without punctuation marks:
 _japanese_characters = re.compile(

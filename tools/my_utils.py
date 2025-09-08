@@ -1,12 +1,15 @@
 import ctypes
+import io
 import os
 import sys
 from pathlib import Path
+from typing import IO, Union
 
 import ffmpeg
 import gradio as gr
 import numpy as np
 import pandas as pd
+from torch.serialization import _opener
 
 from tools.i18n.i18n import I18nAuto
 
@@ -37,18 +40,16 @@ def load_audio(file, sr):
     return np.frombuffer(out, np.float32).flatten()
 
 
-def clean_path(path_str: str):
+def clean_path(path_str: str) -> str:
     if path_str.endswith(("\\", "/")):
         return clean_path(path_str[0:-1])
     path_str = path_str.replace("/", os.sep).replace("\\", os.sep)
-    return path_str.strip(
-        " '\n\"\u202a"
-    )  # path_str.strip(" ").strip('\'').strip("\n").strip('"').strip(" ").strip("\u202a")
+    return path_str.strip(" '\n\"\u202a")
 
 
 def check_for_existance(file_list: list = None, is_train=False, is_dataset_processing=False):
     files_status = []
-    if is_train == True and file_list:
+    if is_train is True and file_list:
         file_list.append(os.path.join(file_list[0], "2-name2text.txt"))
         file_list.append(os.path.join(file_list[0], "3-bert"))
         file_list.append(os.path.join(file_list[0], "4-cnhubert"))
@@ -229,3 +230,127 @@ def load_nvrtc():
                 print(f"[INFO] Loaded: {so_path}")
             except OSError as e:
                 print(f"[WARNING] Failed to load {so_path}: {e}")
+
+
+class DictToAttrRecursive(dict):
+    def __init__(self, input_dict):
+        super().__init__(input_dict)
+        for key, value in input_dict.items():
+            if isinstance(value, dict):
+                value = DictToAttrRecursive(value)
+            self[key] = value
+            setattr(self, key, value)
+
+    def __getattr__(self, item):
+        try:
+            return self[item]
+        except KeyError:
+            raise AttributeError(f"Attribute {item} not found")
+
+    def __setattr__(self, key, value):
+        if isinstance(value, dict):
+            value = DictToAttrRecursive(value)
+        super(DictToAttrRecursive, self).__setitem__(key, value)
+        super().__setattr__(key, value)
+
+    def __delattr__(self, item):
+        try:
+            del self[item]
+        except KeyError:
+            raise AttributeError(f"Attribute {item} not found")
+
+
+class _HeadOverlay(io.IOBase, IO):
+    def __init__(self, base: IO[bytes], patch: bytes = b"PK", offset: int = 0):
+        super(io.IOBase, self).__init__()
+        if not base.readable():
+            raise ValueError("Base stream must be readable")
+
+        self._base = base
+        self._patch = patch
+        self._off = offset
+
+    def readable(self) -> bool:
+        return True
+
+    def writable(self) -> bool:
+        return False
+
+    def seekable(self) -> bool:
+        try:
+            return self._base.seekable()
+        except Exception:
+            return False
+
+    def tell(self) -> int:
+        return self._base.tell()
+
+    def seek(self, pos: int, whence: int = os.SEEK_SET) -> int:
+        return self._base.seek(pos, whence)
+
+    def read(self, size: int = -1) -> bytes:
+        start = self._base.tell()
+        data = self._base.read(size)
+        if not data:
+            return data
+
+        end = start + len(data)
+        ps, pe = self._off, self._off + len(self._patch)
+        a, b = max(start, ps), min(end, pe)
+        if a < b:
+            buf = bytearray(data)
+            s_rel = a - start
+            e_rel = b - start
+            p_rel = a - ps
+            buf[s_rel:e_rel] = self._patch[p_rel : p_rel + (e_rel - s_rel)]
+            return bytes(buf)
+        return data
+
+    def readinto(self, b) -> int:
+        start: int = self._base.tell()
+        nread = self._base.readinto(b)  # type: ignore
+
+        end = start + nread
+        ps, pe = self._off, self._off + len(self._patch)
+        a, c = max(start, ps), min(end, pe)
+        if a < c:
+            mv = memoryview(b)
+            s_rel = a - start
+            e_rel = c - start
+            p_rel = a - ps
+            mv[s_rel:e_rel] = self._patch[p_rel : p_rel + (e_rel - s_rel)]
+
+        return nread
+
+    def close(self) -> None:
+        try:
+            self._base.close()
+        finally:
+            super().close()
+
+    def flush(self) -> None:
+        try:
+            self._base.flush()
+        except Exception:
+            pass
+
+    def write(self, b) -> int:
+        raise io.UnsupportedOperation("not writable")
+
+    @property
+    def raw(self):
+        return self._base
+
+    def __getattr__(self, name):
+        return None
+
+
+class _open_file(_opener[IO[bytes]]):
+    def __init__(self, name: Union[str, os.PathLike[str]], mode: str) -> None:
+        f = open(name, mode)
+        if "r" in mode:
+            f = _HeadOverlay(f, b"PK", 0)
+        super().__init__(f)
+
+    def __exit__(self, *args):
+        self.file_like.close()

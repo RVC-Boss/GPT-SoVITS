@@ -1,25 +1,19 @@
-import sys
-from tools.i18n.i18n import I18nAuto, scan_language_list
-
-language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
-i18n = I18nAuto(language=language)
 import argparse
 import copy
 import json
 import os
+import sys
 import uuid
-
-try:
-    import gradio.analytics as analytics
-
-    analytics.version_check = lambda: None
-except:
-    ...
 
 import gradio as gr
 import librosa
 import numpy as np
 import soundfile
+
+from tools.i18n.i18n import I18nAuto, scan_language_list
+
+language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
+i18n = I18nAuto(language=language)
 
 g_json_key_text = ""
 g_json_key_path = ""
@@ -113,7 +107,7 @@ def b_delete_audio(*checkbox_list):
     change = False
     for i, checkbox in reversed(list(enumerate(checkbox_list))):
         if g_index + i < len(g_data_json):
-            if checkbox == True:
+            if checkbox is True:
                 g_data_json.pop(g_index + i)
                 change = True
 
@@ -150,7 +144,7 @@ def b_audio_split(audio_breakpoint, *checkbox_list):
     global g_data_json, g_max_json_index
     checked_index = []
     for i, checkbox in enumerate(checkbox_list):
-        if checkbox == True and g_index + i < len(g_data_json):
+        if checkbox is True and g_index + i < len(g_data_json):
             checked_index.append(g_index + i)
     if len(checked_index) == 1:
         index = checked_index[0]
@@ -182,7 +176,7 @@ def b_merge_audio(interval_r, *checkbox_list):
     audios_path = []
     audios_text = []
     for i, checkbox in enumerate(checkbox_list):
-        if checkbox == True and g_index + i < len(g_data_json):
+        if checkbox is True and g_index + i < len(g_data_json):
             checked_index.append(g_index + i)
 
     if len(checked_index) > 1:
@@ -314,7 +308,7 @@ if __name__ == "__main__":
                 "Submit Text: 将当前页所有文本框内容手工保存到内存和文件(翻页前后或者退出标注页面前如果没点这个按钮，你再翻回来就回滚了，白忙活。)"
             )
         )
-        with gr.Row():
+        with gr.Row(equal_height=True):
             btn_change_index = gr.Button("Change Index")
             btn_submit_change = gr.Button("Submit Text")
             btn_merge_audio = gr.Button("Merge Audio")
@@ -322,7 +316,7 @@ if __name__ == "__main__":
             btn_previous_index = gr.Button("Previous Index")
             btn_next_index = gr.Button("Next Index")
 
-        with gr.Row():
+        with gr.Row(equal_height=True):
             index_slider = gr.Slider(minimum=0, maximum=g_max_json_index, value=g_index, step=1, label="Index", scale=3)
             splitpoint_slider = gr.Slider(
                 minimum=0, maximum=120.0, value=0, step=0.1, label="Audio Split Point(s)", scale=3
@@ -331,18 +325,23 @@ if __name__ == "__main__":
             btn_save_json = gr.Button("Save File", visible=True, scale=1)
             btn_invert_selection = gr.Button("Invert Selection", scale=1)
 
-        with gr.Row():
+        with gr.Row(equal_height=True):
             with gr.Column():
                 for _ in range(0, g_batch):
-                    with gr.Row():
+                    with gr.Row(equal_height=True):
                         text = gr.Textbox(label="Text", visible=True, scale=5)
-                        audio_output = gr.Audio(label="Output Audio", visible=True, scale=5)
+                        audio_output = gr.Audio(
+                            label="Output Audio",
+                            visible=True,
+                            scale=5,
+                            waveform_options={"show_recording_waveform": False},
+                        )
                         audio_check = gr.Checkbox(label="Yes", show_label=True, info="Choose Audio", scale=1)
                         g_text_list.append(text)
                         g_audio_list.append(audio_output)
                         g_checkbox_list.append(audio_check)
 
-        with gr.Row():
+        with gr.Row(equal_height=True):
             batchsize_slider = gr.Slider(
                 minimum=1, maximum=g_batch, value=g_batch, step=1, label="Batch Size", scale=3, interactive=False
             )

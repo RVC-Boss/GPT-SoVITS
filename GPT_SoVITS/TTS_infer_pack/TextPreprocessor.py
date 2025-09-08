@@ -1,22 +1,18 @@
 import os
+import re
 import sys
 import threading
-
-from tqdm import tqdm
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-
-import re
-import torch
-from text.LangSegmenter import LangSegmenter
-from text import chinese
 from typing import Dict, List, Tuple
-from text.cleaner import clean_text
-from text import cleaned_text_to_sequence
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 
+import torch
+from tqdm import tqdm
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+from GPT_SoVITS.text import cleaned_text_to_sequence
+from GPT_SoVITS.text.cleaner import clean_text
+from GPT_SoVITS.text.LangSegmenter import LangSegmenter
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method as get_seg_method
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import split_big_text, splits
 from tools.i18n.i18n import I18nAuto, scan_language_list
 
 language = os.environ.get("language", "Auto")
@@ -121,25 +117,25 @@ class TextPreprocessor:
 
     def get_phones_and_bert(self, text: str, language: str, version: str, final: bool = False):
         with self.bert_lock:
-            text = re.sub(r' {2,}', ' ', text)
+            text = re.sub(r" {2,}", " ", text)
             textlist = []
             langlist = []
             if language == "all_zh":
-                for tmp in LangSegmenter.getTexts(text,"zh"):
+                for tmp in LangSegmenter.getTexts(text, "zh"):
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "all_yue":
-                for tmp in LangSegmenter.getTexts(text,"zh"):
+                for tmp in LangSegmenter.getTexts(text, "zh"):
                     if tmp["lang"] == "zh":
                         tmp["lang"] = "yue"
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "all_ja":
-                for tmp in LangSegmenter.getTexts(text,"ja"):
+                for tmp in LangSegmenter.getTexts(text, "ja"):
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "all_ko":
-                for tmp in LangSegmenter.getTexts(text,"ko"):
+                for tmp in LangSegmenter.getTexts(text, "ko"):
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "en":
@@ -158,7 +154,9 @@ class TextPreprocessor:
             else:
                 for tmp in LangSegmenter.getTexts(text):
                     if langlist:
-                        if (tmp["lang"] == "en" and langlist[-1] == "en") or (tmp["lang"] != "en" and langlist[-1] != "en"):
+                        if (tmp["lang"] == "en" and langlist[-1] == "en") or (
+                            tmp["lang"] != "en" and langlist[-1] != "en"
+                        ):
                             textlist[-1] += tmp["text"]
                             continue
                     if tmp["lang"] == "en":
@@ -189,12 +187,11 @@ class TextPreprocessor:
             return phones, bert, norm_text
 
     def get_bert_feature(self, text: str, word2ph: list) -> torch.Tensor:
-        with torch.no_grad():
-            inputs = self.tokenizer(text, return_tensors="pt")
-            for i in inputs:
-                inputs[i] = inputs[i].to(self.device)
-            res = self.bert_model(**inputs, output_hidden_states=True)
-            res = torch.cat(res["hidden_states"][-3:-2], -1)[0].cpu()[1:-1]
+        inputs = self.tokenizer(text, return_tensors="pt")
+        for i in inputs:
+            inputs[i] = inputs[i].to(self.device)
+        res = self.bert_model(**inputs, output_hidden_states=True)
+        res = torch.cat(res["hidden_states"][-3:-2], -1)[0].cpu()[1:-1]
         assert len(word2ph) == len(text)
         phone_level_feature = []
         for i in range(len(word2ph)):
@@ -209,6 +206,7 @@ class TextPreprocessor:
         phones = cleaned_text_to_sequence(phones, version)
         return phones, word2ph, norm_text
 
+    @torch.no_grad()
     def get_bert_inf(self, phones: list, word2ph: list, norm_text: str, language: str):
         language = language.replace("all_", "")
         if language == "zh":

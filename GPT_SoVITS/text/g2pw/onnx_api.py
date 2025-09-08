@@ -3,7 +3,6 @@
 
 import json
 import os
-import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
 
@@ -22,10 +21,9 @@ from .utils import load_config
 onnxruntime.set_default_logger_severity(3)
 try:
     onnxruntime.preload_dlls()
-except:
+except Exception:
     pass
     # traceback.print_exc()
-warnings.filterwarnings("ignore")
 
 model_version = "1.1"
 
@@ -97,7 +95,13 @@ class G2PWOnnxConverter:
             self.session_g2pW = onnxruntime.InferenceSession(
                 os.path.join(uncompress_path, "g2pW.onnx"),
                 sess_options=sess_options,
-                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                providers=[
+                    (
+                        "CUDAExecutionProvider",
+                        {"device_id": torch.cuda.current_device()},
+                    ),
+                    ("CPUExecutionProvider", {}),
+                ],
             )
         else:
             self.session_g2pW = onnxruntime.InferenceSession(

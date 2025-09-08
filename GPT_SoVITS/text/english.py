@@ -1,19 +1,18 @@
-import pickle
 import os
+import pickle
 import re
+from builtins import str as unicode
+
 import wordsegment
 from g2p_en import G2p
-
-from text.symbols import punctuation
-
-from text.symbols2 import symbols
-
-from builtins import str as unicode
-from text.en_normalization.expend import normalize
+from nltk import pos_tag
 from nltk.tokenize import TweetTokenizer
 
+from .en_normalization.expend import normalize
+from .symbols import punctuation
+from .symbols2 import symbols
+
 word_tokenize = TweetTokenizer().tokenize
-from nltk import pos_tag
 
 current_file_path = os.path.dirname(__file__)
 CMU_DICT_PATH = os.path.join(current_file_path, "cmudict.rep")

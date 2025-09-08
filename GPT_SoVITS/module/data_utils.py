@@ -1,14 +1,16 @@
 import os
 import random
 import traceback
+
 import torch
+import torch.nn.functional as F
 import torch.utils.data
 from tqdm import tqdm
 
-from module.mel_processing import spectrogram_torch, spec_to_mel_torch
-from text import cleaned_text_to_sequence
-import torch.nn.functional as F
+from GPT_SoVITS.text import cleaned_text_to_sequence
 from tools.my_utils import load_audio
+
+from .mel_processing import spec_to_mel_torch, spectrogram_torch
 
 version = os.environ.get("version", None)
 

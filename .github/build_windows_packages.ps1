@@ -31,8 +31,8 @@ $UVR5_URL = "$baseHF/uvr5_weights.zip"
 $NLTK_URL = "$baseHF/nltk_data.zip"
 $JTALK_URL = "$baseHF/open_jtalk_dic_utf_8-1.11.tar.gz"
 
-$PYTHON_VERSION = "3.11.12"
-$PY_RELEASE_VERSION = "20250409"
+$PYTHON_VERSION = "3.10.18"
+$PY_RELEASE_VERSION = "20250902"
 
 Write-Host "[INFO] Cleaning .git..."
 Remove-Item "$srcDir\.git" -Recurse -Force -ErrorAction SilentlyContinue
@@ -115,12 +115,17 @@ Remove-Item $ffDir.FullName -Recurse -Force
 Write-Host "[INFO] Installing PyTorch..."
 & ".\runtime\python.exe" -m ensurepip
 & ".\runtime\python.exe" -m pip install --upgrade pip --no-warn-script-location
+
 switch ($cuda) {
-    "cu124" {
-        & ".\runtime\python.exe" -m pip install torch==2.6 torchaudio --index-url https://download.pytorch.org/whl/cu124 --no-warn-script-location
+    "cu126" {
+        & ".\runtime\python.exe" -m pip install psutil ninja packaging wheel "setuptools>=42" --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install torch --index-url https://download.pytorch.org/whl/cu126 --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
     }
     "cu128" {
-        & ".\runtime\python.exe" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128 --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install psutil ninja packaging wheel "setuptools>=42" --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install torch --index-url https://download.pytorch.org/whl/cu128 --no-warn-script-location
+        & ".\runtime\python.exe" -m pip install flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
     }
     default {
         Write-Error "Unsupported CUDA version: $cuda"
@@ -129,6 +134,7 @@ switch ($cuda) {
 }
 
 Write-Host "[INFO] Installing dependencies..."
+& ".\runtime\python.exe" -m pip install --pre torchcodec --index-url https://download.pytorch.org/whl/nightly/cpu
 & ".\runtime\python.exe" -m pip install -r extra-req.txt --no-deps --no-warn-script-location
 & ".\runtime\python.exe" -m pip install -r requirements.txt --no-warn-script-location
 
@@ -162,7 +168,7 @@ Copy-Item -Path $curr -Destination $pkgName -Recurse
 $7zPath = "$pkgName.7z"
 $start = Get-Date
 Write-Host "Compress Starting at $start"
-& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -m0=lzma2 -mx=9 -md=1g -ms=1g -mmc=500 -mfb=273 -mlc=0 -mlp=4 -mpb=4 -mc=8g -mmt=on -bsp1
+& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -m0=lzma2 -mx=9 -mmt=on -bsp1
 $end = Get-Date
 Write-Host "Elapsed time: $($end - $start)"
 Get-ChildItem .
@@ -189,6 +195,6 @@ if (-not $hfUser -or -not $hfToken) {
     exit 1
 }
 $env:HF_HUB_ENABLE_HF_TRANSFER = "1"
-huggingface-cli upload "$hfUser/GPT-SoVITS-Packages" "$7zPath" "$7zPath" --repo-type model --token $hfToken
+hf upload "$hfUser/GPT-SoVITS-Packages" "$7zPath" "$7zPath" --repo-type model --token $hfToken
 
 Write-Host "[SUCCESS] Uploaded: $7zPath to HuggingFace"

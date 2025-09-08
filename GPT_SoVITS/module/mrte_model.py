@@ -2,8 +2,10 @@
 
 import torch
 from torch import nn
-from torch.nn.utils import remove_weight_norm, weight_norm
-from module.attentions import MultiHeadAttention
+from torch.nn.utils import remove_weight_norm
+from torch.nn.utils import weight_norm
+
+from .attentions import MultiHeadAttention
 
 
 class MRTE(nn.Module):
@@ -23,7 +25,7 @@ class MRTE(nn.Module):
         self.c_post = nn.Conv1d(hidden_size, out_channels, 1)
 
     def forward(self, ssl_enc, ssl_mask, text, text_mask, ge, test=None):
-        if ge == None:
+        if ge is None:
             ge = 0
         attn_mask = text_mask.unsqueeze(2) * ssl_mask.unsqueeze(-1)
 

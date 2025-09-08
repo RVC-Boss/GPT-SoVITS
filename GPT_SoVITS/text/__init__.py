@@ -1,11 +1,11 @@
 import os
-# if os.environ.get("version","v1")=="v1":
-#   from text.symbols import symbols
-# else:
-#   from text.symbols2 import symbols
+import warnings
 
-from text import symbols as symbols_v1
-from text import symbols2 as symbols_v2
+from . import symbols as symbols_v1
+from . import symbols2 as symbols_v2
+
+warnings.filterwarnings("ignore", category=UserWarning, module="jieba_fast._compat")
+warnings.filterwarnings("ignore", category=UserWarning, module="jieba._compat")
 
 _symbol_to_id_v1 = {s: i for i, s in enumerate(symbols_v1.symbols)}
 _symbol_to_id_v2 = {s: i for i, s in enumerate(symbols_v2.symbols)}

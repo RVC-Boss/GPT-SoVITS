@@ -8,12 +8,14 @@ To alleviate this problem, we propose an improved ERes2NetV2 by pruning redundan
 both the model parameters and its computational cost.
 """
 
-import torch
 import math
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pooling_layers as pooling_layers
-from fusion import AFF
+
+from . import pooling_layers as pooling_layers
+from .fusion import AFF
 
 
 class ReLU(nn.Hardtanh):
@@ -247,26 +249,4 @@ class ERes2NetV2(nn.Module):
         out4 = self.layer4(out3)
         out3_ds = self.layer3_ds(out3)
         fuse_out34 = self.fuse34(out4, out3_ds)
-        # print(111111111,fuse_out34.shape)#111111111 torch.Size([16, 2048, 10, 72])
         return fuse_out34.flatten(start_dim=1, end_dim=2).mean(-1)
-        # stats = self.pool(fuse_out34)
-        #
-        # embed_a = self.seg_1(stats)
-        # if self.two_emb_layer:
-        #     out = F.relu(embed_a)
-        #     out = self.seg_bn_1(out)
-        #     embed_b = self.seg_2(out)
-        #     return embed_b
-        # else:
-        #     return embed_a
-
-
-if __name__ == "__main__":
-    x = torch.randn(1, 300, 80)
-    model = ERes2NetV2(feat_dim=80, embedding_size=192, m_channels=64, baseWidth=26, scale=2, expansion=2)
-    model.eval()
-    y = model(x)
-    print(y.size())
-    macs, num_params = profile(model, inputs=(x,))
-    print("Params: {} M".format(num_params / 1e6))  # 17.86 M
-    print("MACs: {} G".format(macs / 1e9))  # 12.69 G

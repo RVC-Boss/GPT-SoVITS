@@ -1,43 +1,46 @@
-from torch.nn.functional import *
-from torch.nn.functional import (
-    _mha_shape_check,
-    _canonical_mask,
-    _none_or_dtype,
-    _in_projection_packed,
-)
+import math
+from typing import Optional, Tuple
+
 import torch
-# Tensor = torch.Tensor
-# from typing import Callable, List, Optional, Tuple, Union
+from torch.nn.functional import *  # noqa: F403
+from torch.nn.functional import (
+    _canonical_mask,
+    _in_projection_packed,  # type: ignore
+    _mha_shape_check,  # type: ignore
+    _none_or_dtype,
+)
+
+Tensor = torch.Tensor
 
 
 def multi_head_attention_forward_patched(
     query,
     key,
     value,
-    embed_dim_to_check,
-    num_heads,
+    embed_dim_to_check: int,
+    num_heads: int,
     in_proj_weight,
-    in_proj_bias,
-    bias_k,
-    bias_v,
-    add_zero_attn,
+    in_proj_bias: Optional[Tensor],
+    bias_k: Optional[Tensor],
+    bias_v: Optional[Tensor],
+    add_zero_attn: bool,
     dropout_p: float,
-    out_proj_weight,
-    out_proj_bias,
-    training=True,
-    key_padding_mask=None,
-    need_weights=True,
-    attn_mask=None,
-    use_separate_proj_weight=False,
-    q_proj_weight=None,
-    k_proj_weight=None,
-    v_proj_weight=None,
-    static_k=None,
-    static_v=None,
-    average_attn_weights=True,
-    is_causal=False,
-    cache=None,
-):
+    out_proj_weight: Tensor,
+    out_proj_bias: Optional[Tensor],
+    training: bool = True,
+    key_padding_mask: Optional[Tensor] = None,
+    need_weights: bool = True,
+    attn_mask: Optional[Tensor] = None,
+    use_separate_proj_weight: bool = False,
+    q_proj_weight: Optional[Tensor] = None,
+    k_proj_weight: Optional[Tensor] = None,
+    v_proj_weight: Optional[Tensor] = None,
+    static_k: Optional[Tensor] = None,
+    static_v: Optional[Tensor] = None,
+    average_attn_weights: bool = True,
+    is_causal: bool = False,
+    cache: dict | None = None,
+) -> Tuple[Tensor, Tensor | None]:
     r"""
     Args:
         query, key, value: map a query and a set of key-value pairs to an output.
@@ -250,27 +253,18 @@ def multi_head_attention_forward_patched(
             b_k,
             b_v,
         )
-    if cache != None:
+    if cache is not None:
         if cache["first_infer"] == 1:
             cache["k"][cache["stage"]] = k
-            # print(0,cache["k"].shape)
             cache["v"][cache["stage"]] = v
-        else:  ###12个layer每个都要留自己的cache_kv
-            # print(1,cache["k"].shape)
-            cache["k"][cache["stage"]] = torch.cat(
-                [cache["k"][cache["stage"]], k], 0
-            )  ##本来时序是1，但是proj的时候可能transpose了所以时序到0维了
+        else:
+            cache["k"][cache["stage"]] = torch.cat([cache["k"][cache["stage"]], k], 0)
             cache["v"][cache["stage"]] = torch.cat([cache["v"][cache["stage"]], v], 0)
             # print(2, cache["k"].shape)
             src_len = cache["k"][cache["stage"]].shape[0]
             k = cache["k"][cache["stage"]]
             v = cache["v"][cache["stage"]]
-            # if attn_mask is not None:
-            #     attn_mask=attn_mask[-1:,]
-            # print(attn_mask.shape,attn_mask)
         cache["stage"] = (cache["stage"] + 1) % cache["all_stage"]
-    # print(2333,cache)
-    # prep attention mask
 
     attn_mask = _canonical_mask(
         mask=attn_mask,

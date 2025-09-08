@@ -1,28 +1,32 @@
-import warnings
-
-warnings.filterwarnings("ignore")
+import contextlib
 import math
+import random
 
 import torch
 from torch import nn
-from torch.nn import functional as F
-
-from module import commons
-from module import modules
-from module import attentions
-from f5_tts.model import DiT
-from torch.nn import Conv1d, ConvTranspose1d, Conv2d
-from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-from module.commons import init_weights, get_padding
-from module.mrte_model import MRTE
-from module.quantize import ResidualVectorQuantizer
-
-# from text import symbols
-from text import symbols as symbols_v1
-from text import symbols2 as symbols_v2
 from torch.cuda.amp import autocast
-import contextlib
-import random
+from torch.nn import Conv1d, Conv2d, ConvTranspose1d
+from torch.nn import functional as F
+from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
+
+from GPT_SoVITS.f5_tts.model import DiT
+from GPT_SoVITS.text import symbols as symbols_v1
+from GPT_SoVITS.text import symbols2 as symbols_v2
+from GPT_SoVITS.utils import HParams
+from tools.my_utils import _open_file
+
+from . import attentions, commons, modules
+from .commons import get_padding, init_weights
+from .mrte_model import MRTE
+from .quantize import ResidualVectorQuantizer
+
+
+def set_serialization():
+    torch.serialization.add_safe_globals([(HParams, "utils.HParams")])
+    torch.serialization._open_file = _open_file
+
+
+set_serialization()
 
 
 class StochasticDurationPredictor(nn.Module):
@@ -229,25 +233,6 @@ class TextEncoder(nn.Module):
         stats = self.proj(y) * y_mask
         m, logs = torch.split(stats, self.out_channels, dim=1)
         return y, m, logs, y_mask
-
-    def extract_latent(self, x):
-        x = self.ssl_proj(x)
-        quantized, codes, commit_loss, quantized_list = self.quantizer(x)
-        return codes.transpose(0, 1)
-
-    def decode_latent(self, codes, y_mask, refer, refer_mask, ge):
-        quantized = self.quantizer.decode(codes)
-
-        y = self.vq_proj(quantized) * y_mask
-        y = self.encoder_ssl(y * y_mask, y_mask)
-
-        y = self.mrte(y, y_mask, refer, refer_mask, ge)
-
-        y = self.encoder2(y * y_mask, y_mask)
-
-        stats = self.proj(y) * y_mask
-        m, logs = torch.split(stats, self.out_channels, dim=1)
-        return y, m, logs, y_mask, quantized
 
 
 class ResidualCouplingBlock(nn.Module):
@@ -483,7 +468,7 @@ class DiscriminatorP(torch.nn.Module):
         super(DiscriminatorP, self).__init__()
         self.period = period
         self.use_spectral_norm = use_spectral_norm
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if use_spectral_norm is False else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(
@@ -560,7 +545,7 @@ class DiscriminatorP(torch.nn.Module):
 class DiscriminatorS(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(DiscriminatorS, self).__init__()
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if use_spectral_norm is False else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(Conv1d(1, 16, 15, 1, padding=7)),
@@ -957,7 +942,6 @@ class SynthesizerTrn(nn.Module):
         o = self.dec((z * y_mask)[:, :, :], g=ge)
         return o, y_mask, (z, z_p, m_p, logs_p)
 
-    @torch.no_grad()
     def decode(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None):
         def get_ge(refer, sv_emb):
             ge = None
@@ -1004,7 +988,7 @@ class SynthesizerTrn(nn.Module):
         o = self.dec((z * y_mask)[:, :, :], g=ge)
         return o
 
-    def extract_latent(self, x):
+    def extract_latent(self, x) -> torch.Tensor:
         ssl = self.ssl_proj(x)
         quantized, codes, commit_loss, quantized_list = self.quantizer(ssl)
         return codes.transpose(0, 1)
@@ -1180,13 +1164,7 @@ class SynthesizerTrnV3(nn.Module):
         self.enc_p = TextEncoder(
             inter_channels, hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout
         )
-        # self.ref_enc = modules.MelStyleEncoder(spec_channels, style_vector_dim=gin_channels)###Rollback
-        self.ref_enc = modules.MelStyleEncoder(704, style_vector_dim=gin_channels)  ###Rollback
-        # self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates,
-        #                      upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
-        # self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, 16,
-        #                               gin_channels=gin_channels)
-        # self.flow = ResidualCouplingBlock(inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels)
+        self.ref_enc = modules.MelStyleEncoder(704, style_vector_dim=gin_channels)
 
         ssl_dim = 768
         assert semantic_frame_rate in ["25hz", "50hz"]
@@ -1206,7 +1184,7 @@ class SynthesizerTrnV3(nn.Module):
             100,
             DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2, conv_layers=4)),
         )  # text_dim is condition feature dim
-        if self.freeze_quantizer == True:
+        if self.freeze_quantizer is True:
             set_no_grad(self.ssl_proj)
             set_no_grad(self.quantizer)
             set_no_grad(self.enc_p)
@@ -1245,7 +1223,7 @@ class SynthesizerTrnV3(nn.Module):
     def decode_encp(self, codes, text, refer, ge=None, speed=1):
         # print(2333333,refer.shape)
         # ge=None
-        if ge == None:
+        if ge is None:
             refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
             refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, refer.size(2)), 1).to(refer.dtype)
             ge = self.ref_enc(refer[:, :704] * refer_mask, refer_mask)
@@ -1409,7 +1387,7 @@ class SynthesizerTrnV3b(nn.Module):
     def decode_encp(self, codes, text, refer, ge=None):
         # print(2333333,refer.shape)
         # ge=None
-        if ge == None:
+        if ge is None:
             refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
             refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, refer.size(2)), 1).to(refer.dtype)
             ge = self.ref_enc(refer[:, :704] * refer_mask, refer_mask)
@@ -1427,7 +1405,7 @@ class SynthesizerTrnV3b(nn.Module):
         fea, y_mask_ = self.wns1(fea, y_lengths1, ge)
         return fea, ge
 
-    def extract_latent(self, x):
+    def extract_latent(self, x) -> torch.Tensor:
         ssl = self.ssl_proj(x)
         quantized, codes, commit_loss, quantized_list = self.quantizer(ssl)
         return codes.transpose(0, 1)

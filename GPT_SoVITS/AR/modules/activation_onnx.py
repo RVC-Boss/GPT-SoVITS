@@ -1,5 +1,5 @@
 # modified from https://github.com/lifeiteng/vall-e/blob/main/valle/modules/activation.py
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 from torch import Tensor
@@ -8,7 +8,7 @@ from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 from torch.nn.modules.linear import NonDynamicallyQuantizableLinear
 from torch.nn.parameter import Parameter
 
-from AR.modules.patched_mha_with_cache_onnx import multi_head_attention_forward_patched
+from .patched_mha_with_cache_onnx import multi_head_attention_forward_patched
 
 
 class MultiheadAttention(Module):
@@ -161,7 +161,7 @@ class MultiheadAttention(Module):
         attn_mask: Optional[Tensor] = None,
         average_attn_weights: bool = True,
         cache=None,
-    ) -> Tuple[Tensor, Optional[Tensor]]:
+    ) -> Tensor:
         any_nested = query.is_nested or key.is_nested or value.is_nested
         query = key = value = query.transpose(1, 0)
         attn_output = multi_head_attention_forward_patched(

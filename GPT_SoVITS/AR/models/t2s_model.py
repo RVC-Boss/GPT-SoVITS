@@ -9,7 +9,7 @@ from torch.nn import functional as F
 from torchmetrics.classification import MulticlassAccuracy
 from tqdm import tqdm
 
-from AR.models.utils import (
+from GPT_SoVITS.AR.models.utils import (
     dpo_loss,
     get_batch_logps,
     make_pad_mask,
@@ -18,8 +18,8 @@ from AR.models.utils import (
     sample,
     topk_sampling,
 )
-from AR.modules.embedding import SinePositionalEmbedding, TokenEmbedding
-from AR.modules.transformer import LayerNorm, TransformerEncoder, TransformerEncoderLayer
+from GPT_SoVITS.AR.modules.embedding import SinePositionalEmbedding, TokenEmbedding
+from GPT_SoVITS.AR.modules.transformer import LayerNorm, TransformerEncoder, TransformerEncoderLayer
 
 default_config = {
     "embedding_dim": 512,
@@ -420,7 +420,7 @@ class Text2SemanticDecoder(nn.Module):
             mask=xy_attn_mask,
         )
         x_len = x_lens.max()
-        logits = self.ar_predict_layer(xy_dec[:, x_len-1:])
+        logits = self.ar_predict_layer(xy_dec[:, x_len - 1 :])
 
         ###### DPO #############
         reject_xy_pos, reject_xy_attn_mask, reject_targets = self.make_input_data(
@@ -432,7 +432,7 @@ class Text2SemanticDecoder(nn.Module):
             mask=reject_xy_attn_mask,
         )
         x_len = x_lens.max()
-        reject_logits = self.ar_predict_layer(reject_xy_dec[:, x_len-1:])
+        reject_logits = self.ar_predict_layer(reject_xy_dec[:, x_len - 1 :])
 
         # loss
         # from feiteng: 每次 duration 越多, 梯度更新也应该更多, 所以用 sum
@@ -502,7 +502,7 @@ class Text2SemanticDecoder(nn.Module):
             (xy_pos, None),
             mask=xy_attn_mask,
         )
-        logits = self.ar_predict_layer(xy_dec[:, x_len-1:]).permute(0, 2, 1)
+        logits = self.ar_predict_layer(xy_dec[:, x_len - 1 :]).permute(0, 2, 1)
         # loss
         # from feiteng: 每次 duration 越多, 梯度更新也应该更多, 所以用 sum
         loss = F.cross_entropy(logits, targets, reduction="sum")
@@ -724,8 +724,8 @@ class Text2SemanticDecoder(nn.Module):
                 l1 = samples[:, 0] == self.EOS
                 l2 = tokens == self.EOS
                 l = l1.logical_or(l2)
-                removed_idx_of_batch_for_y = torch.where(l == True)[0].tolist()
-                reserved_idx_of_batch_for_y = torch.where(l == False)[0]
+                removed_idx_of_batch_for_y = torch.where(l is True)[0].tolist()
+                reserved_idx_of_batch_for_y = torch.where(l is False)[0]
                 # batch_indexs = torch.tensor(batch_idx_map, device=y.device)[removed_idx_of_batch_for_y]
                 for i in removed_idx_of_batch_for_y:
                     batch_index = batch_idx_map[i]

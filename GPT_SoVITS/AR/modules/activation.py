@@ -9,7 +9,7 @@ from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 from torch.nn.modules.linear import NonDynamicallyQuantizableLinear
 from torch.nn.parameter import Parameter
 
-from AR.modules.patched_mha_with_cache import multi_head_attention_forward_patched
+from .patched_mha_with_cache import multi_head_attention_forward_patched
 
 F.multi_head_attention_forward = multi_head_attention_forward_patched
 
@@ -86,8 +86,8 @@ class MultiheadAttention(Module):
         kdim=None,
         vdim=None,
         batch_first=False,
-        linear1_cls=Linear,
-        linear2_cls=Linear,
+        linear1_cls: type[Module] = Linear,
+        linear2_cls: type[Module] = Linear,
         device=None,
         dtype=None,
     ) -> None:
@@ -383,7 +383,7 @@ class MultiheadAttention(Module):
                 k_proj_weight=self.k_proj_weight,
                 v_proj_weight=self.v_proj_weight,
                 average_attn_weights=average_attn_weights,
-                cache=cache,
+                cache=cache,  # type: ignore
             )
         else:
             attn_output, attn_output_weights = F.multi_head_attention_forward(
@@ -405,7 +405,7 @@ class MultiheadAttention(Module):
                 need_weights=need_weights,
                 attn_mask=attn_mask,
                 average_attn_weights=average_attn_weights,
-                cache=cache,
+                cache=cache,  # type: ignore
             )
         if self.batch_first and is_batched:
             return attn_output.transpose(1, 0), attn_output_weights

@@ -12,20 +12,19 @@ from __future__ import annotations
 import torch
 from torch import nn
 from torch.utils.checkpoint import checkpoint
-
 from x_transformers.x_transformers import RotaryEmbedding
 
-from GPT_SoVITS.f5_tts.model.modules import (
-    TimestepEmbedding,
+from GPT_SoVITS.module.commons import sequence_mask
+
+from ..modules import (
+    AdaLayerNormZero_Final,
     ConvNeXtV2Block,
     ConvPositionEmbedding,
     DiTBlock,
-    AdaLayerNormZero_Final,
-    precompute_freqs_cis,
+    TimestepEmbedding,
     get_pos_embed_indices,
+    precompute_freqs_cis,
 )
-
-from module.commons import sequence_mask
 
 
 class TextEmbedding(nn.Module):

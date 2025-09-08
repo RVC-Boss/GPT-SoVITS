@@ -1,13 +1,13 @@
-import os
 import logging
-
-logger = logging.getLogger(__name__)
+import os
 
 import librosa
 import numpy as np
 import soundfile as sf
 import torch
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 cpu = torch.device("cpu")
 

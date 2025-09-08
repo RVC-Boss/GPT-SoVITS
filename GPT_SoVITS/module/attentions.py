@@ -1,10 +1,13 @@
 import math
-import torch
-from torch import nn
-from torch.nn import functional as F
 
-from module import commons
-from module.modules import LayerNorm
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
+from torch.nn.utils import remove_weight_norm
+from torch.nn.utils.parametrizations import weight_norm
+
+from . import commons
+from .modules import LayerNorm
 
 
 class Encoder(nn.Module):
@@ -390,10 +393,6 @@ class FFN(nn.Module):
         padding = [[0, 0], [0, 0], [pad_l, pad_r]]
         x = F.pad(x, commons.convert_pad_shape(padding))
         return x
-
-
-import torch.nn as nn
-from torch.nn.utils import remove_weight_norm, weight_norm
 
 
 class Depthwise_Separable_Conv1D(nn.Module):

@@ -11,9 +11,9 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-version = os.environ.get("version", None)
+from GPT_SoVITS.text import cleaned_text_to_sequence
 
-from text import cleaned_text_to_sequence
+version = os.environ.get("version", None)
 
 # from config import exp_dir
 
@@ -220,7 +220,7 @@ class Text2SemanticDataset(Dataset):
 
         flag = 0
         path_bert = "%s/%s.pt" % (self.path3, item_name)
-        if os.path.exists(path_bert) == True:
+        if os.path.exists(path_bert) is True:
             bert_feature = torch.load(path_bert, map_location="cpu")
         else:
             flag = 1

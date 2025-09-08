@@ -3,9 +3,11 @@ import glob
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import traceback
+from time import time as ttime
 
 import librosa
 import numpy as np
@@ -42,9 +44,9 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, skip_optimizer=False
                 saved_state_dict[k].shape,
                 v.shape,
             )
-        except:
+        except AssertionError:
             traceback.print_exc()
-            print("error, %s is not in the checkpoint" % k)  # shape不对也会，比如text_embedding当cleaner修改时
+            print(f"error, {k} is not in the checkpoint")  # shape不对也会，比如text_embedding当cleaner修改时
             new_state_dict[k] = v
     if hasattr(model, "module"):
         model.module.load_state_dict(new_state_dict)
@@ -60,26 +62,22 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, skip_optimizer=False
     return model, optimizer, learning_rate, iteration
 
 
-import shutil
-from time import time as ttime
-
-
-def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
+def save(fea, path):  #####fix issue: torch.save doesn't support chinese path
     dir = os.path.dirname(path)
     name = os.path.basename(path)
-    tmp_path = "%s.pth" % (ttime())
+    tmp_path = f"{ttime()}.pth"
     torch.save(fea, tmp_path)
     shutil.move(tmp_path, "%s/%s" % (dir, name))
 
 
-def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path):
+def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path, logger):
     logger.info("Saving model and optimizer state at iteration {} to {}".format(iteration, checkpoint_path))
     if hasattr(model, "module"):
         state_dict = model.module.state_dict()
     else:
         state_dict = model.state_dict()
     # torch.save(
-    my_save(
+    save(
         {
             "model": state_dict,
             "iteration": iteration,
@@ -136,8 +134,7 @@ def plot_spectrogram_to_numpy(spectrogram):
     plt.tight_layout()
 
     fig.canvas.draw()
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep="")
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    data = np.asarray(fig.canvas.renderer.buffer_rgba(), dtype=np.uint8)[:, :, :3]
     plt.close()
     return data
 
@@ -169,8 +166,7 @@ def plot_alignment_to_numpy(alignment, info=None):
     plt.tight_layout()
 
     fig.canvas.draw()
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep="")
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    data = np.asarray(fig.canvas.renderer.buffer_rgba(), dtype=np.uint8)[:, :, :3]
     plt.close()
     return data
 
@@ -245,18 +241,31 @@ def clean_checkpoints(path_to_models="logs/44k/", n_ckpts_to_keep=2, sort_by_tim
     import re
 
     ckpts_files = [f for f in os.listdir(path_to_models) if os.path.isfile(os.path.join(path_to_models, f))]
-    name_key = lambda _f: int(re.compile("._(\d+)\.pth").match(_f).group(1))
-    time_key = lambda _f: os.path.getmtime(os.path.join(path_to_models, _f))
+
+    def name_key(_f):
+        return int(re.compile("._(\d+)\.pth").match(_f).group(1))
+
+    def time_key(_f):
+        return os.path.getmtime(os.path.join(path_to_models, _f))
+
     sort_key = time_key if sort_by_time else name_key
-    x_sorted = lambda _x: sorted(
-        [f for f in ckpts_files if f.startswith(_x) and not f.endswith("_0.pth")],
-        key=sort_key,
-    )
+
+    def x_sorted(_x):
+        return sorted(
+            [f for f in ckpts_files if f.startswith(_x) and not f.endswith("_0.pth")],
+            key=sort_key,
+        )
+
     to_del = [
         os.path.join(path_to_models, fn) for fn in (x_sorted("G")[:-n_ckpts_to_keep] + x_sorted("D")[:-n_ckpts_to_keep])
     ]
-    del_info = lambda fn: logger.info(f".. Free up space by deleting ckpt {fn}")
-    del_routine = lambda x: [os.remove(x), del_info(x)]
+
+    def del_info(fn):
+        return logger.info(f".. Free up space by deleting ckpt {fn}")
+
+    def del_routine(x):
+        return [os.remove(x), del_info(x)]
+
     rs = [del_routine(fn) for fn in to_del]
 
 
@@ -324,7 +333,7 @@ def get_logger(model_dir, filename="train.log"):
 class HParams:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
-            if type(v) == dict:
+            if isinstance(v, dict):
                 v = HParams(**v)
             self[k] = v
 
@@ -352,10 +361,12 @@ class HParams:
     def __repr__(self):
         return self.__dict__.__repr__()
 
-
-if __name__ == "__main__":
-    print(
-        load_wav_to_torch(
-            "/home/fish/wenetspeech/dataset_vq/Y0000022499_wHFSeHEx9CM/S00261.flac",
-        )
-    )
+    def to_dict(self):
+        """Convert HParams to a plain dictionary recursively"""
+        result = {}
+        for k, v in self.__dict__.items():
+            if isinstance(v, HParams):
+                result[k] = v.to_dict()
+            else:
+                result[k] = v
+        return result

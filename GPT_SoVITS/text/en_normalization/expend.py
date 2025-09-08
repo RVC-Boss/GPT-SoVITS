@@ -1,10 +1,9 @@
 # by https://github.com/Cosmo-klara
 
-from __future__ import print_function
-
 import re
-import inflect
 import unicodedata
+
+import inflect
 
 # 后缀计量单位替换表
 measurement_map = {
@@ -109,7 +108,7 @@ def _expand_measurement(m):
     num = int(m.group(1).replace(sign, "").replace(".", ""))
     decimal_part = m.group(2)
     # 上面判断的漏洞，比如 0.1 的情况，在这里排除了
-    if decimal_part == None and num == 1:
+    if decimal_part is None and num == 1:
         ptr = 0
     return m.group(1).replace(sign, " " + measurement_map[sign][ptr])
 
