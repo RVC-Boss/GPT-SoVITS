@@ -3,7 +3,7 @@ import os
 import soundfile as sf
 
 from tools.i18n.i18n import I18nAuto
-from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav
+from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav, load_models
 
 i18n = I18nAuto()
 
@@ -69,6 +69,7 @@ def main():
     parser.add_argument("--output_path", required=True, help="Path to the output directory")
 
     args = parser.parse_args()
+    load_models()
 
     synthesize(
         args.gpt_model,
