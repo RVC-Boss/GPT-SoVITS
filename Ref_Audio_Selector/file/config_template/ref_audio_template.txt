@@ -1,0 +1,5 @@
+"${emotion}": {
+    "ref_wav_path": "${ref_path}",
+    "prompt_text": "${ref_text}",
+    "prompt_language": "中文"
+}
