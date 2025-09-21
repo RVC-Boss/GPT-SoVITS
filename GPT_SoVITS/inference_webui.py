@@ -849,6 +849,7 @@ def get_tts_wav(
     if not ref_free:
         phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language, version)
 
+    timestamps_all = []
     for i_text, text in enumerate(texts):
         # 解决输入目标文本的空行导致报错的问题
         if len(text.strip()) == 0:
@@ -912,14 +913,101 @@ def get_tts_wav(
                 refers = [refers]
                 if is_v2pro:
                     sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
+            # compute alignment and audio (v2/v2Pro only)
+            phones2_tensor = torch.LongTensor(phones2).to(device).unsqueeze(0)
             if is_v2pro:
-                audio = vq_model.decode(
-                    pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed, sv_emb=sv_emb
-                )[0][0]
+                o, attn, y_mask = vq_model.decode_with_alignment(
+                    pred_semantic, phones2_tensor, refers, speed=speed, sv_emb=sv_emb
+                )
             else:
-                audio = vq_model.decode(
-                    pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed
-                )[0][0]
+                o, attn, y_mask = vq_model.decode_with_alignment(
+                    pred_semantic, phones2_tensor, refers, speed=speed
+                )
+            audio = o[0][0]
+            last_attn = attn  # [B,H,T_ssl,T_text]
+            last_y_mask = y_mask  # [B,1,T_ssl]
+            # derive phoneme-level timestamps (20ms per frame at 32kHz, hop=640)
+            if last_attn is not None:
+                attn_heads_mean = last_attn.mean(dim=1)[0]  # [T_ssl, T_text]
+                assign = attn_heads_mean.argmax(dim=-1)  # [T_ssl]
+                frame_time = 0.02 / max(speed, 1e-6)
+                # collapse consecutive frames pointing to same phoneme id
+                ph_spans = []
+                if assign.numel() > 0:
+                    start_f = 0
+                    cur_ph = int(assign[0].item())
+                    for f in range(1, assign.shape[0]):
+                        ph = int(assign[f].item())
+                        if ph != cur_ph:
+                            ph_spans.append({
+                                "phoneme_id": cur_ph,
+                                "start_s": start_f * frame_time,
+                                "end_s": f * frame_time,
+                            })
+                            start_f = f
+                            cur_ph = ph
+                    ph_spans.append({
+                        "phoneme_id": cur_ph,
+                        "start_s": start_f * frame_time,
+                        "end_s": assign.shape[0] * frame_time,
+                    })
+                # char/word aggregation
+                # obtain word2ph for current text segment
+                _, word2ph, norm_text_seg = clean_text_inf(text, text_language, version)
+                # char spans (for zh/yue where word2ph is char-based)
+                char_spans = []
+                if word2ph:
+                    ph_to_char = []
+                    for ch_idx, repeat in enumerate(word2ph):
+                        ph_to_char += [ch_idx] * repeat
+                    if ph_spans and ph_to_char:
+                        for span in ph_spans:
+                            ph_idx = span["phoneme_id"]
+                            if 0 <= ph_idx < len(ph_to_char):
+                                char_idx = ph_to_char[ph_idx]
+                                if len(char_spans) == 0 or char_spans[-1]["char_index"] != char_idx:
+                                    char_spans.append({
+                                        "char_index": char_idx,
+                                        "char": norm_text_seg[char_idx] if char_idx < len(norm_text_seg) else "",
+                                        "start_s": span["start_s"],
+                                        "end_s": span["end_s"],
+                                    })
+                                else:
+                                    char_spans[-1]["end_s"] = span["end_s"]
+                # word spans
+                word_spans = []
+                if text_language == "en":
+                    # build phoneme-to-word map using dictionary per-word g2p
+                    try:
+                        from text.english import g2p as g2p_en
+                    except Exception:
+                        g2p_en = None
+                    words = norm_text_seg.split()
+                    ph_to_word = []
+                    if g2p_en:
+                        for w_idx, w in enumerate(words):
+                            phs_w = g2p_en(w)
+                            ph_to_word += [w_idx] * len(phs_w)
+                    if ph_spans and ph_to_word:
+                        for span in ph_spans:
+                            ph_idx = span["phoneme_id"]
+                            if 0 <= ph_idx < len(ph_to_word):
+                                wi = ph_to_word[ph_idx]
+                                if len(word_spans) == 0 or word_spans[-1]["word_index"] != wi:
+                                    word_spans.append({
+                                        "word_index": wi,
+                                        "word": words[wi] if wi < len(words) else "",
+                                        "start_s": span["start_s"],
+                                        "end_s": span["end_s"],
+                                    })
+                                else:
+                                    word_spans[-1]["end_s"] = span["end_s"]
+                timestamps_all.append({
+                    "segment_index": i_text,
+                    "phoneme_spans": ph_spans,
+                    "char_spans": char_spans,
+                    "word_spans": word_spans,
+                })
         else:
             refer, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device)
             phoneme_ids0 = torch.LongTensor(phones1).to(device).unsqueeze(0)
@@ -998,7 +1086,8 @@ def get_tts_wav(
             audio_opt /= max_audio
     else:
         audio_opt = audio_opt.cpu().detach().numpy()
-    yield opt_sr, (audio_opt * 32767).astype(np.int16)
+    # Return audio and timestamps for UI consumption: ((sr, audio), timestamps)
+    yield (opt_sr, (audio_opt * 32767).astype(np.int16)), timestamps_all
 
 
 def split(todo_text):
@@ -1285,6 +1374,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         with gr.Row():
             inference_button = gr.Button(value=i18n("合成语音"), variant="primary", size="lg", scale=25)
             output = gr.Audio(label=i18n("输出的语音"), scale=14)
+        timestamps_box = gr.JSON(label=i18n("时间戳(音素/字/词)"))
 
         inference_button.click(
             get_tts_wav,
@@ -1306,7 +1396,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 if_sr_Checkbox,
                 pause_second_slider,
             ],
-            [output],
+            [output, timestamps_box],
         )
         SoVITS_dropdown.change(
             change_sovits_weights,

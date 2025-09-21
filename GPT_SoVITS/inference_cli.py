@@ -44,10 +44,20 @@ def synthesize(
     result_list = list(synthesis_result)
 
     if result_list:
-        last_sampling_rate, last_audio_data = result_list[-1]
+        # new: ((sr, audio), timestamps)
+        last = result_list[-1]
+        (last_sampling_rate, last_audio_data), timestamps = last
         output_wav_path = os.path.join(output_path, "output.wav")
         sf.write(output_wav_path, last_audio_data, last_sampling_rate)
         print(f"Audio saved to {output_wav_path}")
+        # Optionally save timestamps
+        try:
+            import json
+            with open(os.path.join(output_path, "timestamps.json"), "w", encoding="utf-8") as f:
+                json.dump(timestamps, f, ensure_ascii=False, indent=2)
+            print("Timestamps saved to timestamps.json")
+        except Exception:
+            pass
 
 
 def main():

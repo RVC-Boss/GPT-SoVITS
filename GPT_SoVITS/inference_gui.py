@@ -299,7 +299,8 @@ class GPTSoVITSGUI(QMainWindow):
         result_list = list(synthesis_result)
 
         if result_list:
-            last_sampling_rate, last_audio_data = result_list[-1]
+            last = result_list[-1]
+            last_sampling_rate, last_audio_data = last[0], last[1]
             output_wav_path = os.path.join(output_path, "output.wav")
             sf.write(output_wav_path, last_audio_data, last_sampling_rate)
 

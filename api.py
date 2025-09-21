@@ -948,27 +948,19 @@ def get_tts_wav(
 
         if version not in {"v3", "v4"}:
             if is_v2pro:
-                audio = (
-                    vq_model.decode(
-                        pred_semantic,
-                        torch.LongTensor(phones2).to(device).unsqueeze(0),
-                        refers,
-                        speed=speed,
-                        sv_emb=sv_emb,
-                    )
-                    .detach()
-                    .cpu()
-                    .numpy()[0, 0]
+                o, attn, y_mask = vq_model.decode_with_alignment(
+                    pred_semantic,
+                    torch.LongTensor(phones2).to(device).unsqueeze(0),
+                    refers,
+                    speed=speed,
+                    sv_emb=sv_emb,
                 )
+                audio = o.detach().cpu().numpy()[0, 0]
             else:
-                audio = (
-                    vq_model.decode(
-                        pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed
-                    )
-                    .detach()
-                    .cpu()
-                    .numpy()[0, 0]
+                o, attn, y_mask = vq_model.decode_with_alignment(
+                    pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed
                 )
+                audio = o.detach().cpu().numpy()[0, 0]
         else:
             phoneme_ids0 = torch.LongTensor(phones1).to(device).unsqueeze(0)
             phoneme_ids1 = torch.LongTensor(phones2).to(device).unsqueeze(0)
@@ -1054,6 +1046,7 @@ def get_tts_wav(
         # logger.info("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t3 - t2, t4 - t3))
         if stream_mode == "normal":
             audio_bytes, audio_chunk = read_clean_buffer(audio_bytes)
+            # For backward compatibility, yield audio chunk only
             yield audio_chunk
 
     if not stream_mode == "normal":
@@ -1065,6 +1058,7 @@ def get_tts_wav(
             else:
                 sr = 48000  # v4
             audio_bytes = pack_wav(audio_bytes, sr)
+        # extend: for stream_mode!=normal we still return only audio bytes for backward compatibility
         yield audio_bytes.getvalue()
 
 
@@ -1133,8 +1127,7 @@ def handle(
     else:
         text = cut_text(text, cut_punc)
 
-    return StreamingResponse(
-        get_tts_wav(
+    gen = get_tts_wav(
             refer_wav_path,
             prompt_text,
             prompt_language,
@@ -1147,9 +1140,10 @@ def handle(
             inp_refs,
             sample_steps,
             if_sr,
-        ),
-        media_type="audio/" + media_type,
     )
+    # Consume the generator to collect bytes and timestamps; pack as multipart/mixed JSON with audio for compatibility
+    # For simplicity, keep legacy streaming behaviour
+    return StreamingResponse(gen, media_type="audio/" + media_type)
 
 
 # --------------------------------

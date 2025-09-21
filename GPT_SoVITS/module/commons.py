@@ -93,6 +93,23 @@ def subsequent_mask(length):
     return mask
 
 
+def attn_to_token_alignment(attn, reduce="mean"):
+    """
+    Convert attention [B, H, T_tgt, T_src] to argmax alignment per target step.
+    Returns [B, T_tgt] indices.
+    """
+    if attn is None:
+        return None
+    if reduce == "mean":
+        attn_ = attn.mean(dim=1)
+    elif reduce == "max":
+        attn_ = attn.max(dim=1).values
+    else:
+        attn_ = attn
+    return attn_.argmax(dim=-1)
+
+
+
 @torch.jit.script
 def fused_add_tanh_sigmoid_multiply(input_a, input_b, n_channels):
     n_channels_int = n_channels[0]
