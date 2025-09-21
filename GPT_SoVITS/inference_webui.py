@@ -596,6 +596,7 @@ def get_first(text):
 
 
 from text import chinese
+import tempfile
 
 
 def get_phones_and_bert(text, language, version, final=False):
@@ -850,6 +851,8 @@ def get_tts_wav(
         phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language, version)
 
     timestamps_all = []
+    elapsed_s = 0.0
+    sr_hz = int(hps.data.sampling_rate)
     for i_text, text in enumerate(texts):
         # 解决输入目标文本的空行导致报错的问题
         if len(text.strip()) == 0:
@@ -974,6 +977,71 @@ def get_tts_wav(
                                     })
                                 else:
                                     char_spans[-1]["end_s"] = span["end_s"]
+                    # post-merge by char_index across the whole segment to remove jitter fragments
+                    if char_spans:
+                        # group by char_index
+                        groups = {}
+                        for cs in char_spans:
+                            groups.setdefault(cs["char_index"], []).append(cs)
+                        merged = []
+                        gap_merge_s = 0.08
+                        # adaptive minimal duration: at least one frame, but not lower than 15ms
+                        min_dur_s = max(0.015, frame_time)
+                        for ci, lst in groups.items():
+                            lst = sorted(lst, key=lambda x: x["start_s"])
+                            cur = None
+                            for it in lst:
+                                if cur is None:
+                                    cur = {"char_index": ci, "char": it.get("char", ""), "start_s": it["start_s"], "end_s": it["end_s"]}
+                                else:
+                                    if it["start_s"] - cur["end_s"] <= gap_merge_s:
+                                        if it["end_s"] > cur["end_s"]:
+                                            cur["end_s"] = it["end_s"]
+                                    else:
+                                        if cur["end_s"] - cur["start_s"] >= min_dur_s:
+                                            merged.append(cur)
+                                        cur = {"char_index": ci, "char": it.get("char", ""), "start_s": it["start_s"], "end_s": it["end_s"]}
+                            if cur is not None and (cur["end_s"] - cur["start_s"]) >= min_dur_s:
+                                merged.append(cur)
+                        # sort merged by time
+                        char_spans = sorted(merged, key=lambda x: x["start_s"])                    
+                        # remap normalized chars back to original input text to avoid spurious '.'/'?'
+                        def _build_norm_to_orig_map(orig, norm):
+                            all_punc_local = set(punctuation).union(set(splits))
+                            mapping = [-1] * len(norm)
+                            o = 0
+                            n = 0
+                            while n < len(norm) and o < len(orig):
+                                if norm[n] == orig[o]:
+                                    mapping[n] = o
+                                    n += 1
+                                    o += 1
+                                else:
+                                    # skip spaces/punctuations on either side
+                                    if orig[o].isspace() or orig[o] in all_punc_local:
+                                        o += 1
+                                    elif norm[n].isspace() or norm[n] in all_punc_local:
+                                        n += 1
+                                    else:
+                                        # characters differ (e.g., compatibility form). Advance normalized index.
+                                        n += 1
+                            return mapping
+                        norm2orig = _build_norm_to_orig_map(text, norm_text_seg)
+                        all_punc_local = set(punctuation).union(set(splits))
+                        remapped = []
+                        for cs in char_spans:
+                            ci = cs["char_index"]
+                            ch_norm = cs.get("char", "")
+                            oi = norm2orig[ci] if ci < len(norm2orig) else -1
+                            if oi != -1:
+                                cs["char"] = text[oi]
+                                remapped.append(cs)
+                            else:
+                                # drop normalized-only punctuations/spaces not present in original
+                                if ch_norm and (ch_norm in all_punc_local or ch_norm.isspace()):
+                                    continue
+                                remapped.append(cs)
+                        char_spans = remapped
                 # word spans
                 word_spans = []
                 if text_language == "en":
@@ -1002,12 +1070,32 @@ def get_tts_wav(
                                     })
                                 else:
                                     word_spans[-1]["end_s"] = span["end_s"]
+                # add absolute offsets and record segment timing
+                audio_len_s = float(audio.shape[0]) / sr_hz
+                if 'ph_spans' in locals() and ph_spans:
+                    for d in ph_spans:
+                        d["start_s"] += elapsed_s
+                        d["end_s"] += elapsed_s
+                if char_spans:
+                    for d in char_spans:
+                        d["start_s"] += elapsed_s
+                        d["end_s"] += elapsed_s
+                if word_spans:
+                    for d in word_spans:
+                        d["start_s"] += elapsed_s
+                        d["end_s"] += elapsed_s
+                seg_start_s = elapsed_s
+                seg_end_s = elapsed_s + audio_len_s
                 timestamps_all.append({
                     "segment_index": i_text,
                     "phoneme_spans": ph_spans,
                     "char_spans": char_spans,
                     "word_spans": word_spans,
+                    "segment_start_s": seg_start_s,
+                    "segment_end_s": seg_end_s,
+                    "text": norm_text_seg,
                 })
+                elapsed_s += audio_len_s + float(pause_second)
         else:
             refer, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device)
             phoneme_ids0 = torch.LongTensor(phones1).to(device).unsqueeze(0)
@@ -1086,8 +1174,62 @@ def get_tts_wav(
             audio_opt /= max_audio
     else:
         audio_opt = audio_opt.cpu().detach().numpy()
-    # Return audio and timestamps for UI consumption: ((sr, audio), timestamps)
-    yield (opt_sr, (audio_opt * 32767).astype(np.int16)), timestamps_all
+    # Build SRT file content from timestamps_all
+    def _fmt_srt_time(t):
+        h = int(t // 3600)
+        m = int((t % 3600) // 60)
+        s = int(t % 60)
+        ms = int(round((t - int(t)) * 1000))
+        return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+    srt_lines = []
+    idx_counter = 1
+    for rec in timestamps_all:
+        # 优先按字分段
+        if rec.get("char_spans") and len(rec["char_spans"]):
+            for c in rec["char_spans"]:
+                st = c["start_s"]
+                ed = c["end_s"]
+                txt = c.get("char", "")
+                srt_lines.append(str(idx_counter))
+                srt_lines.append(f"{_fmt_srt_time(st)} --> { _fmt_srt_time(ed)}")
+                srt_lines.append(txt)
+                srt_lines.append("")
+                idx_counter += 1
+            continue
+        # 次选按词（英文）
+        if rec.get("word_spans") and len(rec["word_spans"]):
+            for w in rec["word_spans"]:
+                st = w["start_s"]
+                ed = w["end_s"]
+                txt = w.get("word", "")
+                srt_lines.append(str(idx_counter))
+                srt_lines.append(f"{_fmt_srt_time(st)} --> { _fmt_srt_time(ed)}")
+                srt_lines.append(txt)
+                srt_lines.append("")
+                idx_counter += 1
+            continue
+        # 最后按整段兜底
+        st = rec.get("segment_start_s")
+        ed = rec.get("segment_end_s")
+        text_line = rec.get("text", "")
+        if st is not None and ed is not None:
+            srt_lines.append(str(idx_counter))
+            srt_lines.append(f"{_fmt_srt_time(st)} --> { _fmt_srt_time(ed)}")
+            srt_lines.append(text_line)
+            srt_lines.append("")
+            idx_counter += 1
+
+    srt_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".srt", mode="w", encoding="utf-8") as f:
+            f.write("\n".join(srt_lines))
+            srt_path = f.name
+    except Exception:
+        srt_path = None
+
+    # Return audio, timestamps and SRT path for UI
+    yield (opt_sr, (audio_opt * 32767).astype(np.int16)), timestamps_all, srt_path
 
 
 def split(todo_text):
@@ -1375,6 +1517,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             inference_button = gr.Button(value=i18n("合成语音"), variant="primary", size="lg", scale=25)
             output = gr.Audio(label=i18n("输出的语音"), scale=14)
         timestamps_box = gr.JSON(label=i18n("时间戳(音素/字/词)"))
+        srt_file = gr.File(label=i18n("下载SRT字幕"))
 
         inference_button.click(
             get_tts_wav,
@@ -1396,7 +1539,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 if_sr_Checkbox,
                 pause_second_slider,
             ],
-            [output, timestamps_box],
+            [output, timestamps_box, srt_file],
         )
         SoVITS_dropdown.change(
             change_sovits_weights,
