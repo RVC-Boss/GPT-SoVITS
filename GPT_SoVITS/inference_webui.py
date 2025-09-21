@@ -932,7 +932,40 @@ def get_tts_wav(
             # derive phoneme-level timestamps (20ms per frame at 32kHz, hop=640)
             if last_attn is not None:
                 attn_heads_mean = last_attn.mean(dim=1)[0]  # [T_ssl, T_text]
-                assign = attn_heads_mean.argmax(dim=-1)  # [T_ssl]
+                # Viterbi monotonic alignment (stay or advance by 1)
+                def _viterbi_monotonic(p):
+                    T, N = p.shape
+                    if T < N:
+                        return p.argmax(dim=-1)
+                    eps = 1e-8
+                    cost = -torch.log(p + eps)
+                    dp = torch.empty((T, N), dtype=cost.dtype, device=cost.device)
+                    prev = torch.zeros((T, N), dtype=torch.uint8, device=cost.device)
+                    dp[0, 0] = cost[0, 0]
+                    if N > 1:
+                        dp[0, 1:] = float("inf")
+                    for t_i in range(1, T):
+                        # j=0: only stay
+                        dp[t_i, 0] = dp[t_i - 1, 0] + cost[t_i, 0]
+                        prev[t_i, 0] = 0
+                        if N > 1:
+                            stay = dp[t_i - 1, 1:] + cost[t_i, 1:]
+                            move = dp[t_i - 1, :-1] + cost[t_i, 1:]
+                            better_move = move < stay
+                            dp[t_i, 1:] = torch.where(better_move, move, stay)
+                            prev[t_i, 1:] = better_move.to(torch.uint8)
+                    # backtrack from (T-1, N-1)
+                    j = N - 1
+                    assign_bt = torch.empty(T, dtype=torch.long, device=cost.device)
+                    for t_i in range(T - 1, -1, -1):
+                        assign_bt[t_i] = j
+                        if t_i > 0 and prev[t_i, j] == 1:
+                            j = j - 1
+                            if j < 0:
+                                j = 0
+                    return assign_bt
+
+                assign = _viterbi_monotonic(attn_heads_mean)
                 frame_time = 0.02 / max(speed, 1e-6)
                 # collapse consecutive frames pointing to same phoneme id
                 ph_spans = []
@@ -954,122 +987,186 @@ def get_tts_wav(
                         "start_s": start_f * frame_time,
                         "end_s": assign.shape[0] * frame_time,
                     })
-                # char/word aggregation
-                # obtain word2ph for current text segment
-                _, word2ph, norm_text_seg = clean_text_inf(text, text_language, version)
-                # char spans (for zh/yue where word2ph is char-based)
-                char_spans = []
-                if word2ph:
-                    ph_to_char = []
-                    for ch_idx, repeat in enumerate(word2ph):
-                        ph_to_char += [ch_idx] * repeat
-                    if ph_spans and ph_to_char:
-                        for span in ph_spans:
-                            ph_idx = span["phoneme_id"]
-                            if 0 <= ph_idx < len(ph_to_char):
-                                char_idx = ph_to_char[ph_idx]
-                                if len(char_spans) == 0 or char_spans[-1]["char_index"] != char_idx:
-                                    char_spans.append({
-                                        "char_index": char_idx,
-                                        "char": norm_text_seg[char_idx] if char_idx < len(norm_text_seg) else "",
-                                        "start_s": span["start_s"],
-                                        "end_s": span["end_s"],
-                                    })
-                                else:
-                                    char_spans[-1]["end_s"] = span["end_s"]
-                    # post-merge by char_index across the whole segment to remove jitter fragments
-                    if char_spans:
-                        # group by char_index
-                        groups = {}
-                        for cs in char_spans:
-                            groups.setdefault(cs["char_index"], []).append(cs)
-                        merged = []
-                        gap_merge_s = 0.08
-                        # adaptive minimal duration: at least one frame, but not lower than 15ms
-                        min_dur_s = max(0.015, frame_time)
-                        for ci, lst in groups.items():
-                            lst = sorted(lst, key=lambda x: x["start_s"])
-                            cur = None
-                            for it in lst:
-                                if cur is None:
-                                    cur = {"char_index": ci, "char": it.get("char", ""), "start_s": it["start_s"], "end_s": it["end_s"]}
-                                else:
-                                    if it["start_s"] - cur["end_s"] <= gap_merge_s:
-                                        if it["end_s"] > cur["end_s"]:
-                                            cur["end_s"] = it["end_s"]
-                                    else:
-                                        if cur["end_s"] - cur["start_s"] >= min_dur_s:
-                                            merged.append(cur)
-                                        cur = {"char_index": ci, "char": it.get("char", ""), "start_s": it["start_s"], "end_s": it["end_s"]}
-                            if cur is not None and (cur["end_s"] - cur["start_s"]) >= min_dur_s:
-                                merged.append(cur)
-                        # sort merged by time
-                        char_spans = sorted(merged, key=lambda x: x["start_s"])                    
-                        # remap normalized chars back to original input text to avoid spurious '.'/'?'
-                        def _build_norm_to_orig_map(orig, norm):
-                            all_punc_local = set(punctuation).union(set(splits))
-                            mapping = [-1] * len(norm)
-                            o = 0
-                            n = 0
-                            while n < len(norm) and o < len(orig):
-                                if norm[n] == orig[o]:
-                                    mapping[n] = o
-                                    n += 1
-                                    o += 1
-                                else:
-                                    # skip spaces/punctuations on either side
-                                    if orig[o].isspace() or orig[o] in all_punc_local:
-                                        o += 1
-                                    elif norm[n].isspace() or norm[n] in all_punc_local:
-                                        n += 1
-                                    else:
-                                        # characters differ (e.g., compatibility form). Advance normalized index.
-                                        n += 1
-                            return mapping
-                        norm2orig = _build_norm_to_orig_map(text, norm_text_seg)
-                        all_punc_local = set(punctuation).union(set(splits))
-                        remapped = []
-                        for cs in char_spans:
-                            ci = cs["char_index"]
-                            ch_norm = cs.get("char", "")
-                            oi = norm2orig[ci] if ci < len(norm2orig) else -1
-                            if oi != -1:
-                                cs["char"] = text[oi]
-                                remapped.append(cs)
-                            else:
-                                # drop normalized-only punctuations/spaces not present in original
-                                if ch_norm and (ch_norm in all_punc_local or ch_norm.isspace()):
+                # char/word aggregation for multi-language text
+                def _build_mixed_mappings(_text, _ui_lang, _version):
+                    # replicate segmentation logic from get_phones_and_bert
+                    _text = re.sub(r' {2,}', ' ', _text)
+                    textlist = []
+                    langlist = []
+                    if _ui_lang == "all_zh":
+                        for tmp in LangSegmenter.getTexts(_text, "zh"):
+                            langlist.append(tmp["lang"])
+                            textlist.append(tmp["text"])
+                    elif _ui_lang == "all_yue":
+                        for tmp in LangSegmenter.getTexts(_text, "zh"):
+                            if tmp["lang"] == "zh":
+                                tmp["lang"] = "yue"
+                            langlist.append(tmp["lang"])
+                            textlist.append(tmp["text"])
+                    elif _ui_lang == "all_ja":
+                        for tmp in LangSegmenter.getTexts(_text, "ja"):
+                            langlist.append(tmp["lang"])
+                            textlist.append(tmp["text"])
+                    elif _ui_lang == "all_ko":
+                        for tmp in LangSegmenter.getTexts(_text, "ko"):
+                            langlist.append(tmp["lang"])
+                            textlist.append(tmp["text"])
+                    elif _ui_lang == "en":
+                        langlist.append("en")
+                        textlist.append(_text)
+                    elif _ui_lang == "auto":
+                        for tmp in LangSegmenter.getTexts(_text):
+                            langlist.append(tmp["lang"])
+                            textlist.append(tmp["text"])
+                    elif _ui_lang == "auto_yue":
+                        for tmp in LangSegmenter.getTexts(_text):
+                            if tmp["lang"] == "zh":
+                                tmp["lang"] = "yue"
+                            langlist.append(tmp["lang"])
+                            textlist.append(tmp["text"])
+                    else:
+                        for tmp in LangSegmenter.getTexts(_text):
+                            if langlist:
+                                if (tmp["lang"] == "en" and langlist[-1] == "en") or (tmp["lang"] != "en" and langlist[-1] != "en"):
+                                    textlist[-1] += tmp["text"]
                                     continue
-                                remapped.append(cs)
-                        char_spans = remapped
-                # word spans
-                word_spans = []
-                if text_language == "en":
-                    # build phoneme-to-word map using dictionary per-word g2p
-                    try:
-                        from text.english import g2p as g2p_en
-                    except Exception:
-                        g2p_en = None
-                    words = norm_text_seg.split()
+                            if tmp["lang"] == "en":
+                                langlist.append(tmp["lang"])
+                            else:
+                                langlist.append(_ui_lang)
+                            textlist.append(tmp["text"])
+
+                    # aggregate mappings
+                    ph_to_char = []
                     ph_to_word = []
-                    if g2p_en:
-                        for w_idx, w in enumerate(words):
-                            phs_w = g2p_en(w)
-                            ph_to_word += [w_idx] * len(phs_w)
-                    if ph_spans and ph_to_word:
-                        for span in ph_spans:
-                            ph_idx = span["phoneme_id"]
-                            if 0 <= ph_idx < len(ph_to_word):
-                                wi = ph_to_word[ph_idx]
-                                if len(word_spans) == 0 or word_spans[-1]["word_index"] != wi:
-                                    word_spans.append({
-                                        "word_index": wi,
-                                        "word": words[wi] if wi < len(words) else "",
-                                        "start_s": span["start_s"],
-                                        "end_s": span["end_s"],
-                                    })
+                    word_tokens = []
+                    norm_text_agg = []
+                    import re as _re
+                    for seg_text, seg_lang in zip(textlist, langlist):
+                        seg_phones, seg_word2ph, seg_norm = clean_text_inf(seg_text, seg_lang, _version)
+                        norm_text_agg.append(seg_norm)
+                        if seg_lang in {"zh", "yue", "ja"} and seg_word2ph:
+                            # char-based
+                            char_base_idx = len("".join(norm_text_agg[:-1]))
+                            for ch_idx, cnt in enumerate(seg_word2ph):
+                                global_char_idx = char_base_idx + ch_idx
+                                ph_to_char += [global_char_idx] * cnt
+                            ph_to_word += [-1] * len(seg_phones)
+                        elif seg_lang in {"en", "ko"} and seg_word2ph:
+                            # word-based
+                            tokens_seg = [t for t in _re.findall(r"\S+", seg_norm) if not all((c in punctuation) for c in t)]
+                            base_word_idx = len(word_tokens)
+                            t_idx = 0
+                            for cnt in seg_word2ph:
+                                if t_idx < len(tokens_seg):
+                                    ph_to_word += [base_word_idx + t_idx] * cnt
+                                    t_idx += 1
+                            ph_to_char += [-1] * len(seg_phones)
+                            word_tokens.extend(tokens_seg)
+                        else:
+                            # unknown mapping; fill with -1
+                            ph_to_char += [-1] * len(seg_phones)
+                            ph_to_word += [-1] * len(seg_phones)
+                    norm_text_agg = "".join(norm_text_agg)
+                    return norm_text_agg, ph_to_char, ph_to_word, word_tokens
+
+                norm_text_seg, ph_to_char_map, ph_to_word_map, word_tokens = _build_mixed_mappings(text, text_language, version)
+
+                # char spans (for zh/yue/ja parts only)
+                char_spans = []
+                if ph_spans and ph_to_char_map and len(ph_to_char_map) >= 1:
+                    for span in ph_spans:
+                        ph_idx = span["phoneme_id"]
+                        if 0 <= ph_idx < len(ph_to_char_map):
+                            ci = ph_to_char_map[ph_idx]
+                            if ci == -1:
+                                continue
+                            if len(char_spans) == 0 or char_spans[-1]["char_index"] != ci:
+                                char_spans.append({
+                                    "char_index": ci,
+                                    "char": norm_text_seg[ci] if ci < len(norm_text_seg) else "",
+                                    "start_s": span["start_s"],
+                                    "end_s": span["end_s"],
+                                })
+                            else:
+                                char_spans[-1]["end_s"] = span["end_s"]
+                # post-merge and remap for chars
+                if char_spans:
+                    groups = {}
+                    for cs in char_spans:
+                        groups.setdefault(cs["char_index"], []).append(cs)
+                    merged = []
+                    gap_merge_s = 0.08
+                    min_dur_s = max(0.015, frame_time)
+                    for ci, lst in groups.items():
+                        lst = sorted(lst, key=lambda x: x["start_s"])
+                        cur = None
+                        for it in lst:
+                            if cur is None:
+                                cur = {"char_index": ci, "char": it.get("char", ""), "start_s": it["start_s"], "end_s": it["end_s"]}
+                            else:
+                                if it["start_s"] - cur["end_s"] <= gap_merge_s:
+                                    if it["end_s"] > cur["end_s"]:
+                                        cur["end_s"] = it["end_s"]
                                 else:
-                                    word_spans[-1]["end_s"] = span["end_s"]
+                                    if cur["end_s"] - cur["start_s"] >= min_dur_s:
+                                        merged.append(cur)
+                                    cur = {"char_index": ci, "char": it.get("char", ""), "start_s": it["start_s"], "end_s": it["end_s"]}
+                        if cur is not None and (cur["end_s"] - cur["start_s"]) >= min_dur_s:
+                            merged.append(cur)
+                    char_spans = sorted(merged, key=lambda x: x["start_s"])    
+                    def _build_norm_to_orig_map(orig, norm):
+                        all_punc_local = set(punctuation).union(set(splits))
+                        mapping = [-1] * len(norm)
+                        o = 0
+                        n = 0
+                        while n < len(norm) and o < len(orig):
+                            if norm[n] == orig[o]:
+                                mapping[n] = o
+                                n += 1
+                                o += 1
+                            else:
+                                if orig[o].isspace() or orig[o] in all_punc_local:
+                                    o += 1
+                                elif norm[n].isspace() or norm[n] in all_punc_local:
+                                    n += 1
+                                else:
+                                    n += 1
+                        return mapping
+                    norm2orig = _build_norm_to_orig_map(text, norm_text_seg)
+                    all_punc_local = set(punctuation).union(set(splits))
+                    remapped = []
+                    for cs in char_spans:
+                        ci = cs["char_index"]
+                        ch_norm = cs.get("char", "")
+                        oi = norm2orig[ci] if ci < len(norm2orig) else -1
+                        if oi != -1:
+                            cs["char"] = text[oi]
+                            remapped.append(cs)
+                        else:
+                            if ch_norm and (ch_norm in all_punc_local or ch_norm.isspace()):
+                                continue
+                            remapped.append(cs)
+                    char_spans = remapped
+
+                # word spans (for en/ko parts only)
+                word_spans = []
+                if ph_spans and ph_to_word_map and len(ph_to_word_map) >= 1:
+                    for span in ph_spans:
+                        ph_idx = span["phoneme_id"]
+                        if 0 <= ph_idx < len(ph_to_word_map):
+                            wi = ph_to_word_map[ph_idx]
+                            if wi == -1:
+                                continue
+                            if len(word_spans) == 0 or word_spans[-1]["word_index"] != wi:
+                                word_spans.append({
+                                    "word_index": wi,
+                                    "word": word_tokens[wi] if wi < len(word_tokens) else "",
+                                    "start_s": span["start_s"],
+                                    "end_s": span["end_s"],
+                                })
+                            else:
+                                word_spans[-1]["end_s"] = span["end_s"]
                 # add absolute offsets and record segment timing
                 audio_len_s = float(audio.shape[0]) / sr_hz
                 if 'ph_spans' in locals() and ph_spans:
@@ -1185,31 +1282,24 @@ def get_tts_wav(
     srt_lines = []
     idx_counter = 1
     for rec in timestamps_all:
-        # 优先按字分段
-        if rec.get("char_spans") and len(rec["char_spans"]):
-            for c in rec["char_spans"]:
-                st = c["start_s"]
-                ed = c["end_s"]
-                txt = c.get("char", "")
+        cs = rec.get("char_spans") or []
+        ws = rec.get("word_spans") or []
+        entries = []
+        # 统一时间轴：存在则合并后按开始时间排序输出
+        for c in cs:
+            entries.append({"text": c.get("char", ""), "start": c["start_s"], "end": c["end_s"]})
+        for w in ws:
+            entries.append({"text": w.get("word", ""), "start": w["start_s"], "end": w["end_s"]})
+        if entries:
+            entries.sort(key=lambda x: x["start"]) 
+            for e in entries:
                 srt_lines.append(str(idx_counter))
-                srt_lines.append(f"{_fmt_srt_time(st)} --> { _fmt_srt_time(ed)}")
-                srt_lines.append(txt)
+                srt_lines.append(f"{_fmt_srt_time(e['start'])} --> { _fmt_srt_time(e['end'])}")
+                srt_lines.append(e["text"])
                 srt_lines.append("")
                 idx_counter += 1
             continue
-        # 次选按词（英文）
-        if rec.get("word_spans") and len(rec["word_spans"]):
-            for w in rec["word_spans"]:
-                st = w["start_s"]
-                ed = w["end_s"]
-                txt = w.get("word", "")
-                srt_lines.append(str(idx_counter))
-                srt_lines.append(f"{_fmt_srt_time(st)} --> { _fmt_srt_time(ed)}")
-                srt_lines.append(txt)
-                srt_lines.append("")
-                idx_counter += 1
-            continue
-        # 最后按整段兜底
+        # 兜底：整段
         st = rec.get("segment_start_s")
         ed = rec.get("segment_end_s")
         text_line = rec.get("text", "")
@@ -1228,8 +1318,17 @@ def get_tts_wav(
     except Exception:
         srt_path = None
 
-    # Return audio, timestamps and SRT path for UI
-    yield (opt_sr, (audio_opt * 32767).astype(np.int16)), timestamps_all, srt_path
+    # Also write JSON timestamps to temp file for download
+    json_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w", encoding="utf-8") as fjson:
+            json.dump(timestamps_all, fjson, ensure_ascii=False, indent=2)
+            json_path = fjson.name
+    except Exception:
+        json_path = None
+
+    # Return audio, timestamps, SRT path and JSON path for UI
+    yield (opt_sr, (audio_opt * 32767).astype(np.int16)), timestamps_all, srt_path, json_path
 
 
 def split(todo_text):
@@ -1516,8 +1615,10 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         with gr.Row():
             inference_button = gr.Button(value=i18n("合成语音"), variant="primary", size="lg", scale=25)
             output = gr.Audio(label=i18n("输出的语音"), scale=14)
-        timestamps_box = gr.JSON(label=i18n("时间戳(音素/字/词)"))
+        with gr.Accordion(i18n("时间戳(音素/字/词) - 点击展开"), open=False):
+            timestamps_box = gr.JSON(label=i18n("时间戳JSON预览"))
         srt_file = gr.File(label=i18n("下载SRT字幕"))
+        json_file = gr.File(label=i18n("下载时间戳JSON"))
 
         inference_button.click(
             get_tts_wav,
@@ -1539,7 +1640,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 if_sr_Checkbox,
                 pause_second_slider,
             ],
-            [output, timestamps_box, srt_file],
+            [output, timestamps_box, srt_file, json_file],
         )
         SoVITS_dropdown.change(
             change_sovits_weights,

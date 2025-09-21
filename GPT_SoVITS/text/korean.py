@@ -332,6 +332,31 @@ def g2p(text):
     return text
 
 
+# Helper for alignment: build phones and word2ph by space-tokenizing Korean text
+def g2p_with_word2ph(text, keep_punc=False):
+    """
+    Returns (phones, word2ph)
+    - Tokenize by spaces; for each non-space token, call g2p(token)
+    - Exclude separator/placeholders from phones: '.', '空', '停' and common punctuations
+    - word2ph per token = max(1, num_valid_phones) if keep_punc else skip spaces entirely
+    """
+    # prepare
+    tokens = re.split(r"(\s+)", text)
+    phones_all = []
+    word2ph = []
+    punc_set = {",", ".", "!", "?", "、", "。", "；", ":", "："}
+    for tok in tokens:
+        if tok.strip() == "":
+            if keep_punc:
+                word2ph.append(1)
+            continue
+        phs = g2p(tok)
+        # filter non-phonetic markers
+        phs_valid = [p for p in phs if p not in {'.', '空', '停'} and p not in punc_set]
+        phones_all.extend(phs_valid)
+        word2ph.append(max(1, len(phs_valid)))
+    return phones_all, word2ph
+
 if __name__ == "__main__":
     text = "안녕하세요"
     print(g2p(text))

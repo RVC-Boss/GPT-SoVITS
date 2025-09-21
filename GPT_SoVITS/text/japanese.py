@@ -271,6 +271,30 @@ def g2p(norm_text, with_prosody=True):
     return phones
 
 
+# Helper for alignment: build phones and word2ph by per-character g2p (ignoring prosody markers)
+def g2p_with_word2ph(text, keep_punc=False):
+    """
+    Returns (phones, word2ph)
+    - Per-character g2p; ignore prosody markers like '[', ']','^', '$', '#', '_'
+    - Punctuation counted as 1 if keep_punc else skipped
+    """
+    norm_text = text_normalize(text)
+    phones_all = []
+    word2ph = []
+    prosody_markers = {'[', ']', '^', '$', '#', '_'}
+    punc_set = set(punctuation)
+    for ch in norm_text:
+        if ch.isspace() or ch in punc_set:
+            if keep_punc:
+                word2ph.append(1)
+            continue
+        phs = preprocess_jap(ch, with_prosody=True)
+        phs = [post_replace_ph(p) for p in phs if p not in prosody_markers and p not in punc_set]
+        phones_all.extend(phs)
+        word2ph.append(max(1, len(phs)))
+    return phones_all, word2ph
+
+
 if __name__ == "__main__":
     phones = g2p("Hello.こんにちは！今日もNiCe天気ですね！tokyotowerに行きましょう！")
     print(phones)

@@ -368,6 +368,32 @@ def g2p(text):
     return replace_phs(phones)
 
 
+def g2p_with_word2ph(text, keep_punc=False):
+    """
+    Returns (phones, word2ph) for English by whitespace tokenization.
+    - Tokenize by spaces; for each token, call g2p(token)
+    - word2ph per token = max(1, num_valid_phones) if keep_punc else skip pure punctuations
+    """
+    tokens = re.split(r"(\s+)", text)
+    phones_all = []
+    word2ph = []
+    punc_set = set(punctuation)
+    for tok in tokens:
+        if tok.strip() == "":
+            if keep_punc:
+                word2ph.append(1)
+            continue
+        if all((c in punc_set or c.isspace()) for c in tok):
+            if keep_punc:
+                word2ph.append(1)
+            continue
+        phs = g2p(tok)
+        phs_valid = [p for p in phs if p not in punc_set]
+        phones_all.extend(phs_valid)
+        word2ph.append(max(1, len(phs_valid)))
+    return phones_all, word2ph
+
+
 if __name__ == "__main__":
     print(g2p("hello"))
     print(g2p(text_normalize("e.g. I used openai's AI tool to draw a picture.")))

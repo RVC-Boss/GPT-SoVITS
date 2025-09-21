@@ -39,18 +39,24 @@ def clean_text(text, language, version=None):
         norm_text = language_module.text_normalize(text)
     else:
         norm_text = text
+
     if language == "zh" or language == "yue":  ##########
         phones, word2ph = language_module.g2p(norm_text)
         assert len(phones) == sum(word2ph)
         assert len(norm_text) == len(word2ph)
-    elif language == "en":
-        phones = language_module.g2p(norm_text)
-        if len(phones) < 4:
-            phones = [","] + phones
-        word2ph = None
     else:
-        phones = language_module.g2p(norm_text)
-        word2ph = None
+        # Try per-language word2ph helpers
+        if hasattr(language_module, "g2p_with_word2ph"):
+            try:
+                phones, word2ph = language_module.g2p_with_word2ph(norm_text, keep_punc=False)
+            except Exception:
+                phones = language_module.g2p(norm_text)
+                word2ph = None
+        else:
+            phones = language_module.g2p(norm_text)
+            word2ph = None
+        if language == "en" and len(phones) < 4:
+            phones = [","] + phones
     phones = ["UNK" if ph not in symbols else ph for ph in phones]
     return phones, word2ph, norm_text
 
