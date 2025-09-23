@@ -13,7 +13,7 @@ from text import symbols2 as symbols_v2
 
 special = [
     # ("%", "zh", "SP"),
-    ("￥", "zh", "SP2"),
+    # ("￥", "zh", "SP2"), #加了货币计数所以人民币符不是SP2了
     ("^", "zh", "SP3"),
     # ('@', 'zh', "SP4")#不搞鬼畜了，和第二版保持一致吧
 ]
@@ -31,7 +31,7 @@ def clean_text(text, language, version=None):
     if language not in language_module_map:
         language = "en"
         text = " "
-    if language in ("zh"): #处理货币似乎只能这里截胡，不然货币符号会被吞
+    if language in ("zh"): #处理货币似乎最佳方案是这里截胡，不然可能被吞...
         from text.zh_normalization.num import (
             RE_CNY_PREFIX, RE_CNY_SUFFIX, replace_cny_prefix, replace_cny_suffix,
             RE_USD_SYMBOL, RE_USD_SUFFIX, replace_usd_symbol, replace_usd_suffix,)
