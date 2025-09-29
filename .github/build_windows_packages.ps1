@@ -168,7 +168,7 @@ Copy-Item -Path $curr -Destination $pkgName -Recurse
 $7zPath = "$pkgName.7z"
 $start = Get-Date
 Write-Host "Compress Starting at $start"
-& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -m0=ZSTD -mx=22 -mmt=on -bsp1
+& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -m0=ZSTD -mx=9 -mmt=on -bsp1
 $end = Get-Date
 Write-Host "Elapsed time: $($end - $start)"
 Get-ChildItem .
