@@ -24,6 +24,29 @@ if (-not [string]::IsNullOrWhiteSpace($suffix)) {
 
 $pkgName = "$pkgName-$cuda"
 
+$SevenZipPath = "C:\Program Files\7-Zip\7z.exe"
+$SevenZipDir  = Split-Path $SevenZipPath
+$CodecsDir    = Join-Path $SevenZipDir "Codecs"
+
+$Url = "https://github.com/mcmilk/7-Zip-zstd/releases/download/v25.01-v1.5.7-R1/Codecs-x64.7z"
+
+$TempArchive = "$env:TEMP\Codecs-x64.7z"
+
+Write-Host "Downloading 7-Zip Zstd plugin..."
+Invoke-WebRequest -Uri $Url -OutFile $TempArchive
+
+if (-not (Test-Path $CodecsDir)) {
+    New-Item -Path $CodecsDir -ItemType Directory | Out-Null
+    Write-Host "Created Codecs directory: $CodecsDir"
+}
+
+Write-Host "Extracting plugin..."
+& $SevenZipPath x $TempArchive "-o$CodecsDir" -y | Out-Null
+
+Remove-Item $TempArchive -Force
+
+Write-Host "Patch complete. Installed plugins in $CodecsDir"
+
 $baseHF = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
 $PRETRAINED_URL = "$baseHF/pretrained_models.zip"
 $G2PW_URL = "$baseHF/G2PWModel.zip"
@@ -168,7 +191,7 @@ Copy-Item -Path $curr -Destination $pkgName -Recurse
 $7zPath = "$pkgName.7z"
 $start = Get-Date
 Write-Host "Compress Starting at $start"
-& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -m0=ZSTD -mx=9 -mmt=on -bsp1
+& "C:\Program Files\7-Zip\7z.exe" a -t7z "$7zPath" "$pkgName" -m0=bcj -m1=zstd -mx=22 -mmt=on -bsp1
 $end = Get-Date
 Write-Host "Elapsed time: $($end - $start)"
 Get-ChildItem .
