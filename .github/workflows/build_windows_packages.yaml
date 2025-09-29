@@ -28,14 +28,6 @@ jobs:
       PKG_SUFFIX: ${{ github.event.inputs.suffix }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: change directory 1
-        shell: pwsh
-        run: |
-          cd ..
-
       - name: Install Windows CUDA 12.9
         uses: Jimver/cuda-toolkit@v0.2.24
         id: cuda-toolkit-win-129
@@ -44,11 +36,8 @@ jobs:
           method: "network"
           sub-packages: '["nvcc", "cudart", "visual_studio_integration"]'
 
-      - name: change directory 2
-        shell: pwsh
-        run: |
-          cd GPT-SoVITS
-
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Run Build and Upload Script
         shell: pwsh
         run: |
