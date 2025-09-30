@@ -49,6 +49,7 @@ os.environ["TORCH_DISTRIBUTED_DEBUG"] = "INFO"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 os.environ["all_proxy"] = ""
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+os.environ["PYTHONPATH"] = os.getcwd()
 
 
 backends_gradio = [(b.replace("-", " "), b) for b in backends]
@@ -313,12 +314,12 @@ def change_tts_inference(
     console.print(gpt_path, sovits_path)
     global p_tts_inference
     env = os.environ.copy()
-    cmd: list[str] = [python_exec, "-s"]
+    cmd: list[str] = [python_exec, "-s", "-m"]
     if batched_infer_enabled:
         # fmt: off
         cmd.extend(
             [
-                "GPT_SoVITS/inference_webui_fast.py", language,
+                "GPT_SoVITS.inference_webui_fast", language,
                 "-d", f"{infer_device.type}:{gpu_number}",
                 "-p", str(webui_port_infer_tts),
                 "--gpt", gpt_path,
@@ -329,7 +330,7 @@ def change_tts_inference(
         # fmt: off
         cmd.extend(
             [
-                "GPT_SoVITS/inference_webui.py", language,
+                "GPT_SoVITS.inference_webui", language,
                 "-b", backends_dropdown,
                 "-d", f"{infer_device.type}:{gpu_number}",
                 "-p", str(webui_port_infer_tts),
@@ -886,7 +887,7 @@ def open1b(
 
         # fmt: off
         cmd = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/2_get_hubert_sv_wav32k.py",
+            python_exec, "-s", "-m", "GPT_SoVITS.prepare_datasets.2_get_hubert_sv_wav32k",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--cnhubert", ssl_pretrained_dir,
@@ -978,7 +979,7 @@ def open1c(
 
         # fmt: off
         cmd = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/3_get_semantic.py",
+            python_exec, "-s", "-m", "GPT_SoVITS.prepare_datasets.3_get_semantic",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--pretrained-s2g", pretrained_s2G_path,
@@ -1074,7 +1075,7 @@ def open1abc(
         # Step 1
         # fmt: off
         cmd_1 = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/1_get_text.py",
+            python_exec, "-s", "-m", "GPT_SoVITS.prepare_datasets.1_get_text",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--bert", bert_pretrained_dir,
@@ -1120,7 +1121,7 @@ def open1abc(
         # Step 2
         # fmt: off
         cmd_2 = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/2_get_hubert_sv_wav32k.py",
+            python_exec, "-s", "-m", "GPT_SoVITS.prepare_datasets.2_get_hubert_sv_wav32k",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--cnhubert", ssl_pretrained_dir,
@@ -1171,7 +1172,7 @@ def open1abc(
         # Step 3
         # fmt: off
         cmd_3 = [
-            python_exec, "-s", "GPT_SoVITS/prepare_datasets/3_get_semantic.py",
+            python_exec, "-s", "-m", "GPT_SoVITS.prepare_datasets.3_get_semantic",
             "--inp-list", inp_text,
             "--opt", opt_dir,
             "--pretrained-s2g", pretrained_s2G_path,
