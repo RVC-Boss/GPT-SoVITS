@@ -114,6 +114,9 @@ class T2SDecoder(T2SDecoderABC):
 
         self.kv_class = KVCacheNHD
 
+    def compile(self, *args, **kwds):
+        pass
+
     def post_forward(self, idx: int, session: T2SSession) -> None:
         return super().post_forward(idx, session)
 
@@ -133,6 +136,8 @@ class CUDAGraphCache(CUDAGraphCacheABC):
         if session.id == self.id:
             self.assigned = False
         else:
+            assert session.graph
+            session.graph.reset()
             del session.graph, session.xy_pos_, session.xy_dec_, session.input_pos, session.kv_cache
 
     def get_cache_graph(self, session: T2SSession):

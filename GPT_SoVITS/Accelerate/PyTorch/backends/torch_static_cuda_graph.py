@@ -130,6 +130,8 @@ class CUDAGraphCache(CUDAGraphCacheABC):
         if session.id == self.id:
             self.assigned = False
         else:
+            assert session.graph
+            session.graph.reset()
             del (
                 session.graph,
                 session.xy_pos_,

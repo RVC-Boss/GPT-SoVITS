@@ -107,6 +107,9 @@ class T2SDecoder(T2SDecoderABC):
 
         self.kv_class = KVCacheHND
 
+    def compile(self, *args, **kwds):
+        pass
+
     def pre_forward(self, session: T2SSession) -> tuple[list[Tensor], dict[str, Tensor]]:
         return list(), dict(cu_seqlens_q=session.cu_seqlens_q, cu_seqlens_kv=session.cu_seqlens_kv)
 
@@ -136,6 +139,8 @@ class CUDAGraphCache(CUDAGraphCacheABC):
         if session.id == self.id:
             self.assigned = False
         else:
+            assert session.graph
+            session.graph.reset()
             del (
                 session.graph,
                 session.xy_pos_,

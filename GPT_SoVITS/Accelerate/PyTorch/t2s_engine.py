@@ -32,7 +32,7 @@ class T2SEngine(T2SEngineProtocol):
         self.dtype = dtype
 
         self.decoder_model: T2SDecoderABC = decoder_model.to(self.device, self.dtype)
-        self.decoder_model.compile()
+        # self.decoder_model.compile()
 
         self.graphcache: CUDAGraphCacheABC = self.init_cache()
 

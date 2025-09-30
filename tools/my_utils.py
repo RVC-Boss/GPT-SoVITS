@@ -1,7 +1,10 @@
 import ctypes
+import hashlib
 import io
 import os
+import platform
 import sys
+import uuid
 from pathlib import Path
 from typing import IO, Union
 
@@ -354,3 +357,11 @@ class _open_file(_opener[IO[bytes]]):
 
     def __exit__(self, *args):
         self.file_like.close()
+
+
+def get_machine_id():
+    mac = uuid.getnode()
+    hostname = platform.node()
+    raw = f"{mac}-{hostname}"
+    serial = hashlib.md5(raw.encode()).hexdigest()[:20]  # 取前20位
+    return serial
