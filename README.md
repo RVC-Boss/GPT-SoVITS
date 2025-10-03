@@ -54,6 +54,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
 
+You can also deploy on [Alibaba Cloud Function Compute](https://www.alibabacloud.com/en/product/function-compute) by [clicking here](https://fcnext.console.aliyun.com/applications/ai/create?template=fc-gpt-sovits).
+
 ### Tested Environments
 
 | Python Version | PyTorch Version  | Device        |
