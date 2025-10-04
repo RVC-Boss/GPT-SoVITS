@@ -1046,12 +1046,15 @@ def get_tts_wav(
                         seg_phones, seg_word2ph, seg_norm = clean_text_inf(seg_text, seg_lang, _version)
                         norm_text_agg.append(seg_norm)
                         if seg_lang in {"zh", "yue", "ja"} and seg_word2ph:
-                            # char-based
+                            # char-based; also expose as word-level (one char == one word)
                             char_base_idx = len("".join(norm_text_agg[:-1]))
                             for ch_idx, cnt in enumerate(seg_word2ph):
                                 global_char_idx = char_base_idx + ch_idx
                                 ph_to_char += [global_char_idx] * cnt
-                            ph_to_word += [-1] * len(seg_phones)
+                                token = seg_norm[ch_idx] if ch_idx < len(seg_norm) else ""
+                                word_tokens.append(token)
+                                word_idx = len(word_tokens) - 1
+                                ph_to_word += [word_idx] * cnt
                         elif seg_lang in {"en", "ko"} and seg_word2ph:
                             # word-based
                             tokens_seg = [t for t in _re.findall(r"\S+", seg_norm) if not all((c in punctuation) for c in t)]
@@ -1282,23 +1285,27 @@ def get_tts_wav(
     srt_lines = []
     idx_counter = 1
     for rec in timestamps_all:
-        cs = rec.get("char_spans") or []
         ws = rec.get("word_spans") or []
-        entries = []
-        # 统一时间轴：存在则合并后按开始时间排序输出
-        for c in cs:
-            entries.append({"text": c.get("char", ""), "start": c["start_s"], "end": c["end_s"]})
-        for w in ws:
-            entries.append({"text": w.get("word", ""), "start": w["start_s"], "end": w["end_s"]})
-        if entries:
-            entries.sort(key=lambda x: x["start"]) 
-            for e in entries:
+        cs = rec.get("char_spans") or []
+
+        if ws:
+            for w in ws:
                 srt_lines.append(str(idx_counter))
-                srt_lines.append(f"{_fmt_srt_time(e['start'])} --> { _fmt_srt_time(e['end'])}")
-                srt_lines.append(e["text"])
+                srt_lines.append(f"{_fmt_srt_time(w['start_s'])} --> { _fmt_srt_time(w['end_s'])}")
+                srt_lines.append(w.get("word", ""))
                 srt_lines.append("")
                 idx_counter += 1
             continue
+
+        if cs:
+            for c in cs:
+                srt_lines.append(str(idx_counter))
+                srt_lines.append(f"{_fmt_srt_time(c['start_s'])} --> { _fmt_srt_time(c['end_s'])}")
+                srt_lines.append(c.get("char", ""))
+                srt_lines.append("")
+                idx_counter += 1
+            continue
+
         # 兜底：整段
         st = rec.get("segment_start_s")
         ed = rec.get("segment_end_s")

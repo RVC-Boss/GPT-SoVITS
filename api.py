@@ -701,7 +701,10 @@ def _build_mixed_mappings_for_api(_text: str, _ui_lang: str, _version: str):
             for ch_idx, cnt in enumerate(seg_word2ph):
                 global_char_idx = char_base_idx + ch_idx
                 ph_to_char += [global_char_idx] * cnt
-            ph_to_word += [-1] * len(seg_phones)
+                token = seg_norm[ch_idx] if ch_idx < len(seg_norm) else ""
+                word_tokens.append(token)
+                word_idx = len(word_tokens) - 1
+                ph_to_word += [word_idx] * cnt
         elif seg_lang in {"en", "ko"} and seg_word2ph:
             tokens_seg = [t for t in _re.findall(r"\S+", seg_norm) if not all((c in splits) for c in t)]
             base_word_idx = len(word_tokens)
@@ -1772,21 +1775,26 @@ async def tts_json_post(request: Request):
             srt_lines = []
             idx_counter = 1
             for rec in timestamps_all:
-                cs = rec.get("char_spans") or []
                 ws = rec.get("word_spans") or []
-                entries = []
-                for c in cs:
-                    entries.append({"text": c.get("char", ""), "start": c["start_s"], "end": c["end_s"]})
-                for w in ws:
-                    entries.append({"text": w.get("word", ""), "start": w["start_s"], "end": w["end_s"]})
-                if entries:
-                    entries.sort(key=lambda x: x["start"]) 
-                    for e in entries:
+                cs = rec.get("char_spans") or []
+
+                if ws:
+                    for w in ws:
                         srt_lines.append(str(idx_counter))
-                        srt_lines.append(f"{_fmt_srt_time(e['start'])} --> { _fmt_srt_time(e['end'])}")
-                        srt_lines.append(e["text"]) 
+                        srt_lines.append(f"{_fmt_srt_time(w['start_s'])} --> { _fmt_srt_time(w['end_s'])}")
+                        srt_lines.append(w.get("word", ""))
                         srt_lines.append("")
                         idx_counter += 1
+                    continue
+
+                if cs:
+                    for c in cs:
+                        srt_lines.append(str(idx_counter))
+                        srt_lines.append(f"{_fmt_srt_time(c['start_s'])} --> { _fmt_srt_time(c['end_s'])}")
+                        srt_lines.append(c.get("char", ""))
+                        srt_lines.append("")
+                        idx_counter += 1
+                    continue
             srt_b64 = base64.b64encode("\n".join(srt_lines).encode("utf-8")).decode("ascii")
 
         timestamps_json_b64 = base64.b64encode(json.dumps(timestamps_all, ensure_ascii=False).encode("utf-8")).decode("ascii")
