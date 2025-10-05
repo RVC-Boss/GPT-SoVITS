@@ -228,7 +228,9 @@ switch ($Device) {
         Invoke-Pip torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
         Invoke-Conda cuda-nvcc=12.8
         Invoke-Pip psutil ninja packaging wheel "setuptools>=42"
+        Write-Info "Installing Flash Attn..."
         Invoke-Pip flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
+        Write-Success "Flash Attn Installed"
     }
     "CU126" {
         $cudaLine = nvidia-smi | Select-String "CUDA Version"
@@ -241,7 +243,9 @@ switch ($Device) {
         Invoke-Pip torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
         Invoke-Conda cuda-nvcc=12.6
         Invoke-Pip psutil ninja packaging wheel "setuptools>=42"
+        Write-Info "Installing Flash Attn..."
         Invoke-Pip flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
+        Write-Success "Flash Attn Installed"
     }
     "CPU" {
         Write-Info "Installing PyTorch For CPU..."
