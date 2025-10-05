@@ -344,8 +344,10 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
         run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
         run_conda_quiet cuda-nvcc=12.6
     fi
+    echo -e "${INFO}Installing Flash Attn"
     run_pip_quiet psutil ninja packaging wheel "setuptools>=42"
     run_pip_quiet flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
+    echo -e "${SUCCESS}Flash Attn Installed"
 elif [ "$USE_MLX" = true ] && [ "$WORKFLOW" = false ]; then
     echo -e "${INFO}Installing MLX & PyTorch For MPS..."
     run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
