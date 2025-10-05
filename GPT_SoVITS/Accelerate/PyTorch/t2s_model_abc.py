@@ -678,6 +678,7 @@ class TorchProfiler:
 
     @staticmethod
     def three_step_schedule(step: int) -> ProfilerAction:
+        print(111, step)
         if step == 0:
             return ProfilerAction.NONE
         elif step == 1:
@@ -688,12 +689,14 @@ class TorchProfiler:
             return ProfilerAction.NONE
 
     def start(self):
+        print(222)
         if not self.debug:
             return
         assert self.__profiler is not None
         self.__profiler.step()
 
     def end(self):
+        print(333)
         if not self.debug:
             return
         assert self.__profiler is not None
