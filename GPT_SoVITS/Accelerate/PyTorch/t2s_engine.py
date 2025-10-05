@@ -156,7 +156,7 @@ class T2SEngine(T2SEngineProtocol):
                         if idx == 1:
                             t1 = time.perf_counter()
 
-                        if idx == 51:
+                        if idx == 20:
                             torch_profiler.end()
 
                         if idx % 100 == 0:
@@ -184,7 +184,6 @@ class T2SEngine(T2SEngineProtocol):
                 case "cpu":
                     gc.collect()
 
-            torch_profiler.end()
             if request.use_cuda_graph and self.graphcache.is_applicable:
                 self.graphcache.release_graph(session)
 
