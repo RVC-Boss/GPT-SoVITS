@@ -691,6 +691,7 @@ def get_tts_wav(
     pause_second=0.3,
 ):
     torch.set_grad_enabled(False)
+    debug = os.getenv("DEBUG") == "1"
     ttfb_time = ttime()
 
     if ref_wav_path:
@@ -812,7 +813,7 @@ def get_tts_wav(
                 temperature=temperature,
                 early_stop_num=1500,
                 use_cuda_graph=torch.cuda.is_available(),  # Try to use CUDA Graph for all backend, fallback to normal if not applicapble
-                # debug=True,
+                debug=debug,
             )
             assert t2s_engine
             t2s_result = t2s_engine.generate(t2s_request)

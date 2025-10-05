@@ -29,7 +29,7 @@ pinyin_to_symbol_map = {
 
 parent_directory = os.path.dirname(current_file_path)
 
-is_g2pw = os.getenv("USE_G2PW", "1") == "1"
+is_g2pw = os.getenv("G2PW", "1") == "1"
 if is_g2pw:
     g2pw = G2PWPinyin(
         model_dir="GPT_SoVITS/text/G2PWModel",
