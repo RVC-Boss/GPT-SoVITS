@@ -128,7 +128,7 @@ def execute_asr(input_folder, output_folder, model_path, language, precision):
             )
             text = ""
 
-            if info.language == "zh":
+            if info.language in ["zh", "yue"]:
                 print("检测为中文文本, 转 FunASR 处理")
                 text = only_asr(file_path, language=info.language.lower())
 
