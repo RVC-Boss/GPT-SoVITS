@@ -169,6 +169,8 @@ class T2SEngine(T2SEngineProtocol):
                                     torch.xpu.empty_cache()
                                 case "mtia":
                                     torch.mtia.empty_cache()
+                                case "cpu":
+                                    pass
 
             match session.device.type:
                 case "cuda":
