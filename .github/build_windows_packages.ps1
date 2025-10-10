@@ -92,6 +92,7 @@ Get-ChildItem -Path $x64Path -Directory | Where-Object {
     }
 }
 
+Write-Host "[INFO] Download ffmpeg..."
 $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip"
 $zipPath = Join-Path $tmpDir "ffmpeg.zip"
 
@@ -148,16 +149,6 @@ DownloadAndUnzip $UVR5_URL "tools\uvr5"
 # Expand-Archive -Path $funasrZip -DestinationPath "$srcDir\tools\asr\models" -Force
 # Remove-Item $funasrZip
 
-Write-Host "[INFO] Download ffmpeg..."
-$ffUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
-$ffZip = "$tmpDir\ffmpeg.zip"
-Invoke-WebRequest -Uri $ffUrl -OutFile $ffZip
-Expand-Archive $ffZip -DestinationPath $tmpDir -Force
-$ffDir = Get-ChildItem -Directory "$tmpDir" | Where-Object { $_.Name -like "ffmpeg*" } | Select-Object -First 1
-Move-Item "$($ffDir.FullName)\bin\ffmpeg.exe" "$srcDir\runtime"
-Move-Item "$($ffDir.FullName)\bin\ffprobe.exe" "$srcDir\runtime"
-Remove-Item $ffZip
-Remove-Item $ffDir.FullName -Recurse -Force
 
 Write-Host "[INFO] Installing PyTorch..."
 & ".\runtime\python.exe" -m ensurepip
