@@ -1,3 +1,5 @@
+#
+
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
@@ -25,7 +27,11 @@
 
 ---
 
+<div align="center">
+
 ## 機能
+
+</div>
 
 1. **Zero-Shot TTS:** たった 5 秒間の音声サンプルで、即座にテキストからその音声に変換できます.
 
@@ -41,28 +47,37 @@
 
 <https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
+<div align="center">
+
 ## 推論速度
 
-| Device      | RTF   | Batch Size | Backend                     |
-| ----------- | ----- | ---------- | --------------------------- |
-| RTX 5090    | 0.05  | 1          | Flash Attn Varlen CUDAGraph |
-| Apple M4    | 0.21  | 1          | MLX Quantized Affined       |
-| RTX 4090    | 0.014 | 24         | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 | 28         | Flash Attn Varlen CUDAGraph |
+|   Device    |  RTF  |  TTFB  | Batch Size |           Backend           |
+| :---------: | :---: | :----: | :--------: | :-------------------------: |
+|  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
+|  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
+|  Apple M4   | 0.21  |  UNK   |     1      |    MLX Quantized Affined    |
+
+</div>
 
 **ユーザーマニュアル: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
+
+<div align="center">
 
 ## インストール
 
 ### テスト済みの環境
 
-| Python Version | PyTorch Version | Device        |
-| -------------- | --------------- | ------------- |
-| Python 3.10    | PyTorch 2.5.1   | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.5.1   | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.7.0   | CUDA 12.8     |
-| Python 3.11    | PyTorch 2.8.0   | Apple Silicon |
-| Python 3.10    | PyTorch 2.8.0   | CPU           |
+| Python Version | PyTorch Version |    Device     |
+| :------------: | :-------------: | :-----------: |
+|  Python 3.10   |  PyTorch 2.5.1  |   CUDA 12.4   |
+|  Python 3.11   |  PyTorch 2.5.1  |   CUDA 12.4   |
+|  Python 3.11   |  PyTorch 2.7.0  |   CUDA 12.8   |
+|  Python 3.11   |  PyTorch 2.8.0  | Apple Silicon |
+|  Python 3.10   |  PyTorch 2.8.0  |      CPU      |
+
+</div>
 
 ### Windows
 
@@ -88,7 +103,11 @@ conda activate GPTSoVits
 bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
+<div align="center">
+
 ### 手動インストール
+
+</div>
 
 #### 依存関係をインストールします
 
@@ -128,7 +147,11 @@ sudo apt install libsox-dev
 brew install ffmpeg
 ```
 
-### GPT-SoVITS の実行 (Docker 使用)
+<div align="center">
+
+### Docker を使用して GPT-SoVITS を実行
+
+</div>
 
 #### Docker イメージの選択
 
@@ -178,7 +201,11 @@ bash docker_build.sh --cuda <12.6|12.8> [--lite]
 docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
+<div align="center">
+
 ## 事前訓練済みモデル
+
+</div>
 
 **`install.sh`が正常に実行された場合、No.1,2,3 はスキップしてかまいません.**
 
@@ -196,7 +223,11 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 5. 英語または日本語の ASR (追加機能) を使用する場合は、[Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) からモデルをダウンロードし、`tools/asr/models` ディレクトリに配置してください.また、[他のモデル](https://huggingface.co/Systran) は、より小さいサイズで高クオリティな可能性があります.
 
+<div align="center">
+
 ## データセット形式
+
+</div>
 
 TTS アノテーション .list ファイル形式:
 
@@ -216,9 +247,13 @@ vocal_path|speaker_name|language|text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
+<div align="center">
+
 ## 微調整と推論
 
 ### WebUI を開く
+
+</div>
 
 #### 統合パッケージ利用者
 
@@ -231,7 +266,11 @@ V1 に切り替えたい場合は、`go-webui-v1.bat`をダブルクリックす
 python webui.py <言語(オプション)>
 ```
 
+<div align="center">
+
 ### 微調整
+
+</div>
 
 #### パス自動補完のサポート
 
@@ -242,7 +281,11 @@ python webui.py <言語(オプション)>
 5. ASR 転写を校正する
 6. 次のタブに移動し、モデルを微調整する
 
+<div align="center">
+
 ### 推論 WebUI を開く
+
+</div>
 
 #### 統合パッケージ利用者
 
@@ -262,7 +305,11 @@ python webui.py
 
 その後、`1-GPT-SoVITS-TTS/1C-inference`で推論 webui を開きます.
 
+<div align="center">
+
 ## V2 リリースノート
+
+</div>
 
 新機能:
 
@@ -276,17 +323,11 @@ python webui.py
 
    [詳細はこちら](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-V1 環境から V2 を使用するには:
-
-1. `pip install -r requirements.txt`を使用していくつかのパッケージを更新
-
-2. 最新のコードを github からクローン
-
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)から V2 の事前学習モデルをダウンロードし、それらを`GPT_SoVITS/pretrained_models/gsv-v2final-pretrained`に配置
-
-   中国語 V2 追加: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW モデルをダウンロードし、解凍して`G2PWModel`にリネームし、`GPT_SoVITS/text`に配置します)
+<div align="center">
 
 ## V3 リリースノート
+
+</div>
 
 新機能:
 
@@ -296,36 +337,26 @@ V1 環境から V2 を使用するには:
 
    [詳細情報はこちら](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-v2 環境から v3 を使用する方法:
-
-1. `pip install -r requirements.txt` を実行して、いくつかのパッケージを更新します.
-
-2. GitHub から最新のコードをクローンします.
-
-3. v3 の事前学習済みモデル (s1v3.ckpt、s2Gv3.pth、models--nvidia--bigvgan_v2_24khz_100band_256x フォルダ) を[Huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) からダウンロードし、GPT_SoVITS/pretrained_models フォルダに配置します.
-
-   追加: 音声超解像モデルについては、[ダウンロード方法](../../tools/AP_BWE/24kto48k/readme.txt)を参照してください.
+<div align="center">
 
 ## V4 リリースノート
+
+</div>
 
 新機能:
 
 1. **V4 は、V3 で発生していた非整数倍アップサンプリングによる金属音の問題を修正し、音声がこもる問題を防ぐためにネイティブに 48kHz 音声を出力します（V3 はネイティブに 24kHz 音声のみ出力）**. 作者は V4 を V3 の直接的な置き換えとして推奨していますが、さらなるテストが必要です.
    [詳細はこちら](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-V1/V2/V3 環境から V4 への移行方法:
-
-1. `pip install -r requirements.txt` を実行して一部の依存パッケージを更新してください.
-
-2. GitHub から最新のコードをクローンします.
-
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) から V4 の事前学習済みモデル (`gsv-v4-pretrained/s2v4.ckpt` および `gsv-v4-pretrained/vocoder.pth`) をダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリへ配置してください.
+<div align="center">
 
 ## V2Pro リリースノート
 
+</div>
+
 新機能:
 
-1. **V2 と比較してやや高いメモリ使用量ですが、ハードウェアコストと推論速度は維持しつつ、V4 よりも高い性能と音質を実現します. **
+1. **V2 と比較してやや高いメモリ使用量ですが、ハードウェアコストと推論速度は維持しつつ、V4 よりも高い性能と音質を実現します.**
    [詳細はこちら](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90features-(%E5%90%84%E7%89%88%E6%9C%AC%E7%89%B9%E6%80%A7)>)
 
 2. V1/V2 と V2Pro シリーズは類似した特徴を持ち、V3/V4 も同様の機能を持っています. 平均音質が低いトレーニングセットの場合、V1/V2/V2Pro は良好な結果を出すことができますが、V3/V4 では対応できません. また、V3/V4 の合成音声はトレーニング全体ではなく、より参考音声に寄った音質になります.
@@ -338,7 +369,11 @@ V1/V2/V3/V4 環境から V2Pro への移行方法:
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) から V2Pro の事前学習済みモデル (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, および `sv/pretrained_eres2netv2w24s4ep4.ckpt`) をダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリへ配置してください.
 
+<div align="center">
+
 ## Todo リスト
+
+</div>
 
 - [x] **優先度 高:**
 
@@ -399,7 +434,11 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 カスタムリストの保存パスが有効になっています
 
+<div align="center">
+
 ## クレジット
+
+</div>
 
 特に以下のプロジェクトと貢献者に感謝します:
 
@@ -443,8 +482,12 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 @Naozumi520 さん、広東語のトレーニングセットの提供と、広東語に関する知識のご指導をいただき、感謝申し上げます.
 
+<div align="center">
+
 ## すべてのコントリビューターに感謝します
 
+</div>
+
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
+  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" alt=""/>
 </a>

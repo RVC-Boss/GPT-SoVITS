@@ -1,3 +1,5 @@
+#
+
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
@@ -25,7 +27,11 @@
 
 ---
 
+<div align="center">
+
 ## 功能
+
+</div>
 
 1. **零样本文本到语音 (TTS):** 输入 5 秒的声音样本, 即刻体验文本到语音转换.
 
@@ -41,16 +47,23 @@
 
 <https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
+<div align="center">
+
 ## 推理速度
 
-| Device      | RTF   | Batch Size | Backend                     |
-| ----------- | ----- | ---------- | --------------------------- |
-| RTX 5090    | 0.05  | 1          | Flash Attn Varlen CUDAGraph |
-| Apple M4    | 0.21  | 1          | MLX Quantized Affined       |
-| RTX 4090    | 0.014 | 24         | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 | 28         | Flash Attn Varlen CUDAGraph |
+|   Device    |  RTF  |  TTFB  | Batch Size |           Backend           |
+| :---------: | :---: | :----: | :--------: | :-------------------------: |
+|  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
+|  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
+|  Apple M4   | 0.21  |  UNK   |     1      |    MLX Quantized Affined    |
+
+</div>
 
 **用户手册: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
+
+<div align="center">
 
 ## 安装
 
@@ -65,6 +78,8 @@
 | Python 3.11    | PyTorch 2.7.0   | CUDA 12.8     |
 | Python 3.11    | PyTorch 2.8.0   | Apple Silicon |
 | Python 3.10    | PyTorch 2.8.0   | CPU           |
+
+</div>
 
 ### Windows
 
@@ -98,7 +113,11 @@ conda activate GPTSoVits
 bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
+<div align="center">
+
 ### 手动安装
+
+</div>
 
 #### 安装依赖
 
@@ -138,7 +157,11 @@ sudo apt install libsox-dev
 brew install ffmpeg
 ```
 
-### 运行 GPT-SoVITS (使用 Docker)
+<div align="center">
+
+### 使用 Docker 运行 GPT-SoVITS
+
+</div>
 
 #### Docker 镜像选择
 
@@ -188,7 +211,11 @@ bash docker_build.sh --cuda <12.6|12.8> [--lite]
 docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
+<div align="center">
+
 ## 预训练模型
+
+</div>
 
 **若成功运行`install.sh`可跳过 No.1,2,3**
 
@@ -208,7 +235,11 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 5. 对于英语或日语 ASR (额外功能), 从 [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 下载模型, 并将其放置在 `tools/asr/models` 目录中.此外, [其他模型](https://huggingface.co/Systran) 可能具有类似效果且占用更少的磁盘空间.
 
+<div align="center">
+
 ## 数据集格式
+
+</div>
 
 文本到语音 (TTS) 注释 .list 文件格式:
 
@@ -230,9 +261,13 @@ vocal_path|speaker_name|language|text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|zh|我爱玩原神.
 ```
 
+<div align="center">
+
 ## 微调与推理
 
 ### 打开 WebUI
+
+</div>
 
 #### 整合包用户
 
@@ -245,7 +280,11 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|zh|我爱玩原神.
 python webui.py <language(optional)>
 ```
 
+<div align="center">
+
 ### 微调
+
+</div>
 
 #### 现已支持自动填充路径
 
@@ -256,7 +295,11 @@ python webui.py <language(optional)>
 5. 校对标注
 6. 前往下一个窗口,点击训练
 
+<div align="center">
+
 ### 打开推理 WebUI
+
+</div>
 
 #### 整合包用户
 
@@ -276,7 +319,11 @@ python webui.py
 
 然后在 `1-GPT-SoVITS-TTS/1C-推理` 中打开推理 webUI
 
+<div align="center">
+
 ## V2 发布说明
+
+</div>
 
 新特性:
 
@@ -290,17 +337,11 @@ python webui.py
 
    详见[wiki](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-从 v1 环境迁移至 v2
-
-1. 需要 pip 安装 requirements.txt 更新环境
-
-2. 需要克隆 github 上的最新代码
-
-3. 需要从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) 下载预训练模型文件放到 GPT_SoVITS/pretrained_models/gsv-v2final-pretrained 下
-
-   中文额外需要下载[G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (下载 G2PW 模型,解压并重命名为`G2PWModel`,将其放到`GPT_SoVITS/text`目录下)
+<div align="center">
 
 ## V3 更新说明
+
+</div>
 
 新模型特点:
 
@@ -310,32 +351,22 @@ python webui.py
 
    详见[wiki](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-从 v2 环境迁移至 v3
-
-1. 需要 pip 安装 requirements.txt 更新环境
-
-2. 需要克隆 github 上的最新代码
-
-3. 从[huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)下载这些 v3 新增预训练模型 (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder)将他们放到`GPT_SoVITS/pretrained_models`目录下
-
-   如果想用音频超分功能缓解 v3 模型生成 24k 音频觉得闷的问题, 需要下载额外的模型参数, 参考[how to download](../../tools/AP_BWE/24kto48k/readme.txt)
+<div align="center">
 
 ## V4 更新说明
+
+</div>
 
 新特性：
 
 1. **V4 版本修复了 V3 版本中由于非整数倍上采样导致的金属音问题, 并原生输出 48kHz 音频以避免声音闷糊 (而 V3 版本仅原生输出 24kHz 音频)**. 作者认为 V4 是对 V3 的直接替代, 但仍需进一步测试.
    [更多详情](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-从 V1/V2/V3 环境迁移至 V4：
-
-1. 执行 `pip install -r requirements.txt` 更新部分依赖包.
-
-2. 从 GitHub 克隆最新代码.
-
-3. 从 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) 下载 V4 预训练模型 (`gsv-v4-pretrained/s2v4.ckpt` 和 `gsv-v4-pretrained/vocoder.pth`), 并放入 `GPT_SoVITS/pretrained_models` 目录.
+<div align="center">
 
 ## V2Pro 更新说明
+
+</div>
 
 新特性：
 
@@ -352,7 +383,11 @@ python webui.py
 
 3. 从 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) 下载 V2Pro 预训练模型 (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, 和 `sv/pretrained_eres2netv2w24s4ep4.ckpt`), 并放入 `GPT_SoVITS/pretrained_models` 目录.
 
+<div align="center">
+
 ## 待办事项清单
+
+</div>
 
 - [x] **高优先级:**
 
@@ -408,7 +443,11 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 启用自定义列表保存路径
 
+<div align="center">
+
 ## 致谢
+
+</div>
 
 特别感谢以下项目和贡献者:
 
@@ -452,8 +491,12 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 感谢 @Naozumi520 提供粤语训练集, 并在粤语相关知识方面给予指导.
 
+<div align="center">
+
 ## 感谢所有贡献者的努力
 
+</div>
+
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
+  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" alt=""/>
 </a>

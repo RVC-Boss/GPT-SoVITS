@@ -1,3 +1,5 @@
+#
+
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
@@ -25,7 +27,11 @@
 
 ---
 
+<div align="center">
+
 ## 기능
+
+</div>
 
 1. **제로샷 텍스트 음성 변환 (TTS):** 5초의 음성 샘플을 입력하면 즉시 텍스트를 음성으로 변환할 수 있습니다.
 
@@ -41,30 +47,37 @@
 
 <https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
+<div align="center">
+
 ## 추론 속도
 
-| Device      | RTF   | Batch Size | Backend                     |
-| ----------- | ----- | ---------- | --------------------------- |
-| RTX 5090    | 0.05  | 1          | Flash Attn Varlen CUDAGraph |
-| Apple M4    | 0.21  | 1          | MLX Quantized Affined       |
-| RTX 4090    | 0.014 | 24         | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 | 28         | Flash Attn Varlen CUDAGraph |
+|   Device    |  RTF  |  TTFB  | Batch Size |           Backend           |
+| :---------: | :---: | :----: | :--------: | :-------------------------: |
+|  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
+|  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
+|  Apple M4   | 0.21  |  UNK   |     1      |    MLX Quantized Affined    |
+
+</div>
 
 **사용자 설명서: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
+
+<div align="center">
 
 ## 설치
 
 ### 테스트 통과 환경
 
-| Python Version | PyTorch Version  | Device        |
-| -------------- | ---------------- | ------------- |
-| Python 3.10    | PyTorch 2.5.1    | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
-| Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
-| Python 3.9     | PyTorch 2.5.1    | Apple Silicon |
-| Python 3.11    | PyTorch 2.7.0    | Apple Silicon |
-| Python 3.9     | PyTorch 2.2.2    | CPU           |
+| Python Version | PyTorch Version |    Device     |
+| :------------: | :-------------: | :-----------: |
+|  Python 3.10   |  PyTorch 2.5.1  |   CUDA 12.4   |
+|  Python 3.11   |  PyTorch 2.5.1  |   CUDA 12.4   |
+|  Python 3.11   |  PyTorch 2.7.0  |   CUDA 12.8   |
+|  Python 3.11   |  PyTorch 2.8.0  | Apple Silicon |
+|  Python 3.10   |  PyTorch 2.8.0  |      CPU      |
+
+</div>
 
 ### Windows
 
@@ -96,7 +109,11 @@ conda activate GPTSoVits
 bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
+<div align="center">
+
 ### 수동 설치
+
+</div>
 
 #### 의존성 설치
 
@@ -136,7 +153,11 @@ sudo apt install libsox-dev
 brew install ffmpeg
 ```
 
-### GPT-SoVITS 실행하기 (Docker 사용)
+<div align="center">
+
+### Docker를 사용하여 GPT-SoVITS 실행하기
+
+</div>
 
 #### Docker 이미지 선택
 
@@ -186,7 +207,11 @@ bash docker_build.sh --cuda <12.6|12.8> [--lite]
 docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
+<div align="center">
+
 ## 사전 학습된 모델
+
+</div>
 
 **`install.sh`가 성공적으로 실행되면 No.1,2,3 은 건너뛰어도 됩니다.**
 
@@ -204,7 +229,11 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 5. 영어 또는 일본어 ASR (추가 기능)의 경우, [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) 에서 모델을 다운로드하고, `tools/asr/models` 디렉토리에 배치하세요. 또한, [다른 모델](https://huggingface.co/Systran) 은 더 적은 디스크 용량으로 비슷한 효과를 가질 수 있습니다.
 
+<div align="center">
+
 ## 데이터셋 형식
+
+</div>
 
 텍스트 음성 합성(TTS) 주석 .list 파일 형식:
 
@@ -224,9 +253,13 @@ vocal_path|speaker_name|language|text
 D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 ```
 
+<div align="center">
+
 ## 미세 조정 및 추론
 
 ### WebUI 열기
+
+</div>
 
 #### 통합 패키지 사용자
 
@@ -239,7 +272,11 @@ V1으로 전환하려면, `go-webui-v1.bat`을 더블 클릭하거나 `go-webui-
 python webui.py <언어(옵션)>
 ```
 
+<div align="center">
+
 ### 미세 조정
+
+</div>
 
 #### 경로 자동 채우기가 지원됩니다
 
@@ -250,7 +287,11 @@ python webui.py <언어(옵션)>
 5. ASR 전사를 교정하십시오.
 6. 다음 탭으로 이동하여 모델을 미세 조정하십시오.
 
+<div align="center">
+
 ### 추론 WebUI 열기
+
+</div>
 
 #### 통합 패키지 사용자
 
@@ -270,7 +311,11 @@ python webui.py
 
 그런 다음 `1-GPT-SoVITS-TTS/1C-inference`에서 추론 webui를 엽니다.
 
+<div align="center">
+
 ## V2 릴리스 노트
+
+</div>
 
 새로운 기능:
 
@@ -284,17 +329,11 @@ python webui.py
 
    [자세한 내용](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-V1 환경에서 V2를 사용하려면:
-
-1. `pip install -r requirements.txt`를 사용하여 일부 패키지 업데이트
-
-2. github에서 최신 코드를 클론하십시오.
-
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained)에서 V2 사전 학습 모델을 다운로드하여 `GPT_SoVITS/pretrained_models/gsv-v2final-pretrained`에 넣으십시오.
-
-   중국어 V2 추가: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip) (G2PW 모델을 다운로드하여 압축을 풀고 `G2PWModel`로 이름을 변경한 다음 `GPT_SoVITS/text`에 배치합니다.)
+<div align="center">
 
 ## V3 릴리스 노트
+
+</div>
 
 새로운 기능:
 
@@ -304,32 +343,22 @@ V1 환경에서 V2를 사용하려면:
 
    [자세한 내용](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-v2 환경에서 v3 사용하기:
-
-1. `pip install -r requirements.txt`로 일부 패키지를 업데이트합니다.
-
-2. 최신 코드를 github 에서 클론합니다.
-
-3. v3 사전 훈련된 모델(s1v3.ckpt, s2Gv3.pth, 그리고 models--nvidia--bigvgan_v2_24khz_100band_256x 폴더)을 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 다운로드하여 `GPT_SoVITS/pretrained_models` 폴더에 넣습니다.
-
-   추가: 오디오 슈퍼 해상도 모델에 대해서는 [다운로드 방법](../../tools/AP_BWE/24kto48k/readme.txt)을 참고하세요.
+<div align="center">
 
 ## V4 릴리스 노트
+
+</div>
 
 신규 기능:
 
 1. **V4는 V3에서 발생하는 비정수 배율 업샘플링으로 인한 금속성 잡음 문제를 수정했으며, 소리가 먹먹해지는 것을 방지하기 위해 기본적으로 48kHz 오디오를 출력합니다 (V3는 기본적으로 24kHz만 지원)**. 개발자는 V4를 V3의 직접적인 대체 버전으로 보고 있지만 추가 테스트가 필요합니다.
    [자세히 보기](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-V1/V2/V3 환경에서 V4로 전환 방법:
-
-1. 일부 의존 패키지를 업데이트하기 위해 `pip install -r requirements.txt` 명령어를 실행하세요.
-
-2. GitHub에서 최신 코드를 클론하세요.
-
-3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 V4 사전 학습 모델(`gsv-v4-pretrained/s2v4.ckpt` 및 `gsv-v4-pretrained/vocoder.pth`)을 다운로드하고 `GPT_SoVITS/pretrained_models` 디렉토리에 넣으세요.
+<div align="center">
 
 ## V2Pro 릴리스 노트
+
+</div>
 
 신규 기능:
 
@@ -346,7 +375,11 @@ V1/V2/V3/V4 환경에서 V2Pro로 전환 방법:
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 V2Pro 사전 학습 모델(`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, 및 `sv/pretrained_eres2netv2w24s4ep4.ckpt`)을 다운로드하고 `GPT_SoVITS/pretrained_models` 디렉토리에 넣으세요.
 
+<div align="center">
+
 ## 할 일 목록
+
+</div>
 
 - [x] **최우선순위:**
 
@@ -408,7 +441,11 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 사용자 정의 목록 저장 경로가 활성화되었습니다.
 
+<div align="center">
+
 ## 감사의 말
+
+</div>
 
 다음 프로젝트와 기여자들에게 특별히 감사드립니다:
 
@@ -452,8 +489,12 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 @Naozumi520 님께 감사드립니다. 광둥어 학습 자료를 제공해 주시고, 광둥어 관련 지식을 지도해 주셔서 감사합니다.
 
-## 모든 기여자들에게 감사드립니다 ;)
+<div align="center">
+
+## 모든 기여자들에게 감사드립니다
+
+</div>
 
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
+    <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" alt=""/>
 </a>

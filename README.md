@@ -1,3 +1,5 @@
+#
+
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
@@ -6,8 +8,6 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 [![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Boss/GPT-SoVITS)
 
 <a href="https://trendshift.io/repositories/7033" target="_blank"><img src="https://trendshift.io/api/badge/repositories/7033" alt="RVC-Boss%2FGPT-SoVITS | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
-<!-- img src="https://counter.seku.su/cmoe?name=gptsovits&theme=r34" /><br> -->
 
 [![Python](https://img.shields.io/badge/python-3.10--3.12-blue?style=for-the-badge&logo=python)](https://www.python.org)
 [![GitHub release](https://img.shields.io/github/v/release/RVC-Boss/gpt-sovits?style=for-the-badge&logo=github)](https://github.com/RVC-Boss/gpt-sovits/releases)
@@ -27,7 +27,11 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 ---
 
+<div align="center">
+
 ## Features
+
+</div>
 
 1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
 
@@ -43,31 +47,39 @@ Unseen speakers few-shot fine-tuning demo:
 
 <https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
+<div align="center">
+
 ## Infer Speed
 
-| Device      | RTF   | TTFB   | Batch Size | Backend                     |
-| ----------- | ----- | ------ | ---------- | --------------------------- |
-| RTX 5090    | 0.05  | 150 ms | 1          | Flash Attn Varlen CUDAGraph |
-| RTX 4090    | 0.014 | UNK    | 24         | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.07  | 460 ms | 1          | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 | UNK    | 28         | Flash Attn Varlen CUDAGraph |
-| Apple M4    | 0.21  |        | 1          | MLX Quantized Affined       |
+|   Device    |  RTF  |  TTFB  | Batch Size |           Backend           |
+| :---------: | :---: | :----: | :--------: | :-------------------------: |
+|  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
+|  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
+|  Apple M4   | 0.21  |  UNK   |     1      |    MLX Quantized Affined    |
+
+</div>
 
 **User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
+<div align="center">
+
 ## Installation
 
-For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
+For users in China, you can [Click Here to use AutoDL](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) Cloud Docker to experience the full functionality online.
 
 ### Tested Environments
 
-| Python Version | PyTorch Version | Device        |
-| -------------- | --------------- | ------------- |
-| Python 3.10    | PyTorch 2.5.1   | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.5.1   | CUDA 12.4     |
-| Python 3.11    | PyTorch 2.7.0   | CUDA 12.8     |
-| Python 3.11    | PyTorch 2.8.0   | Apple Silicon |
-| Python 3.10    | PyTorch 2.8.0   | CPU           |
+| Python Version | PyTorch Version |    Device     |
+| :------------: | :-------------: | :-----------: |
+|  Python 3.10   |  PyTorch 2.5.1  |   CUDA 12.4   |
+|  Python 3.11   |  PyTorch 2.5.1  |   CUDA 12.4   |
+|  Python 3.11   |  PyTorch 2.7.0  |   CUDA 12.8   |
+|  Python 3.11   |  PyTorch 2.8.0  | Apple Silicon |
+|  Python 3.10   |  PyTorch 2.8.0  |      CPU      |
+
+</div>
 
 ### Windows
 
@@ -103,7 +115,11 @@ conda activate GPTSoVits
 bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
+<div align="center">
+
 ### Install Manually
+
+</div>
 
 #### Install Dependences
 
@@ -143,7 +159,11 @@ Install [Visual Studio 2017](https://aka.ms/vs/17/release/vc_redist.x86.exe)
 brew install ffmpeg
 ```
 
+<div align="center">
+
 ### Running GPT-SoVITS with Docker
+
+</div>
 
 #### Docker Image Selection
 
@@ -193,7 +213,11 @@ Once the container is running in the background, you can access it using:
 docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128> bash
 ```
 
+<div align="center">
+
 ## Pretrained Models
+
+</div>
 
 **If `install.sh` runs successfully, you may skip No.1,2,3**
 
@@ -213,7 +237,11 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
 5. For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint.
 
+<div align="center">
+
 ## Dataset Format
+
+</div>
 
 The TTS annotation .list file format:
 
@@ -239,9 +267,13 @@ D:\GPT-SoVITS\xxx/xxx.wav|xxx|en|I like playing Genshin.
 
 ```
 
+<div align="center">
+
 ## Finetune and inference
 
 ### Open WebUI
+
+</div>
 
 #### Integrated Package Users
 
@@ -254,7 +286,11 @@ if you want to switch to V1,then double-click`go-webui-v1.bat` or use `go-webui-
 python webui.py <language(optional)>
 ```
 
+<div align="center">
+
 ### Finetune
+
+</div>
 
 #### Path Auto-filling is now supported
 
@@ -265,7 +301,11 @@ python webui.py <language(optional)>
 5. Proofreading ASR transcriptions
 6. Go to the next Tab, then finetune the model
 
+<div align="center">
+
 ### Open Inference WebUI
+
+</div>
 
 #### Integrated Package Users
 
@@ -285,7 +325,11 @@ python webui.py
 
 then open the inference webui at `1-GPT-SoVITS-TTS/1C-inference`
 
+<div align="center">
+
 ## V2 Release Notes
+
+</div>
 
 New Features:
 
@@ -299,17 +343,11 @@ New Features:
 
    [more details](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v2%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-Use v2 from v1 environment:
-
-1. `pip install -r requirements.txt` to update some packages
-
-2. Clone the latest codes from github.
-
-3. Download v2 pretrained models from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v2final-pretrained) and put them into `GPT_SoVITS/pretrained_models/gsv-v2final-pretrained`.
-
-   Chinese v2 additional: [G2PWModel.zip(HF)](https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip)| [G2PWModel.zip(ModelScope)](https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip)(Download G2PW models, unzip and rename to `G2PWModel`, and then place them in `GPT_SoVITS/text`.)
+<div align="center">
 
 ## V3 Release Notes
+
+</div>
 
 New Features:
 
@@ -319,32 +357,22 @@ New Features:
 
    [more details](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-Use v3 from v2 environment:
-
-1. `pip install -r requirements.txt` to update some packages
-
-2. Clone the latest codes from github.
-
-3. Download v3 pretrained models (s1v3.ckpt, s2Gv3.pth and models--nvidia--bigvgan_v2_24khz_100band_256x folder) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS/pretrained_models`.
-
-   additional: for Audio Super Resolution model, you can read [how to download](./tools/AP_BWE/24kto48k/readme.txt)
+<div align="center">
 
 ## V4 Release Notes
+
+</div>
 
 New Features:
 
 1. Version 4 fixes the issue of metallic artifacts in Version 3 caused by non-integer multiple upsampling, and natively outputs 48k audio to prevent muffled sound (whereas Version 3 only natively outputs 24k audio). The author considers Version 4 a direct replacement for Version 3, though further testing is still needed.
    [more details](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3v4%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>)
 
-Use v4 from v1/v2/v3 environment:
-
-1. `pip install -r requirements.txt` to update some packages
-
-2. Clone the latest codes from github.
-
-3. Download v4 pretrained models (gsv-v4-pretrained/s2v4.ckpt, and gsv-v4-pretrained/vocoder.pth) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS/pretrained_models`.
+<div align="center">
 
 ## V2Pro Release Notes
+
+</div>
 
 New Features:
 
@@ -361,7 +389,11 @@ Use v2Pro from v1/v2/v3/v4 environment:
 
 3. Download v2Pro pretrained models (v2Pro/s2Dv2Pro.pth, v2Pro/s2Gv2Pro.pth, v2Pro/s2Dv2ProPlus.pth, v2Pro/s2Gv2ProPlus.pth, and sv/pretrained_eres2netv2w24s4ep4.ckpt) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS/pretrained_models`.
 
+<div align="center">
+
 ## Todo List
+
+</div>
 
 - [x] **High Priority:**
 
@@ -422,7 +454,11 @@ python ./tools/asr/fasterwhisper_asr.py -i <input> -o <output> -l <language> -p 
 
 A custom list save path is enabled
 
+<div align="center">
+
 ## Credits
+
+</div>
 
 Special thanks to the following projects and contributors:
 
@@ -466,8 +502,12 @@ Special thanks to the following projects and contributors:
 
 Thankful to @Naozumi520 for providing the Cantonese training set and for the guidance on Cantonese-related knowledge.
 
+<div align="center">
+
 ## Thanks to all contributors for their efforts
 
+</div>
+
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
-  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
+  <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" alt=""/>
 </a>
