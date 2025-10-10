@@ -5,6 +5,8 @@ import torch
 import torchaudio
 from torch import Tensor
 
+import musa_utils
+
 __all__ = [
     "get_mel_banks",
     "inverse_mel_scale",
@@ -305,7 +307,12 @@ def spectrogram(
     )
 
     # size (m, padded_window_size // 2 + 1, 2)
+    if musa_utils.is_available() : # 怎么还有算子不支持怎么还有算子不支持怎么还有算子不支持
+        ori_device = strided_input.device
+        strided_input = strided_input.cpu()
     fft = torch.fft.rfft(strided_input)
+    if musa_utils.is_available() :
+        fft = fft.to(ori_device)
 
     # Convert the FFT into a power spectrum
     power_spectrum = torch.max(fft.abs().pow(2.0), epsilon).log()  # size (m, padded_window_size // 2 + 1)
@@ -618,7 +625,12 @@ def fbank(
     )
 
     # size (m, padded_window_size // 2 + 1)
+    if musa_utils.is_available() : # 怎么还有算子不支持怎么还有算子不支持怎么还有算子不支持
+        ori_device = strided_input.device
+        strided_input = strided_input.cpu()
     spectrum = torch.fft.rfft(strided_input).abs()
+    if musa_utils.is_available() :
+        spectrum = spectrum.to(ori_device)
     if use_power:
         spectrum = spectrum.pow(2.0)
 

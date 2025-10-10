@@ -13,6 +13,12 @@ from tools.asr.config import get_models
 from tools.asr.funasr_asr import only_asr
 from tools.my_utils import load_cudnn
 
+try:
+    import torch_musa
+    use_torch_musa = True
+except ImportError:
+    use_torch_musa = False
+
 # fmt: off
 language_code_list = [
     "af", "am", "ar", "as", "az", 
@@ -86,6 +92,8 @@ def execute_asr(input_folder, output_folder, model_path, language, precision):
         language = None  # 不设置语种由模型自动输出概率最高的语种
     print("loading faster whisper model:", model_path, model_path)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    if use_torch_musa:
+        device = "musa" if torch.musa.is_available() else "cpu"
     model = WhisperModel(model_path, device=device, compute_type=precision)
 
     input_file_names = os.listdir(input_folder)

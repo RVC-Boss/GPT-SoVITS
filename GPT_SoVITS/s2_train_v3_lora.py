@@ -4,15 +4,21 @@ warnings.filterwarnings("ignore")
 import os
 
 import utils
+import musa_utils
 
 hps = utils.get_hparams(stage=2)
 os.environ["CUDA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
+os.environ["MUSA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
 import logging
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from torch.cuda.amp import GradScaler, autocast
+from torch.cuda.amp import GradScaler
+if musa_utils.is_available():
+    autocast = torch.musa.amp.autocast
+elif torch.cuda.is_available():
+    from torch.cuda.amp import autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -43,11 +49,15 @@ torch.backends.cudnn.deterministic = False
 ###反正A100fp32更快，那试试tf32吧
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
+if musa_utils.is_available():
+    torch.backends.mudnn.allow_tf32 = True
 torch.set_float32_matmul_precision("medium")  # 最低精度但最快（也就快一丁点），对于结果造成不了影响
 # from config import pretrained_s2G,pretrained_s2D
 global_step = 0
 
 device = "cpu"  # cuda以外的设备，等mps优化后加入
+if musa_utils.is_available(): # DDP支持不写了，没设备测试
+    device = "musa"
 
 
 def main():
@@ -209,7 +219,10 @@ def run(rank, n_gpus, hps):
     for _ in range(epoch_str):
         scheduler_g.step()
 
-    scaler = GradScaler(enabled=hps.train.fp16_run)
+    if musa_utils.is_available():
+        scaler = torch.musa.amp.GradScaler(enabled=hps.train.fp16_run)
+    else:
+        scaler = GradScaler(enabled=hps.train.fp16_run)
 
     net_d = optim_d = scheduler_d = None
     print("start training from epoch %s" % epoch_str)

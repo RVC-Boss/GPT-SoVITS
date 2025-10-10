@@ -36,6 +36,8 @@ from TTS_infer_pack.text_segmentation_method import splits
 from TTS_infer_pack.TextPreprocessor import TextPreprocessor
 from sv import SV
 
+import musa_utils
+
 resample_transform_dict = {}
 
 
@@ -209,6 +211,10 @@ def set_seed(seed: int):
             # 开启后会影响精度
             torch.backends.cuda.matmul.allow_tf32 = False
             torch.backends.cudnn.allow_tf32 = False
+        elif musa_utils.is_available():
+            musa_utils.manual_seed(seed)
+            musa_utils.manual_seed_all(seed)
+            torch.backends.mudnn.allow_tf32 = False
     except:
         pass
     return seed
@@ -310,8 +316,10 @@ class TTS_Config:
         self.default_configs = deepcopy(configs_)
 
         self.device = self.configs.get("device", torch.device("cpu"))
-        if "cuda" in str(self.device) and not torch.cuda.is_available():
-            print("Warning: CUDA is not available, set device to CPU.")
+        cuda_mismatch = "cuda" in str(self.device) and not torch.cuda.is_available()
+        musa_mismatch = "musa" in str(self.device) and not musa_utils.is_available()
+        if cuda_mismatch or musa_mismatch:
+            print(f"Warning: Requested device '{self.device}' is not available, falling back to CPU.")
             self.device = torch.device("cpu")
 
         self.is_half = self.configs.get("is_half", False)
@@ -1369,6 +1377,8 @@ class TTS:
             gc.collect()  # 触发gc的垃圾回收。避免内存一直增长。
             if "cuda" in str(self.configs.device):
                 torch.cuda.empty_cache()
+            elif "musa" in str(self.configs.device):
+                torch.musa.empty_cache()
             elif str(self.configs.device) == "mps":
                 torch.mps.empty_cache()
         except:

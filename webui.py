@@ -92,6 +92,8 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # 当遇到mps不支持的步骤时使用cpu
 import gradio as gr
 
+import musa_utils
+
 n_cpu = cpu_count()
 
 set_gpu_numbers = GPU_INDEX
@@ -347,6 +349,8 @@ def change_tts_inference(bert_path, cnhubert_base_path, gpu_number, gpt_path, so
         os.environ["is_half"] = str(is_half)
         os.environ["infer_ttswebui"] = str(webui_port_infer_tts)
         os.environ["is_share"] = str(is_share)
+        if musa_utils.is_available():
+            os.environ["_MUSA_VISIBLE_DEVICES"] = str(fix_gpu_number(gpu_number))
         yield (
             process_info(process_name_tts, "opened"),
             {"__type__": "update", "visible": False},
@@ -629,6 +633,8 @@ def open1Bb(
         # data["version"]=version
 
         os.environ["_CUDA_VISIBLE_DEVICES"] = str(fix_gpu_numbers(gpu_numbers.replace("-", ",")))
+        if musa_utils.is_available():
+            os.environ["_MUSA_VISIBLE_DEVICES"] = str(fix_gpu_number(gpu_numbers.replace("-", ",")))
         os.environ["hz"] = "25hz"
         tmp_config_path = "%s/tmp_s1.yaml" % tmp
         with open(tmp_config_path, "w") as f:
@@ -805,6 +811,8 @@ def open1a(inp_text, inp_wav_dir, exp_name, gpu_numbers, bert_pretrained_dir):
                     "is_half": str(is_half),
                 }
             )
+            if musa_utils.is_available():
+                config.update({"_MUSA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),})
             os.environ.update(config)
             cmd = '"%s" -s GPT_SoVITS/prepare_datasets/1-get-text.py' % python_exec
             print(cmd)
@@ -895,6 +903,8 @@ def open1b(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, ssl_pretrained
                     "_CUDA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),
                 }
             )
+            if musa_utils.is_available():
+                config.update({"_MUSA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),})
             os.environ.update(config)
             cmd = '"%s" -s GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py' % python_exec
             print(cmd)
@@ -917,6 +927,8 @@ def open1b(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, ssl_pretrained
                         "_CUDA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),
                     }
                 )
+                if musa_utils.is_available():
+                    config.update({"_MUSA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),})
                 os.environ.update(config)
                 cmd = '"%s" -s GPT_SoVITS/prepare_datasets/2-get-sv.py' % python_exec
                 print(cmd)
@@ -989,6 +1001,8 @@ def open1c(version, inp_text, inp_wav_dir, exp_name, gpu_numbers, pretrained_s2G
                     "_CUDA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),
                 }
             )
+            if musa_utils.is_available():
+                config.update({"_MUSA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),})
             os.environ.update(config)
             cmd = '"%s" -s GPT_SoVITS/prepare_datasets/3-get-semantic.py' % python_exec
             print(cmd)
@@ -1089,6 +1103,8 @@ def open1abc(
                             "_CUDA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),
                         }
                     )
+                    if musa_utils.is_available():
+                        config.update({"_MUSA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),})
                     os.environ.update(config)
                     cmd = '"%s" -s GPT_SoVITS/prepare_datasets/1-get-text.py' % python_exec
                     print(cmd)
@@ -1136,6 +1152,8 @@ def open1abc(
                         "_CUDA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),
                     }
                 )
+                if musa_utils.is_available():
+                    config.update({"_MUSA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),})
                 os.environ.update(config)
                 cmd = '"%s" -s GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py' % python_exec
                 print(cmd)
@@ -1158,6 +1176,8 @@ def open1abc(
                             "_CUDA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),
                         }
                     )
+                    if musa_utils.is_available():
+                        config.update({"_MUSA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),})
                     os.environ.update(config)
                     cmd = '"%s" -s GPT_SoVITS/prepare_datasets/2-get-sv.py' % python_exec
                     print(cmd)
@@ -1198,6 +1218,8 @@ def open1abc(
                             "_CUDA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),
                         }
                     )
+                    if musa_utils.is_available():
+                        config.update({"_MUSA_VISIBLE_DEVICES": str(fix_gpu_number(gpu_names[i_part])),})
                     os.environ.update(config)
                     cmd = '"%s" -s GPT_SoVITS/prepare_datasets/3-get-semantic.py' % python_exec
                     print(cmd)
