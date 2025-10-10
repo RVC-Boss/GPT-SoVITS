@@ -255,7 +255,6 @@ switch ($Device) {
 Write-Success "PyTorch Installed"
 
 Write-Info "Installing Python Dependencies From requirements.txt..."
-Invoke-Pip --pre torchcodec --index-url https://download.pytorch.org/whl/nightly/cpu
 Invoke-Pip -r extra-req.txt --no-deps
 Invoke-Pip -r requirements.txt
 Write-Success "Python Dependencies Installed"

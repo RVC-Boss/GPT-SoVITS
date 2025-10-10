@@ -45,12 +45,13 @@ Unseen speakers few-shot fine-tuning demo:
 
 ## Infer Speed
 
-| Device      | RTF   | Batch Size | Backend                     |
-| ----------- | ----- | ---------- | --------------------------- |
-| RTX 5090    | 0.05  | 1          | Flash Attn Varlen CUDAGraph |
-| Apple M4    | 0.21  | 1          | MLX Quantized Affined       |
-| RTX 4090    | 0.014 | 24         | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 | 28         | Flash Attn Varlen CUDAGraph |
+| Device      | RTF   | TTFB   | Batch Size | Backend                     |
+| ----------- | ----- | ------ | ---------- | --------------------------- |
+| RTX 5090    | 0.05  | 150 ms | 1          | Flash Attn Varlen CUDAGraph |
+| RTX 4090    | 0.014 | UNK    | 24         | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.07  | 460 ms | 1          | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028 | UNK    | 28         | Flash Attn Varlen CUDAGraph |
+| Apple M4    | 0.21  |        | 1          | MLX Quantized Affined       |
 
 **User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 

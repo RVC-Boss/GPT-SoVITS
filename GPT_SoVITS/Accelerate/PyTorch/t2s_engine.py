@@ -184,7 +184,7 @@ class T2SEngine(T2SEngineProtocol):
                 case "mtia":
                     torch.mtia.empty_cache()
                 case "cpu":
-                    gc.collect()
+                    gc.collect(1)
 
             if request.use_cuda_graph and self.graphcache.is_applicable:
                 self.graphcache.release_graph(session)

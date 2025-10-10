@@ -7,6 +7,10 @@ from .structs import T2SRequest, T2SResult
 from .t2s_engine import T2SEngine as T2SEngineTorch
 
 torch.set_grad_enabled(False)
+torch.backends.cudnn.benchmark = True
+torch.backends.cudnn.enabled = True
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
 
 backends = ["torch_varlen"]
 if torch.cuda.is_available():

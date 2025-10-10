@@ -92,6 +92,30 @@ Get-ChildItem -Path $x64Path -Directory | Where-Object {
     }
 }
 
+$ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip"
+$zipPath = Join-Path $tmpDir "ffmpeg.zip"
+
+Invoke-WebRequest -Uri $ffmpegUrl -OutFile $zipPath
+
+Expand-Archive -Path $zipPath -DestinationPath $tmpDir -Force
+
+$extractedDir = Get-ChildItem -Path $tmpDir -Directory | Where-Object { $_.Name -match "^ffmpeg.*win64.*gpl.*shared" } | Select-Object -First 1
+
+if (-not $extractedDir) {
+    Write-Error "Can Not Find FFmpeg Folder"
+    exit 1
+}
+
+$runtimeDir =  "$srcDir\runtime"
+New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
+
+$src = Join-Path $extractedDir.FullName "bin"
+if (Test-Path $src) {
+    Move-Item -Path (Join-Path $src '*') -Destination $runtimeDir -Force
+}
+
+Write-Host "FFmpeg Downloaded and extracted to $runtimeDir"
+
 function DownloadAndUnzip($url, $targetRelPath) {
     $filename = Split-Path $url -Leaf
     $tmpZip = "$tmpDir\$filename"
@@ -157,7 +181,6 @@ switch ($cuda) {
 }
 
 Write-Host "[INFO] Installing dependencies..."
-& ".\runtime\python.exe" -m pip install --pre torchcodec --index-url https://download.pytorch.org/whl/nightly/cpu
 & ".\runtime\python.exe" -m pip install -r extra-req.txt --no-deps --no-warn-script-location
 & ".\runtime\python.exe" -m pip install -r requirements.txt --no-warn-script-location
 

@@ -1,5 +1,6 @@
 import argparse
 import contextlib
+import gc
 import logging
 import os
 import re
@@ -966,10 +967,11 @@ def get_tts_wav(
     gr.Info(f"{infer_speed_avg:.2f} Token/s", title="Infer Speed")
     gr.Info(f"{rtf_value:.2f}", title="RTF")
 
+    yield opt_sr, (audio_opt_n * 32767).astype(np.int16)
+
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-
-    yield opt_sr, (audio_opt_n * 32767).astype(np.int16)
+    gc.collect()
 
 
 def split(todo_text):
