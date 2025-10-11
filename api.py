@@ -157,7 +157,7 @@ import torch
 import torchaudio
 import librosa
 import soundfile as sf
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Request, Query, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
 import base64
 import io
@@ -1429,9 +1429,62 @@ async def control(request: Request):
     return handle_control(json_post_raw.get("command"))
 
 
+@app.get("/health")
+async def health_check():
+    """
+    健康检查端点
+    """
+    return JSONResponse({
+        "code": 0,
+        "message": "API is running",
+        "status": "ok"
+    })
+
+
 @app.get("/control")
 async def control(command: str = None):
     return handle_control(command)
+
+
+@app.post("/upload_audio")
+async def upload_audio(file: UploadFile = File(...)):
+    """
+    上传参考音频文件
+    返回服务器上的文件路径
+    """
+    try:
+        import os
+        import uuid
+        from pathlib import Path
+
+        # 创建上传目录
+        upload_dir = Path("uploaded_audio")
+        upload_dir.mkdir(exist_ok=True)
+
+        # 生成唯一文件名
+        file_ext = os.path.splitext(file.filename)[1] or ".wav"
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        file_path = upload_dir / unique_filename
+
+        # 保存文件
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+
+        # 返回相对路径
+        return JSONResponse({
+            "code": 0,
+            "message": "上传成功",
+            "data": {
+                "path": str(file_path),
+                "filename": unique_filename
+            }
+        })
+    except Exception as e:
+        return JSONResponse({
+            "code": 400,
+            "message": f"上传失败: {str(e)}"
+        }, status_code=400)
 
 
 @app.post("/change_refer")
