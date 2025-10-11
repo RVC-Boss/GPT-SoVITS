@@ -61,6 +61,87 @@ def clean_text(text, language, version=None):
     return phones, word2ph, norm_text
 
 
+def clean_text_with_mapping(text, language, version=None):
+    """
+    带字符映射的文本清洗函数
+    
+    Args:
+        text: 原始文本
+        language: 语言代码 (zh, ja, en, ko, yue)
+        version: 模型版本 (v1, v2)
+    
+    Returns:
+        tuple: (phones, word2ph, norm_text, char_mappings)
+            - phones: 音素序列
+            - word2ph: 词到音素的映射
+            - norm_text: 标准化后的文本
+            - char_mappings: 字符映射字典 {"orig_to_norm": [...], "norm_to_orig": [...]}
+    """
+    if version is None:
+        version = os.environ.get("version", "v2")
+    if version == "v1":
+        symbols = symbols_v1.symbols
+        language_module_map = {"zh": "chinese", "ja": "japanese", "en": "english"}
+    else:
+        symbols = symbols_v2.symbols
+        language_module_map = {"zh": "chinese2", "ja": "japanese", "en": "english", "ko": "korean", "yue": "cantonese"}
+
+    if language not in language_module_map:
+        language = "en"
+        text = " "
+    
+    # 特殊符号处理暂不支持映射
+    for special_s, special_l, target_symbol in special:
+        if special_s in text and language == special_l:
+            phones, word2ph, norm_text = clean_special(text, language, special_s, target_symbol, version)
+            # 返回空映射
+            char_mappings = {
+                "orig_to_norm": list(range(len(text))),
+                "norm_to_orig": list(range(len(norm_text)))
+            }
+            return phones, word2ph, norm_text, char_mappings
+    
+    language_module = __import__("text." + language_module_map[language], fromlist=[language_module_map[language]])
+    
+    # 使用带映射的标准化函数
+    if hasattr(language_module, "text_normalize_with_map"):
+        norm_text, char_mappings = language_module.text_normalize_with_map(text)
+    elif hasattr(language_module, "text_normalize"):
+        # 如果没有带映射的版本，使用普通版本并构建映射
+        norm_text = language_module.text_normalize(text)
+        from .char_mapping_utils import build_char_mapping
+        char_mappings = build_char_mapping(text, norm_text)
+    else:
+        # 不进行标准化
+        norm_text = text
+        char_mappings = {
+            "orig_to_norm": list(range(len(text))),
+            "norm_to_orig": list(range(len(text)))
+        }
+
+    # 处理音素
+    if language == "zh" or language == "yue":
+        phones, word2ph = language_module.g2p(norm_text)
+        assert len(phones) == sum(word2ph)
+        assert len(norm_text) == len(word2ph)
+    else:
+        # Try per-language word2ph helpers
+        if hasattr(language_module, "g2p_with_word2ph"):
+            try:
+                phones, word2ph = language_module.g2p_with_word2ph(norm_text, keep_punc=False)
+            except Exception:
+                phones = language_module.g2p(norm_text)
+                word2ph = None
+        else:
+            phones = language_module.g2p(norm_text)
+            word2ph = None
+        if language == "en" and len(phones) < 4:
+            phones = [","] + phones
+    
+    phones = ["UNK" if ph not in symbols else ph for ph in phones]
+    return phones, word2ph, norm_text, char_mappings
+
+
 def clean_special(text, language, special_s, target_symbol, version=None):
     if version is None:
         version = os.environ.get("version", "v2")

@@ -112,6 +112,27 @@ def text_normalize(text):
     return dest_text
 
 
+def text_normalize_with_map(text):
+    """
+    带字符映射的粤语标准化函数
+    
+    Returns:
+        normalized_text: 标准化后的文本
+        char_mappings: 字典，包含:
+            - "orig_to_norm": list[int], 原始文本每个字符对应标准化文本的位置
+            - "norm_to_orig": list[int], 标准化文本每个字符对应原始文本的位置
+    """
+    from .char_mapping_utils import build_char_mapping
+    
+    # 先进行标准化
+    normalized_text = text_normalize(text)
+    
+    # 构建字符映射
+    mappings = build_char_mapping(text, normalized_text)
+    
+    return normalized_text, mappings
+
+
 punctuation_set = set(punctuation)
 
 

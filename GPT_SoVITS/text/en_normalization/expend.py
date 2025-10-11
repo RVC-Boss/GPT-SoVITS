@@ -238,6 +238,214 @@ def _expand_number(m):
         return _inflect.number_to_words(num, andword="")
 
 
+class CharMapper:
+    """
+    字符映射追踪器，用于记录文本标准化过程中字符位置的变化
+    
+    核心思想：维护从原始文本到当前文本的映射
+    - orig_to_curr[i] 表示原始文本第i个字符对应当前文本的位置
+    """
+    def __init__(self, text):
+        self.original_text = text
+        self.text = text
+        # 初始化：每个原始字符映射到自己
+        self.orig_to_curr = list(range(len(text)))
+        
+    def apply_sub(self, pattern, replacement_func):
+        """
+        应用正则替换并更新映射
+        
+        关键：需要通过旧映射来更新新映射
+        支持捕获组的特殊处理（如大写字母拆分）
+        """
+        new_text = ""
+        # curr_to_new[i] 表示当前文本第i个字符在新文本中的位置
+        curr_to_new = [-1] * len(self.text)
+        
+        pos = 0
+        for match in pattern.finditer(self.text):
+            # 处理匹配前的未变化文本
+            for i in range(pos, match.start()):
+                curr_to_new[i] = len(new_text)
+                new_text += self.text[i]
+            
+            # 处理匹配的部分
+            replacement = replacement_func(match)
+            replacement_start_pos = len(new_text)
+            
+            # 特殊处理：如果替换文本包含原始文本的字符（例如 "A" -> " A"）
+            # 尝试找到对应关系
+            match_text = match.group(0)
+            if len(match.groups()) > 0 and match.group(1) in replacement:
+                # 有捕获组，尝试精确映射
+                # 例如: "(?<!^)(?<![\s])([A-Z])" 匹配 "P"，替换为 " P"
+                captured = match.group(1)
+                replacement_idx = replacement.find(captured)
+                if replacement_idx >= 0:
+                    # 捕获的字符在替换文本中
+                    for i in range(match.start(), match.end()):
+                        char = self.text[i]
+                        if char in captured:
+                            # 这个字符在捕获组中，映射到替换文本中的对应位置
+                            char_idx_in_replacement = replacement.find(char, replacement_idx)
+                            if char_idx_in_replacement >= 0:
+                                curr_to_new[i] = replacement_start_pos + char_idx_in_replacement
+                            else:
+                                curr_to_new[i] = replacement_start_pos
+                        else:
+                            curr_to_new[i] = replacement_start_pos
+                else:
+                    # 捕获的字符不在替换文本中，都映射到起始位置
+                    for i in range(match.start(), match.end()):
+                        curr_to_new[i] = replacement_start_pos
+            else:
+                # 没有捕获组或不包含原始字符，匹配部分的所有字符都映射到替换文本的起始位置
+                for i in range(match.start(), match.end()):
+                    curr_to_new[i] = replacement_start_pos
+            
+            new_text += replacement
+            pos = match.end()
+        
+        # 处理剩余文本
+        for i in range(pos, len(self.text)):
+            curr_to_new[i] = len(new_text)
+            new_text += self.text[i]
+        
+        # 更新原始到当前的映射：orig -> old_curr -> new_curr
+        new_orig_to_curr = []
+        for orig_idx in range(len(self.original_text)):
+            old_curr_idx = self.orig_to_curr[orig_idx]
+            if old_curr_idx >= 0 and old_curr_idx < len(curr_to_new):
+                new_orig_to_curr.append(curr_to_new[old_curr_idx])
+            else:
+                new_orig_to_curr.append(-1)
+        
+        self.text = new_text
+        self.orig_to_curr = new_orig_to_curr
+        
+    def apply_char_filter(self, keep_pattern):
+        """
+        应用字符过滤（只保留符合模式的字符）并更新映射
+        
+        keep_pattern: 正则表达式字符串，如 "[ A-Za-z'.,?!-]"
+        """
+        new_text = ""
+        curr_to_new = []
+        
+        for i, char in enumerate(self.text):
+            if re.match(keep_pattern, char):
+                curr_to_new.append(len(new_text))
+                new_text += char
+            else:
+                # 字符被删除
+                if new_text:
+                    curr_to_new.append(len(new_text) - 1)
+                else:
+                    curr_to_new.append(-1)
+        
+        # 更新原始映射
+        new_orig_to_curr = []
+        for orig_idx in range(len(self.original_text)):
+            old_curr_idx = self.orig_to_curr[orig_idx]
+            if old_curr_idx >= 0 and old_curr_idx < len(curr_to_new):
+                new_orig_to_curr.append(curr_to_new[old_curr_idx])
+            else:
+                new_orig_to_curr.append(-1)
+        
+        self.text = new_text
+        self.orig_to_curr = new_orig_to_curr
+        
+    def get_norm_to_orig(self):
+        """
+        构建标准化文本到原始文本的反向映射
+        """
+        if not self.text:
+            return []
+        
+        norm_to_orig = [-1] * len(self.text)
+        for orig_idx, norm_idx in enumerate(self.orig_to_curr):
+            if 0 <= norm_idx < len(self.text):
+                # 如果多个原始字符映射到同一个标准化位置，取第一个
+                if norm_to_orig[norm_idx] == -1:
+                    norm_to_orig[norm_idx] = orig_idx
+        
+        return norm_to_orig
+
+
+def normalize_with_map(text):
+    """
+    带字符映射的标准化函数
+    
+    返回:
+        normalized_text: 标准化后的文本
+        char_mappings: 字典，包含:
+            - "orig_to_norm": list[int], 原始文本每个字符对应标准化文本的位置
+            - "norm_to_orig": list[int], 标准化文本每个字符对应原始文本的位置
+    """
+    mapper = CharMapper(text)
+    
+    # 按照 normalize() 的顺序应用所有转换
+    mapper.apply_sub(_ordinal_number_re, _convert_ordinal)
+    mapper.apply_sub(re.compile(r"(?<!\d)-|-(?!\d)"), lambda m: " minus ")
+    mapper.apply_sub(_comma_number_re, _remove_commas)
+    mapper.apply_sub(_time_re, _expand_time)
+    mapper.apply_sub(_measurement_re, _expand_measurement)
+    mapper.apply_sub(_pounds_re_start, _expand_pounds)
+    mapper.apply_sub(_pounds_re_end, _expand_pounds)
+    mapper.apply_sub(_dollars_re_start, _expand_dollars)
+    mapper.apply_sub(_dollars_re_end, _expand_dollars)
+    mapper.apply_sub(_decimal_number_re, _expand_decimal_number)
+    mapper.apply_sub(_fraction_re, _expend_fraction)
+    mapper.apply_sub(_ordinal_re, _expand_ordinal)
+    mapper.apply_sub(_number_re, _expand_number)
+    
+    # Strip accents - 需要手动处理映射
+    normalized_nfd = unicodedata.normalize("NFD", mapper.text)
+    new_text = ""
+    curr_to_new = []
+    for i, char in enumerate(normalized_nfd):
+        if unicodedata.category(char) != "Mn":
+            curr_to_new.append(len(new_text))
+            new_text += char
+        else:
+            # 重音符号被删除，映射到前一个字符
+            if new_text:
+                curr_to_new.append(len(new_text) - 1)
+            else:
+                curr_to_new.append(-1)
+    
+    # 更新原始映射 - 需要处理 NFD 可能改变字符数的情况
+    # 简化处理：假设 NFD 不会显著改变字符数（对于英文通常是这样）
+    if len(curr_to_new) >= len(mapper.text):
+        # NFD 展开了一些字符
+        new_orig_to_curr = []
+        for orig_idx in range(len(mapper.original_text)):
+            old_curr_idx = mapper.orig_to_curr[orig_idx]
+            if old_curr_idx >= 0 and old_curr_idx < len(curr_to_new):
+                new_orig_to_curr.append(curr_to_new[old_curr_idx])
+            else:
+                new_orig_to_curr.append(-1)
+        mapper.orig_to_curr = new_orig_to_curr
+    mapper.text = new_text
+    
+    # 继续其他替换
+    mapper.apply_sub(re.compile("%"), lambda m: " percent")
+    
+    # 删除非法字符 - 使用 apply_char_filter
+    mapper.apply_char_filter(r"[ A-Za-z'.,?!\-]")
+    
+    mapper.apply_sub(re.compile(r"(?i)i\.e\."), lambda m: "that is")
+    mapper.apply_sub(re.compile(r"(?i)e\.g\."), lambda m: "for example")
+    mapper.apply_sub(re.compile(r"(?<!^)(?<![\s])([A-Z])"), lambda m: " " + m.group(1))
+    
+    norm_to_orig = mapper.get_norm_to_orig()
+    
+    return mapper.text, {
+        "orig_to_norm": mapper.orig_to_curr,
+        "norm_to_orig": norm_to_orig
+    }
+
+
 def normalize(text):
     """
     !!! 所有的处理都需要正确的输入 !!!

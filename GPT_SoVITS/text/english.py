@@ -245,6 +245,32 @@ def text_normalize(text):
     return text
 
 
+def text_normalize_with_map(text):
+    """
+    带字符映射的英文标准化函数
+    
+    Returns:
+        normalized_text: 标准化后的文本
+        char_mappings: 字典，包含:
+            - "orig_to_norm": list[int], 原始文本每个字符对应标准化文本的位置
+            - "norm_to_orig": list[int], 标准化文本每个字符对应原始文本的位置
+    """
+    from .en_normalization.expend import normalize_with_map
+    
+    # 先进行标点替换
+    pattern = re.compile("|".join(re.escape(p) for p in rep_map.keys()))
+    text = pattern.sub(lambda x: rep_map[x.group()], text)
+    text = unicode(text)
+    
+    # 使用带映射的标准化函数
+    normalized_text, mappings = normalize_with_map(text)
+    
+    # 避免重复标点引起的参考泄露
+    normalized_text = replace_consecutive_punctuation(normalized_text)
+    
+    return normalized_text, mappings
+
+
 class en_G2p(G2p):
     def __init__(self):
         super().__init__()

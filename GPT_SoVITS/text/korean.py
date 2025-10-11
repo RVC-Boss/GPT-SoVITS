@@ -357,6 +357,22 @@ def g2p_with_word2ph(text, keep_punc=False):
         word2ph.append(max(1, len(phs_valid)))
     return phones_all, word2ph
 
+def text_normalize_with_map(text):
+    """
+    韩文不需要标准化，直接返回原始文本和恒等映射
+    
+    Returns:
+        normalized_text: 原始文本（未改变）
+        char_mappings: 字典，包含恒等映射
+    """
+    # 韩文不进行标准化，直接返回恒等映射
+    mappings = {
+        "orig_to_norm": list(range(len(text))),
+        "norm_to_orig": list(range(len(text)))
+    }
+    return text, mappings
+
+
 if __name__ == "__main__":
     text = "안녕하세요"
     print(g2p(text))
