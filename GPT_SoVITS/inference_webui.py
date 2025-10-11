@@ -959,13 +959,16 @@ def get_tts_wav(
     console.print(f">> Time Stamps: {t0:.3f}\t{t1:.3f}\t{t2:.3f}\t{t3:.3f}")
     console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
     console.print(f">> RTF: {rtf_value:.2f}")
-    if ttfb_time > 2:
-        console.print(f">> TTFB: {ttfb_time:.3f} s")
-    else:
-        console.print(f">> TTFB: {ttfb_time * 1000:.3f} ms")
 
     gr.Info(f"{infer_speed_avg:.2f} Token/s", title="Infer Speed")
     gr.Info(f"{rtf_value:.2f}", title="RTF")
+
+    if ttfb_time > 2:
+        console.print(f">> TTFB: {ttfb_time:.3f} s")
+        gr.Info(f">> TTFB: {ttfb_time:.3f} s")
+    else:
+        console.print(f">> TTFB: {ttfb_time * 1000:.3f} ms")
+        gr.Info(f">> TTFB: {ttfb_time * 1000:.3f} ms")
 
     yield opt_sr, (audio_opt_n * 32767).astype(np.int16)
 
