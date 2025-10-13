@@ -36,10 +36,10 @@ class MUSAAccelerator(Accelerator):
             device = torch.device(f"musa:0")
         torch.musa.set_device(device)
 
-    @override
-    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
-        if device.type == "musa":
-            return torch_musa.memory_stats(device)
+    #@override
+    #def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
+    #    if device.type == "musa":
+    #        return torch_musa.memory_stats(device)
 
     @override
     def teardown(self) -> None:
