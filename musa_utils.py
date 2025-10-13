@@ -7,28 +7,7 @@ _musa_err_msg = "torch_musa not found or not configured correctly."
 
 try:
     if hasattr(torch, 'musa') and torch.musa.is_available():
-        
-        try:
-            major, minor = torch.musa.get_device_capability()
-            version_val = major + minor / 10.0
-            
-            if version_val < 2.1:
-                raise RuntimeError(
-                    f"MUSA version check failed! "
-                    f"Found capability {major}.{minor} (version value {version_val:.2f}), "
-                    f"but this project requires a version >= 2.1. "
-                    f"Please upgrade your torch_musa and MUSA SDK."
-                    f"See: https://github.com/MooreThreads/torch_musa"
-                )
-            
-            _musa_available = True
-            
-        except Exception as e:
-            _musa_err_msg = f"MUSA availability check failed: {e}"
-            if isinstance(e, RuntimeError):
-                raise e
-            _musa_available = False
-
+        _musa_available = True
 except Exception:
     _musa_available = False
 
