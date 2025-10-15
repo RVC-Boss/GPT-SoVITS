@@ -811,9 +811,6 @@ def get_tts_wav(
     if not ref_free:
         with torch.no_grad():
             wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-            if wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000:
-                gr.Warning(i18n("参考音频在3~10秒范围外，请更换！"))
-                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
             wav16k = torch.from_numpy(wav16k)
             if is_half == True:
                 wav16k = wav16k.half().to(device)
