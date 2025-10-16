@@ -1,62 +1,73 @@
-ARG CUDA_VERSION=12.6
-ARG TORCH_BASE=full
+FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
 
-FROM xxxxrt666/torch-base:cu${CUDA_VERSION}-${TORCH_BASE}
+# GPT-SoVITS Docker Image
+# This image contains the GPT-SoVITS TTS model with GPU support
 
-LABEL maintainer="XXXXRT"
-LABEL version="V4"
-LABEL description="Docker image for GPT-SoVITS"
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
 
-ARG CUDA_VERSION=12.6
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3.11-distutils \
+    git \
+    wget \
+    curl \
+    ffmpeg \
+    libsndfile1 \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV CUDA_VERSION=${CUDA_VERSION}
+# Install pip for Python 3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
 
-SHELL ["/bin/bash", "-c"]
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/pip pip /usr/local/bin/pip3.11 1
 
-WORKDIR /workspace/GPT-SoVITS
-
-COPY Docker /workspace/GPT-SoVITS/Docker/
-
-ARG LITE=false
-ENV LITE=${LITE}
-
-ARG WORKFLOW=false
-ENV WORKFLOW=${WORKFLOW}
-
-ARG TARGETPLATFORM
-ENV TARGETPLATFORM=${TARGETPLATFORM}
-
-RUN bash Docker/miniconda_install.sh
-
-COPY extra-req.txt /workspace/GPT-SoVITS/
-
-COPY requirements.txt /workspace/GPT-SoVITS/
-
-COPY install.sh /workspace/GPT-SoVITS/
-
-RUN bash Docker/install_wrapper.sh
-
-EXPOSE 9871 9872 9873 9874 9880
-
-ENV PYTHONPATH="/workspace/GPT-SoVITS"
-
-RUN conda init bash && echo "conda activate base" >> ~/.bashrc
-
+# Set working directory
 WORKDIR /workspace
 
-RUN rm -rf /workspace/GPT-SoVITS
+# Environment variables for GPU
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
+# Create GPT-SoVITS directory (will be mounted via volumes)
+RUN mkdir -p /workspace/GPT-SoVITS
+
+# Set working directory to GPT-SoVITS
 WORKDIR /workspace/GPT-SoVITS
 
-COPY . /workspace/GPT-SoVITS
+# Install PyTorch with CUDA 12.8 support first
+RUN pip install --no-cache-dir \
+    torch==2.7.1 \
+    torchaudio==2.7.1 \
+    --index-url https://download.pytorch.org/whl/cu128
 
-CMD ["/bin/bash", "-c", "\
-  rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
-  rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel && \
-  rm -rf /workspace/GPT-SoVITS/tools/asr/models && \
-  rm -rf /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
-  ln -s /workspace/models/pretrained_models /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
-  ln -s /workspace/models/G2PWModel /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel && \
-  ln -s /workspace/models/asr_models /workspace/GPT-SoVITS/tools/asr/models && \
-  ln -s /workspace/models/uvr5_weights /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
-  exec bash"]
+# Copy GPT-SoVITS requirements.txt from current directory
+COPY requirements.txt /tmp/requirements.txt
+
+# Install GPT-SoVITS dependencies from requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Install additional dependencies for STT (not in requirements.txt)
+RUN pip install --no-cache-dir \
+    "faster-whisper>=1.1.0" \
+    soundfile \
+    BS-RoFormer
+
+# Expose API port
+EXPOSE 9881
+
+# Default configuration
+ENV API_HOST=0.0.0.0
+ENV API_PORT=9881
+ENV CONFIG_PATH=GPT_SoVITS/configs/tts_infer.yaml
+
+# Health check - Just check if the API server is responding (any response is OK, even 4xx)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -s -o /dev/null -w "%{http_code}" http://localhost:9881/tts | grep -E "^[2-4][0-9][0-9]$" > /dev/null || exit 1

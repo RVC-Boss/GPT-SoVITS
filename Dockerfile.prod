@@ -1,0 +1,124 @@
+# Production Dockerfile for GPT-SoVITS
+# Self-contained image with GPU support and all dependencies
+
+FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
+
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies including AWS CLI
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3.11-distutils \
+    git \
+    wget \
+    curl \
+    ffmpeg \
+    libsndfile1 \
+    build-essential \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install AWS CLI v2
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -rf awscliv2.zip aws
+
+# Install pip for Python 3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
+
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/pip pip /usr/local/bin/pip3.11 1
+
+# Set working directory
+WORKDIR /workspace
+
+# Environment variables for GPU
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Install PyTorch with CUDA 12.8 support first
+RUN pip install --no-cache-dir \
+    torch==2.7.1 \
+    torchaudio==2.7.1 \
+    --index-url https://download.pytorch.org/whl/cu128
+
+# Copy only requirements.txt for dependency pre-installation
+COPY requirements.txt /tmp/gpt-sovits-requirements.txt
+
+# Install GPT-SoVITS dependencies
+RUN pip install --no-cache-dir -r /tmp/gpt-sovits-requirements.txt
+
+# Install additional dependencies for STT
+RUN pip install --no-cache-dir \
+    "faster-whisper>=1.1.0" \
+    soundfile \
+    BS-RoFormer
+
+# Create cache storage directory (shared with ML Service)
+RUN mkdir -p /app/shared/cache_storage
+
+# Expose API port
+EXPOSE 9881
+
+# Environment variables for S3 model download
+ENV API_HOST=0.0.0.0
+ENV API_PORT=9881
+ENV CONFIG_PATH=GPT_SoVITS/configs/tts_infer.yaml
+ENV MODEL_DIR=/workspace/GPT-SoVITS
+ENV S3_MODEL_URI=s3://shiftup-enterprise-ai-service/tts/model_registry/GPT-SoVITS/
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+    CMD curl -s -o /dev/null -w "%{http_code}" http://localhost:9881/tts | grep -E "^[2-4][0-9][0-9]$" > /dev/null || exit 1
+
+# Create entrypoint script for S3 model download
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+echo "=== GPT-SoVITS Startup (EC2 Production) ==="\n\
+echo "Model directory: $MODEL_DIR"\n\
+echo "S3 source: $S3_MODEL_URI"\n\
+echo ""\n\
+\n\
+# Check if model directory already exists and has content\n\
+if [ -d "$MODEL_DIR" ] && [ "$(ls -A $MODEL_DIR 2>/dev/null)" ]; then\n\
+  echo "✓ Model files already exist in $MODEL_DIR"\n\
+  echo "Skipping S3 download..."\n\
+else\n\
+  echo "Downloading model files from S3..."\n\
+  echo "This may take several minutes on first startup..."\n\
+  \n\
+  # Create model directory\n\
+  mkdir -p $MODEL_DIR\n\
+  \n\
+  # Download from S3 (using AWS CLI)\n\
+  if ! aws s3 sync "$S3_MODEL_URI" "$MODEL_DIR" --delete --quiet; then\n\
+    echo "ERROR: Failed to download model files from S3"\n\
+    echo "Please check:"\n\
+    echo "  1. AWS credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION)"\n\
+    echo "  2. S3 URI: $S3_MODEL_URI"\n\
+    echo "  3. Network connectivity to S3"\n\
+    exit 1\n\
+  fi\n\
+  \n\
+  echo "✓ Model files downloaded successfully"\n\
+fi\n\
+\n\
+echo ""\n\
+echo "Changing to model directory..."\n\
+cd $MODEL_DIR\n\
+\n\
+echo "Current directory: $(pwd)"\n\
+echo ""\n\
+echo "Starting GPT-SoVITS API on $API_HOST:$API_PORT..."\n\
+exec python api_v2.py -a "$API_HOST" -p "$API_PORT" -c "$CONFIG_PATH"\n\
+' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

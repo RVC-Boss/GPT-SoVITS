@@ -1,0 +1,25 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_REGISTRY: "public.ecr.aws/r2p3x7v0/ailabs"
+    IMAGE_NAME: "sai2ply"
+    SERVICE_NAME: "gpt-sovits"
+
+phases:
+  pre_build:
+    commands:
+      - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+      - export IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
+      - export FULL_IMAGE_URI="${ECR_REGISTRY}/${IMAGE_NAME}:${SERVICE_NAME}-${IMAGE_TAG}"
+      - export LATEST_IMAGE_URI="${ECR_REGISTRY}/${IMAGE_NAME}:${SERVICE_NAME}-latest"
+
+  build:
+    commands:
+      - docker build -f Dockerfile.prod -t $FULL_IMAGE_URI -t $LATEST_IMAGE_URI .
+
+  post_build:
+    commands:
+      - docker push $FULL_IMAGE_URI
+      - docker push $LATEST_IMAGE_URI
+      - echo "Image pushed - $LATEST_IMAGE_URI"

@@ -5,10 +5,6 @@ __pycache__
 env
 runtime
 .idea
-output
-logs
-SoVITS_weights*/
-GPT_weights*/
 TEMP
 weight.json
 ffmpeg*
