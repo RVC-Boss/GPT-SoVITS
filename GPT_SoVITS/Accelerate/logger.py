@@ -10,7 +10,7 @@ from rich.highlighter import Highlighter
 from rich.logging import RichHandler
 from rich.progress import Task, TextColumn
 from rich.style import StyleType
-from rich.table import Column
+from rich.table import Column, Table
 from rich.text import Text
 from rich.traceback import Traceback, install
 
@@ -240,10 +240,19 @@ class Timer:
         self._stack.clear()
 
     def summary(self):
+        table = Table()
+
+        table.add_column("Category", justify="left", style="cyan", no_wrap=True)
+        table.add_column("Count", justify="right", style="magenta")
+        table.add_column("Total (s)", justify="right", style="green")
+        table.add_column("Average (s)", justify="right", style="yellow")
+
         for cat, times in self.records.items():
             total = sum(times)
             avg = total / len(times) if times else 0.0
-            print(f"{cat}: count={len(times)}, total={total:.6f}s, avg={avg:.6f}s")
+            table.add_row(cat, str(len(times)), f"{total:.6f}", f"{avg:.6f}")
+
+        console.print(table)
 
 
 timer = Timer()
