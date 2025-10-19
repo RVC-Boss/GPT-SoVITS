@@ -18,6 +18,7 @@ Tensor = torch.Tensor
 class T2SResult:
     result: list[Tensor] | None = None
     infer_speed: tuple[float, float] = (0.0, 0.0)
+    total_tokens: int = 0
     status: Literal["Success", "Error"] = "Success"
     exception: Optional[Exception] = None
     traceback: Optional[str] = None
@@ -66,7 +67,7 @@ class T2SDecoderProtocol(Protocol):
 
 
 class T2SEngineProtocol(Protocol):
-    def _handle_request(self, request: T2SRequest) -> tuple[list[Tensor], float, float]: ...
+    def _handle_request(self, request: T2SRequest) -> tuple[list[Tensor], float, float, int]: ...
 
     def generate(self, request: T2SRequest) -> T2SResult: ...
 
@@ -107,6 +108,7 @@ class T2SSession:
 
             self.input_pos = torch.zeros_like(self.prefill_len)
             self.input_pos.add_(self.prefill_len)
+            self.input_pos.squeeze_(0)
 
             # CUDA Graph
             self.stream: Optional[torch.cuda.Stream] = None

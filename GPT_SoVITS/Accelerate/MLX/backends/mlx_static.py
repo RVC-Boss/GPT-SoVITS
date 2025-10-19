@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import mlx.core as mx
 
-from ..structs_mlx import KVCache, KVCacheQ
+from ..structs_mlx import KVCache
 from ..t2s_model_abc import (
     AttentionABC,
     KVCacheHND,
@@ -19,23 +19,24 @@ class Attention(AttentionABC):
         super().__init__(n_head, hidden_dim, max_seq_length)
         self.kc_class = KVCacheHND
 
-    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache | KVCacheQ, cache_idx: Array, attn_mask: Array):
+    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
         bsz, seqlen, _ = x.shape
 
-        q, k, v = self.in_proj(x).split(3, axis=-1)
+        qkv = self.in_proj(x)
 
-        q, k, v = map(lambda x: x.reshape(bsz, seqlen, self.n_head, self.head_dim), (q, k, v))
+        q, k, v = mx.split(qkv, 3, -1)
 
-        q, k, v = map(lambda x: x.swapaxes(1, 2), (q, k, v))
+        q = q.reshape(bsz, seqlen, self.n_head, -1).transpose(0, 2, 1, 3)
+        k = k.reshape(bsz, seqlen, self.n_head, -1).transpose(0, 2, 1, 3)
+        v = v.reshape(bsz, seqlen, self.n_head, -1).transpose(0, 2, 1, 3)
 
         kv_cache = self.kc_class.update_cache(input_pos, k, v, kv_cache, cache_idx)
-        assert len(kv_cache) == 2
 
         k, v = kv_cache
 
         attn = mx.fast.scaled_dot_product_attention(q, k, v, scale=self.scale, mask=attn_mask)
 
-        attn = attn.swapaxes(1, 2).reshape(bsz, seqlen, self.hidden_dim)
+        attn = attn.transpose(0, 2, 1, 3).reshape(bsz, seqlen, -1)
 
         attn = self.out_proj(attn)
 
@@ -85,7 +86,7 @@ class T2SDecoder(T2SDecoderABC):
     def __init__(
         self,
         config: dict,
-        max_seq_length: int = 2000,
+        max_seq_length: int = 1500,
         max_batch_size: int = 10,
     ) -> None:
         super().__init__(config, max_seq_length, max_batch_size)

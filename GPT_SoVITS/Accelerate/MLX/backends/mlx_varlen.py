@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import mlx.core as mx
 
-from ..structs_mlx import KVCache, KVCacheQ
+from ..structs_mlx import KVCache
 from ..t2s_model_abc import (
     AttentionABC,
     KVCacheHND,
@@ -19,7 +19,7 @@ class Attention(AttentionABC):
         super().__init__(n_head, hidden_dim, max_seq_length)
         self.kc_class = KVCacheHND
 
-    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache | KVCacheQ, cache_idx: Array, attn_mask: Array):
+    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
         bsz, seqlen, _ = x.shape
 
         q, k, v = self.in_proj(x).split(3, axis=-1)
@@ -29,7 +29,6 @@ class Attention(AttentionABC):
         q, k, v = map(lambda x: x.swapaxes(1, 2), (q, k, v))
 
         kv_cache = self.kc_class.update_cache(input_pos, k, v, kv_cache, cache_idx)
-        assert len(kv_cache) == 2
 
         max_idx = int(input_pos.max())
 
@@ -39,7 +38,7 @@ class Attention(AttentionABC):
 
         attn = mx.fast.scaled_dot_product_attention(q, k, v, scale=self.scale, mask=mask)
 
-        attn = attn.swapaxes(1, 2).reshape(bsz, seqlen, self.hidden_dim)
+        attn = attn.swapaxes(1, 2).reshape(bsz, seqlen, -1)
 
         attn = self.out_proj(attn)
 
@@ -89,7 +88,7 @@ class T2SDecoder(T2SDecoderABC):
     def __init__(
         self,
         config: dict,
-        max_seq_length: int = 2000,
+        max_seq_length: int = 1500,
         max_batch_size: int = 10,
     ) -> None:
         super().__init__(config, max_seq_length, max_batch_size)

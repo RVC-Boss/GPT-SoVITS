@@ -13,6 +13,7 @@ peft
 py-cpuinfo
 pypinyin
 split-lang
+torchao
 torchaudio
 torchcodec
 transformers

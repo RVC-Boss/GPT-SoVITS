@@ -13,7 +13,7 @@ import time
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from pathlib import Path
-from typing import MutableSequence
+from typing import Literal, MutableSequence
 
 import torch
 import torch._inductor.config
@@ -24,6 +24,7 @@ from torch.profiler import ExecutionTraceObserver, ProfilerAction, tensorboard_t
 from tools.my_utils import get_machine_id
 
 from . import nn
+from .quantization import replace_all_linear_with_fp8
 from .structs import KVCacheProtocol, T2SDecoderProtocol, T2SSession
 
 Tensor = torch.Tensor
@@ -61,26 +62,26 @@ class SinePositionalEmbedding(nn.Module):
         scale: bool = False,
         alpha: bool = False,
         max_batch_size: int = 10,
-        max_seq_len: int = 2000,
+        max_seq_length: int = 1500,
     ):
         super().__init__()
         self.embedding_dim = embedding_dim
         self.x_scale = math.sqrt(embedding_dim) if scale else 1.0
         self.alpha = nn.Parameter(torch.ones(1), requires_grad=alpha)
         self.max_batch_size = max_batch_size
-        self.max_seq_len = max_seq_len
+        self.max_seq_length = max_seq_length
 
         self.reverse = False
-        self.register_buffer("pe", torch.zeros(max_batch_size, max_seq_len, embedding_dim), persistent=False)
+        self.register_buffer("pe", torch.zeros(max_batch_size, max_seq_length, embedding_dim), persistent=False)
         self.pe: torch.Tensor
         self.compute_pe()
 
     def compute_pe(self):
         """Reset the positional encodings."""
         if self.reverse:
-            position = torch.arange(self.max_seq_len - 1, -1, -1.0, dtype=torch.float32).unsqueeze(1)
+            position = torch.arange(self.max_seq_length - 1, -1, -1.0, dtype=torch.float32).unsqueeze(1)
         else:
-            position = torch.arange(self.max_seq_len, dtype=torch.float32).unsqueeze(1)
+            position = torch.arange(self.max_seq_length, dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
             torch.arange(0, self.embedding_dim, 2, dtype=torch.float32) * -(math.log(10000.0) / self.embedding_dim)
         )
@@ -423,7 +424,7 @@ class T2SDecoderABC(nn.Module, ABC, T2SDecoderProtocol):
     def __init__(
         self,
         config: dict,
-        max_seq_length: int = 2000,
+        max_seq_length: int = 1500,
         max_batch_size: int = 10,
     ) -> None:
         super().__init__()
@@ -467,7 +468,7 @@ class T2SDecoderABC(nn.Module, ABC, T2SDecoderProtocol):
             scale=False,
             alpha=True,
             max_batch_size=max_batch_size,
-            max_seq_len=max_seq_length,
+            max_seq_length=max_seq_length,
         )
         self.ar_audio_embedding = TokenEmbedding(self.embedding_dim, self.vocab_size)
         self.ar_audio_position = SinePositionalEmbedding(
@@ -475,8 +476,11 @@ class T2SDecoderABC(nn.Module, ABC, T2SDecoderProtocol):
             scale=False,
             alpha=True,
             max_batch_size=max_batch_size,
-            max_seq_len=max_seq_length,
+            max_seq_length=max_seq_length,
         )
+
+        self.bits: int
+        self.group_size: int
 
         self._register_load_state_dict_pre_hook(self.load_hook)
 
@@ -608,6 +612,32 @@ class T2SDecoderABC(nn.Module, ABC, T2SDecoderProtocol):
     def post_forward(self, idx: int, session: T2SSession) -> None:
         return
 
+    def quantize(self, mode: Literal["Int8", "FP8", "FP8_E4M3FN"] | None = None) -> None:
+        if mode is None:
+            return
+        if mode not in {"Int8", "FP8", "FP8_E4M3FN"}:
+            raise ValueError(f"Unsupported quantization mode: {mode}")
+        match mode:
+            case "Int8":
+                self.bits = 8
+                self.group_size = 32
+                import torchao
+
+                torchao.quantization.quantize_(self.h, torchao.quantization.Int8WeightOnlyConfig(self.group_size))
+
+            case "FP8":
+                self.bits = 8
+                import torchao
+
+                torchao.quantization.quantize_(self.h, torchao.quantization.Float8WeightOnlyConfig())
+
+            case "FP8_E4M3FN":
+                self.bits = 8
+                replace_all_linear_with_fp8(self.h)
+
+            case _:
+                raise ValueError(f"Unsupported Quantization Mode for PyTorch: {mode}")
+
 
 class CUDAGraphCacheABC(ABC):
     def __init__(
@@ -662,13 +692,13 @@ class CUDAGraphCacheABC(ABC):
 
 
 class TorchProfiler:
-    def __init__(self, debug: bool, log_dir: str = "./profiler") -> None:
-        self.debug = debug
-        self.log_dir = log_dir + str(time.time())
+    def __init__(self, debug: bool, log_dir: str = "./profiler/torch") -> None:
+        self.debug = debug and os.environ.get("TORCH_PROFILER") == "1"
+        self.log_dir = log_dir + "/" + str(time.time())
         self.__profiler: torch.profiler.profile
 
         if self.debug and not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
+            os.makedirs(self.log_dir, exist_ok=True)
 
         self.tensorboard_handler = tensorboard_trace_handler(self.log_dir)
 

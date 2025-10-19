@@ -29,6 +29,7 @@ class T2SRequestMLX:
     early_stop_num: int = -1
     temperature: float = 1.0
     repetition_penalty: float = 1.35
+    debug: bool = False
 
     @classmethod
     def from_torch(cls, request: T2SRequest) -> T2SRequestMLX:
@@ -48,29 +49,27 @@ class T2SRequestMLX:
             request.early_stop_num,
             request.temperature,
             request.repetition_penalty,
+            request.debug,
         )
 
 
 KVCache: TypeAlias = tuple[Array, Array]
-KVCacheQ: TypeAlias = tuple[tuple[Array, Array, Array], tuple[Array, Array, Array], tuple[int, int]]
 
 
 class KVCacheProtocol(Protocol):
     @staticmethod
-    def empty(kv_cache: KVCache | KVCacheQ) -> None: ...
+    def empty(kv_cache: KVCache) -> None: ...
 
     @staticmethod
-    def update_cache(
-        input_pos: Array, k_val: Array, v_val: Array, kv_cache: KVCache | KVCacheQ, cache_idx: Array
-    ) -> KVCache | KVCacheQ: ...
+    def update_cache(input_pos: Array, k_val: Array, v_val: Array, kv_cache: KVCache, cache_idx: Array) -> KVCache: ...
 
     @staticmethod
-    def prefill_kv(k_val: Array, v_val: Array, kv_cache: KVCache | KVCacheQ) -> None: ...
+    def prefill_kv(k_val: Array, v_val: Array, kv_cache: KVCache) -> None: ...
 
     @staticmethod
     def init_cache(
         batch_size: int, max_seq_length: int, n_heads: int, head_dim: int, dtype: mx.Dtype, *args, **kwds
-    ) -> KVCache | KVCacheQ: ...
+    ) -> KVCache: ...
 
 
 class T2SDecoderProtocol(Protocol):
@@ -104,7 +103,7 @@ class T2SSessionMLX:
             self.y_len = y_len
 
             # Cache
-            self.kv_cache: MutableSequence[KVCache | KVCacheQ]
+            self.kv_cache: MutableSequence[KVCache]
             self.sample = sample_func()
 
             # Forward args
@@ -118,6 +117,7 @@ class T2SSessionMLX:
 
             self.input_pos = mx.zeros_like(self.prefill_len)
             self.input_pos += self.prefill_len
+            self.input_pos = self.input_pos.squeeze(0)  # 30% Performance Improvement
 
             # EOS
             self.completed = mx.array([False] * len(self.x)).astype(mx.bool_)
@@ -148,5 +148,3 @@ class T2SSessionMLX:
 
             attn_mask = mx.repeat(mx.expand_dims(attn_mask, 1), decoder.n_head, 1)
             self.attn_mask = attn_mask
-
-            mx.eval(self.attn_mask)

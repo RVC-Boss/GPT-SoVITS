@@ -30,6 +30,7 @@ pinyin_to_symbol_map = {
 parent_directory = os.path.dirname(current_file_path)
 
 is_g2pw = os.getenv("G2PW", "1") == "1"
+debug = os.getenv("DEBUG", "0") == "1"
 if is_g2pw:
     g2pw = G2PWPinyin(
         model_dir="GPT_SoVITS/text/G2PWModel",
@@ -202,7 +203,8 @@ def _g2p(segments):
                 # assert len(sub_initials) == len(sub_finals) == len(word)
             initials = sum(initials, [])
             finals = sum(finals, [])
-            print("pypinyin结果", initials, finals)
+            if debug:
+                print("pypinyin结果", initials, finals)
         else:
             # g2pw采用整句推理
             pinyins = g2pw.lazy_pinyin(seg, neutral_tone_with_five=True, style=Style.TONE3)

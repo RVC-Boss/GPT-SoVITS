@@ -8,6 +8,7 @@ import traceback
 from functools import partial
 from multiprocessing import cpu_count
 from subprocess import Popen
+from typing import cast
 
 import gradio as gr
 import psutil
@@ -37,7 +38,15 @@ from config import (
     webui_port_subfix,
     webui_port_uvr5,
 )
-from GPT_SoVITS.Accelerate import backends, console, logger
+from GPT_SoVITS.Accelerate import (
+    MLX,
+    PyTorch,
+    backends,
+    console,
+    logger,
+    quantization_methods_mlx,
+    quantization_methods_torch,
+)
 from tools import my_utils
 from tools.asr.config import asr_dict
 from tools.assets import css, js, top_html
@@ -310,8 +319,8 @@ def change_tts_inference(
     sovits_path: str,
     batched_infer_enabled: bool,
     backends_dropdown: str,
+    quantization_methods_dropdown: str | None,
 ):
-    console.print(gpt_path, sovits_path)
     global p_tts_inference
     env = os.environ.copy()
     cmd: list[str] = [python_exec, "-s", "-m"]
@@ -334,6 +343,7 @@ def change_tts_inference(
                 "-b", backends_dropdown,
                 "-d", f"{infer_device.type}:{gpu_number}",
                 "-p", str(webui_port_infer_tts),
+                "-q", str(quantization_methods_dropdown),
                 "--gpt", gpt_path,
                 "--sovits", sovits_path,
             ]
@@ -344,7 +354,6 @@ def change_tts_inference(
 
     if p_tts_inference is None:
         yield (
-            process_info(process_name_tts, "opened"),
             gr.update(visible=False),
             gr.update(visible=True),
         )
@@ -354,7 +363,6 @@ def change_tts_inference(
         kill_process(p_tts_inference.pid, process_name_tts)
         p_tts_inference = None
         yield (
-            process_info(process_name_tts, "closed"),
             gr.update(visible=True),
             gr.update(visible=False),
         )
@@ -1280,6 +1288,21 @@ def changeBackend(flag: bool):
         return gr.update(choices=backends_gradio, value=backends_gradio[-1][-1])
 
 
+def changeQuantization(backend: str, gradio_call=True):
+    backend = backend.lower().replace("-", "_")
+    if backend in MLX.backends:
+        choices = quantization_methods_mlx
+    elif backend in PyTorch.backends:
+        choices = quantization_methods_torch
+    else:
+        choices = [None]
+
+    if gradio_call:
+        return gr.update(choices=choices, value=None)
+    else:
+        return choices
+
+
 GPU_INDEX.add(0)
 GPU_INDEX_LIST = list(GPU_INDEX)
 GPU_INDEX_LIST.sort()
@@ -1891,7 +1914,13 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                                 interactive=True,
                             )
                     with gr.Row(equal_height=True):
-                        tts_info = gr.Textbox(label=process_info(process_name_tts, "info"))
+                        with gr.Column():
+                            quantization_methods_dropdown = gr.Dropdown(
+                                choices=cast(list, changeQuantization(backends_gradio[-1][-1], gradio_call=False)),
+                                label=i18n("量化方法"),
+                                value=None,
+                                interactive=True,
+                            )
                         open_tts = gr.Button(
                             value=process_info(process_name_tts, "open"), variant="primary", visible=True
                         )
@@ -1904,6 +1933,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         [batched_infer_enabled],
                         [backends_dropdown],
                     )
+                    backends_dropdown.change(
+                        changeQuantization,
+                        [backends_dropdown],
+                        [quantization_methods_dropdown],
+                    )
+
                     open_tts.click(
                         change_tts_inference,
                         [
@@ -1912,8 +1947,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                             SoVITS_dropdown,
                             batched_infer_enabled,
                             backends_dropdown,
+                            quantization_methods_dropdown,
                         ],
-                        [tts_info, open_tts, close_tts],
+                        [open_tts, close_tts],
                     )
                     close_tts.click(
                         change_tts_inference,
@@ -1923,8 +1959,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                             SoVITS_dropdown,
                             batched_infer_enabled,
                             backends_dropdown,
+                            quantization_methods_dropdown,
                         ],
-                        [tts_info, open_tts, close_tts],
+                        [open_tts, close_tts],
                     )
             button1Ba_open.click(
                 open1Ba,

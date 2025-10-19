@@ -1,4 +1,7 @@
 import sys
+import time
+from collections import defaultdict
+from contextlib import nullcontext
 from typing import Optional
 
 from loguru import logger
@@ -201,3 +204,46 @@ if __name__ == "__main__":
         raise RuntimeError()
     except Exception:
         logger.bind(show_locals=False).exception("TEST")
+
+
+class Timer:
+    def __init__(self):
+        self.records: dict[str, list[float]] = defaultdict(list)
+        self._stack: list[tuple[str, int]] = []
+
+    def __call__(self, category: str, debug=False):
+        timer = self
+
+        class _Ctx:
+            def __enter__(self):
+                timer._stack.append((category, time.perf_counter_ns()))
+                return timer  # 如需在with块里调用timer方法
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                end = time.perf_counter_ns()
+                if not timer._stack:
+                    raise RuntimeError("Timer stack underflow: __exit__ without matching __enter__")
+                cat, start = timer._stack.pop()
+                if cat != category:
+                    raise RuntimeError(f"Mismatched timer context: expected '{cat}', got '{category}'")
+                elapsed_sec = (end - start) / 1e9
+                timer.records[cat].append(elapsed_sec)
+                return False
+
+        if debug:
+            return _Ctx()
+        else:
+            return nullcontext()
+
+    def clear(self):
+        self.records.clear()
+        self._stack.clear()
+
+    def summary(self):
+        for cat, times in self.records.items():
+            total = sum(times)
+            avg = total / len(times) if times else 0.0
+            print(f"{cat}: count={len(times)}, total={total:.6f}s, avg={avg:.6f}s")
+
+
+timer = Timer()

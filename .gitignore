@@ -20,6 +20,7 @@ tools/AP_BWE/24kto48k/*
 !tools/AP_BWE/24kto48k/readme.txt
 onnx_export
 compile_cache
+profiler
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -14,10 +14,8 @@ from typing import Any
 import gradio as gr
 import librosa
 import numpy as np
-import psutil
 import torch
 import torchaudio
-from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 from config import (
@@ -30,21 +28,16 @@ from config import (
     infer_device as default_device,
 )
 from GPT_SoVITS.Accelerate import MLX, PyTorch, T2SEngineProtocol, T2SRequest, backends
-from GPT_SoVITS.Accelerate.logger import console
+from GPT_SoVITS.Accelerate.logger import console, timer
 from GPT_SoVITS.feature_extractor import cnhubert
 from GPT_SoVITS.module.mel_processing import mel_spectrogram_torch, spectrogram_torch
-from GPT_SoVITS.module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
+from GPT_SoVITS.module.models import SynthesizerTrn, SynthesizerTrnV3
 from GPT_SoVITS.process_ckpt import inspect_version
-from GPT_SoVITS.sv import SV
 from GPT_SoVITS.text import cleaned_text_to_sequence
 from GPT_SoVITS.text.cleaner import clean_text
 from GPT_SoVITS.text.LangSegmenter import LangSegmenter
-from tools.assets import css, js, top_html
 from tools.i18n.i18n import I18nAuto, scan_language_list
 from tools.my_utils import DictToAttrRecursive
-
-with contextlib.suppress(ImportError):
-    import mlx.utils as mxutils
 
 warnings.filterwarnings(
     "ignore", message="MPS: The constant padding of more than 3 dimensions is not currently supported natively."
@@ -60,14 +53,6 @@ logging.getLogger("multipart.multipart").setLevel(logging.ERROR)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-
-
-def set_high_priority():
-    if os.name != "nt":
-        return
-    p = psutil.Process(os.getpid())
-    with contextlib.suppress(psutil.AccessDenied):
-        p.nice(psutil.HIGH_PRIORITY_CLASS)
 
 
 _LANG_RE = re.compile(r"^[a-z]{2}[_-][A-Z]{2}$")
@@ -236,17 +221,6 @@ bert_model = AutoModelForMaskedLM.from_pretrained(bert_path).to(infer_device, dt
 cnhubert.cnhubert_base_path = cnhubert_base_path
 ssl_model = cnhubert.get_model().to(infer_device, dtype)
 
-spec_min = -12
-spec_max = 2
-
-
-def norm_spec(x):
-    return (x - spec_min) / (spec_max - spec_min) * 2 - 1
-
-
-def denorm_spec(x):
-    return (x + 1) / 2 * (spec_max - spec_min) + spec_min
-
 
 def mel_fn(x):
     return mel_spectrogram_torch(
@@ -256,20 +230,6 @@ def mel_fn(x):
         sampling_rate=24000,
         hop_size=256,
         win_size=1024,
-        fmin=0,
-        fmax=None,
-        center=False,
-    )
-
-
-def mel_fn_v4(x):
-    return mel_spectrogram_torch(
-        y=x,
-        n_fft=1280,
-        num_mels=100,
-        sampling_rate=32000,
-        hop_size=320,
-        win_size=1280,
         fmin=0,
         fmax=None,
         center=False,
@@ -299,7 +259,6 @@ def get_bert_feature(text, word2ph):
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
     global vq_model, hps, version, model_version, dict_language
     model_version, version, is_lora, hps, dict_s2 = inspect_version(sovits_path)
-    print(sovits_path, version, model_version, is_lora)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if is_lora is True and is_exist is False:
@@ -364,26 +323,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         if hasattr(vq_model, "enc_q"):
             del vq_model.enc_q
 
-    if is_lora is False:
-        console.print(f">> loading sovits_{model_version}", vq_model.load_state_dict(dict_s2["weight"], strict=False))
-    else:
-        path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
-        console.print(f">> loading sovits_{model_version}spretrained_G")
-        dict_pretrain = torch.load(path_sovits)["weight"]
-        console.print(f">> loading sovits_{model_version}_lora{model_version}")
-        dict_pretrain.update(dict_s2["weight"])
-        state_dict = dict_pretrain
-        lora_rank = dict_s2["lora_rank"]
-        lora_config = LoraConfig(
-            target_modules=["to_k", "to_q", "to_v", "to_out.0"],
-            r=lora_rank,
-            lora_alpha=lora_rank,
-            init_lora_weights=True,
-        )
-        vq_model.cfm = get_peft_model(vq_model.cfm, lora_config)  # type: ignore
-        vq_model.load_state_dict(state_dict, strict=False)
-        vq_model.cfm = vq_model.cfm.merge_and_unload()  # pyright: ignore[reportAttributeAccessIssue, reportCallIssue]
-        vq_model.eval()
+    vq_model.load_state_dict(dict_s2["weight"], strict=False)
 
     vq_model = vq_model.to(infer_device, dtype)
 
@@ -413,7 +353,6 @@ def change_gpt_weights(gpt_path):
             dtype=dtype,
         )
         # t2s_engine.decoder_model.compile()
-        total = sum((p[-1].size for p in mxutils.tree_flatten(t2s_engine.decoder_model.parameters())))  # type: ignore
     else:
         t2s_engine = PyTorch.T2SEngineTorch(
             PyTorch.T2SEngineTorch.load_decoder(Path(gpt_path), backend=ar_backend, quantize_mode=args.quantization),
@@ -421,99 +360,9 @@ def change_gpt_weights(gpt_path):
             dtype=dtype,
         )
         # t2s_engine.decoder_model.compile()
-        total = sum(p.numel() for p in t2s_engine.decoder_model.parameters())
-    console.print(">> Number of parameter: %.2fM" % (total / 1e6))
 
 
 change_gpt_weights(gpt_path)
-
-
-def clean_hifigan_model():
-    global hifigan_model
-    if hifigan_model:
-        hifigan_model = hifigan_model.cpu()
-        del hifigan_model
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        hifigan_model = None
-
-
-def clean_bigvgan_model():
-    global bigvgan_model
-    if bigvgan_model:
-        bigvgan_model = bigvgan_model.cpu()
-        del bigvgan_model
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        bigvgan_model = None
-
-
-def clean_sv_cn_model():
-    global sv_cn_model
-    if sv_cn_model:
-        sv_cn_model.embedding_model = sv_cn_model.embedding_model.cpu()
-        del sv_cn_model
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        sv_cn_model = None
-
-
-def init_bigvgan():
-    global bigvgan_model, hifigan_model, sv_cn_model
-    from BigVGAN import bigvgan
-
-    bigvgan_model = bigvgan.BigVGAN.from_pretrained(
-        "./GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x",
-        use_cuda_kernel=False,
-    )  # if True, RuntimeError: Ninja is required to load C++ extensions
-    # remove weight norm in the model and set to eval mode
-    bigvgan_model.remove_weight_norm()
-    bigvgan_model = bigvgan_model.to(infer_device, dtype).eval()
-    clean_hifigan_model()
-    clean_sv_cn_model()
-
-
-def init_hifigan():
-    global hifigan_model, bigvgan_model, sv_cn_model
-    hifigan_model = Generator(
-        initial_channel=100,
-        resblock="1",
-        resblock_kernel_sizes=[3, 7, 11],
-        resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-        upsample_rates=[10, 6, 2, 2, 2],
-        upsample_initial_channel=512,
-        upsample_kernel_sizes=[20, 12, 4, 4, 4],
-        gin_channels=0,
-        is_bias=True,
-    )
-    hifigan_model.eval()
-    hifigan_model.remove_weight_norm()
-    state_dict_g = torch.load(
-        "./GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth",
-        map_location="cpu",
-        weights_only=False,
-    )
-    console.print(">> loading vocoder", hifigan_model.load_state_dict(state_dict_g))
-    clean_bigvgan_model()
-    clean_sv_cn_model()
-
-    hifigan_model = hifigan_model.to(infer_device, dtype)
-
-
-def init_sv_cn():
-    global hifigan_model, bigvgan_model, sv_cn_model
-    sv_cn_model = SV(infer_device, is_half)
-    clean_bigvgan_model()
-    clean_hifigan_model()
-
-
-bigvgan_model = hifigan_model = sv_cn_model = None
-if model_version == "v3":
-    init_bigvgan()
-if model_version == "v4":
-    init_hifigan()
-if model_version in {"v2Pro", "v2ProPlus"}:
-    init_sv_cn()
 
 resample_transform_dict = {}
 
@@ -626,8 +475,6 @@ def get_phones_and_bert(text, language, version, final=False):
                 # 因无法区别中日韩文汉字,以用户输入为准
                 langlist.append(language)
             textlist.append(tmp["text"])
-    print(textlist)
-    print(langlist)
     phones_list = []
     bert_list = []
     norm_text_list = []
@@ -720,12 +567,6 @@ def get_tts_wav(
         ref_free = True
     if model_version in v3v4set:
         ref_free = False  # s2v3暂不支持ref_free
-    else:
-        if_sr = False
-    if model_version not in {"v3", "v4", "v2Pro", "v2ProPlus"}:
-        clean_bigvgan_model()
-        clean_hifigan_model()
-        clean_sv_cn_model()
     t0 = ttime()
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
@@ -734,10 +575,8 @@ def get_tts_wav(
         prompt_text = prompt_text.strip("\n")
         if prompt_text[-1] not in splits:
             prompt_text += "。" if prompt_language != "en" else "."
-        print(">>", i18n("实际输入的参考文本:"), prompt_text)
     text = text.strip("\n")
 
-    print(">>", i18n("实际输入的目标文本:"), text)
     zero_wav = np.zeros(
         int(hps.data.sampling_rate * pause_second),
         dtype=np.float16 if is_half is True else np.float32,
@@ -782,7 +621,6 @@ def get_tts_wav(
     while "\n\n" in text:
         text = text.replace("\n\n", "\n")
     texts = text.split("\n")
-    texts = process_text(texts)
     texts = merge_short_text_in_array(texts, 5)
     audio_opt = []
     # s2v3暂不支持ref_free
@@ -796,14 +634,11 @@ def get_tts_wav(
     assert vq_model
 
     for i_text, text in enumerate(texts):
-        # 解决输入目标文本的空行导致报错的问题
         if len(text.strip()) == 0:
             continue
         if text[-1] not in splits:
             text += "。" if text_language != "en" else "."
-        print(">>", i18n("实际输入的目标文本(每句):"), text)
         phones2, bert2, norm_text2 = get_phones_and_bert(text, text_language, version)
-        print(">>", i18n("前端处理后的文本(每句):"), norm_text2)
 
         bert = torch.cat([bert1, bert2], 1)
         all_phoneme_ids = torch.LongTensor(phones1 + phones2).to(device).unsqueeze(0)
@@ -843,96 +678,25 @@ def get_tts_wav(
         t3 = ttime()
         is_v2pro = model_version in {"v2Pro", "v2ProPlus"}
 
-        sv_emb: list[torch.Tensor] = []
-        if model_version not in v3v4set:
-            refers = []
-            if is_v2pro and sv_cn_model is None:
-                init_sv_cn()
-            if inp_refs:
-                for path in inp_refs:
-                    try:  # 这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
-                        refer, audio_tensor = get_spepc(hps, path.name, dtype, infer_device, is_v2pro)
-                        refers.append(refer)
-                        if is_v2pro:
-                            assert sv_cn_model
-                            sv_emb.append(sv_cn_model.compute_embedding(audio_tensor))
-                    except Exception as e:
-                        print(e)
-                        traceback.print_exc()
-            if len(refers) == 0:
-                refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, infer_device, is_v2pro)
-                refers = [refers]
-                if is_v2pro:
-                    assert sv_cn_model
-                    sv_emb = [sv_cn_model.compute_embedding(audio_tensor)]
-            if is_v2pro:
-                audio = vq_model.decode(
-                    pred_semantic,
-                    torch.LongTensor(phones2).to(infer_device).unsqueeze(0),
-                    refers,
-                    speed=speed,
-                    sv_emb=sv_emb,
-                )[0][0]  # type: ignore
-            else:
-                audio = vq_model.decode(
-                    pred_semantic,
-                    torch.LongTensor(phones2).to(infer_device).unsqueeze(0),
-                    refers,
-                    speed=speed,
-                )[0][0]  # type: ignore
-        else:
-            refer, audio_tensor = get_spepc(hps, ref_wav_path, dtype, infer_device)
-            phoneme_ids0 = torch.LongTensor(phones1).to(infer_device).unsqueeze(0)
-            phoneme_ids1 = torch.LongTensor(phones2).to(infer_device).unsqueeze(0)
-            fea_ref, ge = vq_model.decode_encp(prompt.unsqueeze(0), phoneme_ids0, refer)  # type: ignore
-            tgt_sr = 24000 if model_version == "v3" else 32000
-            ref_audio, sr = torchaudio.load_with_torchcodec(ref_wav_path)
-            ref_audio = ref_audio.to(infer_device)
-            if sr != tgt_sr:
-                ref_audio = resample(ref_audio, sr, tgt_sr, infer_device)
-            if ref_audio.shape[0] > 1:
-                ref_audio = ref_audio.mean(0).unsqueeze(0)
-            mel2 = mel_fn(ref_audio) if model_version == "v3" else mel_fn_v4(ref_audio)
-            mel2 = norm_spec(mel2)
-            T_min = min(mel2.shape[2], fea_ref.shape[2])
-            mel2 = mel2[:, :, :T_min]
-            fea_ref = fea_ref[:, :, :T_min]
-            Tref = 468 if model_version == "v3" else 500
-            Tchunk = 934 if model_version == "v3" else 1000
-            if T_min > Tref:
-                mel2 = mel2[:, :, -Tref:]
-                fea_ref = fea_ref[:, :, -Tref:]
-                T_min = Tref
-            chunk_len = Tchunk - T_min
-            mel2 = mel2.to(dtype)
-            fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge, speed)  # type: ignore
-            cfm_resss = []
-            idx = 0
-            while 1:
-                fea_todo_chunk = fea_todo[:, :, idx : idx + chunk_len]
-                if fea_todo_chunk.shape[-1] == 0:
-                    break
-                idx += chunk_len
-                fea = torch.cat([fea_ref, fea_todo_chunk], 2).transpose(2, 1)
-                cfm_res = vq_model.cfm.inference(  # type: ignore
-                    fea, torch.LongTensor([fea.size(1)]).to(fea.device), mel2, sample_steps, inference_cfg_rate=0
-                )
-                cfm_res = cfm_res[:, :, mel2.shape[2] :]
-                mel2 = cfm_res[:, :, -T_min:]
-                fea_ref = fea_todo_chunk[:, :, -T_min:]
-                cfm_resss.append(cfm_res)
-            cfm_res = torch.cat(cfm_resss, 2)
-            cfm_res = denorm_spec(cfm_res)
-            if model_version == "v3":
-                if bigvgan_model is None:
-                    init_bigvgan()
-            else:  # v4
-                if hifigan_model is None:
-                    init_hifigan()
-            vocoder_model = bigvgan_model if model_version == "v3" else hifigan_model
-            with torch.inference_mode():
-                wav_gen = vocoder_model(cfm_res)  # type: ignore
-                audio = wav_gen[0][0]
+        refers = []
+        if inp_refs:
+            for path in inp_refs:
+                try:  # 这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
+                    refer, audio_tensor = get_spepc(hps, path.name, dtype, infer_device, is_v2pro)
+                    refers.append(refer)
+                except Exception as e:
+                    print(e)
+                    traceback.print_exc()
+        if len(refers) == 0:
+            refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, infer_device, is_v2pro)
+            refers = [refers]
+        audio = vq_model.decode(
+            pred_semantic,
+            torch.LongTensor(phones2).to(infer_device).unsqueeze(0),
+            refers,
+            speed=speed,
+        )[0][0]  # type: ignore
+
         if i_text == 0:
             ttfb_time = ttime() - ttfb_time
         max_audio = torch.abs(audio).max()  # 简单防止16bit爆音
@@ -951,14 +715,7 @@ def get_tts_wav(
         opt_sr = 24000
     else:
         opt_sr = 48000  # v4
-    if if_sr is True and opt_sr == 24000:
-        print(">>", i18n("音频超分中"))
-        audio_opt_n, opt_sr = audio_sr(audio_opt_t.unsqueeze(0), opt_sr)
-        max_audio = np.abs(audio_opt_n).max()
-        if max_audio > 1:
-            audio_opt_n /= max_audio
-    else:
-        audio_opt_n = audio_opt_t.cpu().numpy()
+    audio_opt_n = audio_opt_t.cpu().numpy()
 
     t0 = t[0]
     t1 = sum(t[1::3])
@@ -972,15 +729,10 @@ def get_tts_wav(
     console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
     console.print(f">> RTF: {rtf_value:.2f}")
 
-    gr.Info(f"{infer_speed_avg:.2f} Token/s", title="Infer Speed")
-    gr.Info(f"{rtf_value:.2f}", title="RTF")
-
     if ttfb_time > 2:
         console.print(f">> TTFB: {ttfb_time:.3f} s")
-        gr.Info(f">> TTFB: {ttfb_time:.3f} s")
     else:
         console.print(f">> TTFB: {ttfb_time * 1000:.3f} ms")
-        gr.Info(f">> TTFB: {ttfb_time * 1000:.3f} ms")
 
     yield opt_sr, (audio_opt_n * 32767).astype(np.int16)
 
@@ -1086,239 +838,42 @@ def cut5(inp):
     return "\n".join(opt)
 
 
-def process_text(texts):
-    _text = []
-    if all(text in [None, " ", "\n", ""] for text in texts):
-        raise ValueError(i18n("请输入有效文本"))
-    for text in texts:
-        if text in [None, " ", ""]:
-            pass
-        else:
-            _text.append(text)
-    return _text
+a = get_tts_wav(
+    "/Users/XXXXRT/Desktop/参考/不过呢因为有些特殊情况，所以我在一年半之前并没有这个，退网啊.wav",
+    "不过呢因为有些特殊情况，所以我在一年半之前并没有这个，退网啊",
+    i18n("中文"),
+    "我在我青春韶华的时候遇到了你，还记得刚刚开学的时候，那是第一次见你，我和我朋友在楼道间打闹的时候无意间瞟到了你正在学习时的侧颜",
+    i18n("中文"),
+)
+
+next(a)
+
+timer.clear()
+
+a = get_tts_wav(
+    "/Users/XXXXRT/Desktop/参考/Cream去能理解很多人的想法时,既然已经被这样想了,没有挽回的余地了.wav",
+    "去能理解很多人的想法时,既然已经被这样想了,没有挽回的余地了",
+    i18n("中文"),
+    "我在我青春韶华的时候遇到了你，还记得刚刚开学的时候，那是第一次见你，我和我朋友在楼道间打闹的时候无意间瞟到了你正在学习时的侧颜",
+    i18n("中文"),
+)
 
 
-def html_center(text, label="p"):
-    return f"""<div style="text-align: center; margin: 100; padding: 50;">
-                <{label} style="margin: 0; padding: 0;">{text}</{label}>
-                </div>"""
+next(a)
+
+timer.summary()
+
+a = get_tts_wav(
+    "/Users/XXXXRT/Desktop/参考/不过呢因为有些特殊情况，所以我在一年半之前并没有这个，退网啊.wav",
+    "不过呢因为有些特殊情况，所以我在一年半之前并没有这个，退网啊",
+    i18n("中文"),
+    "我在我青春韶华的时候遇到了你，还记得刚刚开学的时候，那是第一次见你，我和我朋友在楼道间打闹的时候无意间瞟到了你正在学习时的侧颜",
+    i18n("中文"),
+)
 
 
-def html_left(text, label="p"):
-    return f"""<div style="text-align: left; margin: 0; padding: 0;">
-                <{label} style="margin: 0; padding: 0;">{text}</{label}>
-                </div>"""
+next(a)
 
+timer.summary()
 
-with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css) as app:
-    gr.HTML(
-        top_html.format(
-            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
-            + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
-        ),
-        elem_classes="markdown",
-    )
-    gr.Markdown(html_center(i18n("模型切换"), "h3"))
-    with gr.Row(equal_height=True):
-        with gr.Column(scale=2):
-            with gr.Row(equal_height=True):
-                GPT_dropdown = gr.Dropdown(
-                    label=i18n("GPT模型列表"),
-                    choices=GPT_names,
-                    value=gpt_path,
-                    interactive=True,
-                )
-                SoVITS_dropdown = gr.Dropdown(
-                    label=i18n("SoVITS模型列表"),
-                    choices=SoVITS_names,
-                    value=sovits_path,
-                    interactive=True,
-                )
-        with gr.Column(scale=1):
-            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
-        refresh_button.click(fn=change_choices_i18n, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
-    gr.Markdown(html_center(i18n("*请上传并填写参考信息"), "h3"))
-    with gr.Row(equal_height=True):
-        with gr.Column(scale=2):
-            with gr.Row(equal_height=True):
-                with gr.Column(scale=1):
-                    inp_ref = gr.Audio(
-                        label=i18n("请上传3~10秒内参考音频，超过会报错！"),
-                        type="filepath",
-                        sources="upload",
-                        scale=13,
-                        editable=False,
-                        waveform_options={"show_recording_waveform": False},
-                    )
-                with gr.Column(scale=1):
-                    gr.Markdown(
-                        html_center(
-                            i18n("使用无参考文本模式时建议使用微调的GPT")
-                            + "<br>"
-                            + i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。")
-                        )
-                    )
-                    ref_text_free = gr.Checkbox(
-                        label=i18n("开启无参考文本模式"),
-                        info=i18n("不填参考文本亦相当于开启") + ", " + i18n("v3暂不支持该模式，使用了会报错。"),
-                        value=False,
-                        interactive=True if model_version not in v3v4set else False,
-                        show_label=True,
-                        scale=1,
-                    )
-                    prompt_language = gr.Dropdown(
-                        label="",
-                        info=i18n("参考音频的语种"),
-                        choices=list(dict_language.keys()),
-                        value=i18n("中文"),
-                    )
-                    prompt_text = gr.Textbox(label="", info=i18n("参考音频的文本"), value="", lines=3, max_lines=3)
-
-        with gr.Column(scale=1):
-            inp_refs = (
-                gr.File(
-                    label=i18n(
-                        "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"
-                    ),
-                    file_count="multiple",
-                )
-                if model_version not in v3v4set
-                else gr.File(
-                    label=i18n(
-                        "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"
-                    ),
-                    file_count="multiple",
-                    visible=False,
-                )
-            )
-            sample_steps = (
-                gr.Radio(
-                    label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
-                    value=32 if model_version == "v3" else 8,
-                    choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
-                    visible=True,
-                )
-                if model_version in v3v4set
-                else gr.Radio(
-                    label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
-                    choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
-                    visible=False,
-                    value=32 if model_version == "v3" else 8,
-                )
-            )
-            if_sr_Checkbox = gr.Checkbox(
-                label=i18n("v3输出如果觉得闷可以试试开超分"),
-                value=False,
-                interactive=True,
-                show_label=True,
-                visible=False if model_version != "v3" else True,
-            )
-    gr.Markdown(html_center(i18n("*请填写需要合成的目标文本和语种模式"), "h3"))
-    with gr.Row(equal_height=True):
-        with gr.Column(scale=2):
-            text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=30, max_lines=40)
-        with gr.Column(scale=1):
-            text_language = gr.Dropdown(
-                label=i18n("需要合成的语种") + i18n(".限制范围越小判别效果越好。"),
-                choices=list(dict_language.keys()),
-                value=i18n("中文"),
-                scale=1,
-            )
-            how_to_cut = gr.Dropdown(
-                label=i18n("怎么切"),
-                choices=[
-                    i18n("不切"),
-                    i18n("凑四句一切"),
-                    i18n("凑50字一切"),
-                    i18n("按中文句号。切"),
-                    i18n("按英文句号.切"),
-                    i18n("按标点符号切"),
-                ],
-                value=i18n("凑四句一切"),
-                interactive=True,
-                scale=1,
-            )
-            if_freeze = gr.Checkbox(
-                label=i18n("是否直接对上次合成结果调整语速和音色"),
-                value=False,
-                interactive=True,
-                show_label=True,
-                scale=1,
-            )
-            with gr.Row(equal_height=True):
-                speed = gr.Slider(
-                    minimum=0.6, maximum=1.65, step=0.05, label=i18n("语速"), value=1, interactive=True, scale=1
-                )
-                pause_second_slider = gr.Slider(
-                    minimum=0.1,
-                    maximum=0.5,
-                    step=0.01,
-                    label=i18n("句间停顿秒数"),
-                    value=0.3,
-                    interactive=True,
-                    scale=1,
-                )
-            gr.Markdown(html_center(i18n("GPT采样参数(不懂就用默认):")))
-            top_k = gr.Slider(minimum=1, maximum=100, step=1, label=i18n("top_k"), value=15, interactive=True, scale=1)
-            top_p = gr.Slider(minimum=0, maximum=1, step=0.05, label=i18n("top_p"), value=1, interactive=True, scale=1)
-            temperature = gr.Slider(
-                minimum=0, maximum=1, step=0.05, label=i18n("temperature"), value=1, interactive=True, scale=1
-            )
-    with gr.Row(equal_height=True):
-        with gr.Column(scale=2):
-            inference_button = gr.Button(value=i18n("合成语音"), variant="primary", size="lg")
-        with gr.Column(scale=1):
-            output = gr.Audio(
-                label=i18n("输出的语音"),
-                waveform_options={"show_recording_waveform": False},
-                editable=False,
-            )
-
-    inference_button.click(
-        get_tts_wav,
-        [
-            inp_ref,
-            prompt_text,
-            prompt_language,
-            text,
-            text_language,
-            how_to_cut,
-            top_k,
-            top_p,
-            temperature,
-            ref_text_free,
-            speed,
-            if_freeze,
-            inp_refs,
-            sample_steps,
-            if_sr_Checkbox,
-            pause_second_slider,
-        ],
-        [output],
-    )
-    SoVITS_dropdown.change(
-        change_sovits_weights,
-        [SoVITS_dropdown, prompt_language, text_language],
-        [
-            prompt_text,
-            prompt_language,
-            text,
-            text_language,
-            sample_steps,
-            inp_refs,
-            ref_text_free,
-            if_sr_Checkbox,
-            inference_button,
-        ],
-    )
-    GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
-
-
-if __name__ == "__main__":
-    set_high_priority()
-    app.queue(api_open=False, default_concurrency_limit=1, max_size=1024).launch(
-        server_name="0.0.0.0",
-        inbrowser=True,
-        share=is_share,
-        server_port=infer_ttswebui,
-    )
+print("-" * 15 + "test2" + "-" * 15)

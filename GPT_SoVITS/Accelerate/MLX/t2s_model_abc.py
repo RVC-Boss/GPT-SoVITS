@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import math
 from abc import ABC, abstractmethod
-from typing import MutableSequence
+from typing import Literal, MutableSequence, Type
 
 import mlx.core as mx
 import mlx.nn as nn
+from mlx.core import Dtype
 
-from .structs_mlx import KVCache, KVCacheProtocol, KVCacheQ, T2SDecoderProtocol, T2SSessionMLX
+from .structs_mlx import KVCache, KVCacheProtocol, T2SDecoderProtocol, T2SSessionMLX
 
 Array = mx.array
 
@@ -43,26 +44,28 @@ class SinePositionalEmbedding(nn.Module):
         embedding_dim: int,
         scale: bool = False,
         max_batch_size: int = 10,
-        max_seq_len: int = 2000,
+        max_seq_length: int = 1500,
     ):
         super().__init__()
         self.embedding_dim = embedding_dim
         self.x_scale = math.sqrt(embedding_dim) if scale else 1.0
         self.alpha = mx.ones(1)
         self.max_batch_size = max_batch_size
-        self.max_seq_len = max_seq_len
+        self.max_seq_length = max_seq_length
 
         self.reverse = False
-        self._pe = mx.zeros((max_batch_size, max_seq_len, embedding_dim))
-        self.compute_pe()
+        self.pe: Array | None = None
 
-    def compute_pe(self):
-        """Reset the positional encodings."""
+    def compute_pe(self, dtype: Dtype):
+        """Compute the positional encodings."""
+
+        if self.pe is not None and self.pe.dtype == dtype:
+            return
 
         if self.reverse:
-            position = mx.expand_dims(mx.arange(self.max_seq_len - 1, -1, -1.0), axis=1)
+            position = mx.expand_dims(mx.arange(self.max_seq_length - 1, -1, -1.0), axis=1)
         else:
-            position = mx.expand_dims(mx.arange(self.max_seq_len), axis=1)
+            position = mx.expand_dims(mx.arange(self.max_seq_length), axis=1)
         div_term = mx.exp(
             mx.arange(
                 0,
@@ -70,10 +73,13 @@ class SinePositionalEmbedding(nn.Module):
                 2,
             )
             * -(math.log(10000.0) / self.embedding_dim)
-        )
-        pe = self._pe
-        pe[:, :, 0::2] = mx.sin(position * div_term)
-        pe[:, :, 1::2] = mx.cos(position * div_term)
+        ).astype(dtype)
+        pe = mx.zeros((self.max_batch_size, self.max_seq_length, self.embedding_dim)).astype(dtype)
+
+        pe[:, :, 0::2] = mx.sin(position * div_term).astype(dtype)
+        pe[:, :, 1::2] = mx.cos(position * div_term).astype(dtype)
+
+        self.pe = pe
 
     def __call__(self, input_pos: Array, x: Array):
         """
@@ -84,9 +90,11 @@ class SinePositionalEmbedding(nn.Module):
         Returns:
             embedded_x (Array): [batch_size, 1, embed_dim]
         """
+        self.compute_pe(x.dtype)
+        assert self.pe is not None
 
         batch_size = x.shape[0]
-        pe_values = self._pe[mx.arange(batch_size), input_pos - 1]  # (batch_size, embed_dim)
+        pe_values = self.pe[mx.arange(batch_size), input_pos - 1]  # (batch_size, embed_dim)
 
         return x * self.x_scale + self.alpha * mx.expand_dims(pe_values, 1)  # (batch_size, 1, embed_dim)
 
@@ -98,7 +106,10 @@ class SinePositionalEmbedding(nn.Module):
         Returns:
             embedded_x (Array): [batch_size, seq_len, embed_dim]
         """
-        pe_values = self._pe[:, : x.shape[-2]]
+        self.compute_pe(x.dtype)
+        assert self.pe is not None
+
+        pe_values = self.pe[:, : x.shape[-2]]
         return x * self.x_scale + self.alpha * pe_values
 
 
@@ -125,130 +136,18 @@ class KVCacheHND(KVCacheProtocol):
 
     @staticmethod
     def prefill_kv(k_val, v_val, kv_cache):
-        # k_val: [B, S, H, D]
+        # k_val: [B, H, S, D]
         assert len(kv_cache) == 2
         k_cache, v_cache = kv_cache
 
-        k_cache[..., : k_val.shape[1], :] = k_val.swapaxes(1, 2)
-        v_cache[..., : v_val.shape[1], :] = v_val.swapaxes(1, 2)
+        k_cache[..., : k_val.shape[2], :] = k_val
+        v_cache[..., : v_val.shape[2], :] = v_val
 
     @staticmethod
     def init_cache(batch_size: int, max_seq_length: int, n_heads: int, head_dim: int, dtype: mx.Dtype) -> KVCache:
         cache_shape = (batch_size, n_heads, max_seq_length, head_dim)
 
         return (mx.zeros(cache_shape, dtype=dtype), mx.zeros(cache_shape, dtype=dtype))
-
-
-class KVCacheHNDQuantized(KVCacheProtocol):
-    @staticmethod
-    def _el_per_int(bits: int) -> int:
-        return 32 // bits
-
-    @staticmethod
-    def _packed_dim(head_dim: int, bits: int = 8) -> int:
-        el_per_int = KVCacheHNDQuantized._el_per_int(bits)
-        if head_dim % el_per_int != 0:
-            raise ValueError(f"{head_dim=} is not divisible by {el_per_int=} ({bits=})")
-        return head_dim // el_per_int
-
-    @staticmethod
-    def _group_count(head_dim: int, group_size: int = 32) -> int:
-        assert group_size in {32, 64, 128}
-        if head_dim % group_size != 0:
-            raise ValueError(f"{head_dim} is not divisible by {group_size=}")
-        return head_dim // group_size
-
-    @staticmethod
-    def empty(kv_cache) -> None:
-        assert len(kv_cache) == 3
-        (k_q, k_s, k_b), (v_q, v_s, v_b), (_, __) = kv_cache
-
-        k_q[:] = 0
-        k_s[:] = 0
-        k_b[:] = 0
-        v_q[:] = 0
-        v_s[:] = 0
-        v_b[:] = 0
-
-    @staticmethod
-    def update_cache(
-        input_pos,
-        k_val,
-        v_val,
-        kv_cache,
-        cache_idx,
-    ):
-        # input_pos: [B, ], k_val: [B, H, 1, D]
-
-        assert len(kv_cache) == 3
-        (k_q_out, k_s_out, k_b_out), (v_q_out, v_s_out, v_b_out), (group_size, bits) = kv_cache
-
-        k_q, k_s, k_b = mx.quantize(k_val, group_size=group_size, bits=bits)
-        v_q, v_s, v_b = mx.quantize(v_val, group_size=group_size, bits=bits)
-
-        ip0 = input_pos - 1
-
-        k_q_out[cache_idx, :, ip0, None] = k_q
-        k_s_out[cache_idx, :, ip0, None] = k_s
-        k_b_out[cache_idx, :, ip0, None] = k_b
-
-        v_q_out[cache_idx, :, ip0, None] = v_q
-        v_s_out[cache_idx, :, ip0, None] = v_s
-        v_b_out[cache_idx, :, ip0, None] = v_b
-
-        return (k_q_out, k_s_out, k_b_out), (v_q_out, v_s_out, v_b_out), (group_size, bits)
-
-    @staticmethod
-    def prefill_kv(
-        k_val,
-        v_val,
-        kv_cache,
-    ) -> None:
-        assert len(kv_cache) == 3
-        (k_q_out, k_s_out, k_b_out), (v_q_out, v_s_out, v_b_out), (group_size, bits) = kv_cache
-
-        S = k_val.shape[1]
-
-        k_sw = k_val.swapaxes(1, 2)
-        v_sw = v_val.swapaxes(1, 2)
-
-        k_q, k_s, k_b = mx.quantize(k_sw, group_size=group_size, bits=bits)
-        v_q, v_s, v_b = mx.quantize(v_sw, group_size=group_size, bits=bits)
-
-        k_q_out[..., :S, :] = k_q
-        k_s_out[..., :S, :] = k_s
-        k_b_out[..., :S, :] = k_b
-
-        v_q_out[..., :S, :] = v_q
-        v_s_out[..., :S, :] = v_s
-        v_b_out[..., :S, :] = v_b
-
-    @staticmethod
-    def init_cache(
-        batch_size: int,
-        max_seq_length: int,
-        n_heads: int,
-        head_dim: int,
-        dtype: mx.Dtype,
-        *,
-        group_size: int = 32,
-        bits: int = 8,
-    ) -> KVCacheQ:
-        packed_dim = KVCacheHNDQuantized._packed_dim(head_dim, bits=bits)
-        group_cnt = KVCacheHNDQuantized._group_count(head_dim, group_size=group_size)
-
-        packed_shape = (batch_size, n_heads, max_seq_length, packed_dim)
-        group_shape = (batch_size, n_heads, max_seq_length, group_cnt)
-
-        k_q = mx.zeros(packed_shape, dtype=mx.uint32)
-        k_s = mx.zeros(group_shape, dtype=dtype)
-        k_b = mx.zeros(group_shape, dtype=dtype)
-
-        v_q = mx.zeros(packed_shape, dtype=mx.uint32)
-        v_s = mx.zeros(group_shape, dtype=dtype)
-        v_b = mx.zeros(group_shape, dtype=dtype)
-
-        return (k_q, k_s, k_b), (v_q, v_s, v_b), (group_size, bits)
 
 
 class AttentionABC(ABC, nn.Module):
@@ -271,26 +170,26 @@ class AttentionABC(ABC, nn.Module):
         self.kc_class: KVCacheProtocol
 
     @abstractmethod
-    def __call__(
-        self, x: Array, input_pos: Array, kv_cache: KVCache | KVCacheQ, cache_idx: Array, attn_mask: Array
-    ) -> Array: ...
+    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache, cache_idx: Array, attn_mask: Array) -> Array: ...
 
-    def prefill(self, x: Array, kv_cache: KVCache | KVCacheQ, attn_mask: Array):
+    def prefill(self, x: Array, kv_cache: KVCache, attn_mask: Array):
         bsz, seqlen, _ = x.shape
 
-        q, k, v = self.in_proj(x).split(3, axis=-1)
+        qkv = self.in_proj(x)
 
-        q, k, v = map(lambda x: x.reshape(bsz, seqlen, self.n_head, self.head_dim), (q, k, v))
+        q, k, v = mx.split(qkv, 3, -1)
+
+        q = q.reshape(bsz, seqlen, self.n_head, -1).transpose(0, 2, 1, 3)
+        k = k.reshape(bsz, seqlen, self.n_head, -1).transpose(0, 2, 1, 3)
+        v = v.reshape(bsz, seqlen, self.n_head, -1).transpose(0, 2, 1, 3)
 
         self.kc_class.prefill_kv(k, v, kv_cache)
-
-        q, k, v = map(lambda x: x.swapaxes(1, 2), (q, k, v))
 
         attn = mx.fast.scaled_dot_product_attention(q, k, v, mask=attn_mask, scale=self.scale)
 
         attn = mx.nan_to_num(attn)
 
-        attn = attn.swapaxes(1, 2).reshape(1, -1, self.hidden_dim)
+        attn = attn.transpose(0, 2, 1, 3).reshape(bsz, seqlen, -1)
 
         output = self.out_proj(attn)
 
@@ -321,7 +220,7 @@ class TransformerBlockABC(nn.Module):
         self.attention_norm = nn.LayerNorm(self.hidden_dim)
         self.ffn_norm = nn.LayerNorm(self.hidden_dim)
 
-    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache | KVCacheQ, cache_idx: Array, attn_mask: Array):
+    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
         h = self.attention_norm(
             x
             + self.attention(
@@ -335,7 +234,7 @@ class TransformerBlockABC(nn.Module):
         out = self.ffn_norm(h + self.feed_forward(h))
         return out
 
-    def prefill(self, x: Array, attn_mask: Array, kv_cache: KVCache | KVCacheQ):
+    def prefill(self, x: Array, attn_mask: Array, kv_cache: KVCache):
         h = self.attention_norm(
             x
             + self.attention.prefill(
@@ -382,7 +281,7 @@ class TransformerDecoderABC(nn.Module):
         self,
         input_pos: Array,
         x: Array,
-        kv_caches: MutableSequence[KVCache | KVCacheQ],
+        kv_caches: MutableSequence[KVCache],
         cache_idx: Array,
         *args,
         **kwds,
@@ -399,7 +298,7 @@ class TransformerDecoderABC(nn.Module):
 
         return x
 
-    def prefill(self, x: Array, mask: Array, kv_caches: MutableSequence[KVCache | KVCacheQ]):
+    def prefill(self, x: Array, mask: Array, kv_caches: MutableSequence[KVCache]):
         for layer, kv_cache in zip(self.layers, kv_caches):
             x = layer.prefill(
                 x,
@@ -413,7 +312,7 @@ class T2SDecoderABC(nn.Module, T2SDecoderProtocol):
     def __init__(
         self,
         config: dict,
-        max_seq_length: int = 2000,
+        max_seq_length: int = 1500,
         max_batch_size: int = 10,
     ) -> None:
         super().__init__()
@@ -451,24 +350,27 @@ class T2SDecoderABC(nn.Module, T2SDecoderProtocol):
             self.embedding_dim,
             scale=False,
             max_batch_size=max_batch_size,
-            max_seq_len=max_seq_length,
+            max_seq_length=max_seq_length,
         )
         self.ar_audio_embedding = TokenEmbedding(self.embedding_dim, self.vocab_size)
         self.ar_audio_position = SinePositionalEmbedding(
             self.embedding_dim,
             scale=False,
             max_batch_size=max_batch_size,
-            max_seq_len=max_seq_length,
+            max_seq_length=max_seq_length,
         )
 
-        self.kv_class: KVCacheProtocol
+        self.kv_class: Type[KVCacheProtocol]
 
-    def init_cache(self, bsz: int = 0, *args, **kwds) -> MutableSequence[KVCache | KVCacheQ]:
+        self.bits: int = -1
+        self.group_size: int = -1
+
+    def init_cache(self, bsz: int = 0, *args, **kwds) -> MutableSequence[KVCache]:
         bsz = bsz or self.h.max_batch_size
         assert bsz <= self.h.max_batch_size
         seq_lens = self.h.max_seq_length
         dtype = self.bert_proj.bias.dtype
-        cache: MutableSequence[KVCache | KVCacheQ] = [
+        cache: MutableSequence[KVCache] = [
             self.kv_class.init_cache(bsz, seq_lens, self.n_head, self.head_dim, dtype, *args, **kwds)
             for _ in range(self.n_layer)
         ]
@@ -503,8 +405,7 @@ class T2SDecoderABC(nn.Module, T2SDecoderProtocol):
         return xy_pos
 
     def compile(self):
-        setattr(self.h, "__call__", mx.compile(self.h.__call__))
-        # setattr(self.h, "prefill", mx.compile(self.h.prefill, shapeless=True))
+        setattr(self.h, "__call__", mx.compile(self.h.__call__, shapeless=True))
 
     def pre_forward(self, session: T2SSessionMLX):
         attn_mask = session.attn_mask
@@ -525,4 +426,21 @@ class T2SDecoderABC(nn.Module, T2SDecoderProtocol):
         attn_mask = session.attn_mask
         input_pos = session.input_pos
         attn_mask[mx.arange(session.bsz), :, :, input_pos] = True
-        mx.eval(attn_mask)
+
+    def quantize(self, mode: Literal["Affine", "MXFP4"] | None = None) -> None:
+        if mode is None:
+            return
+        if mode not in {"Affine", "MXFP4"}:
+            raise ValueError(f"Unsupported quantization mode: {mode}")
+        match mode:
+            case "Affine":
+                self.bits = 8
+                self.group_size = 32
+                nn.quantize(self.h, group_size=self.group_size, bits=self.bits, mode="affine")
+            case "MXFP4":
+                self.bits = 4
+                self.group_size = 32
+                nn.quantize(self.h, group_size=self.group_size, bits=self.bits, mode="mxfp4")
+
+            case _:
+                raise ValueError(f"Unsupported Quantization Mode for MLX: {mode}")
