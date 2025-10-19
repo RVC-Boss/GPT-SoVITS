@@ -21,6 +21,7 @@ tools/AP_BWE/24kto48k/*
 onnx_export
 compile_cache
 profiler
+tts_infer.yaml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
