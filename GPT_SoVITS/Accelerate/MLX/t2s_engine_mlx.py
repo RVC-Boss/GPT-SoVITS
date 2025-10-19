@@ -153,7 +153,7 @@ class T2SEngine(T2SEngineProtocol):
                     pos_sorted = mx.sort(pos, axis=0)
                     valid_count = session.bsz - mx.sum(cast(Array, pos_sorted == session.bsz))
                     pos_final = pos_sorted[: int(valid_count)]
-                    newly_done_indices = mx.expand_dims(newly_done_indices[pos_final], 0)
+                    newly_done_indices = newly_done_indices[pos_final]
                     mx.set_default_device(self.device)
 
                     if debug:
