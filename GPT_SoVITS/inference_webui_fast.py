@@ -138,9 +138,6 @@ is_share = args.share
 infer_device = torch.device(args.device)
 device = infer_device
 
-if torch.mps.is_available():
-    device = torch.device("cpu")
-
 dtype = get_dtype(device.index)
 is_half = dtype == torch.float16
 
@@ -152,7 +149,7 @@ SoVITS_names, GPT_names = get_weights_names(i18n)
 gpt_path = str(args.gpt) or GPT_names[0][-1]
 sovits_path = str(args.sovits) or SoVITS_names[0][-1]
 
-cnhubert_base_path = str(args.cuhubert)
+cnhubert_base_path = str(args.cnhubert)
 bert_path = str(args.bert)
 
 version = model_version = "v2"
@@ -415,7 +412,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             with gr.Column():
                 with gr.Row(equal_height=True):
                     batch_size = gr.Slider(
-                        minimum=1, maximum=200, step=1, label=i18n("batch_size"), value=20, interactive=True
+                        minimum=1, maximum=20, step=1, label=i18n("batch_size"), value=10, interactive=True
                     )
                     sample_steps = gr.Radio(
                         label=i18n("采样步数(仅对V3/4生效)"), value=32, choices=[4, 8, 16, 32, 64, 128], visible=True
@@ -462,8 +459,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     parallel_infer = gr.Checkbox(label=i18n("并行推理"), value=True, interactive=True, show_label=True)
                     split_bucket = gr.Checkbox(
                         label=i18n("数据分桶(并行推理时会降低一点计算量)"),
-                        value=True,
-                        interactive=True,
+                        value=False,
+                        interactive=False,
                         show_label=True,
                     )
 

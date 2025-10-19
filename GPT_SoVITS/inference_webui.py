@@ -365,7 +365,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             del vq_model.enc_q
 
     if is_lora is False:
-        console.print(f">> loading sovits_{model_version}", vq_model.load_state_dict(dict_s2["weight"], strict=False))
+        console.print(f">> loading sovits_{model_version}", vq_model.load_state_dict(dict_s2["weight"]))
     else:
         path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
         console.print(f">> loading sovits_{model_version}spretrained_G")
@@ -381,7 +381,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             init_lora_weights=True,
         )
         vq_model.cfm = get_peft_model(vq_model.cfm, lora_config)  # type: ignore
-        vq_model.load_state_dict(state_dict, strict=False)
+        vq_model.load_state_dict(state_dict)
         vq_model.cfm = vq_model.cfm.merge_and_unload()  # pyright: ignore[reportAttributeAccessIssue, reportCallIssue]
         vq_model.eval()
 

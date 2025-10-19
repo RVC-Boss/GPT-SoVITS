@@ -117,7 +117,8 @@ class T2SSessionMLX:
 
             self.input_pos = mx.zeros_like(self.prefill_len)
             self.input_pos += self.prefill_len
-            self.input_pos = self.input_pos.squeeze(0)  # 30% Performance Improvement
+            if bsz == 1:
+                self.input_pos = self.input_pos.squeeze(0)  # 30% Performance Improvement in bsz=1
 
             # EOS
             self.completed = mx.array([False] * len(self.x)).astype(mx.bool_)

@@ -109,7 +109,8 @@ class SinePositionalEmbedding(nn.Module):
         self.compute_pe(x.dtype)
         assert self.pe is not None
 
-        pe_values = self.pe[:, : x.shape[-2]]
+        batch_size = x.shape[0]
+        pe_values = self.pe[mx.arange(batch_size), : x.shape[-2]]
         return x * self.x_scale + self.alpha * pe_values
 
 

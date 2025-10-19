@@ -323,7 +323,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         if hasattr(vq_model, "enc_q"):
             del vq_model.enc_q
 
-    vq_model.load_state_dict(dict_s2["weight"], strict=False)
+    vq_model.load_state_dict(dict_s2["weight"])
 
     vq_model = vq_model.to(infer_device, dtype)
 

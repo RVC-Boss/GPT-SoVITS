@@ -91,7 +91,7 @@ class T2SEngine(T2SEngineProtocol):
                             session.attn_mask,
                             session.kv_cache,
                         )  # bs, seq_len, embed_dim
-                        xy_dec = xy_dec[None, batch_idx, session.input_pos - 1]
+                        xy_dec = xy_dec[batch_idx, None, session.input_pos - 1]
                         if debug:
                             mx.eval(xy_dec)
                 else:
@@ -120,7 +120,7 @@ class T2SEngine(T2SEngineProtocol):
                         mx.metal.stop_capture()
 
                 decoder.post_forward(idx, session)
-                logits = decoder.ar_predict_layer(xy_dec[:, -1])
+                logits = decoder.ar_predict_layer(xy_dec.squeeze(1))
                 session.input_pos += 1
 
                 if idx == 0:
@@ -136,7 +136,7 @@ class T2SEngine(T2SEngineProtocol):
                         temperature=request.temperature,
                     )
 
-                    session.y[batch_idx, session.y_len + idx] = samples
+                    session.y[batch_idx.reshape(-1, 1), session.y_len + idx] = samples
 
                     if debug:
                         mx.eval(samples)
@@ -168,9 +168,9 @@ class T2SEngine(T2SEngineProtocol):
                     logger.info(
                         f"T2S Decoding EOS {session.prefill_len.tolist().__str__().strip('[]')} -> {[i.shape[-1] for i in session.y_results].__str__().strip('[]')}"
                     )
-                    logger.info(f"Infer Speed: {(idx + 1) / (time.perf_counter() - t1):.2f} token/s")
+                    logger.info(f"Infer Speed: {(idx + 1) * session.bsz / (time.perf_counter() - t1):.2f} token/s")
                     infer_time = time.perf_counter() - t1
-                    infer_speed = (idx + 1) / infer_time
+                    infer_speed = (idx + 1) * session.bsz / infer_time
                     break
 
                 if (request.early_stop_num != -1 and idx >= request.early_stop_num) or idx == max_token - 1:
@@ -179,9 +179,9 @@ class T2SEngine(T2SEngineProtocol):
                             session.y_results[j] = session.y[[j], session.y_len : session.y_len + idx]
                             session.completed[j] = True
                     logger.error("Bad Full Prediction")
-                    logger.info(f"Infer Speed: {(idx + 1) / (time.perf_counter() - t1):.2f} token/s")
+                    logger.info(f"Infer Speed: {(idx + 1) * session.bsz / (time.perf_counter() - t1):.2f} token/s")
                     infer_time = time.perf_counter() - t1
-                    infer_speed = (idx + 1) / infer_time
+                    infer_speed = (idx + 1) * session.bsz / infer_time
                     break
 
                 with timer("MLX.NextPos", debug=debug):

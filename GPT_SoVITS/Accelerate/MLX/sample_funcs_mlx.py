@@ -20,11 +20,11 @@ class SampleProtocolMLX(Protocol):
 
 def apply_repetition_penalty(logits: Array, previous_tokens: Array, repetition_penalty: float):
     batch_idx = mx.arange(previous_tokens.shape[0])
-    selected_logits = logits[batch_idx, previous_tokens]
+    selected_logits = mx.take_along_axis(logits, previous_tokens, axis=1)
     selected_logits = mx.where(
         selected_logits < 0, selected_logits * repetition_penalty, selected_logits / repetition_penalty
     )
-    logits[batch_idx, previous_tokens] = selected_logits
+    logits[batch_idx.reshape(-1, 1), previous_tokens] = selected_logits
     return logits
 
 

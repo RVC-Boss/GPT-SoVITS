@@ -71,7 +71,7 @@ class T2SEngine(T2SEngineProtocol):
                             session.kv_cache = decoder.init_cache(session.bsz)
                             t1 = time.perf_counter()
                             xy_dec = decoder.h.prefill(session.xy_pos, session.kv_cache, session.attn_mask)
-                            xy_dec = xy_dec[None, batch_idx, session.input_pos - 1]
+                            xy_dec = xy_dec[batch_idx, None, session.input_pos - 1]
                     else:
                         if (
                             request.use_cuda_graph
@@ -101,7 +101,7 @@ class T2SEngine(T2SEngineProtocol):
 
                     with torch.cuda.stream(session.stream) if session.stream is not None else contextlib.nullcontext():
                         decoder.post_forward(idx, session)
-                        logits = decoder.ar_predict_layer(xy_dec[:, -1])
+                        logits = decoder.ar_predict_layer(xy_dec.squeeze(1))
 
                         if idx == 0:
                             logits[:, -1] = float("-inf")
@@ -115,7 +115,7 @@ class T2SEngine(T2SEngineProtocol):
                                 repetition_penalty=request.repetition_penalty,
                                 temperature=request.temperature,
                             )
-                            session.y[batch_idx, session.y_len + idx] = samples
+                            session.y[batch_idx.reshape(-1, 1), session.y_len + idx] = samples
                             session.input_pos.add_(1)
 
                         with torch_profiler.record("EOS"), timer("Torch.EOS", debug=debug):
