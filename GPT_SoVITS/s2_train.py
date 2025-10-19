@@ -17,6 +17,7 @@ import torch.multiprocessing as mp
 from torch.cuda.amp import GradScaler
 musa_ddp = False
 if musa_utils.is_available():
+    os.environ["MUSA_LAUNCH_BLOCKING"] = 1
     autocast = torch.musa.amp.autocast
     musa_ddp = musa_utils.should_ddp()
 elif torch.cuda.is_available():
