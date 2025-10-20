@@ -262,7 +262,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if is_lora is True and is_exist is False:
-        info = f"{path_sovits} SoVITS {model_version} {i18n('底模缺失，无法加载相应 LoRA 权重')}"
+        info = f"{path_sovits} SoVITS {model_version} {i18n('底模缺失, 无法加载相应 LoRA 权重')}"
         gr.Warning(info)
         raise FileNotFoundError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -298,7 +298,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             gr.update(visible=visible_inp_refs),
             gr.update(value=False, interactive=True if model_version not in v3v4set else False),
             gr.update(visible=True if model_version == "v3" else False),
-            gr.update(value=i18n("模型加载中，请等待"), interactive=False),
+            gr.update(value=i18n("模型加载中, 请等待"), interactive=False),
         )
 
     hps = DictToAttrRecursive(hps)
@@ -524,7 +524,7 @@ def audio_sr(audio, sr):
         try:
             sr_model = AP_BWE(infer_device, DictToAttrRecursive)
         except FileNotFoundError:
-            gr.Warning(i18n("你没有下载超分模型的参数，因此不进行超分。如想超分请先参照教程把文件下载好"))
+            gr.Warning(i18n("你没有下载超分模型的参数, 因此不进行超分, 如想超分请先参照教程把文件下载好"))
             return audio.cpu().numpy(), sr
     return sr_model(audio, sr)
 
@@ -590,8 +590,8 @@ def get_tts_wav(
         assert vq_model
         wav16k, sr = librosa.load(ref_wav_path, sr=16000)
         if wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000:
-            gr.Warning(i18n("参考音频在3~10秒范围外，请更换！"))
-            raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
+            gr.Warning(i18n("参考音频在3~10秒范围外, 请更换!"))
+            raise OSError(i18n("参考音频在3~10秒范围外, 请更换!"))
         wav16k_t = torch.from_numpy(wav16k)
         if is_half is True:
             wav16k_t = wav16k_t.half().to(infer_device)
@@ -722,7 +722,7 @@ def get_tts_wav(
     t2 = sum(t[2::3])
     t3 = sum(t[3::3])
 
-    infer_speed_avg = sum(infer_len) / sum(infer_time)
+    infer_speed_avg = sum(infer_len) / sum(infer_time) if infer_time else 0
     rtf_value = sum(t) / (audio_opt_n.__len__() / opt_sr)
 
     console.print(f">> Time Stamps: {t0:.3f}\t{t1:.3f}\t{t2:.3f}\t{t3:.3f}")

@@ -586,7 +586,7 @@ def get_sovits_weights(sovits_path):
 
     model_version, version, if_lora_v3, hps, dict_s2 = inspect_version(sovits_path)
     if if_lora_v3 is True and is_exist_s2gv3 is False:
-        logger.info("SoVITS V3 底模缺失，无法加载相应 LoRA 权重")
+        logger.info("SoVITS V3 底模缺失, 无法加载相应 LoRA 权重")
 
     hps = DictToAttrRecursive(hps)
     hps.model.semantic_frame_rate = "25hz"

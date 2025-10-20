@@ -151,7 +151,7 @@ with gr.Blocks(title="UVR5 WebUI", analytics_enabled=False) as app:
                     + i18n("(1)MDX-Net(onnx_dereverb):对于双通道混响是最好的选择，不能去除单通道混响；")
                     + "<br>&emsp;"
                     + i18n(
-                        "(234)DeEcho:去除延迟效果。Aggressive比Normal去除得更彻底，DeReverb额外去除混响，可去除单声道混响，但是对高频重的板式混响去不干净。"
+                        "(234)DeEcho:去除延迟效果. Aggressive比Normal去除得更彻底，DeReverb额外去除混响，可去除单声道混响，但是对高频重的板式混响去不干净."
                     )
                     + "<br>"
                     + i18n("去混响/去延迟，附：")

@@ -118,7 +118,6 @@ class T2SDecoder(T2SDecoderABC):
             range_tensor = torch.arange(self.max_seq_length).view(1, 1, 1, self.max_seq_length)
             prefill_len_expanded = prefill_len.view(bsz, 1, 1, 1)
             attn_mask = range_tensor < prefill_len_expanded
-            attn_mask = attn_mask.expand(-1, self.n_head, -1, -1)
 
             session.attn_mask = attn_mask
 

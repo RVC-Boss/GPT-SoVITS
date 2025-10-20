@@ -147,5 +147,5 @@ class T2SSessionMLX:
                 )
                 attn_mask[bs, pos:seq_len, pos:seq_len] = ar_mask
 
-            attn_mask = mx.repeat(mx.expand_dims(attn_mask, 1), decoder.n_head, 1)
+            attn_mask = mx.expand_dims(attn_mask, 1)
             self.attn_mask = attn_mask

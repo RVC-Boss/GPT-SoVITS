@@ -25,13 +25,13 @@ pretrained_gpt_name = {
     "v2ProPlus": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
 }
 name2sovits_path = {
-    "不训练直接推v2底模！": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
     "不训练直接推v2Pro底模！": "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth",
+    "不训练直接推v2底模！": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
     "不训练直接推v2ProPlus底模！": "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth",
 }
 name2gpt_path = {
-    "不训练直接推v2底模！": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
     "不训练直接推v3底模！": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "不训练直接推v2底模！": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
 }
 SoVITS_weight_root = [
     "SoVITS_weights",
@@ -77,9 +77,6 @@ def custom_sort_key(s):
 
 def get_weights_names(i18n):
     SoVITS_names: list[tuple[str, str]] = []
-    for key, value in name2sovits_path.items():
-        if os.path.exists(value):
-            SoVITS_names.append((i18n(key), value))
     for path in SoVITS_weight_root:
         if not os.path.exists(path):
             continue
@@ -87,9 +84,6 @@ def get_weights_names(i18n):
             if name.endswith(".pth"):
                 SoVITS_names.append((f"{path}/{name}", f"{path}/{name}"))
     GPT_names: list[tuple[str, str]] = []
-    for key, value in name2gpt_path.items():
-        if os.path.exists(value):
-            GPT_names.append((i18n(key), value))
     for path in GPT_weight_root:
         if not os.path.exists(path):
             continue
@@ -100,11 +94,23 @@ def get_weights_names(i18n):
     SoVITS_names = sorted(SoVITS_names, key=custom_sort_key)
     GPT_names = sorted(GPT_names, key=custom_sort_key)
 
+    tmp_GPT: list[tuple[str, str]] = []
+    tmp_SoVITS: list[tuple[str, str]] = []
+
+    for key, value in name2gpt_path.items():
+        if os.path.exists(value):
+            tmp_GPT.append((i18n(key), value))
+
+    for key, value in name2sovits_path.items():
+        if os.path.exists(value):
+            tmp_SoVITS.append((i18n(key), value))
+
     for key, value in pretrained_sovits_name.items():
         if key in {"v3", "v4", "v1"}:
-            SoVITS_names.append((value, value))
-    GPT_names.append((pretrained_gpt_name["v1"], pretrained_gpt_name["v1"]))
-    return SoVITS_names, GPT_names
+            tmp_SoVITS.append((value, value))
+    tmp_GPT.append((pretrained_gpt_name["v1"], pretrained_gpt_name["v1"]))
+
+    return tmp_SoVITS + SoVITS_names, tmp_GPT + GPT_names
 
 
 def change_choices(i18n):
@@ -236,22 +242,3 @@ class Config:
         self.webui_port_subfix = webui_port_subfix
 
         self.api_port = api_port
-
-
-def get_implement(device: torch.device):
-    if torch.cuda.is_available():
-        idx = device.index
-        capability = torch.cuda.get_device_capability(idx)
-        major, minor = capability
-        sm_version = major + minor / 10.0
-        if sm_version >= 7.5:
-            return "flash_attn"
-        else:
-            if sys.platform == "linux":
-                return "sage_attn"
-            else:
-                return "naive"
-    elif torch.mps.is_available():
-        return "mlx"
-    else:
-        return "naive"

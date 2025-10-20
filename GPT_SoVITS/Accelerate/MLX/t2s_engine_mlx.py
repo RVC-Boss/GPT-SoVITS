@@ -29,7 +29,7 @@ class T2SEngine(T2SEngineProtocol):
         if isinstance(device, str):
             match device:
                 case "mx.cpu":
-                    device = mx.Device(mx.cpu)
+                    device = mx.Device(mx.cpu) if not mx.metal.is_available() else mx.Device(mx.gpu)
                 case "mx.gpu":
                     device = mx.Device(mx.gpu)
         device = cast(mx.Device, device)
@@ -57,6 +57,7 @@ class T2SEngine(T2SEngineProtocol):
         self.decoder_model.compile()
 
     def _handle_request(self, request: T2SRequest):
+        mx.clear_cache()
         decoder = self.decoder_model
         session = T2SSessionMLX(decoder, request, device=self.device, dtype=self.dtype)
         batch_idx = mx.arange(session.bsz)
@@ -195,7 +196,6 @@ class T2SEngine(T2SEngineProtocol):
         result_mlx = session.y_results[: request.valid_length]
         mx.eval(result_mlx)
         result = [torch.tensor(k) for k in result_mlx]
-        mx.clear_cache()
 
         if debug:
             timer.summary()

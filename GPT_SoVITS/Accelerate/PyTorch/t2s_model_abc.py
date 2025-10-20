@@ -308,7 +308,7 @@ class AttentionABC(nn.Module, ABC):
 
         attn = F.scaled_dot_product_attention(q, k, v, attn_mask)
 
-        attn = attn.transpose(1, 2).contiguous().view(1, -1, self.hidden_dim)
+        attn = attn.transpose(1, 2).contiguous().view(bsz, seqlen, -1)
 
         output = self.out_proj(attn)
 

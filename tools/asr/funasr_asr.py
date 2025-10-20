@@ -47,7 +47,7 @@ def create_model(language="zh"):
         model_revision = "master"
         path_vad = path_punc = None
         vad_model_revision = punc_model_revision = None
-        ###友情提示：粤语带VAD识别可能会有少量shape不对报错的，但是不带VAD可以.不带vad只能分阶段单独加标点。不过标点模型对粤语效果真的不行…
+        ###友情提示: 粤语带VAD识别可能会有少量shape不对报错的, 但是不带VAD可以.不带vad只能分阶段单独加标点, 不过标点模型对粤语效果真的不行…
     else:
         raise ValueError("FunASR 不支持该语言" + ": " + language)
 

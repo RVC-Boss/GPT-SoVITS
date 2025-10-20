@@ -319,7 +319,7 @@ def change_tts_inference(
     sovits_path: str,
     batched_infer_enabled: bool,
     backends_dropdown: str,
-    quantization_methods_dropdown: str | None,
+    quantization_methods_dropdown: str,
 ):
     global p_tts_inference
     env = os.environ.copy()
@@ -329,6 +329,8 @@ def change_tts_inference(
         cmd.extend(
             [
                 "GPT_SoVITS.inference_webui_fast", language,
+                "-b", backends_dropdown,
+                "-q", quantization_methods_dropdown,
                 "-d", f"{infer_device.type}:{gpu_number}",
                 "-p", str(webui_port_infer_tts),
                 "--gpt", gpt_path,
@@ -341,9 +343,9 @@ def change_tts_inference(
             [
                 "GPT_SoVITS.inference_webui", language,
                 "-b", backends_dropdown,
+                "-q", quantization_methods_dropdown,
                 "-d", f"{infer_device.type}:{gpu_number}",
                 "-p", str(webui_port_infer_tts),
-                "-q", str(quantization_methods_dropdown),
                 "--gpt", gpt_path,
                 "--sovits", sovits_path,
             ]
@@ -352,10 +354,17 @@ def change_tts_inference(
     if is_share:
         cmd.append("-s")
 
+    yield (
+        gr.skip(),
+        gr.skip(),
+        gr.skip(),
+    )
+
     if p_tts_inference is None:
         yield (
             gr.update(visible=False),
             gr.update(visible=True),
+            gr.skip(),
         )
         console.print(" ".join(cmd))
         p_tts_inference = Popen(cmd, env=env)
@@ -365,6 +374,7 @@ def change_tts_inference(
         yield (
             gr.update(visible=True),
             gr.update(visible=False),
+            gr.skip(),
         )
 
 
@@ -1281,13 +1291,6 @@ def sync(text):
     return gr.update(value=text)
 
 
-def changeBackend(flag: bool):
-    if flag:
-        return gr.update(choices=["Torch Varlen"], value="Torch Varlen")
-    else:
-        return gr.update(choices=backends_gradio, value=backends_gradio[-1][-1])
-
-
 def changeQuantization(backend: str, gradio_call=True):
     backend = backend.lower().replace("-", "_")
     if backend in MLX.backends:
@@ -1295,10 +1298,12 @@ def changeQuantization(backend: str, gradio_call=True):
     elif backend in PyTorch.backends:
         choices = quantization_methods_torch
     else:
-        choices = [None]
+        choices = ["None"]
+
+    choices = [str(c) for c in choices]
 
     if gradio_call:
-        return gr.update(choices=choices, value=None)
+        return gr.update(choices=choices, value="None")
     else:
         return choices
 
@@ -1334,7 +1339,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     with gr.Column(scale=3):
                         with gr.Row(equal_height=True):
                             slice_inp_path = gr.Textbox(
-                                label=i18n("音频自动切分输入路径，可文件可文件夹"),
+                                label=i18n("音频自动切分输入路径, 可文件可文件夹"),
                                 placeholder="D:/InputAudioFolder"
                                 if platform.system() == "Windows"
                                 else "~/InputAudioFolder",
@@ -1347,12 +1352,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                                 label=i18n("threshold:音量小于这个值视作静音的备选切割点"), value="-34"
                             )
                             min_length = gr.Textbox(
-                                label=i18n("min_length:每段最小多长，如果第一段太短一直和后面段连起来直到超过这个值"),
+                                label=i18n("min_length: 每段最小多长, 如果第一段太短一直和后面段连起来直到超过这个值"),
                                 value="4000",
                             )
                             min_interval = gr.Textbox(label=i18n("min_interval:最短切割间隔"), value="300")
                             hop_size = gr.Textbox(
-                                label=i18n("hop_size:怎么算音量曲线，越小精度越大计算量越高（不是精度越大效果越好）"),
+                                label=i18n("hop_size: 怎么算音量曲线, 越小精度越大计算量越高 (不是精度越大效果越好)"),
                                 value="10",
                             )
                             max_sil_kept = gr.Textbox(label=i18n("max_sil_kept:切完后静音最多留多长"), value="500")
@@ -1549,7 +1554,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                                 # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
                                 interactive=True,
                                 placeholder=i18n(
-                                    "填切割后音频所在目录！读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名（不是全路径）。如果留空则使用.list文件里的绝对全路径。"
+                                    "填切割后音频所在目录! 读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名 (不是全路径). 如果留空则使用.list文件里的绝对全路径."
                                 ),
                                 scale=10,
                             )
@@ -1727,7 +1732,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                             minimum=1,
                             maximum=max_sovits_epoch,
                             step=1,
-                            label=i18n("总训练轮数total_epoch，不建议太高"),
+                            label=i18n("总训练轮数total_epoch, 不建议太高"),
                             value=default_sovits_epoch,
                             interactive=True,
                         )
@@ -1868,7 +1873,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             with gr.TabItem("1C-" + i18n("推理")):
                 gr.Markdown(
                     value=i18n(
-                        "选择训练完存放在SoVITS_weights和GPT_weights下的模型。默认的几个是底模，体验5秒Zero Shot TTS不训练推理用。"
+                        "选择训练完存放在SoVITS_weights和GPT_weights下的模型. 默认的几个是底模, 体验5秒Zero Shot TTS不训练推理用."
                     )
                 )
                 with gr.Row(equal_height=True):
@@ -1917,8 +1922,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         with gr.Column():
                             quantization_methods_dropdown = gr.Dropdown(
                                 choices=cast(list, changeQuantization(backends_gradio[-1][-1], gradio_call=False)),
+                                value="None",
                                 label=i18n("量化方法"),
-                                value=None,
                                 interactive=True,
                             )
                         open_tts = gr.Button(
@@ -1928,11 +1933,6 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                             value=process_info(process_name_tts, "close"), variant="primary", visible=False
                         )
 
-                    batched_infer_enabled.change(
-                        changeBackend,
-                        [batched_infer_enabled],
-                        [backends_dropdown],
-                    )
                     backends_dropdown.change(
                         changeQuantization,
                         [backends_dropdown],
@@ -1949,7 +1949,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                             backends_dropdown,
                             quantization_methods_dropdown,
                         ],
-                        [open_tts, close_tts],
+                        [open_tts, close_tts, batched_infer_enabled],
                     )
                     close_tts.click(
                         change_tts_inference,
@@ -1961,7 +1961,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                             backends_dropdown,
                             quantization_methods_dropdown,
                         ],
-                        [open_tts, close_tts],
+                        [open_tts, close_tts, batched_infer_enabled],
                     )
             button1Ba_open.click(
                 open1Ba,
@@ -2017,12 +2017,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             )
 
         with gr.TabItem(i18n("2-GPT-SoVITS-变声")):
-            gr.Markdown(value=i18n("施工中，请静候佳音"))
+            gr.Markdown(value=i18n("施工中, 请静候佳音"))
 
-    app.queue().launch(  # concurrency_count=511, max_size=1022
-        server_name="0.0.0.0",
-        inbrowser=True,
-        share=is_share,
-        server_port=webui_port_main,
-        # quiet=True,
-    )
+app.queue().launch(
+    server_name="0.0.0.0",
+    inbrowser=True,
+    share=is_share,
+    server_port=webui_port_main,
+)

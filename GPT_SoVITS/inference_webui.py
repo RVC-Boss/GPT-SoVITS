@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import contextlib
 import gc
 import logging
@@ -296,14 +297,14 @@ def get_bert_feature(text, word2ph):
     return phone_level_feature_t.T
 
 
-def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
+async def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
     global vq_model, hps, version, model_version, dict_language
     model_version, version, is_lora, hps, dict_s2 = inspect_version(sovits_path)
     print(sovits_path, version, model_version, is_lora)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if is_lora is True and is_exist is False:
-        info = f"{path_sovits} SoVITS {model_version} {i18n('底模缺失，无法加载相应 LoRA 权重')}"
+        info = f"{path_sovits} SoVITS {model_version} {i18n('底模缺失, 无法加载相应 LoRA 权重')}"
         gr.Warning(info)
         raise FileNotFoundError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -339,7 +340,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             gr.update(visible=visible_inp_refs),
             gr.update(value=False, interactive=True if model_version not in v3v4set else False),
             gr.update(visible=True if model_version == "v3" else False),
-            gr.update(value=i18n("模型加载中，请等待"), interactive=False),
+            gr.update(value=i18n("模型加载中, 请等待"), interactive=False),
         )
 
     hps = DictToAttrRecursive(hps)
@@ -368,7 +369,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         console.print(f">> loading sovits_{model_version}", vq_model.load_state_dict(dict_s2["weight"]))
     else:
         path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
-        console.print(f">> loading sovits_{model_version}spretrained_G")
+        console.print(f">> loading sovits_{model_version} pretrained_G")
         dict_pretrain = torch.load(path_sovits)["weight"]
         console.print(f">> loading sovits_{model_version}_lora{model_version}")
         dict_pretrain.update(dict_s2["weight"])
@@ -401,10 +402,10 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
 
 
 with contextlib.suppress(UnboundLocalError):
-    next(change_sovits_weights(sovits_path))
+    asyncio.run(anext(change_sovits_weights(sovits_path)))
 
 
-def change_gpt_weights(gpt_path):
+async def change_gpt_weights(gpt_path):
     global t2s_engine, config
     if "mlx" in ar_backend.lower():
         t2s_engine = MLX.T2SEngineMLX(
@@ -425,7 +426,7 @@ def change_gpt_weights(gpt_path):
     console.print(">> Number of parameter: %.2fM" % (total / 1e6))
 
 
-change_gpt_weights(gpt_path)
+asyncio.run(change_gpt_weights(gpt_path))
 
 
 def clean_hifigan_model():
@@ -677,7 +678,7 @@ def audio_sr(audio, sr):
         try:
             sr_model = AP_BWE(infer_device, DictToAttrRecursive)
         except FileNotFoundError:
-            gr.Warning(i18n("你没有下载超分模型的参数，因此不进行超分。如想超分请先参照教程把文件下载好"))
+            gr.Warning(i18n("你没有下载超分模型的参数, 因此不进行超分, 如想超分请先参照教程把文件下载好"))
             return audio.cpu().numpy(), sr
     return sr_model(audio, sr)
 
@@ -685,7 +686,7 @@ def audio_sr(audio, sr):
 cache: dict[int, Any] = {}
 
 
-def get_tts_wav(
+async def get_tts_wav(
     ref_wav_path,
     prompt_text,
     prompt_language,
@@ -702,8 +703,10 @@ def get_tts_wav(
     sample_steps=8,
     if_sr=False,
     pause_second=0.3,
+    progress=gr.Progress(),
 ):
     torch.set_grad_enabled(False)
+    progress(0, desc="Inferencing...")
     debug = os.getenv("DEBUG") == "1"
     ttfb_time = ttime()
 
@@ -751,8 +754,8 @@ def get_tts_wav(
         assert vq_model
         wav16k, sr = librosa.load(ref_wav_path, sr=16000)
         if wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000:
-            gr.Warning(i18n("参考音频在3~10秒范围外，请更换！"))
-            raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
+            gr.Warning(i18n("参考音频在3~10秒范围外, 请更换!"))
+            raise OSError(i18n("参考音频在3~10秒范围外, 请更换!"))
         wav16k_t = torch.from_numpy(wav16k)
         if is_half is True:
             wav16k_t = wav16k_t.half().to(infer_device)
@@ -795,6 +798,7 @@ def get_tts_wav(
     infer_time: list[float] = []
     assert vq_model
 
+    percent = 1 / len(texts)
     for i_text, text in enumerate(texts):
         # 解决输入目标文本的空行导致报错的问题
         if len(text.strip()) == 0:
@@ -835,7 +839,7 @@ def get_tts_wav(
                 raise RuntimeError()
             pred_semantic_list = t2s_result.result
             assert pred_semantic_list, t2s_result.traceback
-            pred_semantic = pred_semantic_list[0].unsqueeze(0).to(infer_device)
+            pred_semantic = pred_semantic_list[0].unsqueeze(0).unsqueeze(0).to(infer_device)
             infer_len.append(t2s_result.total_tokens)
             infer_time.append(t2s_result.infer_speed[-1])
 
@@ -850,7 +854,7 @@ def get_tts_wav(
                 init_sv_cn()
             if inp_refs:
                 for path in inp_refs:
-                    try:  # 这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
+                    try:  # 这里加上提取sv的逻辑, 要么一堆sv一堆refer, 要么单个sv单个refer
                         refer, audio_tensor = get_spepc(hps, path.name, dtype, infer_device, is_v2pro)
                         refers.append(refer)
                         if is_v2pro:
@@ -943,6 +947,7 @@ def get_tts_wav(
         t4 = ttime()
         t.extend([t2 - t1, t3 - t2, t4 - t3])
         t1 = ttime()
+        progress((i_text + 1) * percent, desc="Inferencing...")
 
     audio_opt_t = torch.cat(audio_opt, 0)  # np.concatenate
     if model_version in {"v1", "v2", "v2Pro", "v2ProPlus"}:
@@ -965,7 +970,7 @@ def get_tts_wav(
     t2 = sum(t[2::3])
     t3 = sum(t[3::3])
 
-    infer_speed_avg = sum(infer_len) / sum(infer_time)
+    infer_speed_avg = sum(infer_len) / sum(infer_time) if infer_time else 0
     rtf_value = sum(t) / (audio_opt_n.__len__() / opt_sr)
 
     console.print(f">> Time Stamps: {t0:.3f}\t{t1:.3f}\t{t2:.3f}\t{t3:.3f}")
@@ -977,15 +982,21 @@ def get_tts_wav(
 
     if ttfb_time > 2:
         console.print(f">> TTFB: {ttfb_time:.3f} s")
-        gr.Info(f">> TTFB: {ttfb_time:.3f} s")
+        gr.Info(f"{ttfb_time:.3f} s", title="TTFB")
     else:
         console.print(f">> TTFB: {ttfb_time * 1000:.3f} ms")
-        gr.Info(f">> TTFB: {ttfb_time * 1000:.3f} ms")
+        gr.Info(f"{ttfb_time * 1000:.3f} ms", title="TTFB")
 
+    progress(1, desc="Done")
     yield opt_sr, (audio_opt_n * 32767).astype(np.int16)
 
-    if torch.cuda.is_available():
+    gc.collect()
+
+    if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "mps":
+        torch.mps.empty_cache()
+
     gc.collect()
 
 
@@ -998,7 +1009,7 @@ def split(todo_text):
     todo_texts = []
     while 1:
         if i_split_head >= len_text:
-            break  # 结尾一定有标点，所以直接跳出即可，最后一段在上次已加入
+            break  # 结尾一定有标点, 所以直接跳出即可, 最后一段在上次已加入
         if todo_text[i_split_head] in splits:
             i_split_head += 1
             todo_texts.append(todo_text[i_split_tail:i_split_head])
@@ -1040,7 +1051,7 @@ def cut2(inp):
             tmp_str = ""
     if tmp_str != "":
         opts.append(tmp_str)
-    if len(opts) > 1 and len(opts[-1]) < 50:  # 如果最后一个太短了，和前一个合一起
+    if len(opts) > 1 and len(opts[-1]) < 50:  # 如果最后一个太短了, 和前一个合一起
         opts[-2] = opts[-2] + opts[-1]
         opts = opts[:-1]
     opts = [item for item in opts if not set(item).issubset(punctuation)]
@@ -1143,7 +1154,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             with gr.Row(equal_height=True):
                 with gr.Column(scale=1):
                     inp_ref = gr.Audio(
-                        label=i18n("请上传3~10秒内参考音频，超过会报错！"),
+                        label=i18n("请上传3~10秒内参考音频, 超过会报错!"),
                         type="filepath",
                         sources="upload",
                         scale=13,
@@ -1153,14 +1164,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 with gr.Column(scale=1):
                     gr.Markdown(
                         html_center(
-                            i18n("使用无参考文本模式时建议使用微调的GPT")
-                            + "<br>"
-                            + i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。")
+                            i18n("使用无参考文本模式时建议使用微调的GPT") + ", " + i18n("开启后无视填写的参考文本")
                         )
                     )
                     ref_text_free = gr.Checkbox(
                         label=i18n("开启无参考文本模式"),
-                        info=i18n("不填参考文本亦相当于开启") + ", " + i18n("v3暂不支持该模式，使用了会报错。"),
+                        info=i18n("不填参考文本亦相当于开启") + ", " + i18n("v3暂不支持该模式, 使用了会报错"),
                         value=False,
                         interactive=True if model_version not in v3v4set else False,
                         show_label=True,
@@ -1178,14 +1187,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             inp_refs = (
                 gr.File(
                     label=i18n(
-                        "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"
+                        "可选项: 通过拖拽多个文件上传多个参考音频 (建议同性), 平均融合他们的音色. 如不填写此项, 音色由左侧单个参考音频控制. 如是微调模型, 建议参考音频全部在微调训练集音色内, 底模不用管."
                     ),
                     file_count="multiple",
                 )
                 if model_version not in v3v4set
                 else gr.File(
                     label=i18n(
-                        "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"
+                        "可选项: 通过拖拽多个文件上传多个参考音频 (建议同性), 平均融合他们的音色. 如不填写此项, 音色由左侧单个参考音频控制. 如是微调模型, 建议参考音频全部在微调训练集音色内, 底模不用管."
                     ),
                     file_count="multiple",
                     visible=False,
@@ -1219,7 +1228,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=30, max_lines=40)
         with gr.Column(scale=1):
             text_language = gr.Dropdown(
-                label=i18n("需要合成的语种") + i18n(".限制范围越小判别效果越好。"),
+                label=i18n("需要合成的语种") + ", " + i18n("限制范围越小判别效果越好"),
                 choices=list(dict_language.keys()),
                 value=i18n("中文"),
                 scale=1,
@@ -1316,7 +1325,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
 
 if __name__ == "__main__":
     set_high_priority()
-    app.queue(api_open=False, default_concurrency_limit=1, max_size=1024).launch(
+    app.queue(
+        api_open=False,
+        default_concurrency_limit=1,
+        max_size=1024,
+    ).launch(
         server_name="0.0.0.0",
         inbrowser=True,
         share=is_share,

@@ -28,7 +28,7 @@ class T2SEngine(T2SEngineProtocol):
         assert device.type in {"cpu", "cuda", "mps", "xpu", "mtia"}
         assert dtype in {torch.float16, torch.bfloat16, torch.float32}
 
-        self.device = device
+        self.device = device if device.type != "mps" else torch.device("cpu")
         self.dtype = dtype
 
         self.decoder_model: T2SDecoderABC = decoder_model.to(self.device, self.dtype)
@@ -61,11 +61,11 @@ class T2SEngine(T2SEngineProtocol):
                 ) as progress,
             ):
                 torch_profiler.start()
-                max_token = min(int(1500 - session.input_pos.max()), 1000)
+                max_token = min(int(1500 - session.input_pos.max()), 1000) * session.bsz
                 task = progress.add_task("T2S Decoding", total=max_token)
 
                 for idx in range(max_token):
-                    progress.update(task, advance=1)
+                    progress.update(task, advance=session.bsz)
                     if idx == 0:
                         with torch_profiler.record("Prefill"), timer("Torch.Prefill", debug=debug):
                             session.kv_cache = decoder.init_cache(session.bsz)
@@ -128,7 +128,7 @@ class T2SEngine(T2SEngineProtocol):
 
                             if newly_done_indices.numel() > 0:
                                 for i in newly_done_indices:
-                                    session.y_results[i] = session.y[i, session.y_len : session.y_len + idx]
+                                    session.y_results[i] = session.y[i, session.y_len : session.y_len + idx].squeeze(0)
                                     session.completed[newly_done_indices] = True
 
                         if torch.all(session.completed).item():
@@ -145,7 +145,9 @@ class T2SEngine(T2SEngineProtocol):
                         if (request.early_stop_num != -1 and idx >= request.early_stop_num) or idx == max_token - 1:
                             for i in range(session.bsz):
                                 if not session.completed[i].item():
-                                    session.y_results[i] = session.y[[i], session.y_len : session.y_len + idx]
+                                    session.y_results[i] = session.y[[i], session.y_len : session.y_len + idx].squeeze(
+                                        0
+                                    )
                                     session.completed[i] = True
                                 logger.error("Bad Full Prediction")
                                 infer_time = time.perf_counter() - t1

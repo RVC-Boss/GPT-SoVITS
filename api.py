@@ -375,7 +375,7 @@ def get_sovits_weights(sovits_path):
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
 
     if if_lora_v3 is True and is_exist is False:
-        logger.info(f"SoVITS {model_version} 底模缺失，无法加载相应 LoRA 权重")
+        logger.info(f"SoVITS {model_version} 底模缺失, 无法加载相应 LoRA 权重")
 
     dict_s2 = load_sovits_new(sovits_path)
     hps = dict_s2["config"]

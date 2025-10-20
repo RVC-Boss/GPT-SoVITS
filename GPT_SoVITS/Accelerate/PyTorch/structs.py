@@ -99,7 +99,7 @@ class T2SSession:
 
             # Forward args
             self.x = [i.to(device) for i in request.x]
-            self.x_lens = request.x_lens.to(torch.int32)
+            self.x_lens = request.x_lens.to(device, torch.int32)
             self.y = torch.zeros((bsz, decoder.max_seq_length)).to(torch.int32)
             self.y[:, : request.prompts.shape[-1]] = request.prompts
             self.bert_feature = [i.to(device, dtype) for i in request.bert_feature]
@@ -144,7 +144,7 @@ class T2SSession:
                 attn_mask[bs, pos:seq_len, pos:seq_len] = ar_mask
 
             self.attn_mask = attn_mask
-            self.attn_mask = attn_mask.unsqueeze(0).expand(-1, decoder.n_head, -1, -1)
+            self.attn_mask = attn_mask.unsqueeze(1)
 
             self.id: int = -1
 

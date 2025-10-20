@@ -225,7 +225,7 @@ switch ($Device) {
             Write-Warning "CUDA 12.8 Is Not Supported By Current Driver"
         }
         Write-Info "Installing PyTorch For CUDA 12.8..."
-        Invoke-Pip torch torchao --index-url "https://download.pytorch.org/whl/cu128"
+        Invoke-Pip torch torchao torchaudio torchcodec --index-url "https://download.pytorch.org/whl/cu128"
         Invoke-Conda cuda-nvcc=12.8
         Invoke-Pip psutil ninja packaging wheel "setuptools>=42"
         Write-Info "Installing Flash Attn..."
@@ -240,7 +240,7 @@ switch ($Device) {
             Write-Warning "CUDA 12.6 Is Not Supported By Current Driver"
         }
         Write-Info "Installing PyTorch For CUDA 12.6..."
-        Invoke-Pip torch torchao --index-url "https://download.pytorch.org/whl/cu126"
+        Invoke-Pip torch torchao torchaudio torchcodec --index-url "https://download.pytorch.org/whl/cu126"
         Invoke-Conda cuda-nvcc=12.6
         Invoke-Pip psutil ninja packaging wheel "setuptools>=42"
         Write-Info "Installing Flash Attn..."
@@ -249,7 +249,7 @@ switch ($Device) {
     }
     "CPU" {
         Write-Info "Installing PyTorch For CPU..."
-        Invoke-Pip torch torchao --index-url "https://download.pytorch.org/whl/cpu"
+        Invoke-Pip torch torchao torchaudio torchcodec --index-url "https://download.pytorch.org/whl/cpu"
     }
 }
 Write-Success "PyTorch Installed"

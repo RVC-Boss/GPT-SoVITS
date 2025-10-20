@@ -77,7 +77,7 @@ def _remove_commas(m):
 
 def _expand_time(m):
     """
-    将 24 小时制的时间转换为 12 小时制的时间表示方式。
+    将 24 小时制的时间转换为 12 小时制的时间表示方式
 
     Examples:
         input: "13:00 / 4:00 / 13:30"

@@ -420,7 +420,6 @@ class T2SDecoderABC(nn.Module, T2SDecoderProtocol):
             range_tensor = mx.arange(self.max_seq_length).reshape(1, 1, 1, self.max_seq_length)
             prefill_len_expanded = prefill_len.reshape(bsz, 1, 1, 1)
             attn_mask = range_tensor < prefill_len_expanded
-            attn_mask = mx.repeat(attn_mask, self.n_head, 1)
 
             session.attn_mask = attn_mask
 
