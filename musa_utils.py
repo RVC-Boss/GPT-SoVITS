@@ -68,8 +68,7 @@ def get_device_dtype(device_idx: int = 0) -> tuple[torch.dtype, float, float]:
     return dtype, version_val, mem_gb
 
 def should_ddp(device_idx: int = 0) -> bool:
-    device_name = torch.musa.get_device_properties(device_idx).name
-    numbers_in_name = [int(n) for n in re.findall(r'\d+', device_name)]
+    _, version_val, _ = get_device_dtype(device_idx)
     if version_val <= 2.1:
         return False
     else:

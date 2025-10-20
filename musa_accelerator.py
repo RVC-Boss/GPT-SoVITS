@@ -18,6 +18,8 @@ from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+from musa_utils import _musa_available
+
 import logging
 _log = logging.getLogger(__name__)
 
