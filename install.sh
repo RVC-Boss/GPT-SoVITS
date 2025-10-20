@@ -330,15 +330,15 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
     CUDAVERSION=$(nvidia-smi | grep "CUDA Version" | sed -E 's/.*CUDA Version: ([0-9]+\.[0-9]+).*/\1/')
     echo -e "${INFO}Maximum CUDA Version Supported By Current Driver: $CUDAVERSION"
     if [ "$CUDA" = 128 ]; then
-        if awk "BEGIN {exit !($CUDAVERSION < 12.8)}"; then
-            echo -r "${WARNING}CUDA 12.8 Is Not Supported By Current Driver"
+        if awk "BEGIN {exit !($CUDAVERSION < 12.0)}"; then
+            echo -e "${WARNING}CUDA 12.8 Is Not Supported By Current Driver"
         fi
         echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
         run_pip_quiet torch torchao --index-url "https://download.pytorch.org/whl/cu128"
         run_conda_quiet cuda-nvcc=12.8
     elif [ "$CUDA" = 126 ]; then
-        if awk "BEGIN {exit !($CUDAVERSION < 12.6)}"; then
-            echo -r "${WARNING}CUDA 12.6 Is Not Supported By Current Driver"
+        if awk "BEGIN {exit !($CUDAVERSION < 12.0)}"; then
+            echo -e "${WARNING}CUDA 12.6 Is Not Supported By Current Driver"
         fi
         echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
         run_pip_quiet torch torchao --index-url "https://download.pytorch.org/whl/cu126"

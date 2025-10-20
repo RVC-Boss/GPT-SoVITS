@@ -221,7 +221,7 @@ switch ($Device) {
         $cudaLine = nvidia-smi | Select-String "CUDA Version"
         $version = ($cudaLine -split "CUDA Version:")[1].Trim()
         Write-Info "Maximum CUDA Version Supported By Current Driver: $version"
-        if ([version](nvidia-smi | Select-String "CUDA Version" | ForEach-Object { ($_ -split "CUDA Version:")[1].Trim() }) -ge [version]"12.8") {
+        if ([version](nvidia-smi | Select-String "CUDA Version" | ForEach-Object { ($_ -split "CUDA Version:")[1].Trim() }) -ge [version]"12.0") {
             Write-Warning "CUDA 12.8 Is Not Supported By Current Driver"
         }
         Write-Info "Installing PyTorch For CUDA 12.8..."
@@ -236,7 +236,7 @@ switch ($Device) {
         $cudaLine = nvidia-smi | Select-String "CUDA Version"
         $version = ($cudaLine -split "CUDA Version:")[1].Trim()
         Write-Info "Maximum CUDA Version Supported By Current Driver: $version"
-        if ([version](nvidia-smi | Select-String "CUDA Version" | ForEach-Object { ($_ -split "CUDA Version:")[1].Trim() }) -ge [version]"12.8") {
+        if ([version](nvidia-smi | Select-String "CUDA Version" | ForEach-Object { ($_ -split "CUDA Version:")[1].Trim() }) -ge [version]"12.0") {
             Write-Warning "CUDA 12.6 Is Not Supported By Current Driver"
         }
         Write-Info "Installing PyTorch For CUDA 12.6..."
