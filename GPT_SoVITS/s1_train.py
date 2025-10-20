@@ -29,6 +29,7 @@ import musa_utils
 if musa_utils.is_available():
     import musa_accelerator
     os.environ["MUSA_VISIBLE_DEVICES"] = os.environ["_MUSA_VISIBLE_DEVICES"]
+    os.environ["MUSA_LAUNCH_BLOCKING"] = "1"
 
 
 class my_model_ckpt(ModelCheckpoint):
