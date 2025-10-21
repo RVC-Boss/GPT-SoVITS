@@ -57,6 +57,7 @@ Görünmeyen konuşmacılar birkaç örnekli ince ayar demosu:
 |  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
 | RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
 | RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
+|  Apple M4   | 0.16  | 1363ms |     1      |         MLX Varlen          |
 |  Apple M4   | 0.06  |  UNK   |     40     |         MLX Varlen          |
 
 </div>
