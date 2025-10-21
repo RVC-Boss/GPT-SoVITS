@@ -91,7 +91,7 @@ def run(rank, n_gpus, hps):
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.s2_ckpt_dir, "eval"))
 
     dist.init_process_group(
-        backend= "mccl" if torch.musa.is_available() else ("gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl"),
+        backend= "mccl" if musa_ddp else ("gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl"),
         init_method="env://?use_libuv=False",
         world_size=n_gpus,
         rank=rank,
