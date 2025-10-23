@@ -45,8 +45,6 @@ if torch.cuda.is_available() and torch.version.cuda is not None:
             sm_version = major + minor / 10.0
             if sm_version >= 7.5:
                 backends.append("flash_attn_varlen_cuda_graph")
-# if torch.mps.is_available():
-#     backends.append("mps_flash_attn_varlen")
 
 BLACKWELL = False
 if torch.cuda.is_available() and torch.version.cuda is not None:

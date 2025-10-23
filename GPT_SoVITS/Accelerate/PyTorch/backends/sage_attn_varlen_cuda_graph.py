@@ -5,7 +5,6 @@ from .. import nn
 from ..structs import T2SSession
 from ..t2s_model_abc import (
     AttentionABC,
-    CUDAGraphCacheABC,
     FeedForward,
     KVCacheHND,
     KVCacheProtocol,
@@ -83,6 +82,7 @@ class TransformerDecoder(TransformerDecoderABC):
         max_seq_length,
         max_batch_size,
     ) -> None:
+        raise NotImplementedError()
         super().__init__(hidden_dim, n_layer, n_head, ffn_dim, vocab_size, max_seq_length, max_batch_size)
 
         self.layers = nn.ModuleList(  # type: ignore
@@ -114,67 +114,4 @@ class T2SDecoder(T2SDecoderABC):
         return list(), dict(cu_seqlens_q=session.cu_seqlens_q, cu_seqlens_kv=session.cu_seqlens_kv)
 
     def post_forward(self, idx: int, session: T2SSession):
-        if idx == 0:
-            session.cu_seqlens_q = torch.arange(0, session.bsz + 1, dtype=torch.int32)
-            session.cu_seqlens_kv = torch.cat([torch.tensor(0, dtype=torch.int32), session.input_pos])
-        else:
-            cu_seqlens_q = session.cu_seqlens_q
-            cu_seqlens_kv = session.cu_seqlens_kv
-            cu_seqlens_kv.add_(cu_seqlens_q)
-
-
-class CUDAGraphCache(CUDAGraphCacheABC):
-    def __init__(
-        self,
-        decoder: T2SDecoder,
-    ) -> None:
-        self.is_applicable = False
-        super().__init__(decoder)
-
-        if torch.cuda.is_available():
-            self.cu_seqlens_q = torch.arange(0, decoder.max_batch_size + 1, dtype=torch.int32).to(self.device)
-            self.cu_seqlens_kv = torch.cat([torch.tensor(0, dtype=torch.int32), self.input_pos]).to(self.device)
-
-    def release_graph(self, session: T2SSession):
-        if session.id == self.id:
-            self.assigned = False
-        else:
-            assert session.graph
-            session.graph.reset()
-            del (
-                session.graph,
-                session.xy_pos_,
-                session.xy_dec_,
-                session.input_pos,
-                session.kv_cache,
-                session.cu_seqlens_q,
-                session.cu_seqlens_kv,
-            )
-
-    def get_cache_graph(self, session: T2SSession):
-        assert self.graph
-        session.graph = self.graph
-        session.stream = self.stream
-
-        session.xy_pos_ = self.xy_pos
-        session.xy_dec_ = self.xy_dec
-        session.input_pos = self.input_pos.copy_(session.input_pos)
-
-        session.cu_seqlens_q = self.cu_seqlens_q
-        session.cu_seqlens_kv = self.cu_seqlens_kv
-
-        for cache, cache_ in zip(self.kv_cache, session.kv_cache):
-            cache.sync_cache(cache_)
-
-    def capture_new_graph(self, session: T2SSession):
-        session.xy_pos_ = self.xy_pos.clone()
-        session.xy_dec_ = self.xy_dec.clone()
-        session.input_pos = self.input_pos.clone().copy_(session.input_pos)
-
-        session.cu_seqlens_q = self.cu_seqlens_q.clone().copy_(session.cu_seqlens_q)
-        session.cu_seqlens_kv = self.cu_seqlens_kv.clone().copy_(session.cu_seqlens_kv)
-
-        args, kwds = self.decoder.pre_forward(session)
-        graph = self.decoder.capture(self.input_pos, self.xy_pos, self.xy_dec, self.kv_cache, *args, **kwds)
-        session.graph = graph
-        session.stream = torch.cuda.Stream()  # type: ignore
+        raise NotImplementedError()
