@@ -6,6 +6,7 @@ from ..structs import KVCacheProtocol, T2SSession
 from ..t2s_model_abc import (
     AttentionABC,
     CUDAGraphCacheABC,
+    CUDAGraphStateABC,
     FeedForward,
     KVCacheHND,
     T2SDecoderABC,
@@ -91,6 +92,8 @@ class T2SDecoder(T2SDecoderABC):
 
         self.kv_class = KVCacheHND
 
+        self.graph_cache_class = CUDAGraphCache
+
     def pre_forward(self, session: T2SSession):
         attn_mask = session.attn_mask
         return list(), dict(attn_mask=attn_mask)
@@ -111,57 +114,54 @@ class T2SDecoder(T2SDecoderABC):
         attn_mask[torch.arange(session.bsz), :, :, input_pos] = True
 
 
+class CUDAGraphState(CUDAGraphStateABC):
+    applicable: bool = False
+
+    def __init__(
+        self,
+        bsz: int,
+        decoder: T2SDecoderABC,
+    ) -> None:
+        self.attn_mask: Tensor = (
+            torch.randint(
+                0,
+                2,
+                (bsz, decoder.n_head, 1, decoder.max_seq_length),
+            )
+            .bool()
+            .to(decoder.device)
+        )
+
+        super().__init__(bsz, decoder)
+
+    def capture(self):
+        graph = self.decoder.capture(
+            self.input_pos,
+            self.xy_pos,
+            self.xy_dec,
+            self.kv_cache,
+            attn_mask=self.attn_mask,
+        )
+        self.graph = graph
+        self.stream = torch.cuda.Stream()
+
+    def assign_graph(self, session: T2SSession):
+        session.attn_mask = self.attn_mask
+        return super().assign_graph(session)
+
+
 class CUDAGraphCache(CUDAGraphCacheABC):
+    is_applicable = True
+
     def __init__(
         self,
         decoder,
+        cache_size: int = 5,
     ) -> None:
-        self.is_applicable = True
-        super().__init__(decoder)
-        if torch.cuda.is_available():
-            self.attn_mask = (
-                torch.randint(0, 2, (decoder.max_batch_size, decoder.n_head, 1, decoder.max_seq_length))
-                .bool()
-                .to(self.device, self.dtype)
-            )
+        super().__init__(decoder, cache_size)
 
-    def release_graph(self, session: T2SSession):
-        if session.id == self.id:
-            self.assigned = False
-        else:
-            assert session.graph
-            session.graph.reset()
-            del (
-                session.graph,
-                session.xy_pos_,
-                session.xy_dec_,
-                session.input_pos,
-                session.kv_cache,
-                session.attn_mask,
-            )
-
-    def get_cache_graph(self, session: T2SSession):
-        assert self.graph
-        session.graph = self.graph
-        session.stream = self.stream
-
-        session.xy_pos_ = self.xy_pos
-        session.xy_dec_ = self.xy_dec
-        session.input_pos = self.input_pos.copy_(session.input_pos)
-
-        session.attn_mask = self.attn_mask
-
-        for cache, cache_ in zip(self.kv_cache, session.kv_cache):
-            cache.sync_cache(cache_)
-
-    def capture_new_graph(self, session: T2SSession):
-        session.xy_pos_ = self.xy_pos.clone()
-        session.xy_dec_ = self.xy_dec.clone()
-        session.input_pos = self.input_pos.clone().copy_(session.input_pos)
-
-        session.attn_mask = self.attn_mask.clone().copy_(session.attn_mask)
-
-        args, kwds = self.decoder.pre_forward(session)
-        graph = self.decoder.capture(self.input_pos, self.xy_pos, self.xy_dec, self.kv_cache, *args, **kwds)
-        session.graph = graph
-        session.stream = torch.cuda.Stream()  # type: ignore
+    def create_graph_cache(self, bsz: int):
+        for _ in range(self.cache_size):
+            state = CUDAGraphState(bsz, self.decoder)
+            state.capture()
+            self.graph_cache[bsz].put(state)

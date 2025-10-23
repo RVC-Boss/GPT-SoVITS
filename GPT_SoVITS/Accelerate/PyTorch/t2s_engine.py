@@ -1,6 +1,6 @@
 import contextlib
+import gc
 import os
-import sys
 import time
 import traceback
 from importlib import import_module
@@ -34,7 +34,7 @@ class T2SEngine(T2SEngineProtocol):
         self.decoder_model: T2SDecoderABC = decoder_model.to(self.device, self.dtype)
         # self.decoder_model.compile()
 
-        self.graphcache: CUDAGraphCacheABC = self.init_cache()
+        self.graphcache: CUDAGraphCacheABC = decoder_model.graph_cache_class(self.decoder_model)
 
     def _handle_request(self, request: T2SRequest):
         with self.device:
@@ -47,6 +47,7 @@ class T2SEngine(T2SEngineProtocol):
             infer_speed = 0.0
             infer_time = 0.0
             idx = 0
+            graph_state = None
 
             torch_profiler = TorchProfiler(debug)
             with (
@@ -64,105 +65,132 @@ class T2SEngine(T2SEngineProtocol):
                 max_token = min(int(1500 - session.input_pos.max()), 1000) * session.bsz
                 task = progress.add_task("T2S Decoding", total=max_token)
 
-                for idx in range(max_token):
-                    progress.update(task, advance=session.bsz)
-                    if idx == 0:
-                        with torch_profiler.record("Prefill"), timer("Torch.Prefill", debug=debug):
-                            session.kv_cache = decoder.init_cache(session.bsz)
-                            t1 = time.perf_counter()
-                            xy_dec = decoder.h.prefill(session.xy_pos, session.kv_cache, session.attn_mask)
-                            xy_dec = xy_dec[batch_idx, None, session.input_pos - 1]
-                    else:
-                        if (
-                            request.use_cuda_graph
-                            and session.graph is None
-                            and self.graphcache.is_applicable
-                            and torch.cuda.is_available()
-                        ):
-                            self.graphcache.assign_graph(session)
-
-                        with torch_profiler.record("Decode"), timer("Torch.Decode", debug=debug):
-                            if session.graph:
-                                assert session.stream
-                                session.stream.wait_stream(torch.cuda.default_stream())
-                                with torch.cuda.stream(session.stream):
-                                    session.xy_pos_.copy_(session.xy_pos)
-                                    session.graph.replay()
-                                    xy_dec = session.xy_dec_.clone()
-                            else:
-                                args, kwds = decoder.pre_forward(session)
-                                xy_dec = decoder.h(
-                                    session.input_pos,
-                                    session.xy_pos,
-                                    session.kv_cache,
-                                    *args,
-                                    **kwds,
-                                )
-
-                    with torch.cuda.stream(session.stream) if session.stream is not None else contextlib.nullcontext():
-                        decoder.post_forward(idx, session)
-                        logits = decoder.ar_predict_layer(xy_dec.squeeze(1))
-
+                try:
+                    for idx in range(max_token):
+                        progress.update(task, advance=session.bsz)
                         if idx == 0:
-                            logits[:, -1] = float("-inf")
+                            with torch_profiler.record("Prefill"), timer("Torch.Prefill", debug=debug):
+                                session.kv_cache = decoder.init_cache(session.bsz)
+                                t1 = time.perf_counter()
+                                xy_dec = decoder.h.prefill(session.xy_pos, session.kv_cache, session.attn_mask)
+                                xy_dec = xy_dec[batch_idx, None, session.input_pos - 1]
+                        else:
+                            if (
+                                idx == 1
+                                and request.use_cuda_graph
+                                and self.graphcache.is_applicable
+                                and torch.cuda.is_available()
+                                and torch.version.cuda is not None
+                                and os.environ.get("CUDAGraph", "1") != "0"
+                            ):
+                                graph_state = self.graphcache[session.bsz].assign_graph(session)
 
-                        with torch_profiler.record("Sampling"), timer("Torch.Sampling", debug=debug):
-                            samples = session.sample(
-                                logits=logits,
-                                previous_tokens=session.y[:, : session.y_len + idx],
-                                top_k=request.top_k,
-                                top_p=request.top_p,
-                                repetition_penalty=request.repetition_penalty,
-                                temperature=request.temperature,
-                            )
-                            session.y[batch_idx.reshape(-1, 1), session.y_len + idx] = samples
-                            session.input_pos.add_(1)
-
-                        with torch_profiler.record("EOS"), timer("Torch.EOS", debug=debug):
-                            argmax_token = torch.argmax(logits, dim=-1)
-                            sample_token = samples.squeeze(1)
-                            EOS_mask = (argmax_token == decoder.EOS) | (sample_token == decoder.EOS)
-
-                            newly_done_mask = EOS_mask & (~session.completed)
-                            newly_done_indices = newly_done_mask.nonzero()
-
-                            if newly_done_indices.numel() > 0:
-                                for i in newly_done_indices:
-                                    session.y_results[i] = session.y[i, session.y_len : session.y_len + idx].squeeze(0)
-                                    session.completed[newly_done_indices] = True
-
-                        if torch.all(session.completed).item():
-                            logger.info(
-                                f"T2S Decoding EOS {session.prefill_len.tolist().__str__().strip('[]')} -> {[i.size(-1) for i in session.y_results].__str__().strip('[]')}"
-                            )
-                            logger.info(
-                                f"Infer Speed: {(idx + 1) * session.bsz / (time.perf_counter() - t1):.2f} token/s"
-                            )
-                            infer_time = time.perf_counter() - t1
-                            infer_speed = (idx + 1) * session.bsz / infer_time
-                            break
-
-                        if (request.early_stop_num != -1 and idx >= request.early_stop_num) or idx == max_token - 1:
-                            for i in range(session.bsz):
-                                if not session.completed[i].item():
-                                    session.y_results[i] = session.y[[i], session.y_len : session.y_len + idx].squeeze(
-                                        0
+                            with torch_profiler.record("Decode"), timer("Torch.Decode", debug=debug):
+                                if session.graph:
+                                    assert session.stream
+                                    session.stream.wait_stream(torch.cuda.default_stream())
+                                    with torch.cuda.stream(session.stream):
+                                        session.xy_pos_.copy_(session.xy_pos)
+                                        session.graph.replay()
+                                        xy_dec = session.xy_dec_.clone()
+                                else:
+                                    args, kwds = decoder.pre_forward(session)
+                                    xy_dec = decoder.h(
+                                        session.input_pos,
+                                        session.xy_pos,
+                                        session.kv_cache,
+                                        *args,
+                                        **kwds,
                                     )
-                                    session.completed[i] = True
-                                logger.error("Bad Full Prediction")
+
+                        with (
+                            torch.cuda.stream(session.stream)
+                            if session.stream is not None
+                            else contextlib.nullcontext()
+                        ):
+                            decoder.post_forward(idx, session)
+                            logits = decoder.ar_predict_layer(xy_dec.squeeze(1))
+
+                            if idx == 0:
+                                logits[:, -1] = float("-inf")
+
+                            with torch_profiler.record("Sampling"), timer("Torch.Sampling", debug=debug):
+                                samples = session.sample(
+                                    logits=logits,
+                                    previous_tokens=session.y[:, : session.y_len + idx],
+                                    top_k=request.top_k,
+                                    top_p=request.top_p,
+                                    repetition_penalty=request.repetition_penalty,
+                                    temperature=request.temperature,
+                                )
+                                session.y[batch_idx.reshape(-1, 1), session.y_len + idx] = samples
+                                session.input_pos.add_(1)
+
+                            with torch_profiler.record("EOS"), timer("Torch.EOS", debug=debug):
+                                argmax_token = torch.argmax(logits, dim=-1)
+                                sample_token = samples.squeeze(1)
+                                EOS_mask = (argmax_token == decoder.EOS) | (sample_token == decoder.EOS)
+
+                                newly_done_mask = EOS_mask & (~session.completed)
+                                newly_done_indices = newly_done_mask.nonzero()
+
+                                if newly_done_indices.numel() > 0:
+                                    for i in newly_done_indices:
+                                        session.y_results[i] = session.y[
+                                            i, session.y_len : session.y_len + idx
+                                        ].squeeze(0)
+                                        session.completed[newly_done_indices] = True
+
+                            if torch.all(session.completed).item():
+                                logger.info(
+                                    f"T2S Decoding EOS {session.prefill_len.tolist().__str__().strip('[]')} -> {[i.size(-1) for i in session.y_results].__str__().strip('[]')}"
+                                )
+                                logger.info(
+                                    f"Infer Speed: {(idx + 1) * session.bsz / (time.perf_counter() - t1):.2f} token/s"
+                                )
                                 infer_time = time.perf_counter() - t1
                                 infer_speed = (idx + 1) * session.bsz / infer_time
-                            break
+                                break
 
-                        with torch_profiler.record("NextPos"), timer("Torch.NextPos", debug=debug):
-                            y_emb = decoder.ar_audio_embedding(samples)
-                            session.xy_pos = decoder.ar_audio_position(session.input_pos - session.x_lens, y_emb)
+                            if (request.early_stop_num != -1 and idx >= request.early_stop_num) or idx == max_token - 1:
+                                for i in range(session.bsz):
+                                    if not session.completed[i].item():
+                                        session.y_results[i] = session.y[
+                                            [i], session.y_len : session.y_len + idx
+                                        ].squeeze(0)
+                                        session.completed[i] = True
+                                    logger.error("Bad Full Prediction")
+                                    infer_time = time.perf_counter() - t1
+                                    infer_speed = (idx + 1) * session.bsz / infer_time
+                                break
 
-                        if idx == 10:
-                            torch_profiler.end()
+                            with torch_profiler.record("NextPos"), timer("Torch.NextPos", debug=debug):
+                                y_emb = decoder.ar_audio_embedding(samples)
+                                session.xy_pos = decoder.ar_audio_position(session.input_pos - session.x_lens, y_emb)
 
-            if request.use_cuda_graph and self.graphcache.is_applicable:
-                self.graphcache.release_graph(session)
+                            if idx == 10:
+                                torch_profiler.end()
+                finally:
+                    if (
+                        request.use_cuda_graph
+                        and self.graphcache.is_applicable
+                        and torch.cuda.is_available()
+                        and torch.version.cuda is not None
+                        and os.environ.get("CUDAGraph", "1") != "0"
+                    ):
+                        self.graphcache.release_graph(graph_state)
+
+                        match decoder.device.type:
+                            case "cuda":
+                                torch.cuda.empty_cache()
+                            case "mps":
+                                torch.mps.empty_cache()
+                            case "xpu":
+                                torch.xpu.empty_cache()
+                            case "mtia":
+                                torch.mtia.empty_cache()
+                            case "cpu":
+                                gc.collect(1)
 
             return session.y_results[: request.valid_length], infer_speed, infer_time, (idx + 1) * session.bsz
 
@@ -205,14 +233,3 @@ class T2SEngine(T2SEngineProtocol):
             logger.info(f"Quantized by {quantize_mode} Quantization")
 
         return decoder.eval()
-
-    def init_cache(self):
-        assert self.decoder_model
-
-        module_name = self.decoder_model.__class__.__module__
-        module = sys.modules.get(module_name)
-        assert module
-
-        target_class: type[CUDAGraphCacheABC] = getattr(module, "CUDAGraphCache")
-
-        return target_class(self.decoder_model)

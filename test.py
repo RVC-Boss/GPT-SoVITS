@@ -552,7 +552,7 @@ def get_tts_wav(
 ):
     torch.set_grad_enabled(False)
     debug = os.getenv("DEBUG") == "1"
-    ttfb_time = ttime()
+    ttft_time = ttime()
 
     if ref_wav_path:
         pass
@@ -698,7 +698,7 @@ def get_tts_wav(
         )[0][0]  # type: ignore
 
         if i_text == 0:
-            ttfb_time = ttime() - ttfb_time
+            ttft_time = ttime() - ttft_time
         max_audio = torch.abs(audio).max()  # 简单防止16bit爆音
         if max_audio > 1:
             audio = audio / max_audio
@@ -729,10 +729,10 @@ def get_tts_wav(
     console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
     console.print(f">> RTF: {rtf_value:.2f}")
 
-    if ttfb_time > 2:
-        console.print(f">> TTFB: {ttfb_time:.3f} s")
+    if ttft_time > 2:
+        console.print(f">> TTFT: {ttft_time:.3f} s")
     else:
-        console.print(f">> TTFB: {ttfb_time * 1000:.3f} ms")
+        console.print(f">> TTFT: {ttft_time * 1000:.3f} ms")
 
     yield opt_sr, (audio_opt_n * 32767).astype(np.int16)
 

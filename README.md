@@ -51,7 +51,7 @@ Unseen speakers few-shot fine-tuning demo:
 
 ## Infer Speed
 
-|   Device    |  RTF  |  TTFB  | Batch Size |           Backend           |
+|   Device    |  RTF  |  TTFT  | Batch Size |           Backend           |
 | :---------: | :---: | :----: | :--------: | :-------------------------: |
 |  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
 |  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
@@ -138,13 +138,13 @@ pip install -r requirements.txt
 
 ```bash
 conda activate GPTSoVits
-conda install ffmpeg=7 -c conda-forge
+conda install ffmpeg -c conda-forge
 ```
 
 ##### Ubuntu/Debian Users
 
 ```bash
-sudo apt install ffmpeg=7
+sudo apt install ffmpeg
 sudo apt install libsox-dev
 ```
 

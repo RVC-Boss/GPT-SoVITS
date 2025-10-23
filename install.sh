@@ -227,7 +227,7 @@ else
 fi
 
 echo -e "${INFO}Installing FFmpeg & CMake..."
-run_conda_quiet ffmpeg=7 cmake make
+run_conda_quiet ffmpeg cmake make
 echo -e "${SUCCESS}FFmpeg & CMake Installed"
 
 echo -e "${INFO}Installing unzip..."

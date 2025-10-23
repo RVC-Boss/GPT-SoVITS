@@ -708,7 +708,7 @@ async def get_tts_wav(
     torch.set_grad_enabled(False)
     progress(0, desc="Inferencing...")
     debug = os.getenv("DEBUG") == "1"
-    ttfb_time = ttime()
+    ttft_time = ttime()
 
     if ref_wav_path:
         pass
@@ -829,7 +829,9 @@ async def get_tts_wav(
                 top_p=top_p,
                 temperature=temperature,
                 early_stop_num=1500,
-                use_cuda_graph=torch.cuda.is_available(),  # Try to use CUDA Graph for all backend, fallback to normal if not applicapble
+                use_cuda_graph=torch.cuda.is_available()
+                and torch.version.cuda is not None
+                and os.environ.get("CUDAGraph", "1") != "0",
                 debug=debug,
             )
             assert t2s_engine
@@ -938,7 +940,7 @@ async def get_tts_wav(
                 wav_gen = vocoder_model(cfm_res)  # type: ignore
                 audio = wav_gen[0][0]
         if i_text == 0:
-            ttfb_time = ttime() - ttfb_time
+            ttft_time = ttime() - ttft_time
         max_audio = torch.abs(audio).max()  # 简单防止16bit爆音
         if max_audio > 1:
             audio = audio / max_audio
@@ -980,12 +982,12 @@ async def get_tts_wav(
     gr.Info(f"{infer_speed_avg:.2f} Token/s", title="Infer Speed")
     gr.Info(f"{rtf_value:.2f}", title="RTF")
 
-    if ttfb_time > 2:
-        console.print(f">> TTFB: {ttfb_time:.3f} s")
-        gr.Info(f"{ttfb_time:.3f} s", title="TTFB")
+    if ttft_time > 2:
+        console.print(f">> TTFT: {ttft_time:.3f} s")
+        gr.Info(f"{ttft_time:.3f} s", title="TTFT")
     else:
-        console.print(f">> TTFB: {ttfb_time * 1000:.3f} ms")
-        gr.Info(f"{ttfb_time * 1000:.3f} ms", title="TTFB")
+        console.print(f">> TTFT: {ttft_time * 1000:.3f} ms")
+        gr.Info(f"{ttft_time * 1000:.3f} ms", title="TTFT")
 
     progress(1, desc="Done")
     yield opt_sr, (audio_opt_n * 32767).astype(np.int16)

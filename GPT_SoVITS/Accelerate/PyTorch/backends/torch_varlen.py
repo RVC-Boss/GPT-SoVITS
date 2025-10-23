@@ -99,6 +99,8 @@ class T2SDecoder(T2SDecoderABC):
 
         self.kv_class = KVCacheHNDVarlen
 
+        self.graph_cache_class = CUDAGraphCache
+
     def capture(
         self,
         *args,
@@ -127,18 +129,13 @@ class T2SDecoder(T2SDecoderABC):
 
 
 class CUDAGraphCache(CUDAGraphCacheABC):
+    is_applicable = False
+
     def __init__(
         self,
         decoder,
     ) -> None:
-        self.is_applicable = False
         super().__init__(decoder)
 
-    def release_graph(self, session: T2SSession):
-        raise NotImplementedError("Cuda Graph Is Not Supported For Varlen Model")
-
-    def get_cache_graph(self, session: T2SSession):
-        raise NotImplementedError("Cuda Graph Is Not Supported For Varlen Model")
-
-    def capture_new_graph(self, session: T2SSession):
+    def create_graph_cache(self, bsz: int) -> NoReturn:
         raise NotImplementedError("Cuda Graph Is Not Supported For Varlen Model")

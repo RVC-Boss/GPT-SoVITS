@@ -8,11 +8,11 @@ import math
 import os
 import pickle
 import platform
-import random
 import time
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from pathlib import Path
+from queue import Queue
 from typing import Literal, MutableSequence
 
 import torch
@@ -479,6 +479,8 @@ class T2SDecoderABC(nn.Module, ABC, T2SDecoderProtocol):
             max_seq_length=max_seq_length,
         )
 
+        self.graph_cache_class: type[CUDAGraphCacheABC]
+
         self.bits: int
         self.group_size: int
 
@@ -639,56 +641,78 @@ class T2SDecoderABC(nn.Module, ABC, T2SDecoderProtocol):
                 raise ValueError(f"Unsupported Quantization Mode for PyTorch: {mode}")
 
 
-class CUDAGraphCacheABC(ABC):
+class CUDAGraphStateABC(ABC):
     def __init__(
         self,
+        bsz: int,
         decoder: T2SDecoderABC,
     ) -> None:
-        self.is_applicable: bool
+        self.bsz = bsz
+        self.embedding_dim = decoder.embedding_dim
+        self.dtype = decoder.bert_proj.bias.dtype
+        self.device = decoder.device
 
-        if torch.cuda.is_available() and self.is_applicable:
-            self.device: torch.device = decoder.device
-            self.dtype = decoder.bert_proj.bias.dtype
+        self.decoder: T2SDecoderABC = decoder
+        self.graph: torch.cuda.CUDAGraph | None = None
+        self.stream: torch.cuda.Stream | None = None
 
-            self.assigned: bool = False
+        self.xy_pos = torch.rand(size=(self.bsz, 1, self.embedding_dim), device=self.device).to(self.dtype)
+        self.kv_cache: MutableSequence[KVCacheProtocol] = decoder.init_cache(bsz)
+        self.xy_dec = self.xy_pos.clone()
+        self.input_pos = torch.tensor([10] * self.bsz, device=self.device).to(torch.int32)
 
-            self.decoder: T2SDecoderABC = decoder
-            self.kv_cache: MutableSequence[KVCacheProtocol] = decoder.init_cache(decoder.max_batch_size)
-            self.xy_pos = torch.rand(size=(decoder.max_batch_size, 1, decoder.embedding_dim), device=self.device).to(
-                self.dtype
-            )
-            self.xy_dec = self.xy_pos.clone()
+        self.capture()
 
-            self.input_pos = torch.tensor([10] * decoder.max_batch_size, device=self.device).int()
-            self.graph: torch.cuda.CUDAGraph | None = None
-            self.stream: torch.cuda.Stream | None
+    @abstractmethod
+    def capture(self): ...
 
-            self.id: int = random.randint(1, 2**32 - 1)
+    def assign_graph(self, session: T2SSession) -> CUDAGraphStateABC:
+        assert self.graph
+        session.graph = self.graph
+        session.stream = self.stream
 
-    def assign_graph(self, session: T2SSession):
-        if self.graph is None:
-            args, kwds = self.decoder.pre_forward(session)
-            graph = self.decoder.capture(self.input_pos, self.xy_pos, self.xy_dec, self.kv_cache, *args, **kwds)
-            self.graph = graph
-            self.stream = torch.cuda.Stream()
+        session.xy_pos_ = self.xy_pos
+        session.xy_dec_ = self.xy_dec
+        session.input_pos = self.input_pos.copy_(session.input_pos)
 
-        if self.assigned is False:
-            self.get_cache_graph(session)
-            session.id = self.id
-            self.assigned = True
+        for cache, cache_ in zip(self.kv_cache, session.kv_cache):
+            cache.sync_cache(cache_)
+
+        return self
+
+
+class CUDAGraphCacheABC(ABC):
+    is_applicable: bool
+
+    def __init__(self, decoder: T2SDecoderABC, cache_size: int = 5) -> None:
+        self.decoder = decoder
+        self.max_batch_size = decoder.max_batch_size
+        self.cache_size = cache_size
+
+        self.graph_cache: dict[int, Queue[CUDAGraphStateABC]] = {}
+
+        if torch.cuda.is_available() and torch.version.cuda is not None and os.environ.get("CUDAGraph", "1") != "0":
+            self.create_graph_cache(1)
+
+    def __getitem__(self, bsz: int) -> CUDAGraphStateABC:
+        if self.is_applicable:
+            assert bsz <= self.max_batch_size
+            if self.graph_cache.get(bsz) is None:
+                self.create_graph_cache(bsz)
+            return self.graph_cache[bsz].get()
         else:
-            self.capture_new_graph(session)
+            raise RuntimeError("CUDAGraph Is Not Applicable")
 
     @abstractmethod
-    def release_graph(self, session: T2SSession): ...
+    def create_graph_cache(self, bsz: int): ...
 
-    @abstractmethod
-    def get_cache_graph(self, session: T2SSession):
-        pass
-
-    @abstractmethod
-    def capture_new_graph(self, session: T2SSession):
-        pass
+    def release_graph(self, graph_state: CUDAGraphStateABC | None):
+        if graph_state is None:
+            return
+        bsz = graph_state.bsz
+        assert bsz <= self.max_batch_size
+        assert self.graph_cache.get(bsz) is not None
+        self.graph_cache[bsz].put(graph_state)
 
 
 class TorchProfiler:

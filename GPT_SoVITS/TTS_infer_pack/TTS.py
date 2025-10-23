@@ -955,7 +955,7 @@ class TTS:
         """
         ########## variables initialization ###########
         torch.set_grad_enabled(False)
-        ttfb_time = time.perf_counter()
+        ttft_time = time.perf_counter()
         self.stop_flag: bool = False
         text: str = inputs.get("text", "")
         text_lang: str = inputs.get("text_lang", "")
@@ -1141,7 +1141,9 @@ class TTS:
                     temperature=temperature,
                     repetition_penalty=repetition_penalty,
                     debug=os.environ.get("DEBUG", "0") == "1",
-                    use_cuda_graph=torch.cuda.is_available(),
+                    use_cuda_graph=torch.cuda.is_available()
+                    and torch.version.cuda is not None
+                    and os.environ.get("CUDAGraph", "1") != "0",
                 )
                 t2s_result = self.t2s_model.generate(t2s_request)
 
@@ -1151,7 +1153,7 @@ class TTS:
 
                 pred_semantic_list = t2s_result.result
                 assert pred_semantic_list
-                pred_semantic_list = [semantic.squeeze(0) for semantic in pred_semantic_list]
+                pred_semantic_list = [semantic.squeeze(0).to(self.configs.device) for semantic in pred_semantic_list]
                 infer_len.append(t2s_result.total_tokens)
                 infer_time.append(t2s_result.infer_speed[-1])
 
@@ -1243,7 +1245,7 @@ class TTS:
                             )
                             batch_audio_fragment.append(audio_fragment)
                 if idx == 0:
-                    ttfb_time = time.perf_counter() - ttfb_time
+                    ttft_time = time.perf_counter() - ttft_time
                 t5 = time.perf_counter()
                 t_45 += t5 - t4
                 if return_fragment:
@@ -1307,10 +1309,10 @@ class TTS:
             console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
             console.print(f">> RTF: {rtf_value:.2f}")
 
-            if ttfb_time > 2:
-                console.print(f">> TTFB: {ttfb_time:.3f} s")
+            if ttft_time > 2:
+                console.print(f">> TTFT: {ttft_time:.3f} s")
             else:
-                console.print(f">> TTFB: {ttfb_time * 1000:.3f} ms")
+                console.print(f">> TTFT: {ttft_time * 1000:.3f} ms")
 
             self.empty_cache()
 

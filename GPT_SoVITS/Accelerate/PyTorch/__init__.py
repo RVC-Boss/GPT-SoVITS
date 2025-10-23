@@ -1,4 +1,5 @@
 import importlib.util
+import os
 
 import torch
 
@@ -25,8 +26,12 @@ torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.enabled = True
 
+cpu_count = os.cpu_count() or 1
+torch.set_num_threads(cpu_count)
+torch.set_num_interop_threads(cpu_count)
+
 backends = ["torch_varlen"]
-if torch.cuda.is_available():
+if torch.cuda.is_available() and torch.version.cuda is not None:
     backends.append("torch_static_cuda_graph")
     # if importlib.util.find_spec("sageattention") is not None:
     #     for i in range(torch.cuda.device_count()):
@@ -44,7 +49,7 @@ if torch.cuda.is_available():
 #     backends.append("mps_flash_attn_varlen")
 
 BLACKWELL = False
-if torch.cuda.is_available():
+if torch.cuda.is_available() and torch.version.cuda is not None:
     for i in range(torch.cuda.device_count()):
         major, minor = torch.cuda.get_device_capability(i)
         sm_version = major + minor / 10.0

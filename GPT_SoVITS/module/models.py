@@ -958,7 +958,7 @@ class SynthesizerTrn(nn.Module):
                     ge = self.prelu(ge)
             return ge
 
-        if type(refer) == list:
+        if isinstance(refer, list):
             ges = []
             for idx, _refer in enumerate(refer):
                 ge = get_ge(_refer, sv_emb[idx] if self.is_v2pro else None)
