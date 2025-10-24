@@ -344,6 +344,13 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
         run_pip_quiet torch torchao torchaudio torchcodec --index-url "https://download.pytorch.org/whl/cu126"
         run_conda_quiet cuda-nvcc=12.6
     fi
+    codec_ver=$(python -m pip show torchcodec 2>/dev/null | awk '/Version:/ {print $2}' | sed 's/+.*//')
+    audio_ver=$(python -m pip show torchaudio 2>/dev/null | awk '/Version:/ {print $2}' | sed 's/+.*//')
+
+    pip uninstall -y torchcodec torchaudio --quiet
+
+    run_pip_quiet "torchcodec==$codec_ver torchaudio==$audio_ver"
+
     echo -e "${INFO}Installing Flash Attn"
     run_pip_quiet psutil ninja packaging wheel "setuptools>=42"
     run_pip_quiet flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation

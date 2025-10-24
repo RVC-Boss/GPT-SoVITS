@@ -1316,7 +1316,7 @@ class TTS:
             rtf_value = sum((t1 - t0, t2 - t1, t_34, t_45)) / sum(audio_len)
             console.print(f">> Time Stamps: {t1 - t0:.3f}\t{t2 - t1:.3f}\t{t_34:.3f}\t{t_45:.3f}")
             console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
-            console.print(f">> RTF: {rtf_value:.2f}")
+            console.print(f">> RTF: {rtf_value:.4f}")
 
             if ttft_time > 2:
                 console.print(f">> TTFT: {ttft_time:.3f} s")

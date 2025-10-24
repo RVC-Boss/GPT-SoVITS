@@ -979,10 +979,10 @@ async def get_tts_wav(
 
     console.print(f">> Time Stamps: {t0:.3f}\t{t1:.3f}\t{t2:.3f}\t{t3:.3f}")
     console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
-    console.print(f">> RTF: {rtf_value:.2f}")
+    console.print(f">> RTF: {rtf_value:.4f}")
 
     gr.Info(f"{infer_speed_avg:.2f} Token/s", title="Infer Speed")
-    gr.Info(f"{rtf_value:.2f}", title="RTF")
+    gr.Info(f"{rtf_value:.4f}", title="RTF")
 
     if ttft_time > 2:
         console.print(f">> TTFT: {ttft_time:.3f} s")
