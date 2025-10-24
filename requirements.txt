@@ -31,7 +31,7 @@ ctranslate2>=4.0,<5
 fastapi[standard]>=0.115.2
 fast_langdetect>=0.3.1
 funasr==1.0.27
-gradio==5.25.0
+gradio==5.49.0
 librosa==0.10.2
 matplotlib>=3.10
 numpy<2.0

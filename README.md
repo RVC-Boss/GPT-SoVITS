@@ -59,6 +59,7 @@ Unseen speakers few-shot fine-tuning demo:
 | RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
 |  Apple M4   | 0.16  | 1363ms |     1      |         MLX Varlen          |
 |  Apple M4   | 0.06  |  UNK   |     40     |         MLX Varlen          |
+|  i7-12700K  | 0.28  |  UNK   |     40     |        Torch Varlen         |
 
 </div>
 
@@ -76,8 +77,8 @@ For users in China, you can [Click Here to use AutoDL](https://www.codewithgpu.c
 | :------------: | :-------------: | :-----------: |
 |  Python 3.10   |  PyTorch 2.5.1  |   CUDA 12.4   |
 |  Python 3.11   |  PyTorch 2.5.1  |   CUDA 12.4   |
-|  Python 3.11   |  PyTorch 2.7.0  |   CUDA 12.8   |
-|  Python 3.11   |  PyTorch 2.8.0  | Apple Silicon |
+|  Python 3.11   |  PyTorch 2.9.0  |   CUDA 12.8   |
+|  Python 3.11   |  PyTorch 2.9.0  | Apple Silicon |
 |  Python 3.10   |  PyTorch 2.8.0  |      CPU      |
 
 </div>

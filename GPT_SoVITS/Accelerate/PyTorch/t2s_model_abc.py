@@ -698,6 +698,7 @@ class CUDAGraphCacheABC(ABC):
         if self.is_applicable:
             assert bsz <= self.max_batch_size
             if self.graph_cache.get(bsz) is None:
+                self.graph_cache[bsz] = Queue()
                 self.create_graph_cache(bsz)
             return self.graph_cache[bsz].get()
         else:
