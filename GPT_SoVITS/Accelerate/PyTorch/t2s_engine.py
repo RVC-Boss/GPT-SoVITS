@@ -173,6 +173,11 @@ class T2SEngine(T2SEngineProtocol):
 
                             if idx == 10:
                                 torch_profiler.end()
+
+                    if debug:
+                        timer.summary()
+                        timer.clear()
+
                 finally:
                     if (
                         request.use_cuda_graph

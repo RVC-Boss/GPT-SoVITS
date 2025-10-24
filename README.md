@@ -51,15 +51,15 @@ Unseen speakers few-shot fine-tuning demo:
 
 ## Infer Speed
 
-|   Device    |  RTF  |  TTFT  | Batch Size |           Backend           |
-| :---------: | :---: | :----: | :--------: | :-------------------------: |
-|  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
-|  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
-|  Apple M4   | 0.16  | 1363ms |     1      |         MLX Varlen          |
-|  Apple M4   | 0.06  |  UNK   |     40     |         MLX Varlen          |
-|  i7-12700K  | 0.28  |  UNK   |     40     |        Torch Varlen         |
+|   Device    |  RTF   |  TTFT  | Batch Size |           Backend           |
+| :---------: | :----: | :----: | :--------: | :-------------------------: |
+|  RTX 5090   |  0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
+|  RTX 5090   | 0.0122 |  UNK   |     30     | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti |  0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
+| RTX 4060 Ti | 0.028  |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
+|  Apple M4   |  0.16  | 1363ms |     1      |         MLX Varlen          |
+|  Apple M4   |  0.06  |  UNK   |     40     |         MLX Varlen          |
+|  i7-12700K  |  0.28  |  UNK   |     40     |        Torch Varlen         |
 
 </div>
 
