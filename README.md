@@ -54,7 +54,7 @@ Unseen speakers few-shot fine-tuning demo:
 |   Device    |  RTF   |  TTFT  | Batch Size |           Backend           |
 | :---------: | :----: | :----: | :--------: | :-------------------------: |
 |  RTX 5090   |  0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
-|  RTX 5090   | 0.0122 |  UNK   |     30     | Flash Attn Varlen CUDAGraph |
+|  RTX 5090   | 0.0109 |  UNK   |     40     | Flash Attn Varlen CUDAGraph |
 | RTX 4060 Ti |  0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
 | RTX 4060 Ti | 0.028  |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
 |  Apple M4   |  0.16  | 1363ms |     1      |         MLX Varlen          |
