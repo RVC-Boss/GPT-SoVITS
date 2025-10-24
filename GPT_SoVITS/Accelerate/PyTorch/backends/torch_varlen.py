@@ -134,8 +134,9 @@ class CUDAGraphCache(CUDAGraphCacheABC):
     def __init__(
         self,
         decoder,
+        cache_size: int,
     ) -> None:
-        super().__init__(decoder)
+        super().__init__(decoder, cache_size)
 
     def create_graph_cache(self, bsz: int) -> NoReturn:
         raise NotImplementedError("Cuda Graph Is Not Supported For Varlen Model")
