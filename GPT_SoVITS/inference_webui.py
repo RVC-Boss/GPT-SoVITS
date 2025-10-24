@@ -412,6 +412,7 @@ async def change_gpt_weights(gpt_path):
             MLX.T2SEngineMLX.load_decoder(Path(gpt_path), backend=ar_backend, quantize_mode=args.quantization),
             "mx.gpu" if infer_device.type != "cpu" else "mx.cpu",
             dtype=dtype,
+            cache_size=1,
         )
         # t2s_engine.decoder_model.compile()
         total = sum((p[-1].size for p in mxutils.tree_flatten(t2s_engine.decoder_model.parameters())))  # type: ignore
@@ -420,6 +421,7 @@ async def change_gpt_weights(gpt_path):
             PyTorch.T2SEngineTorch.load_decoder(Path(gpt_path), backend=ar_backend, quantize_mode=args.quantization),
             device,
             dtype=dtype,
+            cache_size=1,
         )
         # t2s_engine.decoder_model.compile()
         total = sum(p.numel() for p in t2s_engine.decoder_model.parameters())

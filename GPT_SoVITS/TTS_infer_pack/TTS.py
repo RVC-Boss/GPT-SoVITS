@@ -364,7 +364,13 @@ class TTS_Config:
 
 
 class TTS:
-    def __init__(self, configs: dict | str | TTS_Config, ar_backend: str = backends[-1], quantization: Any = None):
+    def __init__(
+        self,
+        configs: dict | str | TTS_Config,
+        ar_backend: str = backends[-1],
+        quantization: Any = None,
+        cache_size: int = 5,
+    ):
         if isinstance(configs, TTS_Config):
             self.configs = configs
         else:
@@ -405,6 +411,7 @@ class TTS:
 
         self.backend: str = ar_backend
         self.quantization: Any = quantization
+        self.cache_size: int = cache_size
 
         self._init_models()
 
@@ -529,6 +536,7 @@ class TTS:
                 ),
                 "mx.gpu" if self.configs.device.type != "cpu" else "mx.cpu",
                 dtype=self.precision,
+                cache_size=self.cache_size,
             )
         else:
             t2s_engine = PyTorch.T2SEngineTorch(
@@ -537,6 +545,7 @@ class TTS:
                 ),
                 self.configs.device if not torch.mps.is_available() else torch.device("cpu"),
                 dtype=self.precision,
+                cache_size=self.cache_size,
             )
 
         self.t2s_model = t2s_engine

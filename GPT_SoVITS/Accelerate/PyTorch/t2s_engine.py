@@ -24,6 +24,9 @@ class T2SEngine(T2SEngineProtocol):
         decoder_model: T2SDecoderABC,
         device: torch.device = torch.device("cpu"),
         dtype: torch.dtype = torch.float32,
+        cache_size: int = 5,
+        *args,
+        **kwds,
     ) -> None:
         assert device.type in {"cpu", "cuda", "mps", "xpu", "mtia"}
         assert dtype in {torch.float16, torch.bfloat16, torch.float32}
@@ -34,7 +37,7 @@ class T2SEngine(T2SEngineProtocol):
         self.decoder_model: T2SDecoderABC = decoder_model.to(self.device, self.dtype)
         # self.decoder_model.compile()
 
-        self.graphcache: CUDAGraphCacheABC = decoder_model.graph_cache_class(self.decoder_model)
+        self.graphcache: CUDAGraphCacheABC = decoder_model.graph_cache_class(self.decoder_model, cache_size)
 
     def _handle_request(self, request: T2SRequest):
         with self.device:

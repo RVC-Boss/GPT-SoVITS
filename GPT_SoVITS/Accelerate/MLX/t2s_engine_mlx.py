@@ -25,6 +25,8 @@ class T2SEngine(T2SEngineProtocol):
         decoder_model: T2SDecoderABC,
         device: mx.Device | str = mx.Device(mx.cpu),
         dtype: torch.dtype | mx.Dtype = torch.float32,
+        *args,
+        **kwds,
     ) -> None:
         if isinstance(device, str):
             match device:
