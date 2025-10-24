@@ -692,6 +692,7 @@ class CUDAGraphCacheABC(ABC):
         self.graph_cache: dict[int, Queue[CUDAGraphStateABC]] = {}
 
         if torch.cuda.is_available() and torch.version.cuda is not None and os.environ.get("CUDAGraph", "1") != "0":
+            self.graph_cache[1] = Queue()
             self.create_graph_cache(1)
 
     def __getitem__(self, bsz: int) -> CUDAGraphStateABC:
