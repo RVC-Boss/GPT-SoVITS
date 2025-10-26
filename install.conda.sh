@@ -31,18 +31,18 @@ on_error() {
     exit "$code"
 }
 
-run_uv_add() {
+run_conda_quiet() {
     local output
-    output=$(uv add "$@" 2>&1) || {
-        echo -e "${ERROR} uv add failed:\n$output"
+    output=$(conda install --yes --quiet -c conda-forge "$@" 2>&1) || {
+        echo -e "${ERROR} Conda install failed:\n$output"
         exit 1
     }
 }
 
-run_uv_quiet() {
+run_pip_quiet() {
     local output
-    output=$(uv run "$@" 2>&1) || {
-        echo -e "${ERROR} uv run failed:\n$output"
+    output=$(pip install "$@" 2>&1) || {
+        echo -e "${ERROR} Pip install failed:\n$output"
         exit 1
     }
 }
@@ -56,9 +56,8 @@ run_wget_quiet() {
     fi
 }
 
-if ! command -v uv &>/dev/null; then
-    echo -e "${ERROR}uv Not Found. Please install uv first:"
-    echo -e "${INFO}curl -LsSf https://astral.sh/uv/install.sh | sh"
+if ! command -v conda &>/dev/null; then
+    echo -e "${ERROR}Conda Not Found"
     exit 1
 fi
 
@@ -172,17 +171,31 @@ if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
     exit 1
 fi
 
-# Check build tools
+case "$(uname -m)" in
+x86_64 | amd64) SYSROOT_PKG="sysroot_linux-64>=2.28" ;;
+aarch64 | arm64) SYSROOT_PKG="sysroot_linux-aarch64>=2.28" ;;
+ppc64le) SYSROOT_PKG="sysroot_linux-ppc64le>=2.28" ;;
+*)
+    echo "Unsupported architecture: $(uname -m)"
+    exit 1
+    ;;
+esac
+
+# Install build tools
 echo -e "${INFO}Detected system: $(uname -s) $(uname -r) $(uname -m)"
 if [ "$(uname)" != "Darwin" ]; then
     gcc_major_version=$(command -v gcc >/dev/null 2>&1 && gcc -dumpversion | cut -d. -f1 || echo 0)
     if [ "$gcc_major_version" -lt 11 ]; then
-        echo -e "${WARNING}GCC version $gcc_major_version is older than 11"
-        echo -e "${WARNING}Please install GCC 11+ using your system package manager"
-        echo -e "${INFO}For Ubuntu/Debian: sudo apt install build-essential gcc-11 g++-11"
-        echo -e "${INFO}For Arch Linux: sudo pacman -S gcc"
+        echo -e "${INFO}Installing GCC & G++..."
+        run_conda_quiet gcc=11 gxx=11
+        run_conda_quiet "$SYSROOT_PKG"
+        echo -e "${SUCCESS}GCC & G++ Installed..."
     else
-        echo -e "${INFO}Detected GCC Version: $gcc_major_version ✓"
+        echo -e "${INFO}Detected GCC Version: $gcc_major_version"
+        echo -e "${INFO}Skip Installing GCC & G++ From Conda-Forge"
+        echo -e "${INFO}Installing libstdcxx-ng From Conda-Forge"
+        run_conda_quiet "libstdcxx-ng>=$gcc_major_version"
+        echo -e "${SUCCESS}libstdcxx-ng=$gcc_major_version Installed..."
     fi
 else
     if ! xcode-select -p &>/dev/null; then
@@ -201,7 +214,6 @@ else
         done
     else
         XCODE_PATH=$(xcode-select -p)
-        echo -e "${INFO}Xcode Command Line Tools: $XCODE_PATH ✓"
         if [[ "$XCODE_PATH" == *"Xcode.app"* ]]; then
             echo -e "${WARNING} Detected Xcode path: $XCODE_PATH"
             echo -e "${WARNING} If your Xcode version does not match your macOS version, it may cause unexpected issues during compilation or package builds."
@@ -209,18 +221,13 @@ else
     fi
 fi
 
-# Check for required tools
-echo -e "${INFO}Checking for required tools..."
-for tool in ffmpeg cmake make unzip wget; do
-    if command -v $tool &>/dev/null; then
-        echo -e "${INFO}  $tool: ✓"
-    else
-        echo -e "${WARNING}  $tool: Not found"
-        echo -e "${INFO}Please install $tool using your system package manager"
-        echo -e "${INFO}For Ubuntu/Debian: sudo apt install $tool"
-        echo -e "${INFO}For Arch Linux: sudo pacman -S $tool"
-    fi
-done
+echo -e "${INFO}Installing FFmpeg & CMake..."
+run_conda_quiet ffmpeg cmake make
+echo -e "${SUCCESS}FFmpeg & CMake Installed"
+
+echo -e "${INFO}Installing unzip..."
+run_conda_quiet unzip
+echo -e "${SUCCESS}unzip Installed"
 
 if [ "$USE_HF" = "true" ]; then
     echo -e "${INFO}Download Model From HuggingFace"
@@ -314,65 +321,43 @@ if [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     fi
 fi
 
-# Check if pyproject.toml exists (uv setup)
-if [ -f "pyproject.toml" ]; then
-    echo -e "${INFO}Found pyproject.toml - using uv for dependency management"
-
-    # Check if PyTorch is already installed
-    if uv run python -c "import torch" 2>/dev/null; then
-        TORCH_VERSION=$(uv run python -c "import torch; print(torch.__version__)")
-        echo -e "${INFO}PyTorch $TORCH_VERSION already installed ✓"
-    else
-        echo -e "${INFO}Installing Python Dependencies with uv..."
-        uv sync
-        echo -e "${SUCCESS}Python Dependencies Installed"
+if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
+    if [ "$CUDA" = 128 ]; then
+        echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
+        run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
+    elif [ "$CUDA" = 126 ]; then
+        echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
+        run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
     fi
-else
-    # Fallback to pip installation
-    if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
-        if [ "$CUDA" = 128 ]; then
-            echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
-            pip install torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
-        elif [ "$CUDA" = 126 ]; then
-            echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
-            pip install torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
-        fi
-    elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
-        echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
-        pip install torch torchaudio --index-url "https://download.pytorch.org/whl/rocm6.2"
-    elif [ "$USE_CPU" = true ] && [ "$WORKFLOW" = false ]; then
-        echo -e "${INFO}Installing PyTorch For CPU..."
-        pip install torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
-    elif [ "$WORKFLOW" = false ]; then
-        echo -e "${ERROR}Unknown Err"
-        exit 1
-    fi
-    echo -e "${SUCCESS}PyTorch Installed"
-
-    echo -e "${INFO}Installing Python Dependencies From requirements.txt..."
-
-    hash -r
-
-    pip install -r extra-req.txt --no-deps
-
-    pip install -r requirements.txt
-
-    echo -e "${SUCCESS}Python Dependencies Installed"
+elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
+    echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
+    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/rocm6.2"
+elif [ "$USE_CPU" = true ] && [ "$WORKFLOW" = false ]; then
+    echo -e "${INFO}Installing PyTorch For CPU..."
+    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
+elif [ "$WORKFLOW" = false ]; then
+    echo -e "${ERROR}Unknown Err"
+    exit 1
 fi
+echo -e "${SUCCESS}PyTorch Installed"
 
-# Get Python prefix (works with both uv and regular python)
-if [ -f "pyproject.toml" ]; then
-    PY_PREFIX=$(uv run python -c "import sys; print(sys.prefix)")
-    PYOPENJTALK_PREFIX=$(uv run python -c "import os, pyopenjtalk; print(os.path.dirname(pyopenjtalk.__file__))")
-else
-    PY_PREFIX=$(python -c "import sys; print(sys.prefix)")
-    PYOPENJTALK_PREFIX=$(python -c "import os, pyopenjtalk; print(os.path.dirname(pyopenjtalk.__file__))")
-fi
+echo -e "${INFO}Installing Python Dependencies From requirements.txt..."
+
+hash -r
+
+run_pip_quiet -r extra-req.txt --no-deps
+
+run_pip_quiet -r requirements.txt
+
+echo -e "${SUCCESS}Python Dependencies Installed"
+
+PY_PREFIX=$(python -c "import sys; print(sys.prefix)")
+PYOPENJTALK_PREFIX=$(python -c "import os, pyopenjtalk; print(os.path.dirname(pyopenjtalk.__file__))")
 
 echo -e "${INFO}Downloading NLTK Data..."
 rm -rf nltk_data.zip
 run_wget_quiet "$NLTK_URL" -O nltk_data.zip
-unzip -q -o nltk_data.zip -d "$PY_PREFIX"
+unzip -q -o nltk_data -d "$PY_PREFIX"
 rm -rf nltk_data.zip
 echo -e "${SUCCESS}NLTK Data Downloaded"
 
@@ -385,16 +370,10 @@ echo -e "${SUCCESS}Open JTalk Dic Downloaded"
 
 if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ]; then
     echo -e "${INFO}Updating WSL Compatible Runtime Lib For ROCm..."
-    if [ -f "pyproject.toml" ]; then
-        location=$(uv run python -c "import torch, os; print(os.path.dirname(torch.__file__))")
-    else
-        location=$(pip show torch | grep Location | awk -F ": " '{print $2}')
-        location="${location}/torch"
-    fi
-    cd "${location}"/lib/ || exit
+    location=$(pip show torch | grep Location | awk -F ": " '{print $2}')
+    cd "${location}"/torch/lib/ || exit
     rm libhsa-runtime64.so*
     cp "$(readlink -f /opt/rocm/lib/libhsa-runtime64.so)" libhsa-runtime64.so
-    cd "$SCRIPT_DIR" || exit
     echo -e "${SUCCESS}ROCm Runtime Lib Updated..."
 fi
 
