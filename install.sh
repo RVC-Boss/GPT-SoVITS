@@ -31,10 +31,23 @@ on_error() {
     exit "$code"
 }
 
+# Detect conda or micromamba
+CONDA_CMD=""
+if command -v micromamba &>/dev/null; then
+    CONDA_CMD="micromamba"
+    echo -e "${INFO}Detected micromamba"
+elif command -v conda &>/dev/null; then
+    CONDA_CMD="conda"
+    echo -e "${INFO}Detected conda"
+else
+    echo -e "${ERROR}Neither conda nor micromamba found"
+    exit 1
+fi
+
 run_conda_quiet() {
     local output
-    output=$(conda install --yes --quiet -c conda-forge "$@" 2>&1) || {
-        echo -e "${ERROR} Conda install failed:\n$output"
+    output=$("$CONDA_CMD" install --yes --quiet -c conda-forge "$@" 2>&1) || {
+        echo -e "${ERROR} ${CONDA_CMD} install failed:\n$output"
         exit 1
     }
 }
@@ -55,11 +68,6 @@ run_wget_quiet() {
         exit 1
     fi
 }
-
-if ! command -v conda &>/dev/null; then
-    echo -e "${ERROR}Conda Not Found"
-    exit 1
-fi
 
 USE_CUDA=false
 USE_ROCM=false
