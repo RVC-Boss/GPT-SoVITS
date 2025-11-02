@@ -14,7 +14,7 @@ from opencc import OpenCC
 from pypinyin import Style, pinyin
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 
-from ..zh_normalization.char_convert import tranditional_to_simplified
+from ..zh_normalization.char_convert import traditional_to_simplified
 from .dataset import get_char_phoneme_labels, get_phoneme_labels, prepare_onnx_input
 from .utils import load_config
 
@@ -60,7 +60,7 @@ def download_and_decompress(model_dir: str = "G2PWModel/"):
         extract_dir = os.path.join(parent_directory, "G2PWModel_1.1")
         extract_dir_new = os.path.join(parent_directory, "G2PWModel")
         print("Downloading g2pw model...")
-        modelscope_url = "https://www.modelscope.cn/models/kamiorinn/g2pw/resolve/master/G2PWModel_1.1.zip"  # "https://paddlespeech.cdn.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip"
+        modelscope_url = "https://www.modelscope.cn/models/kamiorinn/g2pw/resolve/master/G2PWModel_1.1.zip"
         with requests.get(modelscope_url, stream=True) as r:
             r.raise_for_status()
             with open(zip_dir, "wb") as f:
@@ -189,9 +189,8 @@ class G2PWOnnxConverter:
             print(f'Warning: "{bopomofo}" cannot convert to pinyin')
             return None
 
-    def __call__(self, sentences: List[str]) -> List[List[str]]:
-        if isinstance(sentences, str):
-            sentences = [sentences]
+    def __call__(self, sentence: str) -> List[List[str]]:
+        sentences = [sentence]
 
         if self.enable_opencc:
             translated_sentences = []
@@ -231,7 +230,7 @@ class G2PWOnnxConverter:
         texts, query_ids, sent_ids, partial_results = [], [], [], []
         for sent_id, sent in enumerate(sentences):
             # pypinyin works well for Simplified Chinese than Traditional Chinese
-            sent_s = tranditional_to_simplified(sent)
+            sent_s = traditional_to_simplified(sent)
             pypinyin_result = pinyin(sent_s, neutral_tone_with_five=True, style=Style.TONE3)
             partial_result = [None] * len(sent)
             for i, char in enumerate(sent):

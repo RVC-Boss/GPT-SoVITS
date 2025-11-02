@@ -143,7 +143,6 @@ RESP: 无
 import argparse
 import logging
 import os
-import re
 import signal
 import subprocess
 import sys
@@ -153,6 +152,7 @@ from time import time as ttime
 
 import librosa
 import numpy as np
+import regex as re
 import soundfile as sf
 import torch
 import torchaudio

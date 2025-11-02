@@ -1,13 +1,14 @@
-import sageattention  # type: ignore
 import torch
+from torch.nn import functional as F
 
-from .. import nn
-from ..structs import T2SSession
+from ... import nn
+from ..structs import KVCacheProtocol, T2SSession
 from ..t2s_model_abc import (
     AttentionABC,
+    CUDAGraphCacheABC,
+    CUDAGraphStateABC,
     FeedForward,
     KVCacheHND,
-    KVCacheProtocol,
     T2SDecoderABC,
     TransformerBlockABC,
     TransformerDecoderABC,
@@ -24,14 +25,7 @@ class Attention(AttentionABC):
         self.in_proj = nn.Linear(hidden_dim, hidden_dim * 3, bias=True)
         self.out_proj = nn.Linear(hidden_dim, hidden_dim, bias=True)
 
-    def __call__(
-        self,
-        x: Tensor,
-        input_pos: Tensor,
-        kv_cache: KVCacheProtocol,
-        cu_seqlens_q: Tensor,
-        cu_seqlens_kv: Tensor,
-    ) -> Tensor:
+    def __call__(self, x: Tensor, input_pos: Tensor, kv_cache: KVCacheProtocol, attn_mask: Tensor):
         bsz, seqlen, _ = x.shape
 
         q, k, v = self.in_proj(x).chunk(3, dim=-1)
@@ -44,15 +38,7 @@ class Attention(AttentionABC):
 
         k, v = kv_cache.update(input_pos, k, v)
 
-        attn: Tensor = sageattention.sageattn_varlen(
-            q,
-            k,
-            v,
-            cu_seqlens_q=cu_seqlens_q,
-            cu_seqlens_kv=cu_seqlens_kv,
-            max_seqlen_q=1,
-            max_seqlen_k=self.max_seq_length,
-        )
+        attn = F.scaled_dot_product_attention(q, k, v, attn_mask=attn_mask)
 
         attn = attn.transpose(1, 2).contiguous().view(bsz, seqlen, self.hidden_dim)
 
@@ -62,7 +48,7 @@ class Attention(AttentionABC):
 
 
 class TransformerBlock(TransformerBlockABC):
-    def __init__(self, n_head, ffn_dim, hidden_dim, max_seq_length) -> None:
+    def __init__(self, n_head: int, ffn_dim: int, hidden_dim: int, max_seq_length: int) -> None:
         super().__init__(n_head, ffn_dim, hidden_dim, max_seq_length)
 
         self.attention = Attention(n_head, hidden_dim, max_seq_length)
@@ -82,7 +68,6 @@ class TransformerDecoder(TransformerDecoderABC):
         max_seq_length,
         max_batch_size,
     ) -> None:
-        raise NotImplementedError()
         super().__init__(hidden_dim, n_layer, n_head, ffn_dim, vocab_size, max_seq_length, max_batch_size)
 
         self.layers = nn.ModuleList(  # type: ignore
@@ -107,11 +92,76 @@ class T2SDecoder(T2SDecoderABC):
 
         self.kv_class = KVCacheHND
 
-    def compile(self, *args, **kwds):
-        pass
+        self.graph_cache_class = CUDAGraphCache
 
-    def pre_forward(self, session: T2SSession) -> tuple[list[Tensor], dict[str, Tensor]]:
-        return list(), dict(cu_seqlens_q=session.cu_seqlens_q, cu_seqlens_kv=session.cu_seqlens_kv)
+    def pre_forward(self, session: T2SSession):
+        attn_mask = session.attn_mask
+        return list(), dict(attn_mask=attn_mask)
 
-    def post_forward(self, idx: int, session: T2SSession):
-        raise NotImplementedError()
+    def post_forward(self, idx: int, session: T2SSession) -> None:
+        if idx == 0:
+            prefill_len = session.prefill_len
+            bsz = session.bsz
+
+            range_tensor = torch.arange(self.max_seq_length).view(1, 1, 1, self.max_seq_length)
+            prefill_len_expanded = prefill_len.view(bsz, 1, 1, 1)
+            attn_mask = range_tensor < prefill_len_expanded
+
+            session.attn_mask = attn_mask
+
+        attn_mask = session.attn_mask
+        input_pos = session.input_pos
+        attn_mask[torch.arange(session.bsz), :, :, input_pos] = True
+
+
+class CUDAGraphState(CUDAGraphStateABC):
+    applicable: bool = False
+
+    def __init__(
+        self,
+        bsz: int,
+        decoder: T2SDecoderABC,
+    ) -> None:
+        self.attn_mask: Tensor = (
+            torch.randint(
+                0,
+                2,
+                (bsz, decoder.n_head, 1, decoder.max_seq_length),
+            )
+            .bool()
+            .to(decoder.device)
+        )
+
+        super().__init__(bsz, decoder)
+
+    def capture(self):
+        graph = self.decoder.capture(
+            self.input_pos,
+            self.xy_pos,
+            self.xy_dec,
+            self.kv_cache,
+            attn_mask=self.attn_mask,
+        )
+        self.graph = graph
+        self.stream = torch.cuda.Stream()
+
+    def assign_graph(self, session: T2SSession):
+        session.attn_mask = self.attn_mask
+        return super().assign_graph(session)
+
+
+class CUDAGraphCache(CUDAGraphCacheABC):
+    is_applicable = True
+
+    def __init__(
+        self,
+        decoder,
+        cache_size: int = 5,
+    ) -> None:
+        super().__init__(decoder, cache_size)
+
+    def create_graph_cache(self, bsz: int):
+        for _ in range(self.cache_size):
+            state = CUDAGraphState(bsz, self.decoder)
+            state.capture()
+            self.graph_cache[bsz].put(state)

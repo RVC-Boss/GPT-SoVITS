@@ -10,7 +10,7 @@ from typing import List, MutableSequence, Protocol, TypeAlias
 import mlx.core as mx
 import torch
 
-from ..PyTorch.structs import T2SRequest
+from ...PyTorch.AR.structs import T2SRequest
 from .sample_funcs_mlx import SampleProtocolMLX, sample_naive
 
 Tensor = torch.Tensor

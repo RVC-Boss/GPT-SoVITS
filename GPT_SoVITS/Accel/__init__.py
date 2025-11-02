@@ -2,7 +2,7 @@ from . import MLX, PyTorch
 from .logger import console, logger, tb
 from .MLX import quantization_methods_mlx
 from .PyTorch import T2SEngineTorch, T2SRequest, T2SResult, quantization_methods_torch
-from .PyTorch.structs import T2SEngineProtocol
+from .PyTorch.AR.structs import T2SEngineProtocol
 
 backends = PyTorch.backends + MLX.backends
 

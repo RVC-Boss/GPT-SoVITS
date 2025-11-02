@@ -19,7 +19,7 @@ class Attention(AttentionABC):
         super().__init__(n_head, hidden_dim, max_seq_length)
         self.kc_class = KVCacheHND
 
-    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
+    def __call__(self, x: Array, input_pos: Array, max_idx: int, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
         bsz, seqlen, _ = x.shape
 
         qkv = self.in_proj(x)

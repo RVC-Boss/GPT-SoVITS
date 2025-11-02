@@ -1,14 +1,15 @@
+from typing import NoReturn
+
 import torch
 from torch.nn import functional as F
 
-from .. import nn
+from ... import nn
 from ..structs import KVCacheProtocol, T2SSession
 from ..t2s_model_abc import (
     AttentionABC,
     CUDAGraphCacheABC,
-    CUDAGraphStateABC,
     FeedForward,
-    KVCacheHND,
+    KVCacheHNDVarlen,
     T2SDecoderABC,
     TransformerBlockABC,
     TransformerDecoderABC,
@@ -25,7 +26,7 @@ class Attention(AttentionABC):
         self.in_proj = nn.Linear(hidden_dim, hidden_dim * 3, bias=True)
         self.out_proj = nn.Linear(hidden_dim, hidden_dim, bias=True)
 
-    def __call__(self, x: Tensor, input_pos: Tensor, kv_cache: KVCacheProtocol, attn_mask: Tensor):
+    def __call__(self, x: Tensor, input_pos: Tensor, kv_cache: KVCacheProtocol, attn_mask: Tensor, max_idx: Tensor):
         bsz, seqlen, _ = x.shape
 
         q, k, v = self.in_proj(x).chunk(3, dim=-1)
@@ -38,7 +39,11 @@ class Attention(AttentionABC):
 
         k, v = kv_cache.update(input_pos, k, v)
 
-        attn = F.scaled_dot_product_attention(q, k, v, attn_mask=attn_mask)
+        q, k, v = map(lambda x: x[..., :max_idx, :], (q, k, v))
+
+        mask = attn_mask[..., :max_idx]
+
+        attn = F.scaled_dot_product_attention(q, k, v, mask)
 
         attn = attn.transpose(1, 2).contiguous().view(bsz, seqlen, self.hidden_dim)
 
@@ -90,13 +95,21 @@ class T2SDecoder(T2SDecoderABC):
             self.hidden_dim, self.n_layer, self.n_head, self.ffn_dim, self.vocab_size, max_seq_length, max_batch_size
         )
 
-        self.kv_class = KVCacheHND
+        self.kv_class = KVCacheHNDVarlen
 
         self.graph_cache_class = CUDAGraphCache
 
+    def capture(
+        self,
+        *args,
+        **kwds,
+    ) -> NoReturn:
+        raise NotImplementedError("Cuda Graph Is Not Supported For Varlen Model")
+
     def pre_forward(self, session: T2SSession):
         attn_mask = session.attn_mask
-        return list(), dict(attn_mask=attn_mask)
+        max_idx = session.input_pos.max()
+        return list(), dict(attn_mask=attn_mask, max_idx=max_idx)
 
     def post_forward(self, idx: int, session: T2SSession) -> None:
         if idx == 0:
@@ -114,54 +127,15 @@ class T2SDecoder(T2SDecoderABC):
         attn_mask[torch.arange(session.bsz), :, :, input_pos] = True
 
 
-class CUDAGraphState(CUDAGraphStateABC):
-    applicable: bool = False
-
-    def __init__(
-        self,
-        bsz: int,
-        decoder: T2SDecoderABC,
-    ) -> None:
-        self.attn_mask: Tensor = (
-            torch.randint(
-                0,
-                2,
-                (bsz, decoder.n_head, 1, decoder.max_seq_length),
-            )
-            .bool()
-            .to(decoder.device)
-        )
-
-        super().__init__(bsz, decoder)
-
-    def capture(self):
-        graph = self.decoder.capture(
-            self.input_pos,
-            self.xy_pos,
-            self.xy_dec,
-            self.kv_cache,
-            attn_mask=self.attn_mask,
-        )
-        self.graph = graph
-        self.stream = torch.cuda.Stream()
-
-    def assign_graph(self, session: T2SSession):
-        session.attn_mask = self.attn_mask
-        return super().assign_graph(session)
-
-
 class CUDAGraphCache(CUDAGraphCacheABC):
-    is_applicable = True
+    is_applicable = False
 
     def __init__(
         self,
         decoder,
-        cache_size: int = 5,
+        cache_size: int,
     ) -> None:
         super().__init__(decoder, cache_size)
 
-    def create_graph_cache(self, bsz: int):
-        for _ in range(self.cache_size):
-            state = CUDAGraphState(bsz, self.decoder)
-            state.capture()
-            self.graph_cache[bsz].put(state)
+    def create_graph_cache(self, bsz: int) -> NoReturn:
+        raise NotImplementedError("Cuda Graph Is Not Supported For Varlen Model")

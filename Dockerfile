@@ -52,11 +52,9 @@ COPY . /workspace/GPT-SoVITS
 
 CMD ["/bin/bash", "-c", "\
   rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
-  rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel && \
   rm -rf /workspace/GPT-SoVITS/tools/asr/models && \
   rm -rf /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
   ln -s /workspace/models/pretrained_models /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
-  ln -s /workspace/models/G2PWModel /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel && \
   ln -s /workspace/models/asr_models /workspace/GPT-SoVITS/tools/asr/models && \
   ln -s /workspace/models/uvr5_weights /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
   exec bash"]

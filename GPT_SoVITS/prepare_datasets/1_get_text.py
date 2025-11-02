@@ -15,7 +15,7 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 from torch.multiprocessing.spawn import spawn
 from transformers import BertForMaskedLM, BertTokenizerFast
 
-from GPT_SoVITS.Accelerate.logger import SpeedColumnIteration, console, logger
+from GPT_SoVITS.Accel.logger import SpeedColumnIteration, console, logger
 from GPT_SoVITS.text.cleaner import clean_text
 from tools.my_utils import clean_path
 

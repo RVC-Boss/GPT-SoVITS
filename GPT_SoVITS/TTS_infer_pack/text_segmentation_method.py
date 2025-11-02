@@ -1,5 +1,6 @@
-import re
 from typing import Callable
+
+import regex as re
 
 punctuation = set(["!", "?", "…", ",", ".", "-", " "])
 METHODS = dict()

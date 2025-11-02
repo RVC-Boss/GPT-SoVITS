@@ -51,14 +51,13 @@ Görünmeyen konuşmacılar birkaç örnekli ince ayar demosu:
 
 ## çıkarım hızı
 
-|   Device    |  RTF  |  TTFT  | Batch Size |           Backend           |
-| :---------: | :---: | :----: | :--------: | :-------------------------: |
-|  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
-|  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
-|  Apple M4   | 0.16  | 1363ms |     1      |         MLX Varlen          |
-|  Apple M4   | 0.06  |  UNK   |     40     |         MLX Varlen          |
+|  Device   |  RTF   |  TTFT  | Batch Size |           Backend           |
+| :-------: | :----: | :----: | :--------: | :-------------------------: |
+| RTX 5090  |  0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
+| RTX 5090  | 0.0109 |  UNK   |     40     | Flash Attn Varlen CUDAGraph |
+| Apple M4  |  0.16  | 850ms  |     1      |         MLX Varlen          |
+| Apple M4  | 0.054  |  UNK   |     40     |         MLX Varlen          |
+| i7-12700K |  0.28  |  UNK   |     40     |        Torch Varlen         |
 
 </div>
 
@@ -85,16 +84,16 @@ Görünmeyen konuşmacılar birkaç örnekli ince ayar demosu:
 Eğer bir Windows kullanıcısıysanız (win>=10 ile test edilmiştir), [entegre paketi indirin](https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/GPT-SoVITS-v3lora-20250228.7z?download=true) ve _go-webui.bat_ dosyasına çift tıklayarak GPT-SoVITS-WebUI'yi başlatın.
 
 ```pwsh
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 pwsh -F install.ps1 --Device <CU126|CU128|CPU> --Source <HF|HF-Mirror|ModelScope> [--DownloadUVR5]
 ```
 
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
@@ -105,8 +104,8 @@ bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScop
 Aşağıdaki komutları çalıştırarak programı yükleyin:
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
@@ -119,8 +118,8 @@ bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--downloa
 #### Bağımlılıkları Yükleme
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 
 pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
@@ -131,7 +130,7 @@ pip install -r requirements.txt
 ##### Conda Kullanıcıları
 
 ```bash
-conda activate GPTSoVits
+conda activate GPTSoVITS
 conda install ffmpeg -c conda-forge
 ```
 

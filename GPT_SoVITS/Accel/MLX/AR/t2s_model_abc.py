@@ -171,7 +171,9 @@ class AttentionABC(ABC, nn.Module):
         self.kc_class: KVCacheProtocol
 
     @abstractmethod
-    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache, cache_idx: Array, attn_mask: Array) -> Array: ...
+    def __call__(
+        self, x: Array, input_pos: Array, max_idx: int, kv_cache: KVCache, cache_idx: Array, attn_mask: Array
+    ) -> Array: ...
 
     def prefill(self, x: Array, kv_cache: KVCache, attn_mask: Array):
         bsz, seqlen, _ = x.shape
@@ -221,12 +223,13 @@ class TransformerBlockABC(nn.Module):
         self.attention_norm = nn.LayerNorm(self.hidden_dim)
         self.ffn_norm = nn.LayerNorm(self.hidden_dim)
 
-    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
+    def __call__(self, x: Array, input_pos: Array, max_idx: int, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
         h = self.attention_norm(
             x
             + self.attention(
                 x,
                 input_pos,
+                max_idx,
                 kv_cache,
                 cache_idx,
                 attn_mask,
@@ -280,8 +283,9 @@ class TransformerDecoderABC(nn.Module):
 
     def __call__(
         self,
-        input_pos: Array,
         x: Array,
+        input_pos: Array,
+        max_idx: int,
         kv_caches: MutableSequence[KVCache],
         cache_idx: Array,
         *args,
@@ -291,6 +295,7 @@ class TransformerDecoderABC(nn.Module):
             x = layer(
                 x,
                 input_pos,
+                max_idx,
                 kv_cache,
                 cache_idx,
                 *args,
@@ -404,9 +409,6 @@ class T2SDecoderABC(nn.Module, T2SDecoderProtocol):
 
         mx.eval(xy_pos)
         return xy_pos
-
-    def compile(self):
-        setattr(self.h, "__call__", mx.compile(self.h.__call__, shapeless=True))
 
     def pre_forward(self, session: T2SSessionMLX):
         attn_mask = session.attn_mask

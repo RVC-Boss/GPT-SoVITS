@@ -17,7 +17,7 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 from scipy.io import wavfile
 from torch.multiprocessing.spawn import spawn
 
-from GPT_SoVITS.Accelerate.logger import SpeedColumnIteration, console, logger
+from GPT_SoVITS.Accel.logger import SpeedColumnIteration, console, logger
 from GPT_SoVITS.eres2net.ERes2NetV2 import ERes2NetV2
 from GPT_SoVITS.feature_extractor import cnhubert as cnhubert_mod
 from tools.my_utils import clean_path, load_audio

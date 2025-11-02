@@ -51,14 +51,13 @@
 
 ## 推論速度
 
-|   Device    |  RTF  |  TTFT  | Batch Size |           Backend           |
-| :---------: | :---: | :----: | :--------: | :-------------------------: |
-|  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
-|  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
-|  Apple M4   | 0.16  | 1363ms |     1      |         MLX Varlen          |
-|  Apple M4   | 0.06  |  UNK   |     40     |         MLX Varlen          |
+|  Device   |  RTF   |  TTFT  | Batch Size |           Backend           |
+| :-------: | :----: | :----: | :--------: | :-------------------------: |
+| RTX 5090  |  0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
+| RTX 5090  | 0.0109 |  UNK   |     40     | Flash Attn Varlen CUDAGraph |
+| Apple M4  |  0.16  | 850ms  |     1      |         MLX Varlen          |
+| Apple M4  | 0.054  |  UNK   |     40     |         MLX Varlen          |
+| i7-12700K |  0.28  |  UNK   |     40     |        Torch Varlen         |
 
 </div>
 
@@ -87,8 +86,8 @@ Windows ユーザー: (Windows 10 以降でテスト済み)、[統合パッケ�
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
@@ -99,8 +98,8 @@ bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScop
 以下のコマンドを実行してこのプロジェクトをインストールします:
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
@@ -113,8 +112,8 @@ bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--downloa
 #### 依存関係をインストールします
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 
 pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
@@ -125,7 +124,7 @@ pip install -r requirements.txt
 ##### Conda ユーザー
 
 ```bash
-conda activate GPTSoVits
+conda activate GPTSoVITS
 conda install ffmpeg -c conda-forge
 ```
 

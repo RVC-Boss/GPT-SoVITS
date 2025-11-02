@@ -9,13 +9,27 @@ from typing import Literal
 import torch
 from rich.progress import BarColumn, Progress, TextColumn
 
-from ..logger import SpeedColumnToken, console, logger, timer
+from ...logger import SpeedColumnToken, console, logger, timer
 from .structs import T2SEngineProtocol, T2SRequest, T2SResult, T2SSession
 from .t2s_model_abc import (
     CUDAGraphCacheABC,
     T2SDecoderABC,
     TorchProfiler,
 )
+
+
+def synchronize_device(device: torch.device) -> None:
+    match device.type:
+        case "cuda":
+            torch.cuda.synchronize()
+        case "mps":
+            torch.mps.synchronize()
+        case "xpu":
+            torch.xpu.synchronize()
+        case "mtia":
+            torch.mtia.synchronize()
+        case "cpu":
+            pass
 
 
 class T2SEngine(T2SEngineProtocol):
@@ -79,6 +93,8 @@ class T2SEngine(T2SEngineProtocol):
                                 t1 = time.perf_counter()
                                 xy_dec = decoder.h.prefill(session.xy_pos, session.kv_cache, session.attn_mask)
                                 xy_dec = xy_dec[batch_idx, None, session.input_pos - 1]
+                                if debug:
+                                    synchronize_device(session.device)
                         else:
                             if (
                                 idx == 1
@@ -101,12 +117,14 @@ class T2SEngine(T2SEngineProtocol):
                                 else:
                                     args, kwds = decoder.pre_forward(session)
                                     xy_dec = decoder.h(
-                                        session.input_pos,
                                         session.xy_pos,
+                                        session.input_pos,
                                         session.kv_cache,
                                         *args,
                                         **kwds,
                                     )
+                                if debug:
+                                    synchronize_device(session.device)
 
                         with (
                             torch.cuda.stream(session.stream)
@@ -130,6 +148,8 @@ class T2SEngine(T2SEngineProtocol):
                                 )
                                 session.y[batch_idx.reshape(-1, 1), session.y_len + idx] = samples
                                 session.input_pos.add_(1)
+                                if debug:
+                                    synchronize_device(session.device)
 
                             with torch_profiler.record("EOS"), timer("Torch.EOS", debug=debug):
                                 argmax_token = torch.argmax(logits, dim=-1)
@@ -145,6 +165,8 @@ class T2SEngine(T2SEngineProtocol):
                                             i, session.y_len : session.y_len + idx
                                         ].squeeze(0)
                                         session.completed[newly_done_indices] = True
+                                if debug:
+                                    synchronize_device(session.device)
 
                             if torch.all(session.completed).item():
                                 logger.info(
@@ -170,6 +192,8 @@ class T2SEngine(T2SEngineProtocol):
                             with torch_profiler.record("NextPos"), timer("Torch.NextPos", debug=debug):
                                 y_emb = decoder.ar_audio_embedding(samples)
                                 session.xy_pos = decoder.ar_audio_position(session.input_pos - session.x_lens, y_emb)
+                                if debug:
+                                    synchronize_device(session.device)
 
                             if idx == 10:
                                 torch_profiler.end()

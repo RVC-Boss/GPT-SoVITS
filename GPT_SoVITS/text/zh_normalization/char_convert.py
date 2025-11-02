@@ -27,7 +27,7 @@ for i, item in enumerate(simplified_charcters):
     t2s_dict[traditional_characters[i]] = item
 
 
-def tranditional_to_simplified(text: str) -> str:
+def traditional_to_simplified(text: str) -> str:
     return "".join([t2s_dict[item] if item in t2s_dict else item for item in text])
 
 
@@ -38,7 +38,7 @@ def simplified_to_traditional(text: str) -> str:
 if __name__ == "__main__":
     text = "一般是指存取一個應用程式啟動時始終顯示在網站或網頁瀏覽器中的一個或多個初始網頁等畫面存在的站點"
     print(text)
-    text_simple = tranditional_to_simplified(text)
+    text_simple = traditional_to_simplified(text)
     print(text_simple)
     text_traditional = simplified_to_traditional(text_simple)
     print(text_traditional)

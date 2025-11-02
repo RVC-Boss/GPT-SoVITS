@@ -14,48 +14,36 @@
 import re
 from typing import List
 
-from .char_convert import tranditional_to_simplified
-from .chronology import RE_DATE
-from .chronology import RE_DATE2
-from .chronology import RE_TIME
-from .chronology import RE_TIME_RANGE
-from .chronology import replace_date
-from .chronology import replace_date2
-from .chronology import replace_time
-from .constants import F2H_ASCII_LETTERS
-from .constants import F2H_DIGITS
-from .constants import F2H_SPACE
-from .num import RE_VERSION_NUM
-from .num import RE_DECIMAL_NUM
-from .num import RE_DEFAULT_NUM
-from .num import RE_FRAC
-from .num import RE_INTEGER
-from .num import RE_NUMBER
-from .num import RE_PERCENTAGE
-from .num import RE_POSITIVE_QUANTIFIERS
-from .num import RE_RANGE
-from .num import RE_TO_RANGE
-from .num import RE_ASMD
-from .num import RE_POWER
-from .num import replace_vrsion_num
-from .num import replace_default_num
-from .num import replace_frac
-from .num import replace_negative_num
-from .num import replace_number
-from .num import replace_percentage
-from .num import replace_positive_quantifier
-from .num import replace_range
-from .num import replace_to_range
-from .num import replace_asmd
-from .num import replace_power
-from .phonecode import RE_MOBILE_PHONE
-from .phonecode import RE_NATIONAL_UNIFORM_NUMBER
-from .phonecode import RE_TELEPHONE
-from .phonecode import replace_mobile
-from .phonecode import replace_phone
-from .quantifier import RE_TEMPERATURE
-from .quantifier import replace_measure
-from .quantifier import replace_temperature
+from .char_convert import traditional_to_simplified
+from .chronology import RE_DATE, RE_DATE2, RE_TIME, RE_TIME_RANGE, replace_date, replace_date2, replace_time
+from .constants import F2H_ASCII_LETTERS, F2H_DIGITS, F2H_SPACE
+from .num import (
+    RE_ASMD,
+    RE_DECIMAL_NUM,
+    RE_DEFAULT_NUM,
+    RE_FRAC,
+    RE_INTEGER,
+    RE_NUMBER,
+    RE_PERCENTAGE,
+    RE_POSITIVE_QUANTIFIERS,
+    RE_POWER,
+    RE_RANGE,
+    RE_TO_RANGE,
+    RE_VERSION_NUM,
+    replace_asmd,
+    replace_default_num,
+    replace_frac,
+    replace_negative_num,
+    replace_number,
+    replace_percentage,
+    replace_positive_quantifier,
+    replace_power,
+    replace_range,
+    replace_to_range,
+    replace_vrsion_num,
+)
+from .phonecode import RE_MOBILE_PHONE, RE_NATIONAL_UNIFORM_NUMBER, RE_TELEPHONE, replace_mobile, replace_phone
+from .quantifier import RE_TEMPERATURE, replace_measure, replace_temperature
 
 
 class TextNormalizer:
@@ -129,7 +117,7 @@ class TextNormalizer:
 
     def normalize_sentence(self, sentence: str) -> str:
         # basic character conversions
-        sentence = tranditional_to_simplified(sentence)
+        sentence = traditional_to_simplified(sentence)
         sentence = sentence.translate(F2H_ASCII_LETTERS).translate(F2H_DIGITS).translate(F2H_SPACE)
 
         # number related NSW verbalization

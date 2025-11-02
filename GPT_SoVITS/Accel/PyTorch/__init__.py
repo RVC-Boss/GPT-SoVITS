@@ -3,9 +3,10 @@ import os
 
 import torch
 
-from .sample_funcs import sample_naive
-from .structs import T2SRequest, T2SResult
-from .t2s_engine import T2SEngine as T2SEngineTorch
+from .AR.sample_funcs import sample_naive
+from .AR.structs import T2SRequest, T2SResult
+from .AR.t2s_engine import T2SEngine as T2SEngineTorch
+from .G2PW.model import load_g2pw_torch
 
 torch.set_grad_enabled(False)
 
@@ -63,4 +64,12 @@ if BLACKWELL:
     quantization_methods_torch.append("FP8_E4M3FN")
 
 
-__all__ = ["T2SEngineTorch", "T2SRequest", "sample_naive", "T2SResult", "backends", "quantization_methods_torch"]
+__all__ = [
+    "T2SEngineTorch",
+    "T2SRequest",
+    "sample_naive",
+    "T2SResult",
+    "backends",
+    "quantization_methods_torch",
+    "load_g2pw_torch",
+]

@@ -20,7 +20,8 @@ from rich.table import Table
 from tqdm import tqdm
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
-from GPT_SoVITS.Accelerate import MLX, PyTorch, T2SEngineProtocol, T2SRequest, backends, console, logger
+import GPT_SoVITS.text.g2pw.converter
+from GPT_SoVITS.Accel import MLX, PyTorch, T2SEngineProtocol, T2SRequest, backends, console, logger
 from GPT_SoVITS.BigVGAN.bigvgan import BigVGAN
 from GPT_SoVITS.feature_extractor.cnhubert import CNHubert
 from GPT_SoVITS.module.mel_processing import mel_spectrogram_torch, spectrogram_torch
@@ -409,6 +410,9 @@ class TTS:
         self.stop_flag: bool = False
         self.precision: torch.dtype = torch.float16 if self.configs.is_half else torch.float32
 
+        GPT_SoVITS.text.g2pw.converter.device = self.configs.device
+        GPT_SoVITS.text.g2pw.converter.dtype = self.precision
+
         self.backend: str = ar_backend
         self.quantization: Any = quantization
         self.cache_size: int = cache_size
@@ -489,8 +493,10 @@ class TTS:
             )
             self.configs.use_vocoder = True
             self.init_vocoder(model_version)
-            if "pretrained" not in weights_path and hasattr(vits_model, "enc_q"):
-                del vits_model.enc_q
+
+        if hasattr(vits_model, "enc_q"):
+            del vits_model.enc_q
+        dict_s2["weight"] = {k: v for k, v in dict_s2["weight"].items() if not k.startswith("enc_q")}
 
         self.is_v2pro = model_version in {"v2Pro", "v2ProPlus"}
 
@@ -510,7 +516,7 @@ class TTS:
                 init_lora_weights=True,
             )
             vits_model.cfm = get_peft_model(vits_model.cfm, lora_config)  # type: ignore
-            vits_model.load_state_dict(state_dict, strict=True)
+            vits_model.load_state_dict(state_dict)
             vits_model.cfm = vits_model.cfm.merge_and_unload()  # pyright: ignore[reportAttributeAccessIssue, reportCallIssue]
             vits_model.eval()
 
@@ -534,7 +540,7 @@ class TTS:
                 MLX.T2SEngineMLX.load_decoder(
                     Path(weights_path), backend=ar_backend, quantize_mode=quantization, max_batch_size=40
                 ),
-                "mx.gpu" if self.configs.device.type != "cpu" else "mx.cpu",
+                self.configs.device,
                 dtype=self.precision,
                 cache_size=self.cache_size,
             )
@@ -1315,14 +1321,14 @@ class TTS:
         finally:
             infer_speed_avg = sum(infer_len) / sum(infer_time) if infer_time else 0
             rtf_value = sum((t1 - t0, t2 - t1, t_34, t_45)) / sum(audio_len)
-            console.print(f">> Time Stamps: {t1 - t0:.3f}\t{t2 - t1:.3f}\t{t_34:.3f}\t{t_45:.3f}")
-            console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
+            console.print(f">> Time Stamps: {t1 - t0:.4f}\t{t2 - t1:.4f}\t{t_34:.4f}\t{t_45:.4f}")
+            console.print(f">> Infer Speed: {infer_speed_avg:.4f} Token/s")
             console.print(f">> RTF: {rtf_value:.4f}")
 
             if ttft_time > 2:
-                console.print(f">> TTFT: {ttft_time:.3f} s")
+                console.print(f">> TTFT: {ttft_time:.4f} s")
             else:
-                console.print(f">> TTFT: {ttft_time * 1000:.3f} ms")
+                console.print(f">> TTFT: {ttft_time * 1000:.4f} ms")
 
             self.empty_cache()
 

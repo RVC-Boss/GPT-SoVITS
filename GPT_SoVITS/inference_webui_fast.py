@@ -12,16 +12,16 @@ import contextlib
 import gc
 import logging
 import os
-import re
 from functools import partial
 
 import gradio as gr
 import psutil
+import regex as re
 import torch
 
 from config import change_choices, get_dtype, get_weights_names, pretrained_sovits_name
 from config import infer_device as default_device
-from GPT_SoVITS.Accelerate import MLX, PyTorch, backends
+from GPT_SoVITS.Accel import MLX, PyTorch, backends
 from GPT_SoVITS.process_ckpt import inspect_version
 from GPT_SoVITS.TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
 from tools.assets import css, js, top_html

@@ -151,7 +151,6 @@ Invoke-Conda  ffmpeg=7 cmake vc14_runtime
 Write-Success "FFmpeg & CMake Installed"
 
 $PretrainedURL  = ""
-$G2PWURL        = ""
 $UVR5URL        = ""
 $NLTKURL        = ""
 $OpenJTalkURL   = ""
@@ -160,7 +159,6 @@ switch ($Source) {
     "HF" {
         Write-Info "Download Model From HuggingFace"
         $PretrainedURL = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
-        $G2PWURL       = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
         $UVR5URL       = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
         $NLTKURL       = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
         $OpenJTalkURL  = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
@@ -168,7 +166,6 @@ switch ($Source) {
     "HF-Mirror" {
         Write-Info "Download Model From HuggingFace-Mirror"
         $PretrainedURL = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
-        $G2PWURL       = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
         $UVR5URL       = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
         $NLTKURL       = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
         $OpenJTalkURL  = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
@@ -176,7 +173,6 @@ switch ($Source) {
     "ModelScope" {
         Write-Info "Download Model From ModelScope"
         $PretrainedURL = "https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/pretrained_models.zip"
-        $G2PWURL       = "https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip"
         $UVR5URL       = "https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/uvr5_weights.zip"
         $NLTKURL       = "https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/nltk_data.zip"
         $OpenJTalkURL  = "https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/open_jtalk_dic_utf_8-1.11.tar.gz"
@@ -191,17 +187,6 @@ if (-not (Test-Path "GPT_SoVITS/pretrained_models/sv")) {
 } else {
     Write-Info "Pretrained Model Exists"
     Write-Info "Skip Downloading Pretrained Models"
-}
-
-
-if (-not (Test-Path "GPT_SoVITS/text/G2PWModel")) {
-    Write-Info "Downloading G2PWModel..."
-    Invoke-Download -Uri $G2PWURL -OutFile "G2PWModel.zip"
-    Invoke-Unzip "G2PWModel.zip" "GPT_SoVITS/text"
-    Write-Success "G2PWModel Downloaded"
-} else {
-    Write-Info "G2PWModel Exists"
-    Write-Info "Skip Downloading G2PWModel"
 }
 
 if ($DownloadUVR5) {

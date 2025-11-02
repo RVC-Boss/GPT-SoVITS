@@ -1,9 +1,9 @@
 import os
-import re
 import sys
 import threading
 from typing import Dict, List, Tuple
 
+import regex as re
 import torch
 from tqdm import tqdm
 from transformers import AutoModelForMaskedLM, AutoTokenizer

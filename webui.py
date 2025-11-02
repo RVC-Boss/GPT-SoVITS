@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import platform
-import re
 import shutil
 import traceback
 from functools import partial
@@ -12,6 +11,7 @@ from typing import cast
 
 import gradio as gr
 import psutil
+import regex as re
 import torch
 import yaml
 
@@ -38,7 +38,7 @@ from config import (
     webui_port_subfix,
     webui_port_uvr5,
 )
-from GPT_SoVITS.Accelerate import (
+from GPT_SoVITS.Accel import (
     MLX,
     PyTorch,
     backends,

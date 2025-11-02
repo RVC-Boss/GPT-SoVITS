@@ -1,10 +1,10 @@
 import os
-import re
 import subprocess
 import sys
 
 import cpuinfo
 import gradio as gr
+import regex as re
 import torch
 
 pretrained_sovits_name = {
@@ -26,8 +26,8 @@ pretrained_gpt_name = {
 }
 name2sovits_path = {
     "不训练直接推v2Pro底模！": "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth",
-    "不训练直接推v2底模！": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
     "不训练直接推v2ProPlus底模！": "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth",
+    "不训练直接推v2底模！": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
 }
 name2gpt_path = {
     "不训练直接推v3底模！": "GPT_SoVITS/pretrained_models/s1v3.ckpt",

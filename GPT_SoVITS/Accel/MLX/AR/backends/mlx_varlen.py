@@ -19,7 +19,7 @@ class Attention(AttentionABC):
         super().__init__(n_head, hidden_dim, max_seq_length)
         self.kc_class = KVCacheHND
 
-    def __call__(self, x: Array, input_pos: Array, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
+    def __call__(self, x: Array, input_pos: Array, max_idx: int, kv_cache: KVCache, cache_idx: Array, attn_mask: Array):
         bsz, seqlen, _ = x.shape
 
         q, k, v = self.in_proj(x).split(3, axis=-1)
@@ -29,8 +29,6 @@ class Attention(AttentionABC):
         q, k, v = map(lambda x: x.swapaxes(1, 2), (q, k, v))
 
         kv_cache = self.kc_class.update_cache(input_pos, k, v, kv_cache, cache_idx)
-
-        max_idx = int(input_pos.max())
 
         q, k, v = map(lambda x: x[..., :max_idx, :], (q, *kv_cache))
 

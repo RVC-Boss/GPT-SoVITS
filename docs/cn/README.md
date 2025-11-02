@@ -51,14 +51,13 @@
 
 ## 推理速度
 
-|   Device    |  RTF  |  TTFT  | Batch Size |           Backend           |
-| :---------: | :---: | :----: | :--------: | :-------------------------: |
-|  RTX 5090   | 0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
-|  RTX 4090   | 0.014 |  UNK   |     24     | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.07  | 460 ms |     1      | Flash Attn Varlen CUDAGraph |
-| RTX 4060 Ti | 0.028 |  UNK   |     28     | Flash Attn Varlen CUDAGraph |
-|  Apple M4   | 0.16  | 1363ms |     1      |         MLX Varlen          |
-|  Apple M4   | 0.06  |  UNK   |     40     |         MLX Varlen          |
+|  Device   |  RTF   |  TTFT  | Batch Size |           Backend           |
+| :-------: | :----: | :----: | :--------: | :-------------------------: |
+| RTX 5090  |  0.05  | 150 ms |     1      | Flash Attn Varlen CUDAGraph |
+| RTX 5090  | 0.0109 |  UNK   |     40     | Flash Attn Varlen CUDAGraph |
+| Apple M4  |  0.16  | 850ms  |     1      |         MLX Varlen          |
+| Apple M4  | 0.054  |  UNK   |     40     |         MLX Varlen          |
+| i7-12700K |  0.28  |  UNK   |     40     |        Torch Varlen         |
 
 </div>
 
@@ -89,16 +88,16 @@
 **中国地区的用户可以[在此处下载整合包](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e/dkxgpiy9zb96hob4#KTvnO).**
 
 ```pwsh
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 pwsh -F install.ps1 --Device <CU126|CU128|CPU> --Source <HF|HF-Mirror|ModelScope> [--DownloadUVR5]
 ```
 
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
@@ -109,8 +108,8 @@ bash install.sh --device <CU126|CU128|ROCM|CPU> --source <HF|HF-Mirror|ModelScop
 运行以下的命令来安装本项目:
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--download-uvr5]
 ```
 
@@ -123,8 +122,8 @@ bash install.sh --device <MLX|CPU> --source <HF|HF-Mirror|ModelScope> [--downloa
 #### 安装依赖
 
 ```bash
-conda create -n GPTSoVits python=3.10
-conda activate GPTSoVits
+conda create -n GPTSoVITS python=3.10
+conda activate GPTSoVITS
 
 pip install -r extra-req.txt --no-deps
 pip install -r requirements.txt
@@ -135,7 +134,7 @@ pip install -r requirements.txt
 ##### Conda 用户
 
 ```bash
-conda activate GPTSoVits
+conda activate GPTSoVITS
 conda install ffmpeg -c conda-forge
 ```
 

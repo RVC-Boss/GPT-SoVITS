@@ -1,14 +1,18 @@
 # This code is modified from https://github.com/mozillazg/pypinyin-g2pW
 
-import pickle
 import os
+import pickle
+from typing import Callable, Text
 
-from pypinyin.constants import RE_HANS
-from pypinyin.core import Pinyin, Style
-from pypinyin.seg.simpleseg import simple_seg
-from pypinyin.converter import UltimateConverter
+from pypinyin.constants import RE_HANS, Style
 from pypinyin.contrib.tone_convert import to_tone
-from .onnx_api import G2PWOnnxConverter
+from pypinyin.converter import UltimateConverter
+from pypinyin.core import Pinyin
+from pypinyin.seg.simpleseg import simple_seg
+
+from .converter import G2PWConverter
+
+TErrors = Callable[[Text], Text] | Text
 
 current_file_path = os.path.dirname(__file__)
 CACHE_PATH = os.path.join(current_file_path, "polyphonic.pickle")
@@ -19,19 +23,15 @@ PP_FIX_DICT_PATH = os.path.join(current_file_path, "polyphonic-fix.rep")
 class G2PWPinyin(Pinyin):
     def __init__(
         self,
-        model_dir="G2PWModel/",
-        model_source=None,
-        enable_non_tradional_chinese=True,
+        model_source: str,
         v_to_u=False,
         neutral_tone_with_five=False,
         tone_sandhi=False,
         **kwargs,
     ):
-        self._g2pw = G2PWOnnxConverter(
-            model_dir=model_dir,
-            style="pinyin",
+        self._g2pw = G2PWConverter(
             model_source=model_source,
-            enable_non_tradional_chinese=enable_non_tradional_chinese,
+            style="pinyin",
         )
         self._converter = Converter(
             self._g2pw,
@@ -52,7 +52,7 @@ class Converter(UltimateConverter):
 
         self._g2pw = g2pw_instance
 
-    def convert(self, words, style, heteronym, errors, strict, **kwargs):
+    def convert(self, words: Text, style: Style, heteronym: bool, errors: TErrors, strict: bool = False, **kwargs):
         pys = []
         if RE_HANS.match(words):
             pys = self._to_pinyin(words, style=style, heteronym=heteronym, errors=errors, strict=strict)

@@ -7,8 +7,8 @@ import mlx.core as mx
 import torch
 from rich.progress import BarColumn, Progress, TextColumn
 
-from ..logger import SpeedColumnToken, Timer, console, logger
-from ..PyTorch.structs import T2SEngineProtocol, T2SRequest, T2SResult
+from ...logger import SpeedColumnToken, Timer, console, logger
+from ...PyTorch.AR.structs import T2SEngineProtocol, T2SRequest, T2SResult
 from .backends import mlx_static, mlx_varlen
 from .structs_mlx import T2SSessionMLX
 from .t2s_model_abc import T2SDecoderABC
@@ -23,40 +23,41 @@ class T2SEngine(T2SEngineProtocol):
     def __init__(
         self,
         decoder_model: T2SDecoderABC,
-        device: mx.Device | str = mx.Device(mx.cpu),
+        device: mx.Device | torch.device = mx.Device(mx.cpu),
         dtype: torch.dtype | mx.Dtype = torch.float32,
         *args,
         **kwds,
     ) -> None:
-        if isinstance(device, str):
-            match device:
-                case "mx.cpu":
-                    device = mx.Device(mx.cpu) if not mx.metal.is_available() else mx.Device(mx.gpu)
-                case "mx.gpu":
-                    device = mx.Device(mx.gpu)
-        device = cast(mx.Device, device)
+        match device:
+            case _ if isinstance(device, torch.device):
+                match device.type:
+                    case "cpu":
+                        self.device = mx.Device(mx.gpu)
+                    case "cuda" | "mps":
+                        self.device = mx.Device(mx.gpu)
+                    case _:
+                        raise RuntimeError(f"Device {device} not supported")
+            case _ if isinstance(device, mx.Device):
+                self.device = device
+            case _:
+                raise RuntimeError(f"Device {device} not supported")
+
         match dtype:
             case torch.float32:
-                dtype = mx.float16 if device.type == mx.gpu else mx.float32
+                self.dtype = mx.float16 if self.device.type == mx.gpu else mx.float32
             case torch.float16:
-                dtype = mx.float16
+                self.dtype = mx.float16
             case torch.bfloat16:
-                dtype = mx.bfloat16
+                self.dtype = mx.bfloat16
+            case mx.float16 | mx.bfloat16 | mx.float32:
+                self.dtype = dtype
+            case _:
+                raise RuntimeError(f"Dtype {dtype} Not Supported")
 
-        device = cast(mx.Device, device)
-        dtype = cast(mx.Dtype, dtype)
-
-        assert device.type.value in {0, 1}
-        assert dtype in {mx.float16, mx.bfloat16, mx.float32}
-
-        self.device = device
-        self.dtype = dtype
-
-        mx.set_default_device(device)
+        mx.set_default_device(self.device)
         decoder_model.set_dtype(self.dtype)
 
         self.decoder_model: T2SDecoderABC = decoder_model
-        self.decoder_model.compile()
 
     def _handle_request(self, request: T2SRequest):
         mx.clear_cache()
@@ -109,8 +110,9 @@ class T2SEngine(T2SEngineProtocol):
 
                     with timer("MLX.Decode", debug=debug):
                         xy_dec = decoder.h(
-                            session.input_pos,
                             session.xy_pos,
+                            session.input_pos,
+                            int(session.input_pos.max()),
                             session.kv_cache,
                             batch_idx,
                             *args,
@@ -179,7 +181,7 @@ class T2SEngine(T2SEngineProtocol):
                 if (request.early_stop_num != -1 and idx >= request.early_stop_num) or idx == max_token - 1:
                     for j in range(session.bsz):
                         if not session.completed[j].item():
-                            session.y_results[j] = session.y[[j], session.y_len : session.y_len + idx]
+                            session.y_results[j] = session.y[j, session.y_len : session.y_len + idx]
                             session.completed[j] = True
                     logger.error("Bad Full Prediction")
                     logger.info(f"Infer Speed: {(idx + 1) * session.bsz / (time.perf_counter() - t1):.2f} token/s")

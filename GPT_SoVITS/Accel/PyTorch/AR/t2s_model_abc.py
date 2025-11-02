@@ -23,7 +23,7 @@ from torch.profiler import ExecutionTraceObserver, ProfilerAction, tensorboard_t
 
 from tools.my_utils import get_machine_id
 
-from . import nn
+from .. import nn
 from .quantization import replace_all_linear_with_fp8
 from .structs import KVCacheProtocol, T2SDecoderProtocol, T2SSession
 
@@ -409,7 +409,7 @@ class TransformerDecoderABC(nn.Module, ABC):
         self.max_seq_length = max_seq_length
         self.max_batch_size = max_batch_size
 
-    def __call__(self, input_pos: Tensor, x: Tensor, kv_caches: MutableSequence[KVCacheProtocol], *args, **kwds):
+    def __call__(self, x: Tensor, input_pos: Tensor, kv_caches: MutableSequence[KVCacheProtocol], *args, **kwds):
         for layer, kv_cache in zip(self.layers, kv_caches):
             x = layer(x, input_pos, kv_cache, *args, **kwds)
         return x
@@ -597,11 +597,11 @@ class T2SDecoderABC(nn.Module, ABC, T2SDecoderProtocol):
 
         with torch.cuda.stream(s):
             for _ in range(5):
-                self.h(input_pos, x, kv_caches, *args, **kwds)
+                self.h(x, input_pos, kv_caches, *args, **kwds)
         torch.cuda.current_stream().wait_stream(s)
 
         with torch.cuda.graph(graph):
-            x_dec.copy_(self.h(input_pos, x, kv_caches, *args, **kwds))
+            x_dec.copy_(self.h(x, input_pos, kv_caches, *args, **kwds))
         torch.cuda.synchronize()
 
         return graph

@@ -4,10 +4,10 @@ Modified From https://github.com/XXXXRT666/GPT-SoVITS
 
 from typing import Dict, List, Tuple
 
-import kernels
+import flash_attn  # type: ignore
 import torch
 
-from .. import nn
+from ... import nn
 from ..structs import T2SSession
 from ..t2s_model_abc import (
     AttentionABC,
@@ -20,24 +20,6 @@ from ..t2s_model_abc import (
     TransformerBlockABC,
     TransformerDecoderABC,
 )
-
-flash_attn_kernel = None
-try:
-    import flash_attn_interface as flash_attn  # type: ignore
-
-    flash_attn_kernel = flash_attn.flash_attn_with_kvcache
-except ModuleNotFoundError:
-    try:
-        import flash_attn  # type: ignore
-
-        flash_attn_kernel = flash_attn.flash_attn_with_kvcache
-
-    except ModuleNotFoundError:
-        pass
-
-if flash_attn_kernel is None:
-    flash_attn_kernel = kernels.get_kernel("kernels-community/flash-attn").flash_attn_with_kvcache
-
 
 Tensor = torch.Tensor
 

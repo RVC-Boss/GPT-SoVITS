@@ -4,7 +4,6 @@ import contextlib
 import gc
 import logging
 import os
-import re
 import traceback
 import warnings
 from functools import partial
@@ -16,11 +15,13 @@ import gradio as gr
 import librosa
 import numpy as np
 import psutil
+import regex as re
 import torch
 import torchaudio
 from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
+import GPT_SoVITS.text.g2pw.converter
 from config import (
     change_choices,
     get_dtype,
@@ -30,8 +31,8 @@ from config import (
 from config import (
     infer_device as default_device,
 )
-from GPT_SoVITS.Accelerate import MLX, PyTorch, T2SEngineProtocol, T2SRequest, backends
-from GPT_SoVITS.Accelerate.logger import console
+from GPT_SoVITS.Accel import MLX, PyTorch, T2SEngineProtocol, T2SRequest, backends
+from GPT_SoVITS.Accel.logger import console
 from GPT_SoVITS.feature_extractor import cnhubert
 from GPT_SoVITS.module.mel_processing import mel_spectrogram_torch, spectrogram_torch
 from GPT_SoVITS.module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
@@ -228,8 +229,12 @@ v3v4set = {"v3", "v4"}
 infer_device = torch.device(args.device)
 device = infer_device if infer_device.type == "cuda" else torch.device("cpu")
 
+
 dtype = get_dtype(device.index)
 is_half = dtype == torch.float16
+
+GPT_SoVITS.text.g2pw.converter.device = device
+GPT_SoVITS.text.g2pw.converter.dtype = dtype
 
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path).to(infer_device, dtype)
@@ -361,9 +366,10 @@ async def change_sovits_weights(sovits_path, prompt_language=None, text_language
             **hps.model,
         ).eval()
 
-    if "pretrained" not in sovits_path:
-        if hasattr(vq_model, "enc_q"):
-            del vq_model.enc_q
+    if hasattr(vq_model, "enc_q"):
+        del vq_model.enc_q
+
+    dict_s2["weight"] = {k: v for k, v in dict_s2["weight"].items() if not k.startswith("enc_q")}
 
     if is_lora is False:
         console.print(f">> loading sovits_{model_version}", vq_model.load_state_dict(dict_s2["weight"]))
@@ -410,7 +416,7 @@ async def change_gpt_weights(gpt_path):
     if "mlx" in ar_backend.lower():
         t2s_engine = MLX.T2SEngineMLX(
             MLX.T2SEngineMLX.load_decoder(Path(gpt_path), backend=ar_backend, quantize_mode=args.quantization),
-            "mx.gpu" if infer_device.type != "cpu" else "mx.cpu",
+            infer_device,
             dtype=dtype,
             cache_size=1,
         )
@@ -707,8 +713,8 @@ async def get_tts_wav(
     pause_second=0.3,
     progress=gr.Progress(),
 ):
+    progress(0, desc="Starting...")
     torch.set_grad_enabled(False)
-    progress(0, desc="Inferencing...")
     debug = os.getenv("DEBUG") == "1"
     ttft_time = ttime()
 
@@ -800,9 +806,10 @@ async def get_tts_wav(
     infer_time: list[float] = []
     assert vq_model
 
-    percent = 1 / len(texts)
-    for i_text, text in enumerate(texts):
+    for i_text, text in progress.tqdm(enumerate(texts)):
         # 解决输入目标文本的空行导致报错的问题
+        assert isinstance(text, str)
+        assert isinstance(i_text, int)
         if len(text.strip()) == 0:
             continue
         if text[-1] not in splits:
@@ -950,8 +957,8 @@ async def get_tts_wav(
         audio_opt.append(zero_wav_torch)  # zero_wav
         t4 = ttime()
         t.extend([t2 - t1, t3 - t2, t4 - t3])
+        await asyncio.sleep(0)
         t1 = ttime()
-        progress((i_text + 1) * percent, desc="Inferencing...")
 
     audio_opt_t = torch.cat(audio_opt, 0)  # np.concatenate
     if model_version in {"v1", "v2", "v2Pro", "v2ProPlus"}:
@@ -977,21 +984,20 @@ async def get_tts_wav(
     infer_speed_avg = sum(infer_len) / sum(infer_time) if infer_time else 0
     rtf_value = sum(t) / (audio_opt_n.__len__() / opt_sr)
 
-    console.print(f">> Time Stamps: {t0:.3f}\t{t1:.3f}\t{t2:.3f}\t{t3:.3f}")
-    console.print(f">> Infer Speed: {infer_speed_avg:.2f} Token/s")
+    console.print(f">> Time Stamps: {t0:.4f}\t{t1:.4f}\t{t2:.4f}\t{t3:.4f}")
+    console.print(f">> Infer Speed: {infer_speed_avg:.4f} Token/s")
     console.print(f">> RTF: {rtf_value:.4f}")
 
-    gr.Info(f"{infer_speed_avg:.2f} Token/s", title="Infer Speed")
+    gr.Info(f"{infer_speed_avg:.4f} Token/s", title="Infer Speed")
     gr.Info(f"{rtf_value:.4f}", title="RTF")
 
     if ttft_time > 2:
-        console.print(f">> TTFT: {ttft_time:.3f} s")
-        gr.Info(f"{ttft_time:.3f} s", title="TTFT")
+        console.print(f">> TTFT: {ttft_time:.4f} s")
+        gr.Info(f"{ttft_time:.4f} s", title="TTFT")
     else:
-        console.print(f">> TTFT: {ttft_time * 1000:.3f} ms")
-        gr.Info(f"{ttft_time * 1000:.3f} ms", title="TTFT")
+        console.print(f">> TTFT: {ttft_time * 1000:.4f} ms")
+        gr.Info(f"{ttft_time * 1000:.4f} ms", title="TTFT")
 
-    progress(1, desc="Done")
     yield opt_sr, (audio_opt_n * 32767).astype(np.int16)
 
     gc.collect()

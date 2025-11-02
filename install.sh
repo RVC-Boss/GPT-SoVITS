@@ -237,21 +237,18 @@ echo -e "${SUCCESS}unzip Installed"
 if [ "$USE_HF" = "true" ]; then
     echo -e "${INFO}Download Model From HuggingFace"
     PRETRINED_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
-    G2PW_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
     NLTK_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
     PYOPENJTALK_URL="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
 elif [ "$USE_HF_MIRROR" = "true" ]; then
     echo -e "${INFO}Download Model From HuggingFace-Mirror"
     PRETRINED_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
-    G2PW_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
     UVR5_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
     NLTK_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
     PYOPENJTALK_URL="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
 elif [ "$USE_MODELSCOPE" = "true" ]; then
     echo -e "${INFO}Download Model From ModelScope"
     PRETRINED_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/pretrained_models.zip"
-    G2PW_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/G2PWModel.zip"
     UVR5_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/uvr5_weights.zip"
     NLTK_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/nltk_data.zip"
     PYOPENJTALK_URL="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master/open_jtalk_dic_utf_8-1.11.tar.gz"
@@ -268,19 +265,6 @@ if [ ! -d "GPT_SoVITS/pretrained_models/sv" ]; then
 else
     echo -e "${INFO}Pretrained Model Exists"
     echo -e "${INFO}Skip Downloading Pretrained Models"
-fi
-
-if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
-    echo -e "${INFO}Downloading G2PWModel.."
-    rm -rf G2PWModel.zip
-    run_wget_quiet "$G2PW_URL"
-
-    unzip -q -o G2PWModel.zip -d GPT_SoVITS/text
-    rm -rf G2PWModel.zip
-    echo -e "${SUCCESS}G2PWModel Downloaded"
-else
-    echo -e "${INFO}G2PWModel Exists"
-    echo -e "${INFO}Skip Downloading G2PWModel"
 fi
 
 if [ "$DOWNLOAD_UVR5" = "true" ]; then
@@ -372,10 +356,6 @@ fi
 echo -e "${SUCCESS}PyTorch Installed"
 
 echo -e "${INFO}Installing Python Dependencies From requirements.txt..."
-
-hash -r
-
-run_pip_quiet torchcodec
 
 run_pip_quiet -r extra-req.txt --no-deps
 

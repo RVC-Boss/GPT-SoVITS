@@ -30,11 +30,10 @@ pinyin_to_symbol_map = {
 parent_directory = os.path.dirname(current_file_path)
 
 is_g2pw = os.getenv("G2PW", "1") == "1"
-debug = os.getenv("DEBUG", "0") == "1"
+debug = os.getenv("PYPINYIN_DEBUG", "0") == "1"
 if is_g2pw:
     g2pw = G2PWPinyin(
-        model_dir="GPT_SoVITS/text/G2PWModel",
-        model_source=os.environ.get("bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"),
+        model_source="GPT_SoVITS/pretrained_models/g2pw-chinese",
         v_to_u=False,
         neutral_tone_with_five=True,
     )

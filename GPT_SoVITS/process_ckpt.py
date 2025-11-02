@@ -22,9 +22,9 @@ def save(fea, path):  # fix issue: torch.save doesn't support chinese path
     shutil.move(tmp_path, f"{dir}/{name}")
 
 
-def save_ckpt(ckpt, name, epoch, steps, hps, lora_rank=None):
+def save_ckpt(ckpt: OrderedDict[str, torch.Tensor], name: str, epoch: int, steps, hps, lora_rank=None):
     try:
-        opt = OrderedDict()
+        opt: OrderedDict[str, Any] = OrderedDict()
         opt["weight"] = {}
         for key in ckpt.keys():
             if "enc_q" in key:

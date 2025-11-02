@@ -49,7 +49,6 @@ Write-Host "Patch complete. Installed plugins in $CodecsDir"
 
 $baseHF = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
 $PRETRAINED_URL = "$baseHF/pretrained_models.zip"
-$G2PW_URL = "$baseHF/G2PWModel.zip"
 $UVR5_URL = "$baseHF/uvr5_weights.zip"
 $NLTK_URL = "$baseHF/nltk_data.zip"
 $JTALK_URL = "$baseHF/open_jtalk_dic_utf_8-1.11.tar.gz"
@@ -135,9 +134,6 @@ function DownloadAndUnzip($url, $targetRelPath) {
 
 Write-Host "[INFO] Download pretrained_models..."
 DownloadAndUnzip $PRETRAINED_URL "GPT_SoVITS"
-
-Write-Host "[INFO] Download G2PWModel..."
-DownloadAndUnzip $G2PW_URL "GPT_SoVITS\text"
 
 Write-Host "[INFO] Download UVR5 model..."
 DownloadAndUnzip $UVR5_URL "tools\uvr5"

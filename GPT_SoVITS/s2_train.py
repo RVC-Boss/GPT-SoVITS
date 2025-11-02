@@ -18,8 +18,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import GPT_SoVITS.utils as utils
-from GPT_SoVITS.Accelerate import console, logger
-from GPT_SoVITS.Accelerate.logger import SpeedColumnIteration
+from GPT_SoVITS.Accel import console, logger
+from GPT_SoVITS.Accel.logger import SpeedColumnIteration
 from GPT_SoVITS.module import commons
 from GPT_SoVITS.module.data_utils import (
     DistributedBucketSampler,

@@ -14,7 +14,7 @@ import typer
 from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 from torch.multiprocessing.spawn import spawn
 
-from GPT_SoVITS.Accelerate.logger import SpeedColumnIteration, console, logger
+from GPT_SoVITS.Accel.logger import SpeedColumnIteration, console, logger
 from GPT_SoVITS.module.models import SynthesizerTrn, SynthesizerTrnV3
 from GPT_SoVITS.process_ckpt import inspect_version
 from tools.my_utils import DictToAttrRecursive, clean_path

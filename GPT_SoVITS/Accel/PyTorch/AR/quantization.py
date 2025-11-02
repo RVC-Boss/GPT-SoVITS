@@ -2,7 +2,7 @@ from typing import cast
 
 import torch
 
-from . import nn
+from .. import nn
 
 Tensor = torch.Tensor
 
