@@ -117,8 +117,8 @@ def set_default():
     gpu_info = "\n".join(gpu_infos)
     if is_gpu_ok:
         minmem = min(mem)
-        default_batch_size = minmem // 2 if version not in v3v4set else minmem // 8
-        default_batch_size_s1 = minmem // 2
+        default_batch_size = int(minmem // 2 if version not in v3v4set else minmem // 8)
+        default_batch_size_s1 = int(minmem // 2)
     else:
         default_batch_size = default_batch_size_s1 = int(psutil.virtual_memory().total / 1024 / 1024 / 1024 / 4)
     if version not in v3v4set:
