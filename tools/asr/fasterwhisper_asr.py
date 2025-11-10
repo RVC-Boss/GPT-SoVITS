@@ -85,7 +85,7 @@ def execute_asr(input_folder, output_folder, model_path, language, precision):
     if language == "auto":
         language = None  # 不设置语种由模型自动输出概率最高的语种
     print("loading faster whisper model:", model_path, model_path)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "xpu" if torch.xpu.is_available() else "cpu"
     model = WhisperModel(model_path, device=device, compute_type=precision)
 
     input_file_names = os.listdir(input_folder)
@@ -127,8 +127,6 @@ def execute_asr(input_folder, output_folder, model_path, language, precision):
         print(f"ASR 任务完成->标注文件路径: {output_file_path}\n")
     return output_file_path
 
-
-load_cudnn()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

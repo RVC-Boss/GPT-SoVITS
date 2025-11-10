@@ -146,32 +146,38 @@ api_port = 9880
 
 
 # Thanks to the contribution of @Karasukaigan and @XXXXRT666
+# Modified for Intel GPU (XPU)
 def get_device_dtype_sm(idx: int) -> tuple[torch.device, torch.dtype, float, float]:
     cpu = torch.device("cpu")
-    cuda = torch.device(f"cuda:{idx}")
-    if not torch.cuda.is_available():
+    try:
+        if not torch.xpu.is_available():
+            return cpu, torch.float32, 0.0, 0.0
+    except AttributeError:
         return cpu, torch.float32, 0.0, 0.0
-    device_idx = idx
-    capability = torch.cuda.get_device_capability(device_idx)
-    name = torch.cuda.get_device_name(device_idx)
-    mem_bytes = torch.cuda.get_device_properties(device_idx).total_memory
-    mem_gb = mem_bytes / (1024**3) + 0.4
-    major, minor = capability
-    sm_version = major + minor / 10.0
-    is_16_series = bool(re.search(r"16\d{2}", name)) and sm_version == 7.5
-    if mem_gb < 4 or sm_version < 5.3:
+
+    xpu_device = torch.device(f"xpu:{idx}")
+    properties = torch.xpu.get_device_properties(idx)
+    mem_bytes = properties.total_memory
+    mem_gb = mem_bytes / (1024**3)
+
+    # Simplified logic for XPU, assuming FP16/BF16 is generally supported.
+    # The complex SM version check is CUDA-specific.
+    if mem_gb < 4:  # Example threshold
         return cpu, torch.float32, 0.0, 0.0
-    if sm_version == 6.1 or is_16_series == True:
-        return cuda, torch.float32, sm_version, mem_gb
-    if sm_version > 6.1:
-        return cuda, torch.float16, sm_version, mem_gb
-    return cpu, torch.float32, 0.0, 0.0
+
+    # For Intel GPUs, we can generally assume float16 is available.
+    # The 'sm_version' equivalent is not straightforward, so we use a placeholder value (e.g., 1.0)
+    # for compatibility with the downstream logic that sorts devices.
+    return xpu_device, torch.float16, 1.0, mem_gb
 
 
 IS_GPU = True
 GPU_INFOS: list[str] = []
 GPU_INDEX: set[int] = set()
-GPU_COUNT = torch.cuda.device_count()
+try:
+    GPU_COUNT = torch.xpu.device_count() if torch.xpu.is_available() else 0
+except AttributeError:
+    GPU_COUNT = 0
 CPU_INFO: str = "0\tCPU " + i18n("CPU训练,较慢")
 tmp: list[tuple[torch.device, torch.dtype, float, float]] = []
 memset: set[float] = set()
@@ -182,8 +188,8 @@ for i in range(max(GPU_COUNT, 1)):
 for j in tmp:
     device = j[0]
     memset.add(j[3])
-    if device.type != "cpu":
-        GPU_INFOS.append(f"{device.index}\t{torch.cuda.get_device_name(device.index)}")
+    if device.type == "xpu":
+        GPU_INFOS.append(f"{device.index}\t{torch.xpu.get_device_name(device.index)}")
         GPU_INDEX.add(device.index)
 
 if not GPU_INFOS:

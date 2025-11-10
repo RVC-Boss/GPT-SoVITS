@@ -5,6 +5,9 @@ tensorboard
 librosa==0.10.2
 numba
 pytorch-lightning>=2.4
+torch==2.9
+intel-extension-for-pytorch
+torchvision
 gradio<5
 ffmpeg-python
 onnxruntime; platform_machine == "aarch64" or platform_machine == "arm64"

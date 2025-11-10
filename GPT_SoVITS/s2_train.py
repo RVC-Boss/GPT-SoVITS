@@ -41,18 +41,18 @@ from process_ckpt import savee
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = False
 ###反正A100fp32更快，那试试tf32吧
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
+# torch.backends.cuda.matmul.allow_tf32 = True # XPU does not support this
+# torch.backends.cudnn.allow_tf32 = True # XPU does not support this
 torch.set_float32_matmul_precision("medium")  # 最低精度但最快（也就快一丁点），对于结果造成不了影响
 # from config import pretrained_s2G,pretrained_s2D
 global_step = 0
 
-device = "cpu"  # cuda以外的设备，等mps优化后加入
+device = "xpu" if torch.xpu.is_available() else "cpu"
 
 
 def main():
-    if torch.cuda.is_available():
-        n_gpus = torch.cuda.device_count()
+    if torch.xpu.is_available():
+        n_gpus = torch.xpu.device_count()
     else:
         n_gpus = 1
     os.environ["MASTER_ADDR"] = "localhost"
@@ -78,14 +78,14 @@ def run(rank, n_gpus, hps):
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.s2_ckpt_dir, "eval"))
 
     dist.init_process_group(
-        backend="gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
+        backend="gloo" if os.name == "nt" or not torch.xpu.is_available() else "ccl",
         init_method="env://?use_libuv=False",
         world_size=n_gpus,
         rank=rank,
     )
     torch.manual_seed(hps.train.seed)
-    if torch.cuda.is_available():
-        torch.cuda.set_device(rank)
+    if torch.xpu.is_available():
+        torch.xpu.set_device(rank)
 
     train_dataset = TextAudioSpeakerLoader(hps.data, version=hps.model.version)
     train_sampler = DistributedBucketSampler(
@@ -132,27 +132,14 @@ def run(rank, n_gpus, hps):
     #                              batch_size=1, pin_memory=True,
     #                              drop_last=False, collate_fn=collate_fn)
 
-    net_g = (
-        SynthesizerTrn(
-            hps.data.filter_length // 2 + 1,
-            hps.train.segment_size // hps.data.hop_length,
-            n_speakers=hps.data.n_speakers,
-            **hps.model,
-        ).cuda(rank)
-        if torch.cuda.is_available()
-        else SynthesizerTrn(
-            hps.data.filter_length // 2 + 1,
-            hps.train.segment_size // hps.data.hop_length,
-            n_speakers=hps.data.n_speakers,
-            **hps.model,
-        ).to(device)
-    )
+    net_g = SynthesizerTrn(
+        hps.data.filter_length // 2 + 1,
+        hps.train.segment_size // hps.data.hop_length,
+        n_speakers=hps.data.n_speakers,
+        **hps.model,
+    ).to(device)
 
-    net_d = (
-        MultiPeriodDiscriminator(hps.model.use_spectral_norm, version=hps.model.version).cuda(rank)
-        if torch.cuda.is_available()
-        else MultiPeriodDiscriminator(hps.model.use_spectral_norm, version=hps.model.version).to(device)
-    )
+    net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm, version=hps.model.version).to(device)
     for name, param in net_g.named_parameters():
         if not param.requires_grad:
             print(name, "not requires_grad")
@@ -196,7 +183,7 @@ def run(rank, n_gpus, hps):
         betas=hps.train.betas,
         eps=hps.train.eps,
     )
-    if torch.cuda.is_available():
+    if torch.xpu.is_available():
         net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
         net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
     else:
@@ -238,7 +225,7 @@ def run(rank, n_gpus, hps):
                     torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
                     strict=False,
                 )
-                if torch.cuda.is_available()
+                if torch.xpu.is_available()
                 else net_g.load_state_dict(
                     torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
                     strict=False,
@@ -256,7 +243,7 @@ def run(rank, n_gpus, hps):
                 net_d.module.load_state_dict(
                     torch.load(hps.train.pretrained_s2D, map_location="cpu", weights_only=False)["weight"], strict=False
                 )
-                if torch.cuda.is_available()
+                if torch.xpu.is_available()
                 else net_d.load_state_dict(
                     torch.load(hps.train.pretrained_s2D, map_location="cpu", weights_only=False)["weight"],
                 ),
@@ -333,42 +320,24 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
             ssl, ssl_lengths, spec, spec_lengths, y, y_lengths, text, text_lengths, sv_emb = data
         else:
             ssl, ssl_lengths, spec, spec_lengths, y, y_lengths, text, text_lengths = data
-        if torch.cuda.is_available():
+        if torch.xpu.is_available():
             spec, spec_lengths = (
-                spec.cuda(
-                    rank,
-                    non_blocking=True,
-                ),
-                spec_lengths.cuda(
-                    rank,
-                    non_blocking=True,
-                ),
+                spec.to(device, non_blocking=True),
+                spec_lengths.to(device, non_blocking=True),
             )
             y, y_lengths = (
-                y.cuda(
-                    rank,
-                    non_blocking=True,
-                ),
-                y_lengths.cuda(
-                    rank,
-                    non_blocking=True,
-                ),
+                y.to(device, non_blocking=True),
+                y_lengths.to(device, non_blocking=True),
             )
-            ssl = ssl.cuda(rank, non_blocking=True)
+            ssl = ssl.to(device, non_blocking=True)
             ssl.requires_grad = False
-            # ssl_lengths = ssl_lengths.cuda(rank, non_blocking=True)
+            # ssl_lengths = ssl_lengths.to(device, non_blocking=True)
             text, text_lengths = (
-                text.cuda(
-                    rank,
-                    non_blocking=True,
-                ),
-                text_lengths.cuda(
-                    rank,
-                    non_blocking=True,
-                ),
+                text.to(device, non_blocking=True),
+                text_lengths.to(device, non_blocking=True),
             )
             if hps.model.version in {"v2Pro", "v2ProPlus"}:
-                sv_emb = sv_emb.cuda(rank, non_blocking=True)
+                sv_emb = sv_emb.to(device, non_blocking=True)
         else:
             spec, spec_lengths = spec.to(device), spec_lengths.to(device)
             y, y_lengths = y.to(device), y_lengths.to(device)
@@ -596,11 +565,11 @@ def evaluate(hps, generator, eval_loader, writer_eval):
             text_lengths,
         ) in enumerate(eval_loader):
             print(111)
-            if torch.cuda.is_available():
-                spec, spec_lengths = spec.cuda(), spec_lengths.cuda()
-                y, y_lengths = y.cuda(), y_lengths.cuda()
-                ssl = ssl.cuda()
-                text, text_lengths = text.cuda(), text_lengths.cuda()
+            if torch.xpu.is_available():
+                spec, spec_lengths = spec.to(device), spec_lengths.to(device)
+                y, y_lengths = y.to(device), y_lengths.to(device)
+                ssl = ssl.to(device)
+                text, text_lengths = text.to(device), text_lengths.to(device)
             else:
                 spec, spec_lengths = spec.to(device), spec_lengths.to(device)
                 y, y_lengths = y.to(device), y_lengths.to(device)

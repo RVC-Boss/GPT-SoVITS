@@ -73,9 +73,11 @@ def main():
     parser.add_argument("--input_mels_dir", default="test_mel_files")
     parser.add_argument("--output_dir", default="generated_files_from_mel")
     parser.add_argument("--checkpoint_file", required=True)
-    parser.add_argument("--use_cuda_kernel", action="store_true", default=False)
+    # --use_cuda_kernel argument is removed to disable custom CUDA kernels.
+    # parser.add_argument("--use_cuda_kernel", action="store_true", default=False)
 
     a = parser.parse_args()
+    a.use_cuda_kernel = False
 
     config_file = os.path.join(os.path.split(a.checkpoint_file)[0], "config.json")
     with open(config_file) as f:
@@ -87,9 +89,9 @@ def main():
 
     torch.manual_seed(h.seed)
     global device
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(h.seed)
-        device = torch.device("cuda")
+    if torch.xpu.is_available():
+        torch.xpu.manual_seed(h.seed)
+        device = torch.device("xpu")
     else:
         device = torch.device("cpu")
 
