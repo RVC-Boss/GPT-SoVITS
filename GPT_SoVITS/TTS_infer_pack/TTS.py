@@ -1297,7 +1297,7 @@ class TTS:
                     print(f"############ {i18n('合成音频')} ############")
                     if not self.configs.use_vocoder:
                         if speed_factor == 1.0:
-                            print(f"{i18n('合成中')}...")
+                            print(f"{i18n('并行合成中')}...")
                             # ## vits并行推理 method 2
                             pred_semantic_list = [item[-idx:] for item, idx in zip(pred_semantic_list, idx_list)]
                             upsample_rate = math.prod(self.vits_model.upsample_rates)
