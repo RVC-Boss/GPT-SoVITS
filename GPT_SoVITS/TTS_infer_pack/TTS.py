@@ -1365,7 +1365,6 @@ class TTS:
                         all_phoneme_lens,
                         prompt,
                         all_bert_features[0].unsqueeze(0),
-                        # prompt_phone_len=ph_offset,
                         top_k=top_k,
                         top_p=top_p,
                         temperature=temperature,
@@ -1375,8 +1374,6 @@ class TTS:
                         streaming_mode=True,
                         chunk_length=chunk_length,
                         mute_emb_sim_matrix=self.configs.mute_emb_sim_matrix,
-                        only_for_the_first_chunk=is_first_package,
-                        limited_chunk_len=True
                     )
                     t4 = time.perf_counter()
                     t_34 += t4 - t3
@@ -1429,6 +1426,13 @@ class TTS:
 
 
                         if not self.configs.use_vocoder:
+                            token_padding_length = 0
+                            # token_padding_length = int(phones.shape[-1]*2)-_semantic_tokens.shape[-1]
+                            # if token_padding_length>0:
+                            #     _semantic_tokens = F.pad(_semantic_tokens, (0, token_padding_length), "constant", 486)
+                            # else:
+                            #     token_padding_length = 0
+
                             audio_chunk, latent, latent_mask = self.vits_model.decode(
                                                     _semantic_tokens.unsqueeze(0), 
                                                     phones, refer_audio_spec, 
@@ -1436,7 +1440,7 @@ class TTS:
                                                     result_length=semantic_tokens.shape[-1]+overlap_len if not is_first_chunk else None,
                                                     overlap_frames=last_latent[:,:,-overlap_len*(2 if self.vits_model.semantic_frame_rate == "25hz" else 1):] \
                                                     if last_latent is not None else None,
-                                                    # result_length=chunk_length if not is_first_chunk else None
+                                                    padding_length=token_padding_length
                                                 )
                             audio_chunk=audio_chunk.detach()[0, 0, :]
                         else:

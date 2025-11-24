@@ -828,9 +828,7 @@ class Text2SemanticDecoder(nn.Module):
     ):
         mute_emb_sim_matrix = kwargs.get("mute_emb_sim_matrix", None)
         sim_thershold = kwargs.get("sim_thershold", 0.3)
-        min_chunk_len = kwargs.get("min_chunk_len", 12)
-        limited_chunk_len = kwargs.get("limited_chunk_len", False)
-        only_for_the_first_chunk = kwargs.get("only_for_the_first_chunk", True)
+        check_token_num = 2
 
 
         x = self.ar_text_embedding(x)
@@ -884,8 +882,8 @@ class Text2SemanticDecoder(nn.Module):
             .to(device=x.device, dtype=torch.bool)
         )
 
-        is_yield = False
         token_counter = 0
+        curr_ptr = prefix_len
         for idx in tqdm(range(1500)):
             token_counter+=1
             if xy_attn_mask is not None:
@@ -924,42 +922,25 @@ class Text2SemanticDecoder(nn.Module):
                     print("bad zero prediction")
                 # print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 if streaming_mode:
-                    # y=y[:, :-1]
-                    # res_len = (y.shape[1] - prefix_len)%chunk_length
-                    yield (y[:, -token_counter:]) if token_counter!= 0 else None, True
+                    yield y[:, curr_ptr:] if curr_ptr<y.shape[1] else None, True
                 break
 
-            # if streaming_mode and (mute_emb_sim_matrix is not None) and (token_counter > min_chunk_len):
-            #     sim = mute_emb_sim_matrix[y[0,-1]]
-            #     if sim >= sim_thershold: is_yield = True
-            # elif streaming_mode and (mute_emb_sim_matrix is None):
-            #     is_yield = token_counter == chunk_length
 
-            # if streaming_mode and is_yield:
-            #     is_yield = False
-            #     yield y[:, -token_counter:], False
-            #     token_counter = 0
+            if streaming_mode and (mute_emb_sim_matrix is not None) and (token_counter >= chunk_length+check_token_num):
+                score = mute_emb_sim_matrix[y[0, curr_ptr:]] - sim_thershold
+                score[score<0]=-1
+                score[:-1]=score[:-1]+score[1:]
+                argmax_idx = score.argmax()
 
-            if streaming_mode and (mute_emb_sim_matrix is not None) and (token_counter > min_chunk_len):
-                last_sim = mute_emb_sim_matrix[y[0,-1]]
+                if score[argmax_idx]>=0 and argmax_idx+1>=chunk_length: 
+                    print(f"\n\ncurr_ptr:{curr_ptr}")
+                    yield y[:, curr_ptr:], False
+                    token_counter -= argmax_idx+1
+                    curr_ptr += argmax_idx+1
 
-                if (not limited_chunk_len) and last_sim >= sim_thershold: 
-                    yield y[:, -token_counter:], False
-                    token_counter = 0
-                    # if is_first_package: is_first_package = False
 
-                elif limited_chunk_len and token_counter == chunk_length:
-                    # is_first_package = False
-                    limited_chunk_len = False if only_for_the_first_chunk else limited_chunk_len
-                    sim = mute_emb_sim_matrix[y[0,-(token_counter-min_chunk_len):]]
-                    # print(f"sim:{sim}")
-                    i = chunk_length-(sim.argmax()+min_chunk_len+1)
-                    token_counter = i
-                    yield y[:, -chunk_length:-i] if i!= 0 else y[:, -chunk_length:], False
-                    
-
-            elif streaming_mode and (mute_emb_sim_matrix is None):
-                is_yield = token_counter == chunk_length
+            elif streaming_mode and (mute_emb_sim_matrix is None) and (token_counter >= chunk_length):
+                token_counter == chunk_length
                 yield y[:, -token_counter:], False
                 token_counter = 0
 

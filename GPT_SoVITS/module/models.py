@@ -151,7 +151,7 @@ class DurationPredictor(nn.Module):
         return x * x_mask
 
 
-HANN_WINDOW = {}
+WINDOW = {}
 
 class TextEncoder(nn.Module):
     def __init__(
@@ -211,7 +211,7 @@ class TextEncoder(nn.Module):
 
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
-    def forward(self, y, y_lengths, text, text_lengths, ge, speed=1, test=None, result_length:int=None, overlap_frames:torch.Tensor=None):
+    def forward(self, y, y_lengths, text, text_lengths, ge, speed=1, test=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
         y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(y.dtype)
 
         y = self.ssl_proj(y * y_mask) * y_mask
@@ -224,23 +224,33 @@ class TextEncoder(nn.Module):
         text = self.text_embedding(text).transpose(1, 2)
         text = self.encoder_text(text * text_mask, text_mask)
         y = self.mrte(y, y_mask, text, text_mask, ge)
+
+        if padding_length is not None and padding_length!=0:
+            y = y[:, :, :-padding_length]
+            y_mask = y_mask[:, :, :-padding_length]
+
+
         y = self.encoder2(y * y_mask, y_mask)
 
         if result_length is not None:
             y = y[:, :, -result_length:]
             y_mask = y_mask[:, :, -result_length:]
-        
+
         if overlap_frames is not None:
             overlap_len = overlap_frames.shape[-1]
-            window = HANN_WINDOW.get(overlap_len, None)
+            window = WINDOW.get(overlap_len, None)
             if window is None:
-                HANN_WINDOW[overlap_len] = torch.hann_window(overlap_len*2, device=y.device, dtype=y.dtype)
-                window = HANN_WINDOW[overlap_len]
+                # WINDOW[overlap_len] = torch.hann_window(overlap_len*2, device=y.device, dtype=y.dtype)
+                WINDOW[overlap_len] = torch.sin(torch.arange(overlap_len*2, device=y.device) * torch.pi / (overlap_len*2))
+                window = WINDOW[overlap_len]
+
+
             window = window.to(y.device)
             y[:,:,:overlap_len] = (
                 window[:overlap_len].view(1, 1, -1) * y[:,:,:overlap_len]
                 + window[overlap_len:].view(1, 1, -1) * overlap_frames
             )
+            
         y_ = y
         y_mask_ = y_mask
 
@@ -981,7 +991,7 @@ class SynthesizerTrn(nn.Module):
         return o, y_mask, (z, z_p, m_p, logs_p)
 
     @torch.no_grad()
-    def decode(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None):
+    def decode(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
         def get_ge(refer, sv_emb):
             ge = None
             if refer is not None:
@@ -1013,6 +1023,7 @@ class SynthesizerTrn(nn.Module):
         if self.semantic_frame_rate == "25hz":
             quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
             result_length = (2*result_length) if result_length is not None else None
+            padding_length = (2*padding_length) if padding_length is not None else None
         x, m_p, logs_p, y_mask, y_, y_mask_ = self.enc_p(
             quantized,
             y_lengths,
@@ -1020,7 +1031,7 @@ class SynthesizerTrn(nn.Module):
             text_lengths,
             self.ge_to512(ge.transpose(2, 1)).transpose(2, 1) if self.is_v2pro else ge,
             speed,
-        , result_length=result_length, overlap_frames=overlap_frames)
+        , result_length=result_length, overlap_frames=overlap_frames, padding_length=padding_length)
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
