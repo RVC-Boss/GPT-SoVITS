@@ -1040,7 +1040,7 @@ class SynthesizerTrn(nn.Module):
 
 
     @torch.no_grad()
-    def decode_steaming(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
+    def decode_streaming(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
         def get_ge(refer, sv_emb):
             ge = None
             if refer is not None:

@@ -1426,7 +1426,7 @@ class TTS:
                             # else:
                             #     token_padding_length = 0
 
-                            audio_chunk, latent, latent_mask = self.vits_model.decode_steaming(
+                            audio_chunk, latent, latent_mask = self.vits_model.decode_streaming(
                                                     _semantic_tokens.unsqueeze(0), 
                                                     phones, refer_audio_spec, 
                                                     speed=speed_factor,
