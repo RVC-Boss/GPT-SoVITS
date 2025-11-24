@@ -990,8 +990,57 @@ class SynthesizerTrn(nn.Module):
         o = self.dec((z * y_mask)[:, :, :], g=ge)
         return o, y_mask, (z, z_p, m_p, logs_p)
 
+
     @torch.no_grad()
-    def decode(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
+    def decode(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None):
+        def get_ge(refer, sv_emb):
+            ge = None
+            if refer is not None:
+                refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
+                refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, refer.size(2)), 1).to(refer.dtype)
+                if self.version == "v1":
+                    ge = self.ref_enc(refer * refer_mask, refer_mask)
+                else:
+                    ge = self.ref_enc(refer[:, :704] * refer_mask, refer_mask)
+                if self.is_v2pro:
+                    sv_emb = self.sv_emb(sv_emb)  # B*20480->B*512
+                    ge += sv_emb.unsqueeze(-1)
+                    ge = self.prelu(ge)
+            return ge
+
+        if type(refer) == list:
+            ges = []
+            for idx, _refer in enumerate(refer):
+                ge = get_ge(_refer, sv_emb[idx] if self.is_v2pro else None)
+                ges.append(ge)
+            ge = torch.stack(ges, 0).mean(0)
+        else:
+            ge = get_ge(refer, sv_emb)
+
+        y_lengths = torch.LongTensor([codes.size(2) * 2]).to(codes.device)
+        text_lengths = torch.LongTensor([text.size(-1)]).to(text.device)
+
+        quantized = self.quantizer.decode(codes)
+        if self.semantic_frame_rate == "25hz":
+            quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
+        x, m_p, logs_p, y_mask, _, _ = self.enc_p(
+            quantized,
+            y_lengths,
+            text,
+            text_lengths,
+            self.ge_to512(ge.transpose(2, 1)).transpose(2, 1) if self.is_v2pro else ge,
+            speed,
+        )
+        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+
+        z = self.flow(z_p, y_mask, g=ge, reverse=True)
+
+        o = self.dec((z * y_mask)[:, :, :], g=ge)
+        return o
+
+
+    @torch.no_grad()
+    def decode_steaming(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
         def get_ge(refer, sv_emb):
             ge = None
             if refer is not None:
@@ -1031,7 +1080,10 @@ class SynthesizerTrn(nn.Module):
             text_lengths,
             self.ge_to512(ge.transpose(2, 1)).transpose(2, 1) if self.is_v2pro else ge,
             speed,
-        , result_length=result_length, overlap_frames=overlap_frames, padding_length=padding_length)
+            result_length=result_length, 
+            overlap_frames=overlap_frames, 
+            padding_length=padding_length
+            )
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
@@ -1277,7 +1329,7 @@ class SynthesizerTrnV3(nn.Module):
         return cfm_loss
 
     @torch.no_grad()
-    def decode_encp(self, codes, text, refer, ge=None, speed=1, result_length:int=None, overlap_frames:torch.Tensor=None):
+    def decode_encp(self, codes, text, refer, ge=None, speed=1):
         # print(2333333,refer.shape)
         # ge=None
         if ge == None:
@@ -1285,26 +1337,22 @@ class SynthesizerTrnV3(nn.Module):
             refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, refer.size(2)), 1).to(refer.dtype)
             ge = self.ref_enc(refer[:, :704] * refer_mask, refer_mask)
         y_lengths = torch.LongTensor([int(codes.size(2) * 2)]).to(codes.device)
-
         if speed == 1:
-            sizee = int((codes.size(2) if result_length is None else result_length) * (3.875 if self.version=="v3"else 4))
+            sizee = int(codes.size(2) * (3.875 if self.version == "v3" else 4))
         else:
-            sizee = int((codes.size(2) if result_length is None else result_length) * (3.875 if self.version=="v3"else 4) / speed) + 1
+            sizee = int(codes.size(2) * (3.875 if self.version == "v3" else 4) / speed) + 1
         y_lengths1 = torch.LongTensor([sizee]).to(codes.device)
         text_lengths = torch.LongTensor([text.size(-1)]).to(text.device)
 
         quantized = self.quantizer.decode(codes)
         if self.semantic_frame_rate == "25hz":
             quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")  ##BCT
-            result_length = result_length * 2 if result_length is not None else None
-
-
-        x, m_p, logs_p, y_mask, y_, y_mask_ = self.enc_p(quantized, y_lengths, text, text_lengths, ge, speed, result_length=result_length, overlap_frames=overlap_frames)
+        x, m_p, logs_p, y_mask, _, _ = self.enc_p(quantized, y_lengths, text, text_lengths, ge, speed)
         fea = self.bridge(x)
         fea = F.interpolate(fea, scale_factor=(1.875 if self.version == "v3" else 2), mode="nearest")  ##BCT
         ####more wn paramter to learn mel
         fea, y_mask_ = self.wns1(fea, y_lengths1, ge)
-        return fea, ge, y_, y_mask_
+        return fea, ge
 
     def extract_latent(self, x):
         ssl = self.ssl_proj(x)

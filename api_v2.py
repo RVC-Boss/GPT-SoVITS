@@ -30,7 +30,7 @@ POST:
     "top_k": 5,                   # int. top k sampling
     "top_p": 1,                   # float. top p sampling
     "temperature": 1,             # float. temperature for sampling
-    "text_split_method": "cut0",  # str. text split method, see text_segmentation_method.py for details.
+    "text_split_method": "cut5",  # str. text split method, see text_segmentation_method.py for details.
     "batch_size": 1,              # int. batch size for inference
     "batch_threshold": 0.75,      # float. threshold for batch splitting.
     "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
@@ -42,7 +42,7 @@ POST:
     "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
     "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
     "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-    "chunk_length: 24,           # int. chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+    "min_chunk_length: 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
     "return_fragment": False,     # bool. step by step return the audio fragment. (old version of streaming mode)
 }
 ```
@@ -174,7 +174,7 @@ class TTS_Request(BaseModel):
     sample_steps: int = 32
     super_sampling: bool = False
     overlap_length: int = 2
-    chunk_length: int = 24
+    min_chunk_length: int = 16
     return_fragment: bool = False
 
 
@@ -333,7 +333,7 @@ async def tts_handle(req: dict):
                 "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
                 "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
                 "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-                "chunk_length: 24,            # int. chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+                "min_chunk_length: 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
                 "return_fragment": False,     # bool. step by step return the audio fragment. (old version of streaming mode)
             }
     returns:
@@ -416,7 +416,7 @@ async def tts_get_endpoint(
     sample_steps: int = 32,
     super_sampling: bool = False,
     overlap_length: int = 2,
-    chunk_length: int = 24,
+    min_chunk_length: int = 16,
     return_fragment: bool = False,
 ):
     req = {
@@ -443,7 +443,7 @@ async def tts_get_endpoint(
         "sample_steps": int(sample_steps),
         "super_sampling": super_sampling,
         "overlap_length": int(overlap_length),
-        "chunk_length": int(chunk_length),
+        "min_chunk_length": int(min_chunk_length),
         "return_fragment": return_fragment,
     }
     return await tts_handle(req)

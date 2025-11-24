@@ -827,7 +827,7 @@ class Text2SemanticDecoder(nn.Module):
         **kwargs,
     ):
         mute_emb_sim_matrix = kwargs.get("mute_emb_sim_matrix", None)
-        sim_thershold = kwargs.get("sim_thershold", 0.3)
+        chunk_split_thershold = kwargs.get("chunk_split_thershold", 0.3)
         check_token_num = 2
 
 
@@ -927,9 +927,9 @@ class Text2SemanticDecoder(nn.Module):
 
 
             if streaming_mode and (mute_emb_sim_matrix is not None) and (token_counter >= chunk_length+check_token_num):
-                score = mute_emb_sim_matrix[y[0, curr_ptr:]] - sim_thershold
+                score = mute_emb_sim_matrix[y[0, curr_ptr:]] - chunk_split_thershold
                 score[score<0]=-1
-                score[:-1]=score[:-1]+score[1:]
+                score[:-1]=score[:-1]+score[1:] ##考虑连续两个token
                 argmax_idx = score.argmax()
 
                 if score[argmax_idx]>=0 and argmax_idx+1>=chunk_length: 
