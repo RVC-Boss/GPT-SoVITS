@@ -35,15 +35,17 @@ POST:
     "batch_threshold": 0.75,      # float. threshold for batch splitting.
     "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
     "speed_factor":1.0,           # float. control the speed of the synthesized audio.
-    "streaming_mode": False,      # bool. whether to return a streaming response.
+    "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
     "seed": -1,                   # int. random seed for reproducibility.
     "parallel_infer": True,       # bool. whether to use parallel inference.
     "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
     "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
     "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
+    "return_fragment": False,     # bool. step by step return the audio fragment. (Best Quality, Slowest response speed. old version of streaming mode)
+    "streaming_mode": False,      # bool. return audio chunk by chunk. (Medium quality, Slow response speed)
     "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-    "min_chunk_length: 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
-    "return_fragment": False,     # bool. step by step return the audio fragment. (old version of streaming mode)
+    "min_chunk_length": 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+    "fixed_length_chunk": False,  # bool. When turned on, it can achieve faster streaming response, but with lower quality. (lower quality, faster response speed)
 }
 ```
 
@@ -176,6 +178,7 @@ class TTS_Request(BaseModel):
     overlap_length: int = 2
     min_chunk_length: int = 16
     return_fragment: bool = False
+    fixed_length_chunk: bool = False
 
 
 ### modify from https://github.com/RVC-Boss/GPT-SoVITS/pull/894/files
@@ -313,7 +316,7 @@ async def tts_handle(req: dict):
                 "text": "",                   # str.(required) text to be synthesized
                 "text_lang: "",               # str.(required) language of the text to be synthesized
                 "ref_audio_path": "",         # str.(required) reference audio path
-                "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker synthesis
+                "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
                 "prompt_text": "",            # str.(optional) prompt text for the reference audio
                 "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
                 "top_k": 5,                   # int. top k sampling
@@ -322,19 +325,19 @@ async def tts_handle(req: dict):
                 "text_split_method": "cut5",  # str. text split method, see text_segmentation_method.py for details.
                 "batch_size": 1,              # int. batch size for inference
                 "batch_threshold": 0.75,      # float. threshold for batch splitting.
-                "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
+                "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
                 "speed_factor":1.0,           # float. control the speed of the synthesized audio.
                 "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
                 "seed": -1,                   # int. random seed for reproducibility.
-                "media_type": "wav",          # str. media type of the output audio, support "wav", "raw", "ogg", "aac".
-                "streaming_mode": False,      # bool. whether to return a streaming response.
-                "parallel_infer": True,       # bool.(optional) whether to use parallel inference.
-                "repetition_penalty": 1.35    # float.(optional) repetition penalty for T2S model.
+                "parallel_infer": True,       # bool. whether to use parallel inference.
+                "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
                 "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
                 "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
+                "return_fragment": False,     # bool. step by step return the audio fragment. (Best Quality, Slowest response speed. old version of streaming mode)
+                "streaming_mode": False,      # bool. return audio chunk by chunk. (Medium quality, Slow response speed)
                 "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-                "min_chunk_length: 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
-                "return_fragment": False,     # bool. step by step return the audio fragment. (old version of streaming mode)
+                "min_chunk_length": 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+                "fixed_length_chunk": False,  # bool. When turned on, it can achieve faster streaming response, but with lower quality. (lower quality, faster response speed)
             }
     returns:
         StreamingResponse: audio stream response.
@@ -402,7 +405,7 @@ async def tts_get_endpoint(
     top_k: int = 5,
     top_p: float = 1,
     temperature: float = 1,
-    text_split_method: str = "cut0",
+    text_split_method: str = "cut5",
     batch_size: int = 1,
     batch_threshold: float = 0.75,
     split_bucket: bool = True,
@@ -410,14 +413,15 @@ async def tts_get_endpoint(
     fragment_interval: float = 0.3,
     seed: int = -1,
     media_type: str = "wav",
-    streaming_mode: bool = False,
     parallel_infer: bool = True,
     repetition_penalty: float = 1.35,
     sample_steps: int = 32,
     super_sampling: bool = False,
+    return_fragment: bool = False,
+    streaming_mode: bool = False,
     overlap_length: int = 2,
     min_chunk_length: int = 16,
-    return_fragment: bool = False,
+    fixed_length_chunk: bool = False,
 ):
     req = {
         "text": text,
@@ -445,6 +449,7 @@ async def tts_get_endpoint(
         "overlap_length": int(overlap_length),
         "min_chunk_length": int(min_chunk_length),
         "return_fragment": return_fragment,
+        "fixed_length_chunk": fixed_length_chunk
     }
     return await tts_handle(req)
 

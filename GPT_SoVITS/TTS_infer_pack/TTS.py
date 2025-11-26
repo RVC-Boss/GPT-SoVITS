@@ -1014,18 +1014,19 @@ class TTS:
                     "text_split_method": "cut1",  # str. text split method, see text_segmentation_method.py for details.
                     "batch_size": 1,              # int. batch size for inference
                     "batch_threshold": 0.75,      # float. threshold for batch splitting.
-                    "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
-                    "return_fragment": False,     # bool. step by step return the audio fragment.
+                    "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
                     "speed_factor":1.0,           # float. control the speed of the synthesized audio.
                     "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
                     "seed": -1,                   # int. random seed for reproducibility.
                     "parallel_infer": True,       # bool. whether to use parallel inference.
-                    "repetition_penalty": 1.35    # float. repetition penalty for T2S model.
+                    "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
                     "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
                     "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
-                    "streaming_mode": False,      # bool. return audio chunk by chunk.
+                    "return_fragment": False,     # bool. step by step return the audio fragment. (Best Quality, Slowest response speed. old version of streaming mode)
+                    "streaming_mode": False,      # bool. return audio chunk by chunk. (Medium quality, Slow response speed)
                     "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-                    "min_chunk_length: 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+                    "min_chunk_length": 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+                    "fixed_length_chunk": False,  # bool. When turned on, it can achieve faster streaming response, but with lower quality. (lower quality, faster response speed)
                 }
         returns:
             Tuple[int, np.ndarray]: sampling rate and audio data.
@@ -1058,6 +1059,7 @@ class TTS:
         streaming_mode = inputs.get("streaming_mode", False)
         overlap_length = inputs.get("overlap_length", 2)
         min_chunk_length = inputs.get("min_chunk_length", 16)
+        fixed_length_chunk = inputs.get("fixed_length_chunk", False)
         chunk_split_thershold = 0.0 # 该值代表语义token与mute token的余弦相似度阈值，若大于该阈值，则视为可切分点。
 
         if parallel_infer and not streaming_mode:
@@ -1367,7 +1369,7 @@ class TTS:
                         repetition_penalty=repetition_penalty,
                         streaming_mode=True,
                         chunk_length=min_chunk_length,
-                        mute_emb_sim_matrix=self.configs.mute_emb_sim_matrix,
+                        mute_emb_sim_matrix=self.configs.mute_emb_sim_matrix if not fixed_length_chunk else None,
                         chunk_split_thershold=chunk_split_thershold,
                     )
                     t4 = time.perf_counter()
@@ -1455,11 +1457,6 @@ class TTS:
                                 audio_chunk_[last_audio_chunk.shape[0]-overlap_size:-overlap_size] if not is_final \
                                     else audio_chunk_[last_audio_chunk.shape[0]-overlap_size:]
                                     )
-
-                            # audio_chunk_ = (
-                            #     audio_chunk_[overlap_size:-overlap_size] if not is_final \
-                            #         else audio_chunk_[overlap_size:]
-                            #         )
 
                         last_latent = latent
                         last_audio_chunk = audio_chunk
@@ -1785,30 +1782,35 @@ class TTS:
         self,
         audio_fragments: List[torch.Tensor],
         overlap_len: int,
+        search_len:int= 320
     ):
-        for i in range(len(audio_fragments) - 1):
-            f1 = audio_fragments[i]
-            f2 = audio_fragments[i + 1]
-            w1 = f1[-overlap_len:]
-            w2 = f2[:overlap_len]
-            w2 = w2[-w2.shape[-1]//2:]
-            # assert w1.shape == w2.shape
-            corr = F.conv1d(w1.view(1, 1, -1), w2.view(1, 1, -1)).view(-1)
+        # overlap_len-=search_len
 
-            squared_sum = F.conv1d(w1.view(1, 1, -1)**2, torch.ones_like(w2).view(1, 1, -1)).view(-1)+ 1e-8
-            idx = (corr/squared_sum.sqrt()).argmax()
+        dtype = audio_fragments[0].dtype
+        
+        for i in range(len(audio_fragments) - 1):
+            f1 = audio_fragments[i].float()
+            f2 = audio_fragments[i + 1].float()
+            w1 = f1[-overlap_len:]
+            w2 = f2[:overlap_len+search_len]
+            # w2 = w2[-w2.shape[-1]//2:]
+            # assert w1.shape == w2.shape
+            corr_norm = F.conv1d(w2.view(1, 1, -1), w1.view(1, 1, -1)).view(-1)
+
+            corr_den = F.conv1d(w2.view(1, 1, -1)**2, torch.ones_like(w1).view(1, 1, -1)).view(-1)+ 1e-8
+            idx = (corr_norm/corr_den.sqrt()).argmax()
 
             print(f"seg_idx: {idx}")
 
             # idx = corr.argmax()
-            f1_ = f1[: -(overlap_len - idx)]
+            f1_ = f1[: -overlap_len]
             audio_fragments[i] = f1_
 
             f2_ = f2[idx:]
-            window = torch.hann_window((overlap_len - idx) * 2, device=f1.device, dtype=f1.dtype)
-            f2_[: (overlap_len - idx)] = (
-                window[: (overlap_len - idx)] * f2_[: (overlap_len - idx)]
-                + window[(overlap_len - idx) :] * f1[-(overlap_len - idx) :]
+            window = torch.hann_window((overlap_len) * 2, device=f1.device, dtype=f1.dtype)
+            f2_[: overlap_len] = (
+                window[: overlap_len] * f2_[: overlap_len]
+                + window[overlap_len :] * f1[-overlap_len :]
             )
 
             # window = torch.sin(torch.arange((overlap_len - idx), device=f1.device) * np.pi / (overlap_len - idx))
@@ -1819,4 +1821,4 @@ class TTS:
 
             audio_fragments[i + 1] = f2_
 
-        return torch.cat(audio_fragments, 0)
+        return torch.cat(audio_fragments, 0).to(dtype)

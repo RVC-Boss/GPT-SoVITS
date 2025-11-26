@@ -940,9 +940,10 @@ class Text2SemanticDecoder(nn.Module):
 
 
             elif streaming_mode and (mute_emb_sim_matrix is None) and (token_counter >= chunk_length):
-                token_counter == chunk_length
                 yield y[:, -token_counter:], False
+                curr_ptr+=token_counter
                 token_counter = 0
+                
 
 
             ####################### update next step ###################################
