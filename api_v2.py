@@ -126,6 +126,7 @@ from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from pydantic import BaseModel
+import threading
 
 # print(sys.path)
 i18n = I18nAuto()
@@ -181,10 +182,49 @@ class TTS_Request(BaseModel):
     fixed_length_chunk: bool = False
 
 
-### modify from https://github.com/RVC-Boss/GPT-SoVITS/pull/894/files
 def pack_ogg(io_buffer: BytesIO, data: np.ndarray, rate: int):
-    with sf.SoundFile(io_buffer, mode="w", samplerate=rate, channels=1, format="ogg") as audio_file:
-        audio_file.write(data)
+    # Author: AkagawaTsurunaki
+    # Issue:
+    #   Stack overflow probabilistically occurs
+    #   when the function `sf_writef_short` of `libsndfile_64bit.dll` is called
+    #   using the Python library `soundfile`
+    # Note:
+    #   This is an issue related to `libsndfile`, not this project itself.
+    #   It happens when you generate a large audio tensor (about 499804 frames in my PC)
+    #   and try to convert it to an ogg file.
+    # Related:
+    #   https://github.com/RVC-Boss/GPT-SoVITS/issues/1199
+    #   https://github.com/libsndfile/libsndfile/issues/1023
+    #   https://github.com/bastibe/python-soundfile/issues/396
+    # Suggestion:
+    #   Or split the whole audio data into smaller audio segment to avoid stack overflow?
+
+    def handle_pack_ogg():
+        with sf.SoundFile(io_buffer, mode="w", samplerate=rate, channels=1, format="ogg") as audio_file:
+            audio_file.write(data)
+
+
+
+    # See: https://docs.python.org/3/library/threading.html
+    # The stack size of this thread is at least 32768
+    # If stack overflow error still occurs, just modify the `stack_size`.
+    # stack_size = n * 4096, where n should be a positive integer.
+    # Here we chose n = 4096.
+    stack_size = 4096 * 4096
+    try:
+        threading.stack_size(stack_size)
+        pack_ogg_thread = threading.Thread(target=handle_pack_ogg)
+        pack_ogg_thread.start()
+        pack_ogg_thread.join()
+    except RuntimeError as e:
+        # If changing the thread stack size is unsupported, a RuntimeError is raised.
+        print("RuntimeError: {}".format(e))
+        print("Changing the thread stack size is unsupported.")
+    except ValueError as e:
+        # If the specified stack size is invalid, a ValueError is raised and the stack size is unmodified.
+        print("ValueError: {}".format(e))
+        print("The specified stack size is invalid.")
+
     return io_buffer
 
 
@@ -295,8 +335,8 @@ def check_params(req: dict):
         )
     if media_type not in ["wav", "raw", "ogg", "aac"]:
         return JSONResponse(status_code=400, content={"message": f"media_type: {media_type} is not supported"})
-    elif media_type == "ogg" and not streaming_mode:
-        return JSONResponse(status_code=400, content={"message": "ogg format is not supported in non-streaming mode"})
+    # elif media_type == "ogg" and not streaming_mode:
+    #     return JSONResponse(status_code=400, content={"message": "ogg format is not supported in non-streaming mode"})
 
     if text_split_method not in cut_method_names:
         return JSONResponse(
