@@ -151,6 +151,8 @@ class DurationPredictor(nn.Module):
         return x * x_mask
 
 
+WINDOW = {}
+
 class TextEncoder(nn.Module):
     def __init__(
         self,
@@ -209,7 +211,7 @@ class TextEncoder(nn.Module):
 
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
-    def forward(self, y, y_lengths, text, text_lengths, ge, speed=1, test=None):
+    def forward(self, y, y_lengths, text, text_lengths, ge, speed=1, test=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
         y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, y.size(2)), 1).to(y.dtype)
 
         y = self.ssl_proj(y * y_mask) * y_mask
@@ -222,13 +224,44 @@ class TextEncoder(nn.Module):
         text = self.text_embedding(text).transpose(1, 2)
         text = self.encoder_text(text * text_mask, text_mask)
         y = self.mrte(y, y_mask, text, text_mask, ge)
+
+        if padding_length is not None and padding_length!=0:
+            y = y[:, :, :-padding_length]
+            y_mask = y_mask[:, :, :-padding_length]
+
+
         y = self.encoder2(y * y_mask, y_mask)
+
+        if result_length is not None:
+            y = y[:, :, -result_length:]
+            y_mask = y_mask[:, :, -result_length:]
+
+        if overlap_frames is not None:
+            overlap_len = overlap_frames.shape[-1]
+            window = WINDOW.get(overlap_len, None)
+            if window is None:
+                # WINDOW[overlap_len] = torch.hann_window(overlap_len*2, device=y.device, dtype=y.dtype)
+                WINDOW[overlap_len] = torch.sin(torch.arange(overlap_len*2, device=y.device) * torch.pi / (overlap_len*2))
+                window = WINDOW[overlap_len]
+
+
+            window = window.to(y.device)
+            y[:,:,:overlap_len] = (
+                window[:overlap_len].view(1, 1, -1) * y[:,:,:overlap_len]
+                + window[overlap_len:].view(1, 1, -1) * overlap_frames
+            )
+            
+        y_ = y
+        y_mask_ = y_mask
+
+
+
         if speed != 1:
             y = F.interpolate(y, size=int(y.shape[-1] / speed) + 1, mode="linear")
             y_mask = F.interpolate(y_mask, size=y.shape[-1], mode="nearest")
         stats = self.proj(y) * y_mask
         m, logs = torch.split(stats, self.out_channels, dim=1)
-        return y, m, logs, y_mask
+        return y, m, logs, y_mask, y_, y_mask_
 
     def extract_latent(self, x):
         x = self.ssl_proj(x)
@@ -921,7 +954,7 @@ class SynthesizerTrn(nn.Module):
         if self.semantic_frame_rate == "25hz":
             quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
 
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge512 if self.is_v2pro else ge)
+        x, m_p, logs_p, y_mask, _, _ = self.enc_p(quantized, y_lengths, text, text_lengths, ge512 if self.is_v2pro else ge)
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=ge)
         z_p = self.flow(z, y_mask, g=ge)
 
@@ -949,13 +982,14 @@ class SynthesizerTrn(nn.Module):
         if self.semantic_frame_rate == "25hz":
             quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
 
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge, test=test)
+        x, m_p, logs_p, y_mask, _, _ = self.enc_p(quantized, y_lengths, text, text_lengths, ge, test=test)
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
 
         o = self.dec((z * y_mask)[:, :, :], g=ge)
         return o, y_mask, (z, z_p, m_p, logs_p)
+
 
     @torch.no_grad()
     def decode(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None):
@@ -989,7 +1023,7 @@ class SynthesizerTrn(nn.Module):
         quantized = self.quantizer.decode(codes)
         if self.semantic_frame_rate == "25hz":
             quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
-        x, m_p, logs_p, y_mask = self.enc_p(
+        x, m_p, logs_p, y_mask, _, _ = self.enc_p(
             quantized,
             y_lengths,
             text,
@@ -1003,6 +1037,59 @@ class SynthesizerTrn(nn.Module):
 
         o = self.dec((z * y_mask)[:, :, :], g=ge)
         return o
+
+
+    @torch.no_grad()
+    def decode_streaming(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
+        def get_ge(refer, sv_emb):
+            ge = None
+            if refer is not None:
+                refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
+                refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, refer.size(2)), 1).to(refer.dtype)
+                if self.version == "v1":
+                    ge = self.ref_enc(refer * refer_mask, refer_mask)
+                else:
+                    ge = self.ref_enc(refer[:, :704] * refer_mask, refer_mask)
+                if self.is_v2pro:
+                    sv_emb = self.sv_emb(sv_emb)  # B*20480->B*512
+                    ge += sv_emb.unsqueeze(-1)
+                    ge = self.prelu(ge)
+            return ge
+
+        if type(refer) == list:
+            ges = []
+            for idx, _refer in enumerate(refer):
+                ge = get_ge(_refer, sv_emb[idx] if self.is_v2pro else None)
+                ges.append(ge)
+            ge = torch.stack(ges, 0).mean(0)
+        else:
+            ge = get_ge(refer, sv_emb)
+
+        y_lengths = torch.LongTensor([codes.size(2) * 2]).to(codes.device)
+        text_lengths = torch.LongTensor([text.size(-1)]).to(text.device)
+
+        quantized = self.quantizer.decode(codes)
+        if self.semantic_frame_rate == "25hz":
+            quantized = F.interpolate(quantized, size=int(quantized.shape[-1] * 2), mode="nearest")
+            result_length = (2*result_length) if result_length is not None else None
+            padding_length = (2*padding_length) if padding_length is not None else None
+        x, m_p, logs_p, y_mask, y_, y_mask_ = self.enc_p(
+            quantized,
+            y_lengths,
+            text,
+            text_lengths,
+            self.ge_to512(ge.transpose(2, 1)).transpose(2, 1) if self.is_v2pro else ge,
+            speed,
+            result_length=result_length, 
+            overlap_frames=overlap_frames, 
+            padding_length=padding_length
+            )
+        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+
+        z = self.flow(z_p, y_mask, g=ge, reverse=True)
+
+        o = self.dec((z * y_mask)[:, :, :], g=ge)
+        return o, y_, y_mask_
 
     def extract_latent(self, x):
         ssl = self.ssl_proj(x)
@@ -1226,7 +1313,7 @@ class SynthesizerTrnV3(nn.Module):
                 ssl = self.ssl_proj(ssl)
                 quantized, codes, commit_loss, quantized_list = self.quantizer(ssl, layers=[0])
                 quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")  ##BCT
-                x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
+                x, m_p, logs_p, y_mask, y_, y_mask_ = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
         fea = self.bridge(x)
         fea = F.interpolate(fea, scale_factor=(1.875 if self.version == "v3" else 2), mode="nearest")  ##BCT
         fea, y_mask_ = self.wns1(
@@ -1260,7 +1347,7 @@ class SynthesizerTrnV3(nn.Module):
         quantized = self.quantizer.decode(codes)
         if self.semantic_frame_rate == "25hz":
             quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")  ##BCT
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge, speed)
+        x, m_p, logs_p, y_mask, _, _ = self.enc_p(quantized, y_lengths, text, text_lengths, ge, speed)
         fea = self.bridge(x)
         fea = F.interpolate(fea, scale_factor=(1.875 if self.version == "v3" else 2), mode="nearest")  ##BCT
         ####more wn paramter to learn mel
@@ -1377,7 +1464,7 @@ class SynthesizerTrnV3b(nn.Module):
                 ssl = self.ssl_proj(ssl)
                 quantized, codes, commit_loss, quantized_list = self.quantizer(ssl, layers=[0])
                 quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")  ##BCT
-                x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
+                x, m_p, logs_p, y_mask, y_, y_mask_ = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=ge)
         z_p = self.flow(z, y_mask, g=ge)
         z_slice, ids_slice = commons.rand_slice_segments(z, y_lengths, self.segment_size)
@@ -1420,7 +1507,7 @@ class SynthesizerTrnV3b(nn.Module):
         quantized = self.quantizer.decode(codes)
         if self.semantic_frame_rate == "25hz":
             quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")  ##BCT
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
+        x, m_p, logs_p, y_mask, y_, y_mask_ = self.enc_p(quantized, y_lengths, text, text_lengths, ge)
         fea = self.bridge(x)
         fea = F.interpolate(fea, scale_factor=1.875, mode="nearest")  ##BCT
         ####more wn paramter to learn mel

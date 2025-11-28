@@ -794,7 +794,7 @@ class Text2SemanticDecoder(nn.Module):
         y_list = []
         idx_list = []
         for i in range(len(x)):
-            y, idx = self.infer_panel_naive(
+            y, idx = next(self.infer_panel_naive(
                 x[i].unsqueeze(0),
                 x_lens[i],
                 prompts[i].unsqueeze(0) if prompts is not None else None,
@@ -805,7 +805,7 @@ class Text2SemanticDecoder(nn.Module):
                 temperature,
                 repetition_penalty,
                 **kwargs,
-            )
+            ))
             y_list.append(y[0])
             idx_list.append(idx)
 
@@ -822,8 +822,15 @@ class Text2SemanticDecoder(nn.Module):
         early_stop_num: int = -1,
         temperature: float = 1.0,
         repetition_penalty: float = 1.35,
+        streaming_mode: bool = False,
+        chunk_length: int = 24,
         **kwargs,
     ):
+        mute_emb_sim_matrix = kwargs.get("mute_emb_sim_matrix", None)
+        chunk_split_thershold = kwargs.get("chunk_split_thershold", 0.3)
+        check_token_num = 2
+
+
         x = self.ar_text_embedding(x)
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
         x = self.ar_text_position(x)
@@ -875,7 +882,10 @@ class Text2SemanticDecoder(nn.Module):
             .to(device=x.device, dtype=torch.bool)
         )
 
+        token_counter = 0
+        curr_ptr = prefix_len
         for idx in tqdm(range(1500)):
+            token_counter+=1
             if xy_attn_mask is not None:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask, None)
             else:
@@ -900,12 +910,41 @@ class Text2SemanticDecoder(nn.Module):
 
             if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
                 stop = True
+                y=y[:, :-1]
+                token_counter -= 1
+
+            if idx == 1499:
+                stop = True
+
             if stop:
                 if y.shape[1] == 0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
                     print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                # print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                if streaming_mode:
+                    yield y[:, curr_ptr:] if curr_ptr<y.shape[1] else None, True
                 break
+
+
+            if streaming_mode and (mute_emb_sim_matrix is not None) and (token_counter >= chunk_length+check_token_num):
+                score = mute_emb_sim_matrix[y[0, curr_ptr:]] - chunk_split_thershold
+                score[score<0]=-1
+                score[:-1]=score[:-1]+score[1:] ##考虑连续两个token
+                argmax_idx = score.argmax()
+
+                if score[argmax_idx]>=0 and argmax_idx+1>=chunk_length: 
+                    print(f"\n\ncurr_ptr:{curr_ptr}")
+                    yield y[:, curr_ptr:], False
+                    token_counter -= argmax_idx+1
+                    curr_ptr += argmax_idx+1
+
+
+            elif streaming_mode and (mute_emb_sim_matrix is None) and (token_counter >= chunk_length):
+                yield y[:, -token_counter:], False
+                curr_ptr+=token_counter
+                token_counter = 0
+                
+
 
             ####################### update next step ###################################
             y_emb = self.ar_audio_embedding(y[:, -1:])
@@ -913,9 +952,14 @@ class Text2SemanticDecoder(nn.Module):
                 :, y_len + idx
             ].to(dtype=y_emb.dtype, device=y_emb.device)
 
-        if ref_free:
-            return y[:, :-1], 0
-        return y[:, :-1], idx
+
+
+        if not streaming_mode:
+            if ref_free:
+                yield y, 0
+            yield y, idx
+
+
 
     def infer_panel(
         self,
@@ -930,6 +974,6 @@ class Text2SemanticDecoder(nn.Module):
         repetition_penalty: float = 1.35,
         **kwargs,
     ):
-        return self.infer_panel_naive(
+        return next(self.infer_panel_naive(
             x, x_lens, prompts, bert_feature, top_k, top_p, early_stop_num, temperature, repetition_penalty, **kwargs
-        )
+        ))
