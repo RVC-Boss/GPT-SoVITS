@@ -238,6 +238,46 @@ def _expand_number(m):
         return _inflect.number_to_words(num, andword="")
 
 
+# 加减乘除
+RE_ASMD = re.compile(
+    r"((-?)((\d+)(\.\d+)?[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|(\.\d+[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|([A-Za-z][⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*))\s+([\+\-\×÷=])\s+((-?)((\d+)(\.\d+)?[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|(\.\d+[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|([A-Za-z][⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*))"
+)
+# RE_ASMD = re.compile(
+#     r"\b((-?)((\d+)(\.\d+)?[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|(\.\d+[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|([A-Za-z][⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*))([\+\-\×÷=])((-?)((\d+)(\.\d+)?[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|(\.\d+[⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*)|([A-Za-z][⁰¹²³⁴⁵⁶⁷⁸⁹ˣʸⁿ]*))\b"
+# )
+
+asmd_map = {"+": " plus ", "-": " minus ", "×": " times ", "÷": " divided by ", "=": " Equals "}
+
+
+def replace_asmd(match) -> str:
+    """
+    Args:
+        match (re.Match)
+    Returns:
+        str
+    """
+    result = match.group(1) + asmd_map[match.group(8)] + match.group(9)
+    return result
+
+
+RE_INTEGER = re.compile(r"(?:^|\s+)(-)" r"(\d+)")
+
+
+def replace_negative_num(match) -> str:
+    """
+    Args:
+        match (re.Match)
+    Returns:
+        str
+    """
+    sign = match.group(1)
+    number = match.group(2)
+    sign: str = "negative " if sign else ""
+    result = f"{sign}{number}"
+    return result
+
+
+
 def normalize(text):
     """
     !!! 所有的处理都需要正确的输入 !!!
@@ -245,7 +285,13 @@ def normalize(text):
     """
 
     text = re.sub(_ordinal_number_re, _convert_ordinal, text)
-    text = re.sub(r"(?<!\d)-|-(?!\d)", " minus ", text)
+
+    # 处理数学运算
+    # 替换text = re.sub(r"(?<!\d)-|-(?!\d)", " minus ", text)
+    while RE_ASMD.search(text):
+        text = RE_ASMD.sub(replace_asmd, text)
+    text = RE_INTEGER.sub(replace_negative_num, text)
+
     text = re.sub(_comma_number_re, _remove_commas, text)
     text = re.sub(_time_re, _expand_time, text)
     text = re.sub(_measurement_re, _expand_measurement, text)
