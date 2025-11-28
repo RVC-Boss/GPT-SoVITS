@@ -27,10 +27,13 @@ import re
 import sys
 import traceback
 import warnings
+import soundfile  # 新增导入
 
 import torch
 import torchaudio
 from text.LangSegmenter import LangSegmenter
+
+
 
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -1001,6 +1004,255 @@ def get_tts_wav(
     yield opt_sr, (audio_opt * 32767).astype(np.int16)
 
 
+import uuid
+import shutil
+from pydub import AudioSegment
+
+TEMP_FOLDER = "TEMP"  # 临时文件夹路径
+os.makedirs(TEMP_FOLDER, exist_ok=True)
+
+def clean_temp_folder_on_startup():
+    """启动时清理临时文件夹"""
+    try:
+        if os.path.exists(TEMP_FOLDER):
+            shutil.rmtree(TEMP_FOLDER)
+            os.makedirs(TEMP_FOLDER, exist_ok=True)
+            print("启动时已清理临时文件夹")
+        else:
+            os.makedirs(TEMP_FOLDER, exist_ok=True)
+            print("临时文件夹已创建")
+    except Exception as e:
+        print(f"启动时清理临时文件夹失败: {str(e)}")
+
+def split_text_by_punctuation(text, period_pause=0.3, comma_pause=0.15):
+    """改进的文本分割函数"""
+    if not text or not isinstance(text, str):
+        print("收到空或非字符串文本输入")
+        return []
+    
+    segments = []
+    current_segment = ""
+    punctuation_marks = ['，', ',', '。', '.']
+    
+    for char in text:
+        current_segment += char
+        if char in punctuation_marks:
+            # 根据标点类型设置停顿时间
+            pause = period_pause if char in ['。', '.'] else comma_pause
+            segments.append({
+                "text": current_segment.strip(),
+                "pause": pause,
+                "punctuation": char
+            })
+            current_segment = ""
+    
+    if current_segment:
+        segments.append({
+            "text": current_segment.strip(),
+            "pause": comma_pause,  # 默认使用非句号停顿时间
+            "punctuation": ""
+        })
+    
+    print(f"分割结果: {[seg['text'] for seg in segments]}")
+    return segments
+
+def generate_segment_audio(segment_data, ref_wav_path, prompt_text, prompt_language, text_language, top_k, top_p, temperature):
+    """增强的音频生成函数"""
+    try:
+        if not os.path.exists(ref_wav_path):
+            raise FileNotFoundError(f"参考音频不存在: {ref_wav_path}")
+        
+        # 生成音频
+        sr, audio_data = next(get_tts_wav(
+            ref_wav_path=ref_wav_path,
+            prompt_text=prompt_text,
+            prompt_language=prompt_language,
+            text=segment_data["text"],
+            text_language=text_language,
+            how_to_cut=i18n("不切"),
+            top_k=top_k,
+            top_p=top_p,
+            temperature=temperature,
+            pause_second=0  # 不在内部添加停顿
+        ))
+        
+        # 这里不再生成ID，由调用者提供
+        temp_path = os.path.join(TEMP_FOLDER, "temp_generate.wav")
+        soundfile.write(temp_path, audio_data, sr)
+        
+        # 添加停顿
+        audio = AudioSegment.from_wav(temp_path)
+        pause = AudioSegment.silent(duration=int(segment_data["pause"]*1000))
+        final_audio = audio + pause
+        final_audio.export(temp_path, format="wav")
+        
+        return {
+            "success": True,
+            "audio_path": temp_path,
+            "text": segment_data["text"],
+            "pause": segment_data["pause"],
+            "message": "生成成功"
+        }
+    except Exception as e:
+        print(f"生成片段失败: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "audio_path": None,
+            "text": segment_data["text"],
+            "pause": segment_data["pause"],
+            "message": f"生成失败: {str(e)}"
+        }
+
+def process_all_segments(text, ref_wav_path, prompt_text, prompt_language, text_language, 
+                        top_k, top_p, temperature, period_pause, comma_pause):
+    """完整处理流程"""
+    # 输入验证
+    if not text or not isinstance(text, str):
+        error_msg = "输入文本无效"
+        print(error_msg)
+        return [[1, error_msg, "错误"]], None
+    
+    if not os.path.exists(ref_wav_path):
+        error_msg = f"参考音频不存在: {ref_wav_path}"
+        print(error_msg)
+        return [[1, error_msg, "错误"]], None
+    
+    # 处理分段
+    segments = split_text_by_punctuation(text, period_pause, comma_pause)
+    if not segments:
+        error_msg = "无法分割文本"
+        print(error_msg)
+        return [[1, error_msg, "错误"]], None
+    
+    results = []
+    audio_files = []
+    
+    # 修改这里：使用enumerate从1开始编号，而不是基于文件夹内容
+    for i, segment in enumerate(segments, 1):
+        result = generate_segment_audio(
+            segment, ref_wav_path, prompt_text,
+            prompt_language, text_language, top_k, top_p, temperature
+        )
+        
+        # 更新结果中的segment_id
+        result["segment_id"] = f"{i}temp"
+        if result["success"] and result["audio_path"]:
+            # 重命名文件以匹配新的编号
+            new_path = os.path.join(TEMP_FOLDER, f"{result['segment_id']}.wav")
+            os.rename(result["audio_path"], new_path)
+            result["audio_path"] = new_path
+            audio_files.append(new_path)
+        
+        results.append(result)
+        print(f"处理进度: {i}/{len(segments)} - {result['message']}")
+
+    # 准备显示数据
+    df_data = []
+    for i, result in enumerate(results, 1):
+        df_data.append([
+            f"{i}temp",
+            result["text"],
+            result["message"]
+        ])
+    
+    first_audio = audio_files[0] if audio_files else None
+    return df_data, first_audio
+
+def regenerate_segment(segment_id, new_text, ref_wav_path, prompt_text, 
+                      prompt_language, text_language, top_k, top_p, temperature,
+                      period_pause, comma_pause):
+    try:
+        if not segment_id or not new_text:
+            raise ValueError("缺少片段ID或新文本内容")
+        
+        # 从文件名解析原始停顿时间
+        try:
+            pause = 0.25 if segment_id.endswith(("。", ".")) else 0.1
+        except:
+            pause = 0.1  # 默认值
+        
+        is_period = segment_id.endswith(("。", "."))
+        pause = period_pause if is_period else comma_pause
+        
+        segment_data = {
+            "text": new_text,
+            "pause": pause,
+            "punctuation": "。" if is_period else "，"
+        }
+        result = generate_segment_audio(
+            segment_data, ref_wav_path, prompt_text,
+            prompt_language, text_language, top_k, top_p, temperature
+        )
+        
+        # 更新文件
+        if result["success"]:
+            old_path = os.path.join(TEMP_FOLDER, f"{segment_id}.wav")
+            if os.path.exists(old_path):
+                os.remove(old_path)
+            os.rename(result["audio_path"], old_path)
+            result["audio_path"] = old_path
+        
+        return (
+            result["audio_path"],
+            segment_id,
+            result["message"]
+        )
+    except Exception as e:
+        print(f"重新生成片段失败: {str(e)}", exc_info=True)
+        return None, segment_id, f"重新生成失败: {str(e)}"
+
+def merge_all_segments():
+    try:
+        # 获取并按编号排序片段
+        segments = sorted(
+            [f for f in os.listdir(TEMP_FOLDER) if f.endswith(".wav") and f != "final_output.wav"],
+            key=lambda x: int(x.split("temp")[0])
+        )
+        if not segments:
+            raise ValueError("没有找到可合并的音频片段")
+        
+        combined = AudioSegment.empty()
+        for seg in segments:
+            seg_path = os.path.join(TEMP_FOLDER, seg)
+            audio = AudioSegment.from_wav(seg_path)
+            combined += audio
+        
+        # 保存最终结果
+        output_path = os.path.join(TEMP_FOLDER, "final_output.wav")
+        combined.export(output_path, format="wav")
+        
+        print(f"成功合并 {len(segments)} 个片段")
+        return output_path, "合并成功"
+    except Exception as e:
+        print(f"合并片段失败: {str(e)}", exc_info=True)
+        return None, f"合并失败: {str(e)}"
+
+def clean_temp_files():
+    """清理临时文件函数"""
+    try:
+        for filename in os.listdir(TEMP_FOLDER):
+            file_path = os.path.join(TEMP_FOLDER, filename)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f"删除文件 {file_path} 失败: {e}")
+        return "临时文件已清理"
+    except Exception as e:
+        return f"清理失败: {str(e)}"
+
+def on_segment_select(df, evt: gr.SelectData):
+    """当选择分段列表中的项目时更新显示"""
+    if evt.index:
+        selected_row = df.iloc[evt.index[0]]
+        audio_path = os.path.join(TEMP_FOLDER, f"{selected_row['编号']}.wav")
+        return (
+            selected_row["编号"],
+            selected_row["文本内容"],
+            audio_path if os.path.exists(audio_path) else None
+        )
+    return "1temp", "", None
+
 def split(todo_text):
     todo_text = todo_text.replace("……", "。").replace("——", "，")
     if todo_text[-1] not in splits:
@@ -1018,6 +1270,236 @@ def split(todo_text):
         else:
             i_split_head += 1
     return todo_texts
+# ======================== 合并功能实现 ========================
+def merge_selected_segments(merge_range, segment_list_data, ref_wav_path, prompt_text, 
+                           prompt_language, text_language, top_k, top_p, temperature,
+                           pause_period, pause_comma):
+    """合并选中的句子并立即生成新音频"""
+    try:
+        if not merge_range:
+            return segment_list_data, "请输入合并范围（例如：1-3）", None
+        
+        # 解析合并范围
+        start, end = map(int, merge_range.split('-'))
+        if start <= 0 or end <= 0 or start > end:
+            return segment_list_data, "无效的合并范围", None
+        
+        # 检查范围是否有效
+        if end > len(segment_list_data):
+            return segment_list_data, f"结束编号 {end} 超过总段数 {len(segment_list_data)}", None
+        
+        # === 第一步：收集要删除的文件并立即删除 ===
+        files_to_delete = []
+        for i in range(start-1, end):
+            file_id = segment_list_data.iloc[i, 0]
+            file_path = os.path.join(TEMP_FOLDER, f"{file_id}.wav")
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                files_to_delete.append(file_id)
+        
+        # === 第二步：合并文本 ===
+        merged_text = ""
+        for i in range(start-1, end):
+            merged_text += segment_list_data.iloc[i, 1]  # 文本内容在第二列
+        
+        # 确定合并后的停顿类型（取最后一个片段的标点）
+        last_punctuation = segment_list_data.iloc[end-1, 1][-1] if segment_list_data.iloc[end-1, 1] else ""
+        is_period = last_punctuation in ["。", "."]
+        pause = pause_period if is_period else pause_comma
+        
+        # === 第三步：立即生成合并后的音频 ===
+        segment_data = {
+            "text": merged_text,
+            "pause": pause,
+            "punctuation": last_punctuation
+        }
+        # 生成音频
+        result = generate_segment_audio(
+            segment_data, ref_wav_path, prompt_text,
+            prompt_language, text_language, top_k, top_p, temperature
+        )
+        if not result["success"]:
+            return segment_list_data, result["message"], None
+        
+        # === 第四步：构建新的分段列表 ===
+        # 创建新的合并条目 - 使用起始编号
+        new_id = f"{start}temp"
+        merged_entry = [new_id, merged_text, "已生成"]
+        
+        # 移动生成的音频到正确位置
+        new_path = os.path.join(TEMP_FOLDER, f"{new_id}.wav")
+        shutil.move(result["audio_path"], new_path)
+        
+        # 构建新的分段列表
+        new_segment_list = []
+        
+        # 添加合并前的部分
+        if start > 1:
+            new_segment_list.extend(segment_list_data.iloc[:start-1].values.tolist())
+        
+        # 添加合并条目
+        new_segment_list.append(merged_entry)
+        
+        # 添加合并后的部分
+        if end < len(segment_list_data):
+            new_segment_list.extend(segment_list_data.iloc[end:].values.tolist())
+        
+        # === 第五步：重新编号 ===
+        reindexed_list = []
+        new_id_counter = 1
+        for segment in new_segment_list:
+            old_id = segment[0]
+            # 为新列表生成连续编号
+            new_id = f"{new_id_counter}temp"
+            
+            # 重命名文件（如果存在）
+            old_path = os.path.join(TEMP_FOLDER, f"{old_id}.wav")
+            new_path = os.path.join(TEMP_FOLDER, f"{new_id}.wav")
+            
+            if os.path.exists(old_path) and old_id != new_id:
+                os.rename(old_path, new_path)
+            
+            # 更新ID
+            segment[0] = new_id
+            reindexed_list.append(segment)
+            new_id_counter += 1
+        
+        return reindexed_list, "合并成功", new_id
+    
+    except Exception as e:
+        traceback.print_exc()
+        return segment_list_data, f"合并失败: {str(e)}", None
+
+# ======================== 实现拆分逻辑函数 ========================
+def split_selected_segment(split_id, segment_list_data, ref_wav_path, prompt_text, 
+                         prompt_language, text_language, top_k, top_p, temperature,
+                         pause_period, pause_comma):
+    """拆分选中的句子并重新生成 - 使用倒序重命名避免冲突"""
+    try:
+        if not split_id:
+            return segment_list_data, "请输入要拆分的句子编号", None
+        
+        # 从文件名解析原始停顿时间
+        try:
+            pause = 0.25 if split_id.endswith(("。", ".")) else 0.1
+        except:
+            pause = 0.1  # 默认值
+        
+        # 查找要拆分的句子
+        df = segment_list_data
+        target_row = None
+        target_idx = None
+        
+        # 查找匹配的句子
+        for idx, row in enumerate(df.itertuples()):
+            if str(row[1]) == split_id:  # 第一列是ID
+                target_row = row
+                target_idx = idx
+                break
+        
+        if target_row is None:
+            return segment_list_data, f"未找到编号为 {split_id} 的句子", None
+        
+        # 获取原始文本
+        original_text = target_row[2]  # 第二列是文本
+        
+        # 根据标点符号拆分文本
+        segments = []
+        current_segment = ""
+        punctuation_marks = ['，', ',', '。', '.', '？', '?', '！', '!', '；', ';']
+        
+        for char in original_text:
+            current_segment += char
+            if char in punctuation_marks:
+                # 根据标点类型设置停顿时间
+                pause = pause_period if char in ['。', '.', '？', '?', '！', '!'] else pause_comma
+                segments.append({
+                    "text": current_segment.strip(),
+                    "pause": pause,
+                    "punctuation": char
+                })
+                current_segment = ""
+        
+        if current_segment:
+            segments.append({
+                "text": current_segment.strip(),
+                "pause": pause_comma,  # 默认使用非句号停顿时间
+                "punctuation": ""
+            })
+        
+        if len(segments) <= 1:
+            return segment_list_data, "句子无法拆分（没有标点符号）", None
+        
+        # 计算拆分后新增的句子数量
+        num_new_segments = len(segments)
+        offset = num_new_segments - 1  # 拆分后增加的句子数
+        
+        # === 第一步：删除原始音频文件 ===
+        original_path = os.path.join(TEMP_FOLDER, f"{split_id}.wav")
+        if os.path.exists(original_path):
+            os.remove(original_path)
+        
+        # === 第二步：倒序重命名后续句子避免冲突 ===
+        new_segment_list = []
+        
+        # 添加拆分前的句子
+        for i in range(target_idx):
+            new_segment_list.append(df.iloc[i].tolist())
+        
+        # 倒序重命名从最后一个句子开始，避免冲突
+        total_segments = len(df)
+        
+        # 从最后一个句子开始倒序遍历
+        for i in range(total_segments - 1, target_idx, -1):
+            old_id = df.iloc[i, 0]
+            old_num = int(old_id.replace("temp", ""))
+            new_id_num = old_num + offset
+            new_id = f"{new_id_num}temp"
+            
+            # 重命名音频文件
+            old_path = os.path.join(TEMP_FOLDER, f"{old_id}.wav")
+            new_path = os.path.join(TEMP_FOLDER, f"{new_id}.wav")
+            if os.path.exists(old_path):
+                os.rename(old_path, new_path)
+            
+            # 更新列表条目
+            new_segment_list.append([new_id, df.iloc[i, 1], df.iloc[i, 2]])
+        
+        # === 第三步：添加拆分后的新句子 ===
+        for i, segment in enumerate(segments):
+            new_id = f"{target_idx+1+i}temp"  # 新ID从原始位置开始
+            new_segment_list.append([new_id, segment["text"], "待生成"])
+        
+        # === 第四步：重新排序列表 ===
+        # 按照ID中的数字排序
+        new_segment_list.sort(key=lambda x: int(x[0].replace("temp", "")))
+        
+        # === 第五步：生成拆分后的新句子 ===
+        for i, segment in enumerate(segments):
+            segment_id = f"{target_idx+1+i}temp"
+            result = generate_segment_audio(
+                segment, ref_wav_path, prompt_text,
+                prompt_language, text_language, top_k, top_p, temperature
+            )
+            
+            if result["success"]:
+                # 更新文件
+                new_path = os.path.join(TEMP_FOLDER, f"{segment_id}.wav")
+                if os.path.exists(result["audio_path"]):
+                    os.rename(result["audio_path"], new_path)
+                
+                # 更新状态
+                for j, item in enumerate(new_segment_list):
+                    if item[0] == segment_id:
+                        new_segment_list[j][2] = "已生成"
+                        break
+        
+        return new_segment_list, f"成功拆分为 {num_new_segments} 个句子", f"{target_idx+1}temp"
+    
+    except Exception as e:
+        traceback.print_exc()
+        return segment_list_data, f"拆分失败: {str(e)}", None
+
 
 
 def cut1(inp):
@@ -1327,6 +1809,160 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         )
         GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
 
+
+
+        # ======================== 插入分段合成UI开始 ========================
+    with gr.Tab(i18n("分段合成模式")):
+        with gr.Row():
+            with gr.Column():
+                segmented_text = gr.Textbox(label=i18n("需要分段的文本"), lines=10, value="")
+                segment_button = gr.Button(i18n("分割文本并生成所有片段"), variant="primary")
+                segmented_output = gr.Audio(label=i18n("当前选中片段"), interactive=False)
+                
+                with gr.Row():
+                    segment_index = gr.Textbox(label=i18n("片段编号"), interactive=False, visible=False)
+                    new_segment_text = gr.Textbox(label=i18n("新文本内容"), lines=2, max_lines=4)
+                    regenerate_button = gr.Button(i18n("重新生成当前片段"), variant="primary")
+                with gr.Row():
+                    pause_period = gr.Slider(
+                        minimum=0.1, 
+                        maximum=1.0, 
+                        step=0.05, 
+                        label=i18n("句号停顿时间(秒)"), 
+                        value=0.3,
+                        interactive=True
+                    )
+                    pause_comma = gr.Slider(
+                        minimum=0.1, 
+                        maximum=0.5, 
+                        step=0.05, 
+                        label=i18n("非句号停顿时间(秒)"), 
+                        value=0.15,
+                        interactive=True
+                    )
+                with gr.Row():
+                    clean_button = gr.Button(i18n("清理临时文件"), variant="secondary", scale=1)
+                    confirm_button = gr.Button(i18n("确认并合并所有片段"), variant="primary", scale=2)
+                
+                final_output = gr.Audio(label=i18n("最终合成结果"), interactive=False)
+                segment_status = gr.Textbox(label=i18n("状态"), interactive=False)
+                # 添加合并功能
+                with gr.Row():
+                    merge_range = gr.Textbox(label=i18n("合并范围（例如：1-3）"), scale=3)
+                    merge_button = gr.Button(i18n("合并句子"), variant="primary", scale=1)
+                # 添加拆分功能控件
+                with gr.Row():
+                    split_index = gr.Textbox(label=i18n("要拆分的句子编号"), scale=1)
+                    split_button = gr.Button(i18n("拆分句子"), variant="primary", scale=1)
+            with gr.Column():
+                segment_list = gr.Dataframe(
+                    headers=["编号", "文本内容", "状态"],
+                    datatype=["str", "str", "str"],
+                    interactive=False,
+                    label=i18n("分段列表"),
+                    value=[]
+                )
+                # 在分段合成UI部分添加以下代码（大约在line 3200附近）
+
+    # ======================== 插入分段合成UI结束 ========================
+
+    # ======================== 插入分段合成事件绑定开始 ========================
+    # 分割文本并生成所有片段
+    segment_button.click(
+        process_all_segments,
+        inputs=[
+            segmented_text, 
+            inp_ref, 
+            prompt_text, 
+            prompt_language, 
+            text_language, 
+            top_k, 
+            top_p, 
+            temperature,
+            pause_period,  # 新增句号停顿参数
+            pause_comma    # 新增非句号停顿参数
+        ],
+        outputs=[segment_list, segmented_output]
+    )
+    # 重新生成当前片段
+    regenerate_button.click(
+        regenerate_segment,
+        inputs=[
+            segment_index,  # 第一个参数应该是segment_id
+            new_segment_text, 
+            inp_ref, 
+            prompt_text, 
+            prompt_language, 
+            text_language, 
+            top_k, 
+            top_p, 
+            temperature,
+            pause_period,
+            pause_comma
+        ],
+        outputs=[segmented_output, segment_index, segment_status]
+    )
+
+    # 合并所有片段
+    confirm_button.click(
+        merge_all_segments,
+        inputs=[],
+        outputs=[final_output, segment_status]
+    )
+
+    # 清理临时文件
+    clean_button.click(
+        clean_temp_files,
+        inputs=[],
+        outputs=[segment_status]
+    )
+
+    # 当选择分段列表中的项目时
+    segment_list.select(
+        fn=on_segment_select,
+        inputs=[segment_list],
+        outputs=[segment_index, new_segment_text, segmented_output],
+    )
+    merge_button.click(
+        fn=merge_selected_segments,
+        inputs=[
+            merge_range, 
+            segment_list,
+            inp_ref,
+            prompt_text,
+            prompt_language,
+            text_language,
+            top_k,
+            top_p,
+            temperature,
+            pause_period,
+            pause_comma
+        ],
+        outputs=[segment_list, segment_status, segment_index]
+    )
+    # ======================== 添加拆分按钮的事件绑定 ========================
+    split_button.click(
+        fn=split_selected_segment,
+        inputs=[
+            split_index, 
+            segment_list,
+            inp_ref,
+            prompt_text,
+            prompt_language,
+            text_language,
+            top_k,
+            top_p,
+            temperature,
+            pause_period,
+            pause_comma
+        ],
+        outputs=[segment_list, segment_status, segment_index]
+    )
+    # ======================== 插入分段合成事件绑定结束 ========================
+
+
+
+
         # gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         # with gr.Row():
         #     text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"), value="")
@@ -1351,3 +1987,4 @@ if __name__ == "__main__":
         server_port=infer_ttswebui,
         # quiet=True,
     )
+
