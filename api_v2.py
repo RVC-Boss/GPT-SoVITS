@@ -41,11 +41,9 @@ POST:
     "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
     "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
     "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
-    "return_fragment": False,     # bool. step by step return the audio fragment. (Best Quality, Slowest response speed. old version of streaming mode)
-    "streaming_mode": False,      # bool. return audio chunk by chunk. (Medium quality, Slow response speed)
+    "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
     "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-    "min_chunk_length": 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
-    "fixed_length_chunk": False,  # bool. When turned on, it can achieve faster streaming response, but with lower quality. (lower quality, faster response speed)
+    "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
 }
 ```
 
@@ -106,7 +104,7 @@ RESP:
 import os
 import sys
 import traceback
-from typing import Generator
+from typing import Generator, Union
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -171,15 +169,13 @@ class TTS_Request(BaseModel):
     fragment_interval: float = 0.3
     seed: int = -1
     media_type: str = "wav"
-    streaming_mode: bool = False
+    streaming_mode: Union[bool, int] = False
     parallel_infer: bool = True
     repetition_penalty: float = 1.35
     sample_steps: int = 32
     super_sampling: bool = False
     overlap_length: int = 2
     min_chunk_length: int = 16
-    return_fragment: bool = False
-    fixed_length_chunk: bool = False
 
 
 def pack_ogg(io_buffer: BytesIO, data: np.ndarray, rate: int):
@@ -373,11 +369,9 @@ async def tts_handle(req: dict):
                 "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
                 "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
                 "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
-                "return_fragment": False,     # bool. step by step return the audio fragment. (Best Quality, Slowest response speed. old version of streaming mode)
-                "streaming_mode": False,      # bool. return audio chunk by chunk. (Medium quality, Slow response speed)
+                "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
                 "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-                "min_chunk_length": 16,        # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
-                "fixed_length_chunk": False,  # bool. When turned on, it can achieve faster streaming response, but with lower quality. (lower quality, faster response speed)
+                "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
             }
     returns:
         StreamingResponse: audio stream response.
@@ -390,9 +384,33 @@ async def tts_handle(req: dict):
     check_res = check_params(req)
     if check_res is not None:
         return check_res
+    
+    if streaming_mode == 0:
+        streaming_mode = False
+        return_fragment = False
+        fixed_length_chunk = False
+    elif streaming_mode == 1:
+        streaming_mode = False
+        return_fragment = True
+        fixed_length_chunk = False
+    elif streaming_mode == 2:
+        streaming_mode = True
+        return_fragment = False
+        fixed_length_chunk = False
+    elif streaming_mode == 3:
+        streaming_mode = True
+        return_fragment = False
+        fixed_length_chunk = True
+
+    else:
+        return JSONResponse(status_code=400, content={"message": f"the value of streaming_mode must be 0, 1, 2, 3(int) or true/false(bool)"})
 
     req["streaming_mode"] = streaming_mode
     req["return_fragment"] = return_fragment
+    req["fixed_length_chunk"] = fixed_length_chunk
+
+    print(f"{streaming_mode} {return_fragment} {fixed_length_chunk}")
+
     streaming_mode = streaming_mode or return_fragment
 
 
@@ -457,11 +475,9 @@ async def tts_get_endpoint(
     repetition_penalty: float = 1.35,
     sample_steps: int = 32,
     super_sampling: bool = False,
-    return_fragment: bool = False,
-    streaming_mode: bool = False,
+    streaming_mode: Union[bool, int] = False,
     overlap_length: int = 2,
     min_chunk_length: int = 16,
-    fixed_length_chunk: bool = False,
 ):
     req = {
         "text": text,
@@ -488,8 +504,6 @@ async def tts_get_endpoint(
         "super_sampling": super_sampling,
         "overlap_length": int(overlap_length),
         "min_chunk_length": int(min_chunk_length),
-        "return_fragment": return_fragment,
-        "fixed_length_chunk": fixed_length_chunk
     }
     return await tts_handle(req)
 
