@@ -15,7 +15,7 @@ from AR.utils.io import load_yaml_config
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger  # WandbLogger
-from pytorch_lightning.strategies import DDPStrategy
+from pytorch_lightning.strategies import DDPStrategy, SingleDeviceStrategy
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -24,6 +24,12 @@ from collections import OrderedDict
 
 from AR.utils import get_newest_ckpt
 from process_ckpt import my_save
+
+import musa_utils
+if musa_utils.is_available():
+    import musa_accelerator
+    os.environ["MUSA_VISIBLE_DEVICES"] = os.environ["_MUSA_VISIBLE_DEVICES"]
+    os.environ["MUSA_LAUNCH_BLOCKING"] = "1"
 
 
 class my_model_ckpt(ModelCheckpoint):
@@ -108,18 +114,28 @@ def main(args):
     logger = TensorBoardLogger(name=output_dir.stem, save_dir=output_dir)
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["USE_LIBUV"] = "0"
+    if musa_utils.is_available():
+        accelerator = musa_accelerator.MUSAAccelerator()
+        devices = -1  # MUSA暂时使用单GPU
+        strategy = SingleDeviceStrategy(device=musa_utils.get_device())  # 不使用分布式训练
+    elif torch.cuda.is_available():
+        accelerator = "gpu"
+        devices = -1
+        strategy = DDPStrategy(process_group_backend="nccl" if platform.system() != "Windows" else "gloo")
+    else:
+        accelerator = "cpu"
+        devices = 1
+        strategy = "auto"
     trainer: Trainer = Trainer(
         max_epochs=config["train"]["epochs"],
-        accelerator="gpu" if torch.cuda.is_available() else "cpu",
+        accelerator=accelerator,
         # val_check_interval=9999999999999999999999,###不要验证
         # check_val_every_n_epoch=None,
         limit_val_batches=0,
-        devices=-1 if torch.cuda.is_available() else 1,
+        devices=devices,
         benchmark=False,
         fast_dev_run=False,
-        strategy=DDPStrategy(process_group_backend="nccl" if platform.system() != "Windows" else "gloo")
-        if torch.cuda.is_available()
-        else "auto",
+        strategy=strategy,
         precision=config["train"]["precision"],
         logger=logger,
         num_sanity_val_steps=0,

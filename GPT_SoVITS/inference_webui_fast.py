@@ -29,6 +29,8 @@ import sys
 
 import torch
 
+import musa_utils
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
@@ -48,8 +50,10 @@ is_share = os.environ.get("is_share", "False")
 is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
+if "_MUSA_VISIBLE_DEVICES" in os.environ:
+    os.environ["MUSA_VISIBLE_DEVICES"] = os.environ["_MUSA_VISIBLE_DEVICES"]
 
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+is_half = eval(os.environ.get("is_half", "True")) and (torch.cuda.is_available() or musa_utils.is_available())
 gpt_path = os.environ.get("gpt_path", None)
 sovits_path = os.environ.get("sovits_path", None)
 cnhubert_base_path = os.environ.get("cnhubert_base_path", None)
@@ -72,6 +76,8 @@ i18n = I18nAuto(language=language)
 
 if torch.cuda.is_available():
     device = "cuda"
+elif musa_utils.is_available():
+    device = "musa"
 # elif torch.backends.mps.is_available():
 #     device = "mps"
 else:

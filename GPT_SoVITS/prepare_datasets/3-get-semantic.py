@@ -6,6 +6,8 @@ i_part = os.environ.get("i_part")
 all_parts = os.environ.get("all_parts")
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
+if "_MUSA_VISIBLE_DEVICES" in os.environ:
+    os.environ["MUSA_VISIBLE_DEVICES"] = os.environ["_MUSA_VISIBLE_DEVICES"]
 opt_dir = os.environ.get("opt_dir")
 pretrained_s2G = os.environ.get("pretrained_s2G")
 s2config_path = os.environ.get("s2config_path")
@@ -27,8 +29,9 @@ elif size < 700 * 1024 * 1024:
 else:
     version = "v3"
 import torch
+import musa_utils
 
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+is_half = eval(os.environ.get("is_half", "True")) and (torch.cuda.is_available() or musa_utils.is_available())
 import traceback
 import sys
 
@@ -61,6 +64,8 @@ if os.path.exists(semantic_path) == False:
 
     if torch.cuda.is_available():
         device = "cuda"
+    elif musa_utils.is_available():
+        device = "musa:0"
     # elif torch.backends.mps.is_available():
     #     device = "mps"
     else:

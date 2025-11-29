@@ -4,6 +4,8 @@ import sys
 
 import torch
 
+import musa_utils
+
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto(language=os.environ.get("language", "Auto"))
@@ -147,11 +149,15 @@ api_port = 9880
 
 # Thanks to the contribution of @Karasukaigan and @XXXXRT666
 def get_device_dtype_sm(idx: int) -> tuple[torch.device, torch.dtype, float, float]:
+    device_idx = idx
     cpu = torch.device("cpu")
     cuda = torch.device(f"cuda:{idx}")
+    if musa_utils.is_available():
+        musa = torch.device(f"musa:{idx}")
+        mdtype, mversion, mmem_gb = musa_utils.get_device_dtype(device_idx)
+        return musa, mdtype, mversion, mmem_gb
     if not torch.cuda.is_available():
         return cpu, torch.float32, 0.0, 0.0
-    device_idx = idx
     capability = torch.cuda.get_device_capability(device_idx)
     name = torch.cuda.get_device_name(device_idx)
     mem_bytes = torch.cuda.get_device_properties(device_idx).total_memory
@@ -167,11 +173,16 @@ def get_device_dtype_sm(idx: int) -> tuple[torch.device, torch.dtype, float, flo
         return cuda, torch.float16, sm_version, mem_gb
     return cpu, torch.float32, 0.0, 0.0
 
+def get_gpu_count():
+    if musa_utils.is_available():
+        return musa_utils.device_count()
+    else:
+        return torch.cuda.device_count()
 
 IS_GPU = True
 GPU_INFOS: list[str] = []
 GPU_INDEX: set[int] = set()
-GPU_COUNT = torch.cuda.device_count()
+GPU_COUNT = get_gpu_count()
 CPU_INFO: str = "0\tCPU " + i18n("CPU训练,较慢")
 tmp: list[tuple[torch.device, torch.dtype, float, float]] = []
 memset: set[float] = set()
@@ -183,7 +194,11 @@ for j in tmp:
     device = j[0]
     memset.add(j[3])
     if device.type != "cpu":
-        GPU_INFOS.append(f"{device.index}\t{torch.cuda.get_device_name(device.index)}")
+        if device.type == "cuda" and torch.cuda.is_available():
+            device_name = torch.cuda.get_device_name(device.index)
+        elif device.type == "musa" and musa_utils.is_available():
+            device_name = torch.musa.get_device_properties(device.index).name
+        GPU_INFOS.append(f"{device.index}\t{device_name}")
         GPU_INDEX.add(device.index)
 
 if not GPU_INFOS:

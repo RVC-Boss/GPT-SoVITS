@@ -18,6 +18,12 @@ from bsroformer import Roformer_Loader
 from mdxnet import MDXNetDereverb
 from vr import AudioPre, AudioPreDeEcho
 
+try:
+    import torch_musa
+    use_torch_musa = True
+except ImportError:
+    use_torch_musa = False
+
 weight_uvr5_root = "tools/uvr5/uvr5_weights"
 uvr5_names = []
 for name in os.listdir(weight_uvr5_root):
@@ -122,6 +128,9 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         print("clean_empty_cache")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+        if use_torch_musa:
+            if torch.musa.is_available():
+                torch.musa.empty_cache()
     yield "\n".join(infos)
 
 

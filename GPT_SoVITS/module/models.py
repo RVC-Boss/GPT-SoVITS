@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+import musa_utils
 from module import commons
 from module import modules
 from module import attentions
@@ -20,7 +21,10 @@ from module.quantize import ResidualVectorQuantizer
 # from text import symbols
 from text import symbols as symbols_v1
 from text import symbols2 as symbols_v2
-from torch.cuda.amp import autocast
+if musa_utils.is_available():
+    autocast = torch.musa.amp.autocast
+elif torch.cuda.is_available():
+    from torch.cuda.amp import autocast
 import contextlib
 import random
 

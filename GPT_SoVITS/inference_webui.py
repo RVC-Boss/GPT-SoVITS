@@ -49,6 +49,8 @@ from config import change_choices, get_weights_names, name2gpt_path, name2sovits
 SoVITS_names, GPT_names = get_weights_names()
 from config import pretrained_sovits_name
 
+import musa_utils
+
 path_sovits_v3 = pretrained_sovits_name["v3"]
 path_sovits_v4 = pretrained_sovits_name["v4"]
 is_exist_s2gv3 = os.path.exists(path_sovits_v3)
@@ -87,7 +89,9 @@ is_share = os.environ.get("is_share", "False")
 is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+if "_MUSA_VISIBLE_DEVICES" in os.environ:
+    os.environ["MUSA_VISIBLE_DEVICES"] = os.environ["_MUSA_VISIBLE_DEVICES"]
+is_half = eval(os.environ.get("is_half", "True")) and (torch.cuda.is_available() or musa_utils.is_available())
 # is_half=False
 punctuation = set(["!", "?", "…", ",", ".", "-", " "])
 import gradio as gr
@@ -112,6 +116,8 @@ def set_seed(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
+    if musa_utils.is_available():
+        musa_utils.manual_seed(seed)
 
 
 # set_seed(42)
@@ -134,6 +140,8 @@ i18n = I18nAuto(language=language)
 
 if torch.cuda.is_available():
     device = "cuda"
+elif musa_utils.is_available():
+    device = "musa"
 else:
     device = "cpu"
 
@@ -411,6 +419,7 @@ def clean_hifigan_model():
         hifigan_model = None
         try:
             torch.cuda.empty_cache()
+            torch.musa.empty_cache()
         except:
             pass
 
@@ -422,6 +431,7 @@ def clean_bigvgan_model():
         bigvgan_model = None
         try:
             torch.cuda.empty_cache()
+            torch.musa.empty_cache()
         except:
             pass
 
@@ -433,6 +443,7 @@ def clean_sv_cn_model():
         sv_cn_model = None
         try:
             torch.cuda.empty_cache()
+            torch.musa.empty_cache()
         except:
             pass
 
