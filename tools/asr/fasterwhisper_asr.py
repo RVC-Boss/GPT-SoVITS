@@ -97,6 +97,7 @@ def download_model(model_size: str):
             local_dir=model_path,
             allow_patterns=files,
         )
+        return model_path + f"/faster-whisper-{model_size}".replace("whisper-distil", "distil-whisper")
     return model_path
 
 
