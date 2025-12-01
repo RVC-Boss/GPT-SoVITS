@@ -5,9 +5,9 @@ def get_models():
         "large-v2",
         "large-v3",
         "large-v3-turbo",
-        "distil-large-v2",
-        "distil-large-v3",
-        "distil-large-v3.5",
+        #"distil-large-v2",
+        #"distil-large-v3",
+        #"distil-large-v3.5",
     ]
     return model_size_list
 
