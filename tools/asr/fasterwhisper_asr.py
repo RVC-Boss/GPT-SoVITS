@@ -52,7 +52,7 @@ def download_model(model_size: str):
         if "distil" in model_size:
             if "3.5" in model_size:
                 repo_id = "distil-whisper/distil-large-v3.5-ct2"
-                model_path = "tools/asr/models/faster-whisper-distil-large-v3.5"
+                model_path = "tools/asr/models/faster-distil-whisper-large-v3.5"
             else:
                 repo_id = "Systran/faster-{}-whisper-{}".format(*model_size.split("-", maxsplit=1))
         elif model_size == "large-v3-turbo":
@@ -61,14 +61,11 @@ def download_model(model_size: str):
         else:
             repo_id = f"Systran/faster-whisper-{model_size}"
         model_path = (
-            model_path
-            or f"tools/asr/models/{repo_id.replace('Systran/', '').replace('distil-whisper/', '', 1)}".replace(
-                "distil-whisper", "whisper-distil"
-            )
+            model_path or f"tools/asr/models/{repo_id.replace('Systran/', '').replace('distil-whisper/', '', 1)}"
         )
     else:
         repo_id = "XXXXRT/faster-whisper"
-        model_path = f"tools/asr/models/faster-whisper-{model_size}".replace("distil-whisper", "whisper-distil")
+        model_path = "tools/asr/models"
 
     files: list[str] = [
         "config.json",
@@ -76,7 +73,7 @@ def download_model(model_size: str):
         "tokenizer.json",
         "vocabulary.txt",
     ]
-    if model_size == "large-v3" or "distil" in model_size:
+    if "large-v3" in model_size or "distil" in model_size:
         files.append("preprocessor_config.json")
         files.append("vocabulary.json")
 
