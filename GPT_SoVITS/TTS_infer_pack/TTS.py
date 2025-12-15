@@ -1332,7 +1332,7 @@ class TTS:
                                 audio_fragment = self.vits_model.decode(
                                         _pred_semantic, phones, refer_audio_spec, speed=speed_factor, sv_emb=sv_emb
                                     ).detach()[0, 0, :]
-                            batch_audio_fragment.append(audio_fragment)  ###试试重建不带上prompt部分
+                                batch_audio_fragment.append(audio_fragment)  ###试试重建不带上prompt部分
                     else:
                         if parallel_infer:
                             print(f"{i18n('并行合成中')}...")
