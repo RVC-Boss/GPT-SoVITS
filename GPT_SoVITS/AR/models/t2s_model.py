@@ -711,6 +711,9 @@ class Text2SemanticDecoder(nn.Module):
             else:
                 attn_mask = F.pad(attn_mask, (0, 1), value=False)
 
+            if idx < 11:  ###至少预测出10个token不然不给停止（0.4s）
+                logits = logits[:, :-1]
+
             samples = sample(
                 logits, y, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature
             )[0]
