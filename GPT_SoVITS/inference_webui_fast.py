@@ -385,7 +385,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         minimum=0.6, maximum=1.65, step=0.05, label="语速", value=1.0, interactive=True
                     )
                 with gr.Row():
-                    top_k = gr.Slider(minimum=1, maximum=100, step=1, label=i18n("top_k"), value=5, interactive=True)
+                    top_k = gr.Slider(minimum=1, maximum=100, step=1, label=i18n("top_k"), value=15, interactive=True)
                     top_p = gr.Slider(minimum=0, maximum=1, step=0.05, label=i18n("top_p"), value=1, interactive=True)
                 with gr.Row():
                     temperature = gr.Slider(

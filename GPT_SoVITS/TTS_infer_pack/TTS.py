@@ -1008,7 +1008,7 @@ class TTS:
                     "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
                     "prompt_text": "",            # str.(optional) prompt text for the reference audio
                     "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
-                    "top_k": 5,                   # int. top k sampling
+                    "top_k": 15,                  # int. top k sampling
                     "top_p": 1,                   # float. top p sampling
                     "temperature": 1,             # float. temperature for sampling
                     "text_split_method": "cut1",  # str. text split method, see text_segmentation_method.py for details.
@@ -1039,7 +1039,7 @@ class TTS:
         aux_ref_audio_paths: list = inputs.get("aux_ref_audio_paths", [])
         prompt_text: str = inputs.get("prompt_text", "")
         prompt_lang: str = inputs.get("prompt_lang", "")
-        top_k: int = inputs.get("top_k", 5)
+        top_k: int = inputs.get("top_k", 15)
         top_p: float = inputs.get("top_p", 1)
         temperature: float = inputs.get("temperature", 1)
         text_split_method: str = inputs.get("text_split_method", "cut1")
