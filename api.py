@@ -208,6 +208,7 @@ def clean_hifigan_model():
         hifigan_model = None
         try:
             torch.cuda.empty_cache()
+            torch.musa.empty_cache()
         except:
             pass
 
@@ -219,6 +220,7 @@ def clean_bigvgan_model():
         bigvgan_model = None
         try:
             torch.cuda.empty_cache()
+            torch.musa.empty_cache()
         except:
             pass
 
@@ -230,6 +232,7 @@ def clean_sv_cn_model():
         sv_cn_model = None
         try:
             torch.cuda.empty_cache()
+            torch.musa.empty_cache()
         except:
             pass
 

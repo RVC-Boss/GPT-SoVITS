@@ -4,15 +4,24 @@ warnings.filterwarnings("ignore")
 import os
 
 import utils
+import musa_utils
 
 hps = utils.get_hparams(stage=2)
 os.environ["CUDA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
+os.environ["MUSA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
 import logging
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from torch.cuda.amp import GradScaler, autocast
+from torch.cuda.amp import GradScaler
+musa_ddp = False
+if musa_utils.is_available():
+    os.environ["MUSA_LAUNCH_BLOCKING"] = "1"
+    autocast = torch.musa.amp.autocast
+    musa_ddp = musa_utils.should_ddp()
+elif torch.cuda.is_available():
+    from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
@@ -43,16 +52,22 @@ torch.backends.cudnn.deterministic = False
 ###反正A100fp32更快，那试试tf32吧
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
+if musa_utils.is_available():
+    torch.backends.mudnn.allow_tf32 = True
 torch.set_float32_matmul_precision("medium")  # 最低精度但最快（也就快一丁点），对于结果造成不了影响
 # from config import pretrained_s2G,pretrained_s2D
 global_step = 0
 
 device = "cpu"  # cuda以外的设备，等mps优化后加入
+if not musa_ddp:
+    device = "musa"
 
 
 def main():
     if torch.cuda.is_available():
         n_gpus = torch.cuda.device_count()
+    elif musa_ddp:
+        n_gpus = musa_utils.device_count()
     else:
         n_gpus = 1
     os.environ["MASTER_ADDR"] = "localhost"
@@ -78,7 +93,7 @@ def run(rank, n_gpus, hps):
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.s2_ckpt_dir, "eval"))
 
     dist.init_process_group(
-        backend="gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
+        backend = "mccl" if musa_ddp else ("gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl"), 
         init_method="env://?use_libuv=False",
         world_size=n_gpus,
         rank=rank,
@@ -86,6 +101,8 @@ def run(rank, n_gpus, hps):
     torch.manual_seed(hps.train.seed)
     if torch.cuda.is_available():
         torch.cuda.set_device(rank)
+    elif musa_ddp:
+        musa_utils.set_device(rank)
 
     train_dataset = TextAudioSpeakerLoader(hps.data, version=hps.model.version)
     train_sampler = DistributedBucketSampler(
@@ -145,12 +162,21 @@ def run(rank, n_gpus, hps):
             hps.train.segment_size // hps.data.hop_length,
             n_speakers=hps.data.n_speakers,
             **hps.model,
+        ).musa(rank)
+        if musa_ddp
+        else SynthesizerTrn(
+            hps.data.filter_length // 2 + 1,
+            hps.train.segment_size // hps.data.hop_length,
+            n_speakers=hps.data.n_speakers,
+            **hps.model,
         ).to(device)
     )
 
     net_d = (
         MultiPeriodDiscriminator(hps.model.use_spectral_norm, version=hps.model.version).cuda(rank)
         if torch.cuda.is_available()
+        else MultiPeriodDiscriminator(hps.model.use_spectral_norm, version=hps.model.version).musa(rank)
+        if musa_ddp
         else MultiPeriodDiscriminator(hps.model.use_spectral_norm, version=hps.model.version).to(device)
     )
     for name, param in net_g.named_parameters():
@@ -196,7 +222,7 @@ def run(rank, n_gpus, hps):
         betas=hps.train.betas,
         eps=hps.train.eps,
     )
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() or musa_ddp:
         net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
         net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
     else:
@@ -238,7 +264,7 @@ def run(rank, n_gpus, hps):
                     torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
                     strict=False,
                 )
-                if torch.cuda.is_available()
+                if torch.cuda.is_available() or musa_ddp
                 else net_g.load_state_dict(
                     torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
                     strict=False,
@@ -256,7 +282,7 @@ def run(rank, n_gpus, hps):
                 net_d.module.load_state_dict(
                     torch.load(hps.train.pretrained_s2D, map_location="cpu", weights_only=False)["weight"], strict=False
                 )
-                if torch.cuda.is_available()
+                if torch.cuda.is_available() or musa_ddp
                 else net_d.load_state_dict(
                     torch.load(hps.train.pretrained_s2D, map_location="cpu", weights_only=False)["weight"],
                 ),
@@ -279,7 +305,10 @@ def run(rank, n_gpus, hps):
         scheduler_g.step()
         scheduler_d.step()
 
-    scaler = GradScaler(enabled=hps.train.fp16_run)
+    if musa_utils.is_available():
+        scaler = torch.musa.amp.GradScaler(enabled=hps.train.fp16_run)
+    else:
+        scaler = GradScaler(enabled=hps.train.fp16_run)
 
     print("start training from epoch %s" % epoch_str)
     for epoch in range(epoch_str, hps.train.epochs + 1):
@@ -369,6 +398,42 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
             )
             if hps.model.version in {"v2Pro", "v2ProPlus"}:
                 sv_emb = sv_emb.cuda(rank, non_blocking=True)
+        elif musa_ddp:
+            spec, spec_lengths = (
+                spec.musa(
+                    rank,
+                    non_blocking=True,
+                ),
+                spec_lengths.musa(
+                    rank,
+                    non_blocking=True,
+                ),
+            )
+            y, y_lengths = (
+                y.musa(
+                    rank,
+                    non_blocking=True,
+                ),
+                y_lengths.musa(
+                    rank,
+                    non_blocking=True,
+                ),
+            )
+            ssl = ssl.musa(rank, non_blocking=True)
+            ssl.requires_grad = False
+            # ssl_lengths = ssl_lengths.musa(rank, non_blocking=True)
+            text, text_lengths = (
+                text.musa(
+                    rank,
+                    non_blocking=True,
+                ),
+                text_lengths.musa(
+                    rank,
+                    non_blocking=True,
+                ),
+            )
+            if hps.model.version in {"v2Pro", "v2ProPlus"}:
+                sv_emb = sv_emb.musa(rank, non_blocking=True)
         else:
             spec, spec_lengths = spec.to(device), spec_lengths.to(device)
             y, y_lengths = y.to(device), y_lengths.to(device)
@@ -595,12 +660,17 @@ def evaluate(hps, generator, eval_loader, writer_eval):
             text,
             text_lengths,
         ) in enumerate(eval_loader):
-            print(111)
+            print("确实在跑")
             if torch.cuda.is_available():
                 spec, spec_lengths = spec.cuda(), spec_lengths.cuda()
                 y, y_lengths = y.cuda(), y_lengths.cuda()
                 ssl = ssl.cuda()
                 text, text_lengths = text.cuda(), text_lengths.cuda()
+            elif musa_utils.is_available():
+                spec, spec_lengths = spec.musa(), spec_lengths.musa()
+                y, y_lengths = y.musa(), y_lengths.musa()
+                ssl = ssl.musa()
+                text, text_lengths = text.musa(), text_lengths.musa()
             else:
                 spec, spec_lengths = spec.to(device), spec_lengths.to(device)
                 y, y_lengths = y.to(device), y_lengths.to(device)
@@ -616,7 +686,7 @@ def evaluate(hps, generator, eval_loader, writer_eval):
                         text_lengths,
                         test=test,
                     )
-                    if torch.cuda.is_available()
+                    if torch.cuda.is_available() or musa_utils.is_available()
                     else generator.infer(
                         ssl,
                         spec,

@@ -10,6 +10,12 @@ import torch.nn as nn
 import yaml
 from tqdm import tqdm
 
+try:
+    import torch_musa
+    use_torch_musa = True
+except ImportError:
+    use_torch_musa = False
+
 warnings.filterwarnings("ignore")
 
 
@@ -135,7 +141,13 @@ class Roformer_Loader:
         window_middle[-fade_size:] *= fadeout
         window_middle[:fade_size] *= fadein
 
-        with torch.amp.autocast("cuda"):
+        if use_torch_musa:
+            if torch.musa.is_available():
+                set_device = "musa"
+        else:
+            set_device = "cuda"
+
+        with torch.amp.autocast(set_device):
             with torch.inference_mode():
                 if self.config["training"]["target_instrument"] is None:
                     req_shape = (len(self.config["training"]["instruments"]),) + tuple(mix.shape)
