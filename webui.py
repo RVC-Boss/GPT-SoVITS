@@ -1,4 +1,7 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # 限制为单卡
+
+import os
 import sys
 
 os.environ["version"] = version = "v2Pro"
@@ -123,13 +126,13 @@ def set_default():
     if version not in v3v4set:
         default_sovits_epoch = 8
         default_sovits_save_every_epoch = 4
-        max_sovits_epoch = 25  # 40
-        max_sovits_save_every_epoch = 25  # 10
+        max_sovits_epoch = 255  # 40
+        max_sovits_save_every_epoch = 255  # 10
     else:
         default_sovits_epoch = 2
         default_sovits_save_every_epoch = 1
-        max_sovits_epoch = 16  # 40 # 3 #训太多=作死
-        max_sovits_save_every_epoch = 10  # 10 # 3
+        max_sovits_epoch = 255  # 40 # 3 #训太多=作死
+        max_sovits_save_every_epoch = 255  # 10 # 3
 
     default_batch_size = max(1, default_batch_size)
     default_batch_size_s1 = max(1, default_batch_size_s1)
@@ -503,7 +506,7 @@ def open1Ba(
 ):
     global p_train_SoVITS
     if p_train_SoVITS == None:
-        exp_name = exp_name.rstrip(" ")
+        exp_name=exp_name.rstrip(" ")
         config_file = (
             "GPT_SoVITS/configs/s2.json"
             if version not in {"v2Pro", "v2ProPlus"}
@@ -600,7 +603,7 @@ def open1Bb(
 ):
     global p_train_GPT
     if p_train_GPT == None:
-        exp_name = exp_name.rstrip(" ")
+        exp_name=exp_name.rstrip(" ")
         with open(
             "GPT_SoVITS/configs/s1longer.yaml" if version == "v1" else "GPT_SoVITS/configs/s1longer-v2.yaml"
         ) as f:
@@ -1724,8 +1727,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                                 )
                             with gr.Row():
                                 text_low_lr_rate = gr.Slider(
-                                    minimum=0.2,
-                                    maximum=0.6,
+                                    minimum=0,
+                                    maximum=1,
                                     step=0.05,
                                     label=i18n("文本模块学习率权重"),
                                     value=0.4,
@@ -1734,7 +1737,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                                 lora_rank = gr.Radio(
                                     label=i18n("LoRA秩"),
                                     value="32",
-                                    choices=["16", "32", "64", "128"],
+                                    choices=["16", "32", "64", "128", "256", "512", "1024","2048", "4096"],
                                     visible=True if version in v3v4set else False,
                                 )  # v1v2 not need
                                 save_every_epoch = gr.Slider(
@@ -1796,7 +1799,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                                 )
                                 total_epoch1Bb = gr.Slider(
                                     minimum=2,
-                                    maximum=50,
+                                    maximum=max_sovits_epoch,
                                     step=1,
                                     label=i18n("总训练轮数total_epoch"),
                                     value=15,
