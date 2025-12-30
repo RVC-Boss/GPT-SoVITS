@@ -707,7 +707,6 @@ class Text2SemanticDecoder(nn.Module):
 
             if idx == 0:
                 attn_mask = F.pad(attn_mask[:, :, -1].unsqueeze(-2), (0, 1), value=False)
-                logits = logits[:, :-1]
             else:
                 attn_mask = F.pad(attn_mask, (0, 1), value=False)
 
