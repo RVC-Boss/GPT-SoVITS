@@ -193,3 +193,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+/.vs
+/GPT_SoVITS/configs/tts_infer.yaml
+/GPT_SoVITS/configs/infer_settings.json
+/last_selected_preset.json
+/last_selected_models.json
