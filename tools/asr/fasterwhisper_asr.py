@@ -1,12 +1,12 @@
 import argparse
 import os
-import time
 import traceback
 
+import requests
 import torch
 from faster_whisper import WhisperModel
-from huggingface_hub import snapshot_download
-from huggingface_hub.errors import LocalEntryNotFoundError
+from huggingface_hub import snapshot_download as snapshot_download_hf
+from modelscope import snapshot_download as snapshot_download_ms
 from tqdm import tqdm
 
 from tools.asr.config import get_models
@@ -40,11 +40,32 @@ language_code_list = [
 
 
 def download_model(model_size: str):
-    if "distil" in model_size:
-        repo_id = "Systran/faster-{}-whisper-{}".format(*model_size.split("-", maxsplit=1))
+    url = "https://huggingface.co/api/models/gpt2"
+    try:
+        requests.get(url, timeout=3)
+        source = "HF"
+    except Exception:
+        source = "ModelScope"
+
+    model_path = ""
+    if source == "HF":
+        if "distil" in model_size:
+            if "3.5" in model_size:
+                repo_id = "distil-whisper/distil-large-v3.5-ct2"
+                model_path = "tools/asr/models/faster-distil-whisper-large-v3.5"
+            else:
+                repo_id = "Systran/faster-{}-whisper-{}".format(*model_size.split("-", maxsplit=1))
+        elif model_size == "large-v3-turbo":
+            repo_id = "mobiuslabsgmbh/faster-whisper-large-v3-turbo"
+            model_path = "tools/asr/models/faster-whisper-large-v3-turbo"
+        else:
+            repo_id = f"Systran/faster-whisper-{model_size}"
+        model_path = (
+            model_path or f"tools/asr/models/{repo_id.replace('Systran/', '').replace('distil-whisper/', '', 1)}"
+        )
     else:
-        repo_id = f"Systran/faster-whisper-{model_size}"
-    model_path = f"tools/asr/models/{repo_id.strip('Systran/')}"
+        repo_id = "XXXXRT/faster-whisper"
+        model_path = "tools/asr/models"
 
     files: list[str] = [
         "config.json",
@@ -52,32 +73,31 @@ def download_model(model_size: str):
         "tokenizer.json",
         "vocabulary.txt",
     ]
-    if model_size == "large-v3" or "distil" in model_size:
+    if "large-v3" in model_size or "distil" in model_size:
         files.append("preprocessor_config.json")
         files.append("vocabulary.json")
 
         files.remove("vocabulary.txt")
 
-    for attempt in range(2):
-        try:
-            snapshot_download(
-                repo_id=repo_id,
-                allow_patterns=files,
-                local_dir=model_path,
-            )
-            break
-        except LocalEntryNotFoundError:
-            if attempt < 1:
-                time.sleep(2)
-            else:
-                print("[ERROR] LocalEntryNotFoundError and no fallback.")
-                traceback.print_exc()
-                exit(1)
-        except Exception as e:
-            print(f"[ERROR] Unexpected error on attempt {attempt + 1}: {e}")
-            traceback.print_exc()
-            exit(1)
+    if source == "ModelScope":
+        files = [f"faster-whisper-{model_size}/{file}".replace("whisper-distil", "distil-whisper") for file in files]
 
+    if source == "HF":
+        print(f"Downloading model from HuggingFace: {repo_id} to {model_path}")
+        snapshot_download_hf(
+            repo_id,
+            local_dir=model_path,
+            local_dir_use_symlinks=False,
+            allow_patterns=files,
+        )
+    else:
+        print(f"Downloading model from ModelScope: {repo_id} to {model_path}")
+        snapshot_download_ms(
+            repo_id,
+            local_dir=model_path,
+            allow_patterns=files,
+        )
+        return model_path + f"/faster-whisper-{model_size}".replace("whisper-distil", "distil-whisper")
     return model_path
 
 
@@ -106,7 +126,7 @@ def execute_asr(input_folder, output_folder, model_path, language, precision):
             )
             text = ""
 
-            if info.language == "zh":
+            if info.language in ["zh", "yue"]:
                 print("检测为中文文本, 转 FunASR 处理")
                 text = only_asr(file_path, language=info.language.lower())
 

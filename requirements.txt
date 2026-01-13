@@ -16,10 +16,10 @@ pypinyin
 pyopenjtalk>=0.4.1
 g2p_en
 torchaudio
-modelscope==1.10.0
+modelscope
 sentencepiece
 transformers>=4.43,<=4.50
-peft
+peft<0.18.0
 chardet
 PyYAML
 psutil
@@ -39,7 +39,5 @@ x_transformers
 torchmetrics<=1.5
 pydantic<=2.10.6
 ctranslate2>=4.0,<5
-huggingface_hub>=0.13
-tokenizers>=0.13,<1
 av>=11
 tqdm

@@ -373,7 +373,7 @@ if [ "$USE_ROCM" = true ] && [ "$IS_WSL" = true ]; then
     location=$(pip show torch | grep Location | awk -F ": " '{print $2}')
     cd "${location}"/torch/lib/ || exit
     rm libhsa-runtime64.so*
-    cp /opt/rocm/lib/libhsa-runtime64.so.1.2 libhsa-runtime64.so
+    cp "$(readlink -f /opt/rocm/lib/libhsa-runtime64.so)" libhsa-runtime64.so
     echo -e "${SUCCESS}ROCm Runtime Lib Updated..."
 fi
 
