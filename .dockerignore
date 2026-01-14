@@ -1,6 +1,3 @@
-GPT_SoVITS/pretrained_models/*
-tools/asr/models/*
-tools/uvr5/uvr5_weights/*
 
 .git
 .DS_Store
@@ -11,10 +8,7 @@ runtime
 .idea
 output
 logs
-SoVITS_weights*/
-GPT_weights*/
 TEMP
-weight.json
 ffmpeg*
 ffprobe*
 cfg.json

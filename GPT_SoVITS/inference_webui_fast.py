@@ -29,6 +29,14 @@ import sys
 
 import torch
 
+import logging
+import time
+import numpy
+
+# 在文件开头添加输出目录配置
+output_dir = os.environ.get("output_dir", "outputs")
+os.makedirs(output_dir, exist_ok=True)
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
@@ -170,6 +178,7 @@ def inference(
     sample_steps,
     super_sampling,
 ):
+
     seed = -1 if keep_random else seed
     actual_seed = seed if seed not in [-1, "", None] else random.randint(0, 2**32 - 1)
     inputs = {
@@ -194,9 +203,32 @@ def inference(
         "sample_steps": int(sample_steps),
         "super_sampling": super_sampling,
     }
+
+
+    logging.info(
+        f"inference_button请求耗时: {inputs}"
+    )
     try:
-        for item in tts_pipeline.run(inputs):
-            yield item, actual_seed
+
+        start_time = time.time()
+
+        for audio in tts_pipeline.run(inputs):
+            if isinstance(audio, tuple):
+                # 保存到本地
+                output_filename = f"tts_{int(time.time())}.wav"
+                output_path = os.path.join(output_dir, output_filename)
+                audio_data = audio[0] if isinstance(audio[0], numpy.ndarray) else audio[1]
+                import soundfile as sf
+                sf.write(output_path, audio_data, 32000)
+                logging.info(f"音频已保存至: {output_path}")
+                # 返回原始音频数据给 Gradio
+                yield audio, actual_seed
+            else:
+                yield audio, actual_seed
+
+        logging.info(
+            f"TTS请求耗时: {time.time() - start_time:.3f}s | 文本: {text}"
+        )
     except NO_PROMPT_ERROR:
         gr.Warning(i18n("V3不支持无参考文本模式，请填写参考文本！"))
 
@@ -432,6 +464,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 with gr.Row():
                     inference_button = gr.Button(i18n("合成语音"), variant="primary")
                     stop_infer = gr.Button(i18n("终止合成"), variant="primary")
+
 
         inference_button.click(
             inference,
