@@ -755,7 +755,7 @@ def get_tts_wav(
     text,
     text_language,
     how_to_cut=i18n("不切"),
-    top_k=20,
+    top_k=15,
     top_p=0.6,
     temperature=0.6,
     ref_free=False,
