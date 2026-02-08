@@ -8,7 +8,7 @@ cd .. || exit 1
 
 set -e
 
-source "$HOME/miniconda3/etc/profile.d/conda.sh"
+source "$HOME/conda/etc/profile.d/conda.sh"
 
 mkdir -p GPT_SoVITS
 
@@ -18,7 +18,7 @@ ln -s /workspace/models/pretrained_models /workspace/GPT-SoVITS/GPT_SoVITS/pretr
 
 ln -s /workspace/models/G2PWModel /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel
 
-bash install.sh --device "CU${CUDA_VERSION//./}" --source HF
+TERM=dumb bash install.sh --device "CU${CUDA_VERSION//./}" --source HF
 
 pip cache purge
 
@@ -26,8 +26,8 @@ pip show torch
 
 rm -rf /tmp/* /var/tmp/*
 
-rm -rf "$HOME/miniconda3/pkgs"
+rm -rf "$HOME/conda/pkgs"
 
-mkdir -p "$HOME/miniconda3/pkgs"
+mkdir -p "$HOME/conda/pkgs"
 
 rm -rf /root/.conda /root/.cache

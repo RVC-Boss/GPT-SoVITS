@@ -15,6 +15,7 @@ trap 'echo "Error Occured at \"$BASH_COMMAND\" with exit code $?"; exit 1' ERR
 
 LITE=false
 CUDA_VERSION=12.6
+WORKFLOW=true
 
 print_help() {
     echo "Usage: bash docker_build.sh [OPTIONS]"
@@ -78,5 +79,6 @@ docker build \
     --build-arg LITE=$LITE \
     --build-arg TARGETPLATFORM="$TARGETPLATFORM" \
     --build-arg TORCH_BASE=$TORCH_BASE \
+    --build-arg WORKFLOW=$WORKFLOW \
     -t "${USER}/gpt-sovits:local" \
     .

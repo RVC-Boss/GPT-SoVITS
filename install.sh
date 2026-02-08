@@ -49,7 +49,9 @@ run_pip_quiet() {
 
 run_wget_quiet() {
     if wget --tries=25 --wait=5 --read-timeout=40 -q --show-progress "$@" 2>&1; then
-        tput cuu1 && tput el
+        if [ "$WORKFLOW" = "false" ]; then
+            tput cuu1 && tput el
+        fi
     else
         echo -e "${ERROR} Wget failed"
         exit 1
@@ -324,17 +326,17 @@ fi
 if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
     if [ "$CUDA" = 128 ]; then
         echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
-        run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
+        run_pip_quiet torch torchcodec --index-url "https://download.pytorch.org/whl/cu128"
     elif [ "$CUDA" = 126 ]; then
         echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
-        run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
+        run_pip_quiet torch torchcodec --index-url "https://download.pytorch.org/whl/cu126"
     fi
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
     echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
-    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/rocm6.2"
+    run_pip_quiet torch torchcodec --index-url "https://download.pytorch.org/whl/rocm6.2"
 elif [ "$USE_CPU" = true ] && [ "$WORKFLOW" = false ]; then
     echo -e "${INFO}Installing PyTorch For CPU..."
-    run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
+    run_pip_quiet torch torchcodec --index-url "https://download.pytorch.org/whl/cpu"
 elif [ "$WORKFLOW" = false ]; then
     echo -e "${ERROR}Unknown Err"
     exit 1

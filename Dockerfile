@@ -4,7 +4,7 @@ ARG TORCH_BASE=full
 FROM xxxxrt666/torch-base:cu${CUDA_VERSION}-${TORCH_BASE}
 
 LABEL maintainer="XXXXRT"
-LABEL version="V4"
+LABEL version="V2 Pro"
 LABEL description="Docker image for GPT-SoVITS"
 
 ARG CUDA_VERSION=12.6
@@ -25,14 +25,6 @@ ENV WORKFLOW=${WORKFLOW}
 
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM}
-# 解决 Conda 条款未同意导致的构建失败
-ENV TERM=linux
-
-RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-
-RUN bash Docker/miniconda_install.sh
-
 
 COPY extra-req.txt /workspace/GPT-SoVITS/
 

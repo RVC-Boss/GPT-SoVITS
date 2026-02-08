@@ -209,15 +209,15 @@ if ($DownloadUVR5) {
 switch ($Device) {
     "CU128" {
         Write-Info "Installing PyTorch For CUDA 12.8..."
-        Invoke-Pip torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
+        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cu128"
     }
     "CU126" {
         Write-Info "Installing PyTorch For CUDA 12.6..."
-        Invoke-Pip torch torchaudio --index-url "https://download.pytorch.org/whl/cu126"
+        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cu126"
     }
     "CPU" {
         Write-Info "Installing PyTorch For CPU..."
-        Invoke-Pip torch torchaudio --index-url "https://download.pytorch.org/whl/cpu"
+        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cpu"
     }
 }
 Write-Success "PyTorch Installed"
