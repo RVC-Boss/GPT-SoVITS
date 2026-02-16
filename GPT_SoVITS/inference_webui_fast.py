@@ -6,32 +6,37 @@
 全部按英文识别
 全部按日文识别
 """
-import psutil
+
 import os
+
+import psutil
+
 
 def set_high_priority():
     """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
     if os.name != "nt":
-        return # 仅 Windows 有效
+        return  # 仅 Windows 有效
     p = psutil.Process(os.getpid())
     try:
         p.nice(psutil.HIGH_PRIORITY_CLASS)
         print("已将进程优先级设为 High")
     except psutil.AccessDenied:
         print("权限不足，无法修改优先级（请用管理员运行）")
+
+
 set_high_priority()
 import json
 import logging
-import os
 import random
 import re
 import sys
 
 import torch
 
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
+sys.path.append(f"{now_dir}/GPT_SoVITS")
 
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -60,8 +65,9 @@ import gradio as gr
 from TTS_infer_pack.text_segmentation_method import get_method
 from TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
 
-from tools.assets import css, js, top_html
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from gsv_tools.assets import css, js, top_html
+from gsv_tools.i18n.i18n import I18nAuto, scan_language_list
+
 
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -114,8 +120,10 @@ cut_method = {
 
 from config import change_choices, get_weights_names, name2gpt_path, name2sovits_path
 
+
 SoVITS_names, GPT_names = get_weights_names()
 from config import pretrained_sovits_name
+
 
 path_sovits_v3 = pretrained_sovits_name["v3"]
 path_sovits_v4 = pretrained_sovits_name["v4"]
@@ -203,7 +211,7 @@ def inference(
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
-    parts = re.split("(\d+)", s)
+    parts = re.split(r"(\d+)", s)
     # 将数字部分转换为整数，非数字部分保持不变
     parts = [int(part) if part.isdigit() else part for part in parts]
     return parts
@@ -215,7 +223,7 @@ else:
     with open("./weight.json", "w", encoding="utf-8") as file:
         json.dump({"GPT": {}, "SoVITS": {}}, file)
 
-with open("./weight.json", "r", encoding="utf-8") as file:
+with open("./weight.json", encoding="utf-8") as file:
     weight_data = file.read()
     weight_data = json.loads(weight_data)
     gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, GPT_names[-1]))
@@ -226,6 +234,7 @@ with open("./weight.json", "r", encoding="utf-8") as file:
         sovits_path = sovits_path[0]
 
 from process_ckpt import get_sovits_version_from_path_fast
+
 
 v3v4set = {"v3", "v4"}
 
@@ -238,8 +247,8 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
     # print(sovits_path,version, model_version, if_lora_v3)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
-    if if_lora_v3 == True and is_exist == False:
-        info = path_sovits + "SoVITS %s" % model_version + i18n("底模缺失，无法加载相应 LoRA 权重")
+    if if_lora_v3 and not is_exist:
+        info = path_sovits + f"SoVITS {model_version}" + i18n("底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2

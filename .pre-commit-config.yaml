@@ -3,13 +3,18 @@ ci:
 
 repos:
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.11.7
+  rev: v0.15.1
   hooks:
     # Run the linter.
     - id: ruff
       types_or: [ python, pyi ]
-      args: [ --fix , "--exit-zero" ]
+      args: [ --fix , "--unsafe-fixes", "--exit-zero" ]
     # Run the formatter.
     - id: ruff-format
       types_or: [ python, pyi ]
-      args: [ --line-length, "120", --target-version, "py311" ]
+
+- repo: https://github.com/astral-sh/uv-pre-commit
+  # uv version.
+  rev: 0.10.3
+  hooks:
+    - id: uv-lock

@@ -9,6 +9,7 @@
 <center><img src="https://user-images.githubusercontent.com/15963413/218609148-881e39df-33af-4af9-ab95-1427c4ebf062.png" width="800"></center>
 
 ## News
+
 - **Sep 2024 (v2.4):**
   - We have updated the pretrained checkpoints trained for 5M steps. This is final release of the BigVGAN-v2 checkpoints.
 
@@ -31,7 +32,7 @@
 The codebase has been tested on Python `3.10` and PyTorch `2.3.1` conda packages with either `pytorch-cuda=12.1` or `pytorch-cuda=11.8`. Below is an example command to create the conda environment:
 
 ```shell
-conda create -n bigvgan python=3.10 pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+conda create -n bigvgan python=3.11 pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
 conda activate bigvgan
 ```
 
@@ -186,17 +187,17 @@ If you see `[Fail] test CUDA fused vs. plain torch BigVGAN inference`, it means 
 We provide the [pretrained models on Hugging Face Collections](https://huggingface.co/collections/nvidia/bigvgan-66959df3d97fd7d98d97dc9a).
 One can download the checkpoints of the generator weight (named `bigvgan_generator.pt`) and its discriminator/optimizer states (named `bigvgan_discriminator_optimizer.pt`) within the listed model repositories.
 
-| Model Name                                                                                               | Sampling Rate | Mel band | fmax  | Upsampling Ratio | Params | Dataset                    | Steps | Fine-Tuned |
-|:--------------------------------------------------------------------------------------------------------:|:-------------:|:--------:|:-----:|:----------------:|:------:|:--------------------------:|:-----:|:----------:|
-| [bigvgan_v2_44khz_128band_512x](https://huggingface.co/nvidia/bigvgan_v2_44khz_128band_512x)             | 44 kHz        | 128      | 22050 | 512              | 122M   | Large-scale Compilation    | 5M    | No         |
-| [bigvgan_v2_44khz_128band_256x](https://huggingface.co/nvidia/bigvgan_v2_44khz_128band_256x)             | 44 kHz        | 128      | 22050 | 256              | 112M   | Large-scale Compilation    | 5M    | No         |
-| [bigvgan_v2_24khz_100band_256x](https://huggingface.co/nvidia/bigvgan_v2_24khz_100band_256x)             | 24 kHz        | 100      | 12000 | 256              | 112M   | Large-scale Compilation    | 5M    | No         |
-| [bigvgan_v2_22khz_80band_256x](https://huggingface.co/nvidia/bigvgan_v2_22khz_80band_256x)               | 22 kHz        | 80       | 11025 | 256              | 112M   | Large-scale Compilation    | 5M    | No         |
-| [bigvgan_v2_22khz_80band_fmax8k_256x](https://huggingface.co/nvidia/bigvgan_v2_22khz_80band_fmax8k_256x) | 22 kHz        | 80       | 8000  | 256              | 112M   | Large-scale Compilation    | 5M    | No         |
-| [bigvgan_24khz_100band](https://huggingface.co/nvidia/bigvgan_24khz_100band)                             | 24 kHz        | 100      | 12000 | 256              | 112M   | LibriTTS                   | 5M    | No         |
-| [bigvgan_base_24khz_100band](https://huggingface.co/nvidia/bigvgan_base_24khz_100band)                   | 24 kHz        | 100      | 12000 | 256              | 14M    | LibriTTS                   | 5M    | No         |
-| [bigvgan_22khz_80band](https://huggingface.co/nvidia/bigvgan_22khz_80band)                               | 22 kHz        | 80       | 8000  | 256              | 112M   | LibriTTS + VCTK + LJSpeech | 5M    | No         |
-| [bigvgan_base_22khz_80band](https://huggingface.co/nvidia/bigvgan_base_22khz_80band)                     | 22 kHz        | 80       | 8000  | 256              | 14M    | LibriTTS + VCTK + LJSpeech | 5M    | No         |
+|                                                Model Name                                                | Sampling Rate | Mel band | fmax  | Upsampling Ratio | Params |          Dataset           | Steps | Fine-Tuned |
+| :------------------------------------------------------------------------------------------------------: | :-----------: | :------: | :---: | :--------------: | :----: | :------------------------: | :---: | :--------: |
+|       [bigvgan_v2_44khz_128band_512x](https://huggingface.co/nvidia/bigvgan_v2_44khz_128band_512x)       |    44 kHz     |   128    | 22050 |       512        |  122M  |  Large-scale Compilation   |  5M   |     No     |
+|       [bigvgan_v2_44khz_128band_256x](https://huggingface.co/nvidia/bigvgan_v2_44khz_128band_256x)       |    44 kHz     |   128    | 22050 |       256        |  112M  |  Large-scale Compilation   |  5M   |     No     |
+|       [bigvgan_v2_24khz_100band_256x](https://huggingface.co/nvidia/bigvgan_v2_24khz_100band_256x)       |    24 kHz     |   100    | 12000 |       256        |  112M  |  Large-scale Compilation   |  5M   |     No     |
+|        [bigvgan_v2_22khz_80band_256x](https://huggingface.co/nvidia/bigvgan_v2_22khz_80band_256x)        |    22 kHz     |    80    | 11025 |       256        |  112M  |  Large-scale Compilation   |  5M   |     No     |
+| [bigvgan_v2_22khz_80band_fmax8k_256x](https://huggingface.co/nvidia/bigvgan_v2_22khz_80band_fmax8k_256x) |    22 kHz     |    80    | 8000  |       256        |  112M  |  Large-scale Compilation   |  5M   |     No     |
+|               [bigvgan_24khz_100band](https://huggingface.co/nvidia/bigvgan_24khz_100band)               |    24 kHz     |   100    | 12000 |       256        |  112M  |          LibriTTS          |  5M   |     No     |
+|          [bigvgan_base_24khz_100band](https://huggingface.co/nvidia/bigvgan_base_24khz_100band)          |    24 kHz     |   100    | 12000 |       256        |  14M   |          LibriTTS          |  5M   |     No     |
+|                [bigvgan_22khz_80band](https://huggingface.co/nvidia/bigvgan_22khz_80band)                |    22 kHz     |    80    | 8000  |       256        |  112M  | LibriTTS + VCTK + LJSpeech |  5M   |     No     |
+|           [bigvgan_base_22khz_80band](https://huggingface.co/nvidia/bigvgan_base_22khz_80band)           |    22 kHz     |    80    | 8000  |       256        |  14M   | LibriTTS + VCTK + LJSpeech |  5M   |     No     |
 
 The paper results are based on the original 24kHz BigVGAN models (`bigvgan_24khz_100band` and `bigvgan_base_24khz_100band`) trained on LibriTTS dataset.
 We also provide 22kHz BigVGAN models with band-limited setup (i.e., fmax=8000) for TTS applications.
@@ -219,37 +220,37 @@ When training BigVGAN-v2 from scratch with small batch size, it can potentially 
 
 Below are the objective results of the 24kHz model (`bigvgan_v2_24khz_100band_256x`) obtained from the LibriTTS `dev` sets. BigVGAN-v2 shows noticeable improvements of the metrics. The model also exhibits reduced perceptual artifacts, especially for non-speech audio.
 
-| Model      | Dataset                 | Steps | PESQ(↑)   | M-STFT(↓)  | MCD(↓)     | Periodicity(↓) | V/UV F1(↑) |
-|:----------:|:-----------------------:|:-----:|:---------:|:----------:|:----------:|:--------------:|:----------:|
-| BigVGAN    | LibriTTS                | 1M    | 4.027     | 0.7997     | 0.3745     | 0.1018         | 0.9598     |
-| BigVGAN    | LibriTTS                | 5M    | 4.256     | 0.7409     | 0.2988     | 0.0809         | 0.9698     |
-| BigVGAN-v2 | Large-scale Compilation | 3M    | 4.359     | 0.7134     | 0.3060     | 0.0621         | 0.9777     |
-| BigVGAN-v2 | Large-scale Compilation | 5M    | **4.362** | **0.7026** | **0.2903** | **0.0593**     | **0.9793** |
+|   Model    |         Dataset         | Steps |  PESQ(↑)  | M-STFT(↓)  |   MCD(↓)   | Periodicity(↓) | V/UV F1(↑) |
+| :--------: | :---------------------: | :---: | :-------: | :--------: | :--------: | :------------: | :--------: |
+|  BigVGAN   |        LibriTTS         |  1M   |   4.027   |   0.7997   |   0.3745   |     0.1018     |   0.9598   |
+|  BigVGAN   |        LibriTTS         |  5M   |   4.256   |   0.7409   |   0.2988   |     0.0809     |   0.9698   |
+| BigVGAN-v2 | Large-scale Compilation |  3M   |   4.359   |   0.7134   |   0.3060   |     0.0621     |   0.9777   |
+| BigVGAN-v2 | Large-scale Compilation |  5M   | **4.362** | **0.7026** | **0.2903** |   **0.0593**   | **0.9793** |
 
 ## Speed Benchmark
 
 Below are the speed and VRAM usage benchmark results of BigVGAN from `tests/test_cuda_vs_torch_model.py`, using `bigvgan_v2_24khz_100band_256x` as a reference model.
 
-| GPU                        | num_mel_frame | use_cuda_kernel | Speed (kHz) | Real-time Factor | VRAM (GB) |
-|:--------------------------:|:-------------:|:---------------:|:-----------:|:----------------:|:---------:|
-| NVIDIA A100                | 256           | False           | 1672.1      | 69.7x            | 1.3       |
-|                            |               | True            | 3916.5      | 163.2x           | 1.3       |
-|                            | 2048          | False           | 1899.6      | 79.2x            | 1.7       |
-|                            |               | True            | 5330.1      | 222.1x           | 1.7       |
-|                            | 16384         | False           | 1973.8      | 82.2x            | 5.0       |
-|                            |               | True            | 5761.7      | 240.1x           | 4.4       |
-| NVIDIA GeForce RTX 3080    | 256           | False           | 841.1       | 35.0x            | 1.3       |
-|                            |               | True            | 1598.1      | 66.6x            | 1.3       |
-|                            | 2048          | False           | 929.9       | 38.7x            | 1.7       |
-|                            |               | True            | 1971.3      | 82.1x            | 1.6       |
-|                            | 16384         | False           | 943.4       | 39.3x            | 5.0       |
-|                            |               | True            | 2026.5      | 84.4x            | 3.9       |
-| NVIDIA GeForce RTX 2080 Ti | 256           | False           | 515.6       | 21.5x            | 1.3       |
-|                            |               | True            | 811.3       | 33.8x            | 1.3       |
-|                            | 2048          | False           | 576.5       | 24.0x            | 1.7       |
-|                            |               | True            | 1023.0      | 42.6x            | 1.5       |
-|                            | 16384         | False           | 589.4       | 24.6x            | 5.0       |
-|                            |               | True            | 1068.1      | 44.5x            | 3.2       |
+|            GPU             | num_mel_frame | use_cuda_kernel | Speed (kHz) | Real-time Factor | VRAM (GB) |
+| :------------------------: | :-----------: | :-------------: | :---------: | :--------------: | :-------: |
+|        NVIDIA A100         |      256      |      False      |   1672.1    |      69.7x       |    1.3    |
+|                            |               |      True       |   3916.5    |      163.2x      |    1.3    |
+|                            |     2048      |      False      |   1899.6    |      79.2x       |    1.7    |
+|                            |               |      True       |   5330.1    |      222.1x      |    1.7    |
+|                            |     16384     |      False      |   1973.8    |      82.2x       |    5.0    |
+|                            |               |      True       |   5761.7    |      240.1x      |    4.4    |
+|  NVIDIA GeForce RTX 3080   |      256      |      False      |    841.1    |      35.0x       |    1.3    |
+|                            |               |      True       |   1598.1    |      66.6x       |    1.3    |
+|                            |     2048      |      False      |    929.9    |      38.7x       |    1.7    |
+|                            |               |      True       |   1971.3    |      82.1x       |    1.6    |
+|                            |     16384     |      False      |    943.4    |      39.3x       |    5.0    |
+|                            |               |      True       |   2026.5    |      84.4x       |    3.9    |
+| NVIDIA GeForce RTX 2080 Ti |      256      |      False      |    515.6    |      21.5x       |    1.3    |
+|                            |               |      True       |    811.3    |      33.8x       |    1.3    |
+|                            |     2048      |      False      |    576.5    |      24.0x       |    1.7    |
+|                            |               |      True       |   1023.0    |      42.6x       |    1.5    |
+|                            |     16384     |      False      |    589.4    |      24.6x       |    5.0    |
+|                            |               |      True       |   1068.1    |      44.5x       |    3.2    |
 
 ## Acknowledgements
 

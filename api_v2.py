@@ -104,27 +104,31 @@ RESP:
 import os
 import sys
 import traceback
-from typing import Generator, Union
+from collections.abc import Generator
+
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
+sys.path.append(f"{now_dir}/GPT_SoVITS")
 
 import argparse
-import subprocess
-import wave
 import signal
+import subprocess
+import threading
+import wave
+from io import BytesIO
+
 import numpy as np
 import soundfile as sf
-from fastapi import FastAPI, Response
-from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
-from io import BytesIO
-from tools.i18n.i18n import I18nAuto
-from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
-from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
+from fastapi import FastAPI, Response
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
-import threading
+
+from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
+from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
+from gsv_tools.i18n.i18n import I18nAuto
+
 
 # print(sys.path)
 i18n = I18nAuto()
@@ -169,7 +173,7 @@ class TTS_Request(BaseModel):
     fragment_interval: float = 0.3
     seed: int = -1
     media_type: str = "wav"
-    streaming_mode: Union[bool, int] = False
+    streaming_mode: bool | int = False
     parallel_infer: bool = True
     repetition_penalty: float = 1.35
     sample_steps: int = 32
@@ -199,8 +203,6 @@ def pack_ogg(io_buffer: BytesIO, data: np.ndarray, rate: int):
         with sf.SoundFile(io_buffer, mode="w", samplerate=rate, channels=1, format="ogg") as audio_file:
             audio_file.write(data)
 
-
-
     # See: https://docs.python.org/3/library/threading.html
     # The stack size of this thread is at least 32768
     # If stack overflow error still occurs, just modify the `stack_size`.
@@ -214,11 +216,11 @@ def pack_ogg(io_buffer: BytesIO, data: np.ndarray, rate: int):
         pack_ogg_thread.join()
     except RuntimeError as e:
         # If changing the thread stack size is unsupported, a RuntimeError is raised.
-        print("RuntimeError: {}".format(e))
+        print(f"RuntimeError: {e}")
         print("Changing the thread stack size is unsupported.")
     except ValueError as e:
         # If the specified stack size is invalid, a ValueError is raised and the stack size is unmodified.
-        print("ValueError: {}".format(e))
+        print(f"ValueError: {e}")
         print("The specified stack size is invalid.")
 
     return io_buffer
@@ -306,7 +308,7 @@ def check_params(req: dict):
     text: str = req.get("text", "")
     text_lang: str = req.get("text_lang", "")
     ref_audio_path: str = req.get("ref_audio_path", "")
-    streaming_mode: bool = req.get("streaming_mode", False)
+    req.get("streaming_mode", False)
     media_type: str = req.get("media_type", "wav")
     prompt_lang: str = req.get("prompt_lang", "")
     text_split_method: str = req.get("text_split_method", "cut5")
@@ -384,7 +386,7 @@ async def tts_handle(req: dict):
     check_res = check_params(req)
     if check_res is not None:
         return check_res
-    
+
     if streaming_mode == 0:
         streaming_mode = False
         return_fragment = False
@@ -403,7 +405,10 @@ async def tts_handle(req: dict):
         fixed_length_chunk = True
 
     else:
-        return JSONResponse(status_code=400, content={"message": f"the value of streaming_mode must be 0, 1, 2, 3(int) or true/false(bool)"})
+        return JSONResponse(
+            status_code=400,
+            content={"message": "the value of streaming_mode must be 0, 1, 2, 3(int) or true/false(bool)"},
+        )
 
     req["streaming_mode"] = streaming_mode
     req["return_fragment"] = return_fragment
@@ -412,7 +417,6 @@ async def tts_handle(req: dict):
     print(f"{streaming_mode} {return_fragment} {fixed_length_chunk}")
 
     streaming_mode = streaming_mode or return_fragment
-
 
     try:
         tts_generator = tts_pipeline.run(req)
@@ -475,7 +479,7 @@ async def tts_get_endpoint(
     repetition_penalty: float = 1.35,
     sample_steps: int = 32,
     super_sampling: bool = False,
-    streaming_mode: Union[bool, int] = False,
+    streaming_mode: bool | int = False,
     overlap_length: int = 2,
     min_chunk_length: int = 16,
 ):

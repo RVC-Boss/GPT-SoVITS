@@ -1,5 +1,6 @@
 import os
 
+
 inp_text = os.environ.get("inp_text")
 exp_name = os.environ.get("exp_name")
 i_part = os.environ.get("i_part")
@@ -28,20 +29,25 @@ else:
     version = "v3"
 import torch
 
+
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
-import traceback
 import sys
+import traceback
+
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import logging
+
 import utils
+
 
 if version != "v3":
     from module.models import SynthesizerTrn
 else:
     from module.models import SynthesizerTrnV3 as SynthesizerTrn
-from tools.my_utils import clean_path
+from gsv_tools.my_utils import clean_path
+
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 # from config import pretrained_s2G
@@ -54,9 +60,9 @@ logging.getLogger("numba").setLevel(logging.WARNING)
 # opt_dir="/data/docker/liujing04/gpt-vits/fine_tune_dataset/%s"%exp_name
 
 
-hubert_dir = "%s/4-cnhubert" % (opt_dir)
-semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
-if os.path.exists(semantic_path) == False:
+hubert_dir = f"{opt_dir}/4-cnhubert"
+semantic_path = f"{opt_dir}/6-name2semantic-{i_part}.tsv"
+if not os.path.exists(semantic_path):
     os.makedirs(opt_dir, exist_ok=True)
 
     if torch.cuda.is_available():
@@ -73,7 +79,7 @@ if os.path.exists(semantic_path) == False:
         version=version,
         **hps.model,
     )
-    if is_half == True:
+    if is_half:
         vq_model = vq_model.half().to(device)
     else:
         vq_model = vq_model.to(device)
@@ -87,19 +93,19 @@ if os.path.exists(semantic_path) == False:
     )
 
     def name2go(wav_name, lines):
-        hubert_path = "%s/%s.pt" % (hubert_dir, wav_name)
-        if os.path.exists(hubert_path) == False:
+        hubert_path = f"{hubert_dir}/{wav_name}.pt"
+        if not os.path.exists(hubert_path):
             return
         ssl_content = torch.load(hubert_path, map_location="cpu")
-        if is_half == True:
+        if is_half:
             ssl_content = ssl_content.half().to(device)
         else:
             ssl_content = ssl_content.to(device)
         codes = vq_model.extract_latent(ssl_content)
         semantic = " ".join([str(i) for i in codes[0, 0, :].tolist()])
-        lines.append("%s\t%s" % (wav_name, semantic))
+        lines.append(f"{wav_name}\t{semantic}")
 
-    with open(inp_text, "r", encoding="utf8") as f:
+    with open(inp_text, encoding="utf8") as f:
         lines = f.read().strip("\n").split("\n")
 
     lines1 = []

@@ -1,8 +1,53 @@
+<#
+.SYNOPSIS
+Windows Installer for GPT-SoVITS
+
+.PARAMETER Device
+Device backend. Default: CU128
+
+.PARAMETER Source
+Download source. Default: HF
+
+.PARAMETER Update
+Update the GPT-SoVITS repository and UV Lock before installation
+
+.PARAMETER Verbose
+Enable verbose output during installation"
+
+.PARAMETER Sync
+Sync the uv.lock into the conda environment instead of installing from it
+
+.PARAMETER DownloadUVR5
+Enable UVR5 download.
+
+.PARAMETER Help
+Show help message.
+#>
+
+[CmdletBinding()]
 Param (
-    [Parameter(Mandatory=$true)][ValidateSet("CU126", "CU128", "CPU")][string]$Device,
-    [Parameter(Mandatory=$true)][ValidateSet("HF", "HF-Mirror", "ModelScope")][string]$Source,
-    [switch]$DownloadUVR5
+    [Parameter()][ValidateSet("CU126", "CU128", "CPU")]
+    [string]$Device = "CU128",
+
+    [Parameter()][ValidateSet("HF", "ModelScope")]
+    [string]$Source = "HF",
+
+    [switch]$Update,
+
+    [switch]$Verbose,
+
+    [switch]$Sync,
+
+    [switch]$DownloadUVR5,
+
+    [Alias("h", "help")]
+    [switch]$ShowHelp
 )
+
+if ($ShowHelp) {
+    Get-Help $MyInvocation.MyCommand.Path -Full
+    exit
+}
 
 $global:ErrorActionPreference = 'Stop'
 
@@ -40,9 +85,19 @@ function Write-Info($msg) {
     Write-Host "[INFO]:" -ForegroundColor Green -NoNewline
     Write-Host " $msg"
 }
+function Write-Warning($msg) {
+    Write-Host "[Warning]:" -ForegroundColor Yellow -NoNewline
+    Write-Host " $msg"
+}
 function Write-Success($msg) {
     Write-Host "[SUCCESS]:" -ForegroundColor Blue -NoNewline
     Write-Host " $msg"
+}
+
+python -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Python version < 3.10"
+    exit 1
 }
 
 
@@ -52,7 +107,16 @@ function Invoke-Conda {
         [string[]]$Args
     )
 
-    $output = & conda install -y -q -c conda-forge @Args 2>&1
+    if ($Verbose) {
+        & conda install -y -c conda-forge @Args
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -ne 0) {
+            throw "Conda Install $Args Failed with exit code $exitCode"
+        }
+        return
+    }
+
+    $output = & conda install -y -c conda-forge @Args 2>&1
     $exitCode = $LASTEXITCODE
 
     if ($exitCode -ne 0) {
@@ -73,18 +137,63 @@ function Invoke-Conda {
     }
 }
 
-function Invoke-Pip {
+function Invoke-PIP {
     param (
         [Parameter(ValueFromRemainingArguments = $true)]
         [string[]]$Args
     )
+
+    if ($Verbose) {
+        & uv pip install @Args --python "$((Get-Command python).Source)"
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -ne 0) {
+            throw "Pip Install $Args Failed with exit code $exitCode"
+        }
+        return
+    }
     
-    $output = & pip install @Args 2>&1
+    $output = & uv pip install @Args --python "$((Get-Command python).Source)" 2>&1
     $exitCode = $LASTEXITCODE
     
     if ($exitCode -ne 0) {
         $errorMessages = @()
         Write-Host "Pip Install $Args Failed" -ForegroundColor Red
+        foreach ($item in $output) {
+            if ($item -is [System.Management.Automation.ErrorRecord]) {
+                $msg = $item.Exception.Message
+                Write-Host "$msg" -ForegroundColor Red
+                $errorMessages += $msg
+            }
+            else {
+                Write-Host $item
+                $errorMessages += $item
+            }
+        }
+        throw [System.Exception]::new(($errorMessages -join "`n"))
+    }
+}
+
+function Invoke-Command {
+    param (
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [string[]]$Args
+    )
+
+    if ($Verbose) {
+        & @Args
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -ne 0) {
+            throw "Command $Args Failed with exit code $exitCode"
+        }
+        return
+    }
+    
+    $output = & @Args 2>&1
+    $exitCode = $LASTEXITCODE
+    
+    if ($exitCode -ne 0) {
+        $errorMessages = @()
+        Write-Host "Command $Args Failed" -ForegroundColor Red
         foreach ($item in $output) {
             if ($item -is [System.Management.Automation.ErrorRecord]) {
                 $msg = $item.Exception.Message
@@ -133,12 +242,26 @@ function Invoke-Unzip {
     Remove-Item $ZipPath -Force
 }
 
-chcp 65001
+$install_pkg = "ffmpeg cmake uv"
+
+if ($IsWindows) {
+    chcp 65001
+    $install_pkg = "$install_pkg vc14_runtime"
+}
 Set-Location $PSScriptRoot
 
-Write-Info "Installing FFmpeg & CMake..."
-Invoke-Conda  ffmpeg cmake
-Write-Success "FFmpeg & CMake Installed"
+
+if ($Update) {
+    Write-Info "Updating GPT-SoVITS Repository..."
+    git pull || {
+        Write-Warning "Git Pull Failed"
+    }
+    Write-Success "Repository Updated"
+}
+
+Write-Info "Installing FFmpeg & CMake and Some Other Tools..."
+Invoke-Conda  $install_pkg
+Write-Success "FFmpeg, CMake, VC14 Runtime, uv Installed"
 
 $PretrainedURL  = ""
 $G2PWURL        = ""
@@ -154,14 +277,6 @@ switch ($Source) {
         $UVR5URL       = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
         $NLTKURL       = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
         $OpenJTalkURL  = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
-    }
-    "HF-Mirror" {
-        Write-Info "Download Model From HuggingFace-Mirror"
-        $PretrainedURL = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/pretrained_models.zip"
-        $G2PWURL       = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip"
-        $UVR5URL       = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/uvr5_weights.zip"
-        $NLTKURL       = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/nltk_data.zip"
-        $OpenJTalkURL  = "https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/open_jtalk_dic_utf_8-1.11.tar.gz"
     }
     "ModelScope" {
         Write-Info "Download Model From ModelScope"
@@ -195,10 +310,10 @@ if (-not (Test-Path "GPT_SoVITS/text/G2PWModel")) {
 }
 
 if ($DownloadUVR5) {
-    if (-not (Test-Path "tools/uvr5/uvr5_weights")) {
+    if (-not (Test-Path "gsv_tools/uvr5/uvr5_weights")) {
         Write-Info "Downloading UVR5 Models..."
         Invoke-Download -Uri $UVR5URL -OutFile "uvr5_weights.zip"
-        Invoke-Unzip "uvr5_weights.zip" "tools/uvr5"
+        Invoke-Unzip "uvr5_weights.zip" "gsv_tools/uvr5"
         Write-Success "UVR5 Models Downloaded"
     } else {
         Write-Info "UVR5 Models Exists"
@@ -208,23 +323,54 @@ if ($DownloadUVR5) {
 
 switch ($Device) {
     "CU128" {
+        $cudaLine = nvidia-smi | Select-String "CUDA Version"
+        $version = ($cudaLine -split "CUDA Version:")[1].Trim()
+        Write-Info "Maximum CUDA Version Supported By Current Driver: $version"
+        if ([version](nvidia-smi | Select-String "CUDA Version" | ForEach-Object { ($_ -split "CUDA Version:")[1].Trim() }) -ge [version]"12.0") {
+            Write-Warning "CUDA 12.8 Is Not Supported By Current Driver"
+        }
         Write-Info "Installing PyTorch For CUDA 12.8..."
-        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cu128"
+        Invoke-PIP ".[cu128]"
+        Invoke-Conda cuda-nvcc=12.8
+        Write-Info "Installing Flash Attn..."
+        Invoke-PIP ".[flash-attn]"
+        Write-Success "Flash Attn Installed"
+        $Extra = "cu128"
     }
     "CU126" {
+        $cudaLine = nvidia-smi | Select-String "CUDA Version"
+        $version = ($cudaLine -split "CUDA Version:")[1].Trim()
+        Write-Info "Maximum CUDA Version Supported By Current Driver: $version"
+        if ([version](nvidia-smi | Select-String "CUDA Version" | ForEach-Object { ($_ -split "CUDA Version:")[1].Trim() }) -ge [version]"12.0") {
+            Write-Warning "CUDA 12.6 Is Not Supported By Current Driver"
+        }
         Write-Info "Installing PyTorch For CUDA 12.6..."
-        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cu126"
+        Invoke-PIP ".[cu126]"
+        Invoke-Conda cuda-nvcc=12.6
+        Write-Info "Installing Flash Attn..."
+        Invoke-PIP ".[flash-attn]"
+        Write-Success "Flash Attn Installed"
+        $Extra = "cu126"
     }
     "CPU" {
         Write-Info "Installing PyTorch For CPU..."
-        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cpu"
+        Invoke-PIP ".[cpu]"
+        $Extra = "cpu"
     }
 }
+
 Write-Success "PyTorch Installed"
 
 Write-Info "Installing Python Dependencies From requirements.txt..."
-Invoke-Pip -r extra-req.txt --no-deps
-Invoke-Pip -r requirements.txt
+Invoke-Command uv export --extra=main --extra="$Extra" -o pylock.toml
+
+if ($Sync) {
+    Write-Info "Syncing UV Environment..."
+    Invoke-Command uv pip sync pylock.toml --no-break-system-packages --preview-features pylock
+} else {
+    Invoke-Command uv pip install -r pylock.toml --preview-features pylock
+}
+
 Write-Success "Python Dependencies Installed"
 
 Write-Info "Downloading NLTK Data..."

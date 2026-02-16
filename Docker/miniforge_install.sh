@@ -57,21 +57,21 @@ source "$HOME/.bashrc"
 
 "$HOME/conda/bin/conda" install python=3.12 -y
 
-"$HOME/conda/bin/conda" install gcc=11 gxx ffmpeg cmake make unzip $SYSROOT_PKG "libstdcxx-ng>=11" -y
+"$HOME/conda/bin/conda" install gcc=11 gxx ffmpeg uv cmake make unzip $SYSROOT_PKG "libstdcxx-ng>=11" -y
 
 if [ "$CUDA_VERSION" = "12.8" ]; then
-    "$HOME/conda/bin/pip" install torch torchcodec --no-cache-dir --index-url https://download.pytorch.org/whl/cu128
+    "$HOME/conda/bin/uv" pip install torch torchcodec --no-cache-dir --index-url https://download.pytorch.org/whl/cu128
     "$HOME/conda/bin/conda" install cuda-nvcc=12.8 -y
 elif [ "$CUDA_VERSION" = "12.6" ]; then
-    "$HOME/conda/bin/pip" install torch torchcodec --no-cache-dir --index-url https://download.pytorch.org/whl/cu126
+    "$HOME/conda/bin/uv" pip install torch torchcodec --no-cache-dir --index-url https://download.pytorch.org/whl/cu126
     "$HOME/conda/bin/conda" install cuda-nvcc=12.6 -y
 fi
 
 export PATH="$HOME/conda/bin:$PATH"
 
-"$HOME/conda/bin/pip" install psutil ninja packaging wheel "setuptools>=42" einops
-"$HOME/conda/bin/pip" install flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
-"$HOME/conda/bin/pip" cache purge
+"$HOME/conda/bin/uv" pip install psutil ninja packaging wheel "setuptools>=42" einops
+"$HOME/conda/bin/uv" pip install flash-attn -i https://xxxxrt666.github.io/PIP-Index/ --no-build-isolation
+"$HOME/conda/bin/uv" cache clean
 
 rm $LOG_PATH
 

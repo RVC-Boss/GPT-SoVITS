@@ -1,0 +1,3 @@
+flash-attn; sys_platform != 'darwin'
+psutil
+packaging

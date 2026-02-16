@@ -1,6 +1,6 @@
 GPT_SoVITS/pretrained_models/*
-tools/asr/models/*
-tools/uvr5/uvr5_weights/*
+gsv_tools/asr/models/*
+gsv_tools/uvr5/uvr5_weights/*
 
 .git
 .DS_Store
@@ -20,6 +20,8 @@ ffprobe*
 cfg.json
 speakers.json
 ref_audios
+
+pylock.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
