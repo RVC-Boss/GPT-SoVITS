@@ -1,0 +1,4 @@
+mlx[cuda12]; sys_platform == "linux" and platform_machine == "x86_64"
+mlx[cpu]; sys_platform == "win32"
+mlx; sys_platform == "darwin" and platform_machine == "arm64"
+mlx-whisper; platform_machine != "aarch64" and sys_platform != "linux"

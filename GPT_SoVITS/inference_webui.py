@@ -6,23 +6,27 @@
 全部按英文识别
 全部按日文识别
 """
-import psutil
+
 import os
+
+import psutil
+
 
 def set_high_priority():
     """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
     if os.name != "nt":
-        return # 仅 Windows 有效
+        return  # 仅 Windows 有效
     p = psutil.Process(os.getpid())
     try:
         p.nice(psutil.HIGH_PRIORITY_CLASS)
         print("已将进程优先级设为 High")
     except psutil.AccessDenied:
         print("权限不足，无法修改优先级（请用管理员运行）")
+
+
 set_high_priority()
 import json
 import logging
-import os
 import re
 import sys
 import traceback
@@ -31,6 +35,7 @@ import warnings
 import torch
 import torchaudio
 from text.LangSegmenter import LangSegmenter
+
 
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -46,8 +51,10 @@ version = model_version = os.environ.get("version", "v2")
 
 from config import change_choices, get_weights_names, name2gpt_path, name2sovits_path
 
+
 SoVITS_names, GPT_names = get_weights_names()
 from config import pretrained_sovits_name
+
 
 path_sovits_v3 = pretrained_sovits_name["v3"]
 path_sovits_v4 = pretrained_sovits_name["v4"]
@@ -60,7 +67,7 @@ else:
     with open("./weight.json", "w", encoding="utf-8") as file:
         json.dump({"GPT": {}, "SoVITS": {}}, file)
 
-with open("./weight.json", "r", encoding="utf-8") as file:
+with open("./weight.json", encoding="utf-8") as file:
     weight_data = file.read()
     weight_data = json.loads(weight_data)
     gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, GPT_names[-1]))
@@ -96,6 +103,7 @@ import numpy as np
 from feature_extractor import cnhubert
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
+
 cnhubert.cnhubert_base_path = cnhubert_base_path
 
 import random
@@ -123,8 +131,9 @@ from peft import LoraConfig, get_peft_model
 from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 
-from tools.assets import css, js, top_html
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from gsv_tools.assets import css, js, top_html
+from gsv_tools.i18n.i18n import I18nAuto, scan_language_list
+
 
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -162,7 +171,7 @@ dict_language = dict_language_v1 if version == "v1" else dict_language_v2
 
 tokenizer = AutoTokenizer.from_pretrained(bert_path)
 bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
-if is_half == True:
+if is_half:
     bert_model = bert_model.half().to(device)
 else:
     bert_model = bert_model.to(device)
@@ -202,7 +211,7 @@ class DictToAttrRecursive(dict):
     def __setattr__(self, key, value):
         if isinstance(value, dict):
             value = DictToAttrRecursive(value)
-        super(DictToAttrRecursive, self).__setitem__(key, value)
+        super().__setitem__(key, value)
         super().__setattr__(key, value)
 
     def __delattr__(self, item):
@@ -213,7 +222,7 @@ class DictToAttrRecursive(dict):
 
 
 ssl_model = cnhubert.get_model()
-if is_half == True:
+if is_half:
     ssl_model = ssl_model.half().to(device)
 else:
     ssl_model = ssl_model.to(device)
@@ -222,6 +231,7 @@ else:
 ###todo:put them to process_ckpt and modify my_save func (save sovits weights), gpt save weights use my_save in process_ckpt
 # symbol_version-model_version-if_lora_v3
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
+
 
 v3v4set = {"v3", "v4"}
 
@@ -234,8 +244,8 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
     print(sovits_path, version, model_version, if_lora_v3)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
-    if if_lora_v3 == True and is_exist == False:
-        info = path_sovits + "SoVITS %s" % model_version + i18n("底模缺失，无法加载相应 LoRA 权重")
+    if if_lora_v3 and not is_exist:
+        info = path_sovits + f"SoVITS {model_version}" + i18n("底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -314,17 +324,17 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             del vq_model.enc_q
         except:
             pass
-    if is_half == True:
+    if is_half:
         vq_model = vq_model.half().to(device)
     else:
         vq_model = vq_model.to(device)
     vq_model.eval()
-    if if_lora_v3 == False:
-        print("loading sovits_%s" % model_version, vq_model.load_state_dict(dict_s2["weight"], strict=False))
+    if not if_lora_v3:
+        print(f"loading sovits_{model_version}", vq_model.load_state_dict(dict_s2["weight"], strict=False))
     else:
         path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
         print(
-            "loading sovits_%spretrained_G" % model_version,
+            f"loading sovits_{model_version}pretrained_G",
             vq_model.load_state_dict(load_sovits_new(path_sovits)["weight"], strict=False),
         )
         lora_rank = dict_s2["lora_rank"]
@@ -335,7 +345,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             init_lora_weights=True,
         )
         vq_model.cfm = get_peft_model(vq_model.cfm, lora_config)
-        print("loading sovits_%s_lora%s" % (model_version, lora_rank))
+        print(f"loading sovits_{model_version}_lora{lora_rank}")
         vq_model.load_state_dict(dict_s2["weight"], strict=False)
         vq_model.cfm = vq_model.cfm.merge_and_unload()
         # torch.save(vq_model.state_dict(),"merge_win.pth")
@@ -383,7 +393,7 @@ def change_gpt_weights(gpt_path):
     max_sec = config["data"]["max_sec"]
     t2s_model = Text2SemanticLightningModule(config, "****", is_train=False)
     t2s_model.load_state_dict(dict_s1["weight"])
-    if is_half == True:
+    if is_half:
         t2s_model = t2s_model.half()
     t2s_model = t2s_model.to(device)
     t2s_model.eval()
@@ -400,6 +410,7 @@ def change_gpt_weights(gpt_path):
 change_gpt_weights(gpt_path)
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import torch
+
 
 now_dir = os.getcwd()
 
@@ -442,7 +453,7 @@ def init_bigvgan():
     from BigVGAN import bigvgan
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
-        "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+        f"{now_dir}/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x",
         use_cuda_kernel=False,
     )  # if True, RuntimeError: Ninja is required to load C++ extensions
     # remove weight norm in the model and set to eval mode
@@ -450,7 +461,7 @@ def init_bigvgan():
     bigvgan_model = bigvgan_model.eval()
     clean_hifigan_model()
     clean_sv_cn_model()
-    if is_half == True:
+    if is_half:
         bigvgan_model = bigvgan_model.half().to(device)
     else:
         bigvgan_model = bigvgan_model.to(device)
@@ -472,14 +483,14 @@ def init_hifigan():
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
     state_dict_g = torch.load(
-        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+        f"{now_dir}/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth",
         map_location="cpu",
         weights_only=False,
     )
     print("loading vocoder", hifigan_model.load_state_dict(state_dict_g))
     clean_bigvgan_model()
     clean_sv_cn_model()
-    if is_half == True:
+    if is_half:
         hifigan_model = hifigan_model.half().to(device)
     else:
         hifigan_model = hifigan_model.to(device)
@@ -508,7 +519,7 @@ resample_transform_dict = {}
 
 def resample(audio_tensor, sr0, sr1, device):
     global resample_transform_dict
-    key = "%s-%s-%s" % (sr0, sr1, str(device))
+    key = f"{sr0}-{sr1}-{str(device)}"
     if key not in resample_transform_dict:
         resample_transform_dict[key] = torchaudio.transforms.Resample(sr0, sr1).to(device)
     return resample_transform_dict[key](audio_tensor)
@@ -544,7 +555,7 @@ def get_spepc(hps, filename, dtype, device, is_v2pro=False):
         center=False,
     )
     spec = spec.to(dtype)
-    if is_v2pro == True:
+    if is_v2pro:
         audio = resample(audio, sr1, 16000, device).to(dtype)
     return spec, audio
 
@@ -556,7 +567,7 @@ def clean_text_inf(text, language, version):
     return phones, word2ph, norm_text
 
 
-dtype = torch.float16 if is_half == True else torch.float32
+dtype = torch.float16 if is_half else torch.float32
 
 
 def get_bert_inf(phones, word2ph, norm_text, language):
@@ -566,7 +577,7 @@ def get_bert_inf(phones, word2ph, norm_text, language):
     else:
         bert = torch.zeros(
             (1024, len(phones)),
-            dtype=torch.float16 if is_half == True else torch.float32,
+            dtype=torch.float16 if is_half else torch.float32,
         ).to(device)
 
     return bert
@@ -595,29 +606,26 @@ def get_first(text):
     return text
 
 
-from text import chinese
-
-
 def get_phones_and_bert(text, language, version, final=False):
-    text = re.sub(r' {2,}', ' ', text)
+    text = re.sub(r" {2,}", " ", text)
     textlist = []
     langlist = []
     if language == "all_zh":
-        for tmp in LangSegmenter.getTexts(text,"zh"):
+        for tmp in LangSegmenter.getTexts(text, "zh"):
             langlist.append(tmp["lang"])
             textlist.append(tmp["text"])
     elif language == "all_yue":
-        for tmp in LangSegmenter.getTexts(text,"zh"):
+        for tmp in LangSegmenter.getTexts(text, "zh"):
             if tmp["lang"] == "zh":
                 tmp["lang"] = "yue"
             langlist.append(tmp["lang"])
             textlist.append(tmp["text"])
     elif language == "all_ja":
-        for tmp in LangSegmenter.getTexts(text,"ja"):
+        for tmp in LangSegmenter.getTexts(text, "ja"):
             langlist.append(tmp["lang"])
             textlist.append(tmp["text"])
     elif language == "all_ko":
-        for tmp in LangSegmenter.getTexts(text,"ko"):
+        for tmp in LangSegmenter.getTexts(text, "ko"):
             langlist.append(tmp["lang"])
             textlist.append(tmp["text"])
     elif language == "en":
@@ -669,6 +677,7 @@ def get_phones_and_bert(text, language, version, final=False):
 
 from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
 
+
 spec_min = -12
 spec_max = 2
 
@@ -681,32 +690,36 @@ def denorm_spec(x):
     return (x + 1) / 2 * (spec_max - spec_min) + spec_min
 
 
-mel_fn = lambda x: mel_spectrogram_torch(
-    x,
-    **{
-        "n_fft": 1024,
-        "win_size": 1024,
-        "hop_size": 256,
-        "num_mels": 100,
-        "sampling_rate": 24000,
-        "fmin": 0,
-        "fmax": None,
-        "center": False,
-    },
-)
-mel_fn_v4 = lambda x: mel_spectrogram_torch(
-    x,
-    **{
-        "n_fft": 1280,
-        "win_size": 1280,
-        "hop_size": 320,
-        "num_mels": 100,
-        "sampling_rate": 32000,
-        "fmin": 0,
-        "fmax": None,
-        "center": False,
-    },
-)
+def mel_fn(x):
+    return mel_spectrogram_torch(
+        x,
+        **{
+            "n_fft": 1024,
+            "win_size": 1024,
+            "hop_size": 256,
+            "num_mels": 100,
+            "sampling_rate": 24000,
+            "fmin": 0,
+            "fmax": None,
+            "center": False,
+        },
+    )
+
+
+def mel_fn_v4(x):
+    return mel_spectrogram_torch(
+        x,
+        **{
+            "n_fft": 1280,
+            "win_size": 1280,
+            "hop_size": 320,
+            "num_mels": 100,
+            "sampling_rate": 32000,
+            "fmin": 0,
+            "fmax": None,
+            "center": False,
+        },
+    )
 
 
 def merge_short_text_in_array(texts, threshold):
@@ -732,8 +745,8 @@ sr_model = None
 
 def audio_sr(audio, sr):
     global sr_model
-    if sr_model == None:
-        from tools.audio_sr import AP_BWE
+    if sr_model is None:
+        from gsv_tools.audio_sr import AP_BWE
 
         try:
             sr_model = AP_BWE(device, DictToAttrRecursive)
@@ -801,10 +814,10 @@ def get_tts_wav(
     print(i18n("实际输入的目标文本:"), text)
     zero_wav = np.zeros(
         int(hps.data.sampling_rate * pause_second),
-        dtype=np.float16 if is_half == True else np.float32,
+        dtype=np.float16 if is_half else np.float32,
     )
     zero_wav_torch = torch.from_numpy(zero_wav)
-    if is_half == True:
+    if is_half:
         zero_wav_torch = zero_wav_torch.half().to(device)
     else:
         zero_wav_torch = zero_wav_torch.to(device)
@@ -815,7 +828,7 @@ def get_tts_wav(
                 gr.Warning(i18n("参考音频在3~10秒范围外，请更换！"))
                 raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
             wav16k = torch.from_numpy(wav16k)
-            if is_half == True:
+            if is_half:
                 wav16k = wav16k.half().to(device)
             else:
                 wav16k = wav16k.to(device)
@@ -871,7 +884,7 @@ def get_tts_wav(
         t2 = ttime()
         # cache_key="%s-%s-%s-%s-%s-%s-%s-%s"%(ref_wav_path,prompt_text,prompt_language,text,text_language,top_k,top_p,temperature)
         # print(cache.keys(),if_freeze)
-        if i_text in cache and if_freeze == True:
+        if i_text in cache and if_freeze:
             pred_semantic = cache[i_text]
         else:
             with torch.no_grad():
@@ -896,7 +909,7 @@ def get_tts_wav(
             refers = []
             if is_v2pro:
                 sv_emb = []
-                if sv_cn_model == None:
+                if sv_cn_model is None:
                     init_sv_cn()
             if inp_refs:
                 for path in inp_refs:
@@ -965,10 +978,10 @@ def get_tts_wav(
             cfm_res = torch.cat(cfm_resss, 2)
             cfm_res = denorm_spec(cfm_res)
             if model_version == "v3":
-                if bigvgan_model == None:
+                if bigvgan_model is None:
                     init_bigvgan()
             else:  # v4
-                if hifigan_model == None:
+                if hifigan_model is None:
                     init_hifigan()
             vocoder_model = bigvgan_model if model_version == "v3" else hifigan_model
             with torch.inference_mode():
@@ -982,7 +995,7 @@ def get_tts_wav(
         t4 = ttime()
         t.extend([t2 - t1, t3 - t2, t4 - t3])
         t1 = ttime()
-    print("%.3f\t%.3f\t%.3f\t%.3f" % (t[0], sum(t[1::3]), sum(t[2::3]), sum(t[3::3])))
+    print(f"{t[0]:.3f}\t{sum(t[1::3]):.3f}\t{sum(t[2::3]):.3f}\t{sum(t[3::3]):.3f}")
     audio_opt = torch.cat(audio_opt, 0)  # np.concatenate
     if model_version in {"v1", "v2", "v2Pro", "v2ProPlus"}:
         opt_sr = 32000
@@ -990,7 +1003,7 @@ def get_tts_wav(
         opt_sr = 24000
     else:
         opt_sr = 48000  # v4
-    if if_sr == True and opt_sr == 24000:
+    if if_sr and opt_sr == 24000:
         print(i18n("音频超分中"))
         audio_opt, opt_sr = audio_sr(audio_opt.unsqueeze(0), opt_sr)
         max_audio = np.abs(audio_opt).max()
@@ -1062,7 +1075,7 @@ def cut2(inp):
 
 def cut3(inp):
     inp = inp.strip("\n")
-    opts = ["%s" % item for item in inp.strip("。").split("。")]
+    opts = [f"{item}" for item in inp.strip("。").split("。")]
     opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
@@ -1077,7 +1090,7 @@ def cut4(inp):
 # contributed by https://github.com/AI-Hobbyist/GPT-SoVITS/blob/main/GPT_SoVITS/inference_webui.py
 def cut5(inp):
     inp = inp.strip("\n")
-    punds = {",", ".", ";", "?", "!", "、", "，", "。", "？", "！", ";", "：", "…"}
+    punds = {",", ".", ";", "?", "!", "、", "，", "。", "？", "！", "：", "…"}
     mergeitems = []
     items = []
 
@@ -1101,7 +1114,7 @@ def cut5(inp):
 
 def custom_sort_key(s):
     # 使用正则表达式提取字符串中的数字部分和非数字部分
-    parts = re.split("(\d+)", s)
+    parts = re.split(r"(\d+)", s)
     # 将数字部分转换为整数，非数字部分保持不变
     parts = [int(part) if part.isdigit() else part for part in parts]
     return parts

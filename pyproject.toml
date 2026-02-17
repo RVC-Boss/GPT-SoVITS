@@ -1,0 +1,173 @@
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt"]
+build-backend = "hatchling.build"
+
+[project]
+name = "GPT-SoVITS-Meta"
+description = "GPT-SoVITS: A Powerful Few-shot Text-to-Speech Project"
+version = "5.0.0.dev0+V2Pro"
+authors = [{ name = "RVC-Boss" }]
+license = { file = "LICENSE" }
+readme = "README.md"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+
+  "Natural Language :: English",
+  "Natural Language :: Chinese (Simplified)",
+
+  "Operating System :: OS Independent",
+
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+requires-python = ">=3.10,<3.14"
+dependencies = [
+  "pre-commit",
+  "pip",
+  "ninja",
+  "cmake",
+  "cython",
+  "setuptools",
+  "wheel",
+  "build",
+]
+dynamic = ["optional-dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/RVC-Boss/GPT-SoVITS"
+Repository = "https://github.com/RVC-Boss/GPT-SoVITS.git"
+
+[tool.hatch.metadata.hooks.requirements_txt.optional-dependencies]
+flash-attn = ["requirements/requirements.flash-attn.txt"]
+cpu = ["requirements/requirements.torch.txt"]
+cu126 = ["requirements/requirements.torch.txt"]
+cu128 = ["requirements/requirements.torch.txt"]
+rocm64 = ["requirements/requirements.torch.txt", "requirements/requirements.torch.rocm.txt"]
+mlx = ["requirements/requirements.mlx.txt", "requirements/requirements.torch.txt"]
+main = ["requirements/requirements.main.txt"]
+
+
+[tool.hatch.build.targets.wheel]
+  bypass-selection = true
+
+[tool.uv]
+upgrade = true
+no-build-isolation-package = ["flash-attn"]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "cu126" },
+    { extra = "cu128" },
+    { extra = "rocm64" },
+    { extra = "mlx" },
+  ],
+]
+dependency-metadata = [
+    { name = "faster-whisper", requires-dist = [], requires-python = ">=3.10" },
+]
+
+[tool.uv.extra-build-dependencies]
+flash-attn = [{ requirement = "torch", match-runtime = true }]
+
+[tool.uv.extra-build-variables]
+flash-attn = { FLASH_ATTENTION_SKIP_CUDA_BUILD = "TRUE" }
+
+[tool.uv.pip]
+no-binary = ["opencc"]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu126", extra = "cu126" },
+  { index = "pytorch-cu128", extra = "cu128" },
+  { index = "pytorch-rocm", extra = "rocm64" },
+  { index = "pytorch-cpu", extra = "mlx", marker = "sys_platform == 'darwin'" },
+  { index = "pytorch-cu129", extra = "mlx", marker = "sys_platform != 'darwin'" },
+]
+flash-attn = [
+  { index = "XXXXRT" },
+]
+torchao = [
+  { index = "pytorch-cpu" },
+]
+torchcodec = [
+  { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform != 'linux' or platform_machine != 'aarch64'" },
+  { index = "pytorch-cu128", extra = "cpu", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
+  { index = "pytorch-cu126", extra = "cu126" },
+  { index = "pytorch-cu128", extra = "cu128" },
+  { index = "pytorch-cu128", extra = "rocm64" },
+  { index = "pytorch-cpu", extra = "mlx", marker = "sys_platform == 'darwin'" },
+  { index = "pytorch-cu129", extra = "mlx", marker = "sys_platform != 'darwin'" },
+] # We don't have 0.10.0 cpu wheels for aarch64 Linux, so we use the cu128 ones which are compatible with CPU
+torchaudio = [
+  { index = "pytorch-cpu" },
+]
+pytorch-triton-rocm = { index = "pytorch-rocm" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm6.4"
+explicit = true
+
+[[tool.uv.index]]
+name = "XXXXRT"
+url = "https://xxxxrt666.github.io/PIP-Index"
+explicit = true
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+fix = true
+show-fixes = true
+
+[tool.ruff.lint]
+select = [
+    "B",  # flake8-bugbear
+    "E",  # pycodestyle error
+    "F",  # pyflakes
+    "I",  # isort
+    "UP",  # pyupgrade
+    "W",  # pycodestyle warning
+]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+known-first-party = ["GPT_SoVITS", "gsv_tools"]
+combine-as-imports = true
+
+[tool.mypy]
+python_version = "3.10"
+show_error_codes = true
+pretty = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+check_untyped_defs = true

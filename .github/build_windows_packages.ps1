@@ -92,13 +92,13 @@ Write-Host "[INFO] Download G2PWModel..."
 DownloadAndUnzip $G2PW_URL "GPT_SoVITS\text"
 
 Write-Host "[INFO] Download UVR5 model..."
-DownloadAndUnzip $UVR5_URL "tools\uvr5"
+DownloadAndUnzip $UVR5_URL "gsv_tools\uvr5"
 
 Write-Host "[INFO] Downloading funasr..."
 $funasrUrl = "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/funasr.zip"
 $funasrZip = "$tmpDir\funasr.zip"
 Invoke-WebRequest -Uri $funasrUrl -OutFile $funasrZip
-Expand-Archive -Path $funasrZip -DestinationPath "$srcDir\tools\asr\models" -Force
+Expand-Archive -Path $funasrZip -DestinationPath "$srcDir\gsv_tools\asr\models" -Force
 Remove-Item $funasrZip
 
 Write-Host "[INFO] Download ffmpeg..."

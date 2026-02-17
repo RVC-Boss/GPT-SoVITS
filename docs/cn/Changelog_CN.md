@@ -409,7 +409,7 @@
 
 - 2025.02.11 [Commit#ed207c4b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed207c4b879d5296e9be3ae5f7b876729a2c43b8)~[Commit#6e2b4918](https://github.com/RVC-Boss/GPT-SoVITS/commit/6e2b49186c5b961f0de41ea485d398dffa9787b4)
   - 内容: **新增 GPT-SoVITS V3 模型, 需要 14G 显存进行微调.**
-  - 类型: 新功能 (特性参阅 [Wiki](https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)))
+  - 类型: 新功能 (特性参阅 [Wiki](<https://github.com/RVC-Boss/GPT-SoVITS/wiki/GPT%E2%80%90SoVITS%E2%80%90v3%E2%80%90features-(%E6%96%B0%E7%89%B9%E6%80%A7)>))
   - 提交: RVC-Boss
 - 2025.02.12 [PR#2032](https://github.com/RVC-Boss/GPT-SoVITS/pull/2032)
   - 内容: 更新项目多语言文档.
@@ -622,5 +622,3 @@
   - 内容: 提升推理进程优先级（修复win11下可能GPU利用率受限的问题）
   - 类型: 修复
   - 提交: XianYue0125
-
-

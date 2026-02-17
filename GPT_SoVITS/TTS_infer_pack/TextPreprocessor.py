@@ -4,20 +4,21 @@ import threading
 
 from tqdm import tqdm
 
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 
 import re
-import torch
-from text.LangSegmenter import LangSegmenter
-from text import chinese
-from typing import Dict, List, Tuple
-from text.cleaner import clean_text
-from text import cleaned_text_to_sequence
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 
-from tools.i18n.i18n import I18nAuto, scan_language_list
+import torch
+from text import cleaned_text_to_sequence
+from text.cleaner import clean_text
+from text.LangSegmenter import LangSegmenter
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+from gsv_tools.i18n.i18n import I18nAuto, scan_language_list
+from TTS_infer_pack.text_segmentation_method import get_method as get_seg_method, split_big_text, splits
+
 
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -56,7 +57,7 @@ class TextPreprocessor:
         self.device = device
         self.bert_lock = threading.RLock()
 
-    def preprocess(self, text: str, lang: str, text_split_method: str, version: str = "v2") -> List[Dict]:
+    def preprocess(self, text: str, lang: str, text_split_method: str, version: str = "v2") -> list[dict]:
         print(f"############ {i18n('切分文本')} ############")
         text = self.replace_consecutive_punctuation(text)
         texts = self.pre_seg_text(text, lang, text_split_method)
@@ -98,7 +99,7 @@ class TextPreprocessor:
             # 解决输入目标文本的空行导致报错的问题
             if len(text.strip()) == 0:
                 continue
-            if not re.sub("\W+", "", text):
+            if not re.sub(r"\W+", "", text):
                 # 检测一下，如果是纯符号，就跳过。
                 continue
             if text[-1] not in splits:
@@ -116,30 +117,30 @@ class TextPreprocessor:
 
     def segment_and_extract_feature_for_text(
         self, text: str, language: str, version: str = "v1"
-    ) -> Tuple[list, torch.Tensor, str]:
+    ) -> tuple[list, torch.Tensor, str]:
         return self.get_phones_and_bert(text, language, version)
 
     def get_phones_and_bert(self, text: str, language: str, version: str, final: bool = False):
         with self.bert_lock:
-            text = re.sub(r' {2,}', ' ', text)
+            text = re.sub(r" {2,}", " ", text)
             textlist = []
             langlist = []
             if language == "all_zh":
-                for tmp in LangSegmenter.getTexts(text,"zh"):
+                for tmp in LangSegmenter.getTexts(text, "zh"):
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "all_yue":
-                for tmp in LangSegmenter.getTexts(text,"zh"):
+                for tmp in LangSegmenter.getTexts(text, "zh"):
                     if tmp["lang"] == "zh":
                         tmp["lang"] = "yue"
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "all_ja":
-                for tmp in LangSegmenter.getTexts(text,"ja"):
+                for tmp in LangSegmenter.getTexts(text, "ja"):
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "all_ko":
-                for tmp in LangSegmenter.getTexts(text,"ko"):
+                for tmp in LangSegmenter.getTexts(text, "ko"):
                     langlist.append(tmp["lang"])
                     textlist.append(tmp["text"])
             elif language == "en":
@@ -158,7 +159,9 @@ class TextPreprocessor:
             else:
                 for tmp in LangSegmenter.getTexts(text):
                     if langlist:
-                        if (tmp["lang"] == "en" and langlist[-1] == "en") or (tmp["lang"] != "en" and langlist[-1] != "en"):
+                        if (tmp["lang"] == "en" and langlist[-1] == "en") or (
+                            tmp["lang"] != "en" and langlist[-1] != "en"
+                        ):
                             textlist[-1] += tmp["text"]
                             continue
                     if tmp["lang"] == "en":

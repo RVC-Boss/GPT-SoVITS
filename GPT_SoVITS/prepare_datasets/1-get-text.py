@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import os
+
 
 inp_text = os.environ.get("inp_text")
 inp_wav_dir = os.environ.get("inp_wav_dir")
@@ -13,13 +12,12 @@ opt_dir = os.environ.get("opt_dir")
 bert_pretrained_dir = os.environ.get("bert_pretrained_dir")
 import torch
 
+
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 version = os.environ.get("version", None)
-import traceback
 import os.path
-from text.cleaner import clean_text
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-from tools.my_utils import clean_path
+import shutil
+import traceback
 
 # inp_text=sys.argv[1]
 # inp_wav_dir=sys.argv[2]
@@ -29,23 +27,26 @@ from tools.my_utils import clean_path
 # os.environ["CUDA_VISIBLE_DEVICES"]=sys.argv[6]#i_gpu
 # opt_dir="/data/docker/liujing04/gpt-vits/fine_tune_dataset/%s"%exp_name
 # bert_pretrained_dir="/data/docker/liujing04/bert-vits2/Bert-VITS2-master20231106/bert/chinese-roberta-wwm-ext-large"
-
 from time import time as ttime
-import shutil
+
+from text.cleaner import clean_text
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+from gsv_tools.my_utils import clean_path
 
 
 def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
     dir = os.path.dirname(path)
     name = os.path.basename(path)
     # tmp_path="%s/%s%s.pth"%(dir,ttime(),i_part)
-    tmp_path = "%s%s.pth" % (ttime(), i_part)
+    tmp_path = f"{ttime()}{i_part}.pth"
     torch.save(fea, tmp_path)
-    shutil.move(tmp_path, "%s/%s" % (dir, name))
+    shutil.move(tmp_path, f"{dir}/{name}")
 
 
-txt_path = "%s/2-name2text-%s.txt" % (opt_dir, i_part)
-if os.path.exists(txt_path) == False:
-    bert_dir = "%s/3-bert" % (opt_dir)
+txt_path = f"{opt_dir}/2-name2text-{i_part}.txt"
+if not os.path.exists(txt_path):
+    bert_dir = f"{opt_dir}/3-bert"
     os.makedirs(opt_dir, exist_ok=True)
     os.makedirs(bert_dir, exist_ok=True)
     if torch.cuda.is_available():
@@ -60,7 +61,7 @@ if os.path.exists(txt_path) == False:
         raise FileNotFoundError(bert_pretrained_dir)
     tokenizer = AutoTokenizer.from_pretrained(bert_pretrained_dir)
     bert_model = AutoModelForMaskedLM.from_pretrained(bert_pretrained_dir)
-    if is_half == True:
+    if is_half:
         bert_model = bert_model.half().to(device)
     else:
         bert_model = bert_model.to(device)
@@ -90,8 +91,8 @@ if os.path.exists(txt_path) == False:
                 name = os.path.basename(name)
                 print(name)
                 phones, word2ph, norm_text = clean_text(text.replace("%", "-").replace("￥", ","), lan, version)
-                path_bert = "%s/%s.pt" % (bert_dir, name)
-                if os.path.exists(path_bert) == False and lan == "zh":
+                path_bert = f"{bert_dir}/{name}.pt"
+                if not os.path.exists(path_bert) and lan == "zh":
                     bert_feature = get_bert_feature(norm_text, word2ph)
                     assert bert_feature.shape[-1] == len(phones)
                     # torch.save(bert_feature, path_bert)
@@ -104,7 +105,7 @@ if os.path.exists(txt_path) == False:
 
     todo = []
     res = []
-    with open(inp_text, "r", encoding="utf8") as f:
+    with open(inp_text, encoding="utf8") as f:
         lines = f.read().strip("\n").split("\n")
 
     language_v1_to_language_v2 = {
@@ -138,6 +139,6 @@ if os.path.exists(txt_path) == False:
     process(todo, res)
     opt = []
     for name, phones, word2ph, norm_text in res:
-        opt.append("%s\t%s\t%s\t%s" % (name, phones, word2ph, norm_text))
+        opt.append(f"{name}\t{phones}\t{word2ph}\t{norm_text}")
     with open(txt_path, "w", encoding="utf8") as f:
         f.write("\n".join(opt) + "\n")

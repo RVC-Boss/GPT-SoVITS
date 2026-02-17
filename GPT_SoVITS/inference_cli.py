@@ -1,9 +1,11 @@
 import argparse
 import os
+
 import soundfile as sf
 
-from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav
+from gsv_tools.i18n.i18n import I18nAuto
+
 
 i18n = I18nAuto()
 
@@ -19,11 +21,11 @@ def synthesize(
     output_path,
 ):
     # Read reference text
-    with open(ref_text_path, "r", encoding="utf-8") as file:
+    with open(ref_text_path, encoding="utf-8") as file:
         ref_text = file.read()
 
     # Read target text
-    with open(target_text_path, "r", encoding="utf-8") as file:
+    with open(target_text_path, encoding="utf-8") as file:
         target_text = file.read()
 
     # Change model weights

@@ -1,15 +1,29 @@
 import os
 import sys
-from PyQt5.QtCore import QEvent
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QTextEdit
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QWidget, QFileDialog, QStatusBar, QComboBox
-import soundfile as sf
 
-from tools.i18n.i18n import I18nAuto
+import soundfile as sf
+from PyQt5.QtCore import QEvent
+from PyQt5.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QGridLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    QStatusBar,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from gsv_tools.i18n.i18n import I18nAuto
+
 
 i18n = I18nAuto()
 
-from inference_webui import gpt_path, sovits_path, change_gpt_weights, change_sovits_weights, get_tts_wav
+from inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav, gpt_path, sovits_path
 
 
 class GPTSoVITSGUI(QMainWindow):
@@ -24,11 +38,11 @@ class GPTSoVITSGUI(QMainWindow):
 
         self.setStyleSheet("""
             QWidget {
-                background-color: #a3d3b1; 
+                background-color: #a3d3b1;
             }
 
             QTabWidget::pane {
-                background-color: #a3d3b1;  
+                background-color: #a3d3b1;
             }
 
             QTabWidget::tab-bar {
@@ -36,29 +50,29 @@ class GPTSoVITSGUI(QMainWindow):
             }
 
             QTabBar::tab {
-                background: #8da4bf; 
-                color: #ffffff;  
+                background: #8da4bf;
+                color: #ffffff;
                 padding: 8px;
             }
 
             QTabBar::tab:selected {
-                background: #2a3f54; 
+                background: #2a3f54;
             }
 
             QLabel {
-                color: #000000;  
+                color: #000000;
             }
 
             QPushButton {
-                background-color: #4CAF50; 
-                color: white;  
+                background-color: #4CAF50;
+                color: white;
                 padding: 8px;
                 border: 1px solid #4CAF50;
                 border-radius: 4px;
             }
 
             QPushButton:hover {
-                background-color: #45a049;  
+                background-color: #45a049;
                 border: 1px solid #45a049;
                 box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.1);
             }
@@ -239,14 +253,14 @@ class GPTSoVITSGUI(QMainWindow):
     def upload_ref_text(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "选择文本文件", "", "Text Files (*.txt)")
         if file_path:
-            with open(file_path, "r", encoding="utf-8") as file:
+            with open(file_path, encoding="utf-8") as file:
                 content = file.read()
                 self.ref_text_input.setText(content)
 
     def upload_target_text(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "选择文本文件", "", "Text Files (*.txt)")
         if file_path:
-            with open(file_path, "r", encoding="utf-8") as file:
+            with open(file_path, encoding="utf-8") as file:
                 content = file.read()
                 self.target_text_input.setText(content)
 

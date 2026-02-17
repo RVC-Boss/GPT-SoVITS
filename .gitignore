@@ -1,24 +1,3 @@
-.DS_Store
-.vscode
-__pycache__
-*.pyc
-env
-runtime
-.idea
-output
-logs
-SoVITS_weights*/
-GPT_weights*/
-TEMP
-weight.json
-ffmpeg*
-ffprobe*
-cfg.json
-speakers.json
-ref_audios
-tools/AP_BWE_main/24kto48k/*
-!tools/AP_BWE_main/24kto48k/readme.txt
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -193,3 +172,28 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# GPT-SoVITS
+
+.DS_Store
+.vscode
+__pycache__
+*.pyc
+pylock.toml
+env
+runtime
+.idea
+output
+logs
+SoVITS_weights*/
+GPT_weights*/
+TEMP
+weight.json
+ffmpeg*
+ffprobe*
+cfg.json
+speakers.json
+ref_audios
+gsv_tools/AP_BWE_main/24kto48k/*
+!gsv_tools/AP_BWE_main/24kto48k/readme.txt
+!gsv_tools/uvr5/lib
