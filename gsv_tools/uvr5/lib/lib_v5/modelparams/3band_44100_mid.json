@@ -1,0 +1,43 @@
+{
+	"mid_side": true,
+	"bins": 768,
+	"unstable_bins": 5,
+	"reduction_bins": 733,
+	"band": {
+		"1": {
+			"sr": 11025,
+			"hl": 128,
+			"n_fft": 768,
+			"crop_start": 0,
+			"crop_stop": 278,
+			"lpf_start": 28,
+			"lpf_stop": 140,
+			"res_type": "polyphase"
+		},
+		"2": {
+			"sr": 22050,
+			"hl": 256,
+			"n_fft": 768,
+			"crop_start": 14,
+			"crop_stop": 322,
+			"hpf_start": 70,
+			"hpf_stop": 14,
+			"lpf_start": 283,
+			"lpf_stop": 314,
+			"res_type": "polyphase"
+		},	
+		"3": {
+			"sr": 44100,
+			"hl": 512,
+			"n_fft": 768,
+			"crop_start": 131,
+			"crop_stop": 313,
+			"hpf_start": 154,
+			"hpf_stop": 141,
+			"res_type": "sinc_medium"
+		}
+	},
+	"sr": 44100,
+	"pre_filter_start": 757,
+	"pre_filter_stop": 768
+}
