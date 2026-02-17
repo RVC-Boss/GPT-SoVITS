@@ -392,14 +392,12 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
         fi
         echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
         run_pip_quiet ".[cu128]"
-        run_conda_quiet cuda-nvcc=12.8
     elif [ "$CUDA" = 126 ]; then
         if awk "BEGIN {exit !($CUDAVERSION < 12.0)}"; then
             echo -e "${WARNING}CUDA 12.6 Is Not Supported By Current Driver"
         fi
         echo -e "${INFO}Installing PyTorch For CUDA 12.6..."
         run_pip_quiet ".[cu126]"
-        run_conda_quiet cuda-nvcc=12.6
     fi
 
     echo -e "${INFO}Installing Flash Attn"

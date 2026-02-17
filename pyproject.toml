@@ -75,6 +75,12 @@ dependency-metadata = [
     { name = "faster-whisper", requires-dist = [], requires-python = ">=3.10" },
 ]
 
+[tool.uv.extra-build-dependencies]
+flash-attn = [{ requirement = "torch", match-runtime = true }]
+
+[tool.uv.extra-build-variables]
+flash-attn = { FLASH_ATTENTION_SKIP_CUDA_BUILD = "TRUE" }
+
 [tool.uv.pip]
 no-binary = ["opencc"]
 

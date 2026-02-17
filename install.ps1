@@ -331,7 +331,6 @@ switch ($Device) {
         }
         Write-Info "Installing PyTorch For CUDA 12.8..."
         Invoke-PIP ".[cu128]"
-        Invoke-Conda cuda-nvcc=12.8
         Write-Info "Installing Flash Attn..."
         Invoke-PIP ".[flash-attn]"
         Write-Success "Flash Attn Installed"
@@ -346,7 +345,6 @@ switch ($Device) {
         }
         Write-Info "Installing PyTorch For CUDA 12.6..."
         Invoke-PIP ".[cu126]"
-        Invoke-Conda cuda-nvcc=12.6
         Write-Info "Installing Flash Attn..."
         Invoke-PIP ".[flash-attn]"
         Write-Success "Flash Attn Installed"

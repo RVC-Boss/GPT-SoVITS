@@ -59,17 +59,17 @@ source "$HOME/.bashrc"
 
 "$HOME/conda/bin/conda" install gcc=11 gxx ffmpeg uv cmake make unzip $SYSROOT_PKG "libstdcxx-ng>=11" -y
 
+cd workspace
+
 if [ "$CUDA_VERSION" = "12.8" ]; then
-    "$HOME/conda/bin/uv" pip install ".[cu128]" --no-cache-dir --python "$(which python)"
-    "$HOME/conda/bin/conda" install cuda-nvcc=12.8 -y
+    "$HOME/conda/bin/uv" pip install ".[cu128]" --no-cache-dir --python "$HOME/conda/bin/python"
 elif [ "$CUDA_VERSION" = "12.6" ]; then
-    "$HOME/conda/bin/uv" pip install ".[cu126]" --no-cache-dir --python "$(which python)"
-    "$HOME/conda/bin/conda" install cuda-nvcc=12.6 -y
+    "$HOME/conda/bin/uv" pip install ".[cu126]" --no-cache-dir --python "$HOME/conda/bin/python"
 fi
 
 export PATH="$HOME/conda/bin:$PATH"
 
-"$HOME/conda/bin/uv" pip install ".[flash-attn]" --python "$(which python)"
+"$HOME/conda/bin/uv" pip install ".[flash-attn]" --python "$HOME/conda/bin/python"
 "$HOME/conda/bin/uv" cache clean
 
 rm $LOG_PATH
