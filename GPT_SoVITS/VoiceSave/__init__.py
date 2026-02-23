@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 import zipfile
-import file_lib as fl
-import time_lib as tl
-import info_lib as il
+from . import file_lib as fl
+from . import time_lib as tl
+from . import info_lib as il
 import os
 from typing import Union
 
