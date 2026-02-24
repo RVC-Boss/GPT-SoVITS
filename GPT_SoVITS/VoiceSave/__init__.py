@@ -1,11 +1,11 @@
-import numpy as np
-import torch
 import zipfile
 from . import file_lib as fl
 from . import time_lib as tl
 from . import info_lib as il
 import os
 from typing import Union
+import numpy as np
+import torch
 
 POOL:set = set() 
 def get_unique_name(name,MySet:set=set()):
@@ -59,9 +59,9 @@ class ZIP_File:
             file_path = fl.merge_dir_txt2(self.temp_write,file_name)
         else:
             file_path = fl.merge_dir_txt2(self.temp_write, location, file_name)
-        if not os.path.exists(location):
-            os.makedirs(location,exist_ok=True)
-        with open(file_path, 'x') as f:
+        if not os.path.exists(file_path):
+            os.makedirs(os.path.dirname(file_path),exist_ok=True)
+        with open(file_path, 'w') as f:
             pass
 
     def get_file_path(self, file_name:str,location:str=''):
@@ -116,7 +116,7 @@ def save_tensor(path: str, tensors: Union[torch.Tensor, list],name:str,MySet:set
     zf.create_file("voice.json")
     info = {'name': name}
     info.update(info_save)
-    il.save_info(str(zf.get_file_path("voice.json")), info)
+    il.save_info(info, str(zf.get_file_path("voice.json")))
     for i in range(len(files)):
         file_name = files[i]
         np_array = np_arrays[i]

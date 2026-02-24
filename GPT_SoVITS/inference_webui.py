@@ -8,6 +8,36 @@
 """
 import psutil
 import os
+import sys
+from pathlib import Path
+
+def get_my_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
+def get_parent_dir(dir_path,depth=1):
+    parent_path = Path(dir_path)
+    for _ in range(depth):
+        parent_path = parent_path.parent
+    return parent_path
+
+def merge_dir_txt2(*TXT):
+    return Path(os.path.join(*TXT))
+
+ROOT_DIR = str(get_parent_dir(get_my_dir()))
+sys.path.append(get_my_dir())
+import VoiceSave
+
+POOL:set = set() 
+def _get_unique_name(name,MySet:set=set()):
+    _id = 1
+    if name not in POOL and name not in MySet:
+        POOL.add(name)
+        return name
+    while name in POOL or name in MySet:
+        _id += 1
+        name = f'{name}_{_id}'
+    POOL.add(name)
+    return name
 
 def set_high_priority():
     """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
@@ -765,6 +795,11 @@ def get_tts_wav(
     sample_steps=8,
     if_sr=False,
     pause_second=0.3,
+
+    SaveSvEmb=False,
+    SaveRefers=False,
+    SaveSvEmbName=None,
+    SaveRefersName=None
 ):
     global cache
     if ref_wav_path:
@@ -912,6 +947,31 @@ def get_tts_wav(
                 refers = [refers]
                 if is_v2pro:
                     sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
+
+            try:
+                if SaveSvEmb and is_v2pro:
+                    names = []
+                    for i in sv_emb:
+                        names.append(_get_unique_name(str(i.shape)))
+                    sv_path = merge_dir_txt2(ROOT_DIR,"output","sv_emb_opt")
+                    if not os.path.exists(sv_path):
+                        os.makedirs(sv_path,exist_ok=True)
+                    VoiceSave.save_tensor(str(merge_dir_txt2(ROOT_DIR,"output","sv_emb_opt",SaveSvEmbName)),sv_emb,SaveSvEmbName,file_names=names,access_list=names)
+            except:
+                traceback.print_exc()
+
+            try:                
+                if SaveRefers:
+                    names = []
+                    for i in refers:
+                        names.append(_get_unique_name(str(i.shape)))
+                    refers_path = merge_dir_txt2(ROOT_DIR,"output","refers_opt")
+                    if not os.path.exists(refers_path):
+                        os.makedirs(refers_path,exist_ok=True)
+                    VoiceSave.save_tensor(str(merge_dir_txt2(ROOT_DIR,"output","refers_opt",SaveRefersName)),refers,SaveRefersName,file_names=names,access_list=names)
+            except:
+                traceback.print_exc()
+
             if is_v2pro:
                 audio = vq_model.decode(
                     pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed, sv_emb=sv_emb
