@@ -821,6 +821,7 @@ def get_tts_wav(
     InjectSvEmbName="sv_emb.voice",
     InjectRefersName="refers.voice",
 
+    EnableAudioLoad=True,
 ):
     global cache
     if ref_wav_path:
@@ -954,20 +955,29 @@ def get_tts_wav(
                 sv_emb = []
                 if sv_cn_model == None:
                     init_sv_cn()
-            if inp_refs:
-                for path in inp_refs:
-                    try:  #####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
-                        refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
-                        refers.append(refer)
+
+            try:
+                if EnableAudioLoad:
+                    if inp_refs:
+                        for path in inp_refs:
+                            try:  #####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
+                                refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
+                                refers.append(refer)
+                                if is_v2pro:
+                                    sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
+                                #print("refer:", refer.shape)
+                            except:
+                                traceback.print_exc()
+                    if len(refers) == 0:
+                        refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
+                        refers = [refers]
                         if is_v2pro:
-                            sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
-                    except:
-                        traceback.print_exc()
-            if len(refers) == 0:
-                refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
-                refers = [refers]
-                if is_v2pro:
-                    sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
+                            sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
+                else:
+                    refers = []
+                    sv_emb = []
+            except:
+                traceback.print_exc()
 
             try:
                 if SaveSvEmb and is_v2pro:
