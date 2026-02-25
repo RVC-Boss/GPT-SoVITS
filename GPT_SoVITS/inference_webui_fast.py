@@ -44,12 +44,11 @@ logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
-is_share = os.environ.get("is_share", "False")
-is_share = eval(is_share)
+is_share = os.environ.get("is_share", "False").lower() in ("true", "1", "yes")
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+is_half = os.environ.get("is_half", "True").lower() in ("true", "1", "yes") and torch.cuda.is_available()
 gpt_path = os.environ.get("gpt_path", None)
 sovits_path = os.environ.get("sovits_path", None)
 cnhubert_base_path = os.environ.get("cnhubert_base_path", None)
