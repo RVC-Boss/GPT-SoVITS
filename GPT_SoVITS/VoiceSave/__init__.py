@@ -73,8 +73,11 @@ class ZIP_File:
             raise FileNotFoundError(f"File {file_path} does not exist.")
         return file_path
     
-    def get_file_obj(self, file_name:str,location:str,mode:str='r'):
-        file_path = fl.merge_dir_txt2(self.temp_write, location, file_name)
+    def get_file_obj(self, file_name:str,location:str='',mode:str='r'):
+        if location == '':
+            file_path = fl.merge_dir_txt2(self.temp_write,file_name)
+        else:
+            file_path = fl.merge_dir_txt2(self.temp_write, location, file_name)
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File {file_path} does not exist.")
         return open(file_path, mode)
@@ -125,14 +128,14 @@ def save_tensor(path: str, tensors: Union[torch.Tensor, list],name:str,MySet:set
     zf.close()
     del zf
 
-def load_tensor(path: str,name:str,find_func,MySet:set=set()) -> list:
+def load_tensor(path: str,name:str,find_func,MySet:set=set()) -> list[torch.Tensor]:
     zf = ZIP_File(path, name, MySet=MySet)
     zf.release()
     voice_path = find_func(zf,il)
     tensors = []
     for i in range(len(voice_path)):
         v = voice_path[i]
-        np_array = np.load(v)
+        np_array = np.load(v,allow_pickle=True)
         tensor = torch.from_numpy(np_array)
         tensors.append(tensor)
     zf.close()
