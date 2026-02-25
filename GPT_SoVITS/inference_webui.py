@@ -8,6 +8,51 @@
 """
 import psutil
 import os
+import sys
+from pathlib import Path
+
+def get_my_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
+def get_parent_dir(dir_path,depth=1):
+    parent_path = Path(dir_path)
+    for _ in range(depth):
+        parent_path = parent_path.parent
+    return parent_path
+
+def merge_dir_txt2(*TXT):
+    return Path(os.path.join(*TXT))
+
+ROOT_DIR = str(get_parent_dir(get_my_dir()))
+sys.path.append(get_my_dir())
+import VoiceSave
+
+POOL:set = set() 
+def _get_unique_name(name,MySet:set=set()):
+    _id = 1
+    if name not in POOL and name not in MySet:
+        POOL.add(name)
+        return name
+    while name in POOL or name in MySet:
+        _id += 1
+        name = f'{name}_{_id}'
+    POOL.add(name)
+    return name
+
+def find_func(zf,il):
+    f = zf.get_file_path("voice.json")
+    info = il.load_info(f)
+    if info is None:
+        return None
+    list_names = info["access_list"]
+    ret = []
+    for name in list_names:
+        try:
+            a = zf.get_file_path(name)
+            ret.append(a)
+        except FileNotFoundError:
+            continue
+    return ret
 
 def set_high_priority():
     """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
@@ -765,6 +810,18 @@ def get_tts_wav(
     sample_steps=8,
     if_sr=False,
     pause_second=0.3,
+
+    SaveSvEmb=False,
+    SaveRefers=False,
+    SaveSvEmbName="sv_emb.voice",
+    SaveRefersName="refers.voice",
+
+    InjectSvEmb=False,
+    InjectRefers=False,
+    InjectSvEmbName="sv_emb.voice",
+    InjectRefersName="refers.voice",
+
+    EnableAudioLoad=True,
 ):
     global cache
     if ref_wav_path:
@@ -898,20 +955,92 @@ def get_tts_wav(
                 sv_emb = []
                 if sv_cn_model == None:
                     init_sv_cn()
-            if inp_refs:
-                for path in inp_refs:
-                    try:  #####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
-                        refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
-                        refers.append(refer)
+
+            try:
+                if EnableAudioLoad:
+                    if inp_refs:
+                        for path in inp_refs:
+                            try:  #####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
+                                refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
+                                refers.append(refer)
+                                if is_v2pro:
+                                    sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
+                                #print("refer:", refer.shape)
+                            except:
+                                traceback.print_exc()
+                    if len(refers) == 0:
+                        refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
+                        refers = [refers]
                         if is_v2pro:
-                            sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
-                    except:
-                        traceback.print_exc()
-            if len(refers) == 0:
-                refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
-                refers = [refers]
-                if is_v2pro:
-                    sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
+                            sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
+                else:
+                    refers = []
+                    sv_emb = []
+            except:
+                traceback.print_exc()
+
+            try:
+                if SaveSvEmb and is_v2pro:
+                    names = []
+                    for i in sv_emb:
+                        names.append(_get_unique_name(str(i.shape))+".npy")
+                    sv_path = merge_dir_txt2(ROOT_DIR,"output","sv_emb_opt")
+                    if not os.path.exists(sv_path):
+                        os.makedirs(sv_path,exist_ok=True)
+                    if not os.path.exists(SaveSvEmbName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","sv_emb_opt",SaveSvEmbName))
+                    else:
+                        _pth_ = SaveSvEmbName
+                    VoiceSave.save_tensor(_pth_,sv_emb,SaveSvEmbName,file_names=names,access_list=names)
+            except:
+                traceback.print_exc()
+
+            try:                
+                if SaveRefers:
+                    names = []
+                    for i in refers:
+                        names.append(_get_unique_name(str(i.shape))+".npy")
+                    refers_path = merge_dir_txt2(ROOT_DIR,"output","refers_opt")
+                    if not os.path.exists(refers_path):
+                        os.makedirs(refers_path,exist_ok=True)
+                    if not os.path.exists(SaveRefersName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","refers_opt",SaveRefersName))
+                    else:
+                        _pth_ = SaveRefersName
+                    VoiceSave.save_tensor(_pth_,refers,SaveRefersName,file_names=names,access_list=names)
+            except:
+                traceback.print_exc()
+            
+            #print("refers数量:", len(refers))
+            #print("sv_emb数量:", len(sv_emb) if is_v2pro else "无sv_emb")
+
+            try:
+                if InjectSvEmb and is_v2pro:
+                    if not os.path.exists(InjectSvEmbName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","sv_emb_opt",InjectSvEmbName))
+                    else:
+                        _pth_ = InjectSvEmbName
+                    _sv_emb = VoiceSave.load_tensor(_pth_,InjectSvEmbName,find_func)
+                    for i in range(len(_sv_emb)):
+                        sv_emb.append(_sv_emb[i].to(device))
+            except:
+                traceback.print_exc()
+
+            try:
+                if InjectRefers:
+                    if not os.path.exists(InjectRefersName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","refers_opt",InjectRefersName))
+                    else:
+                        _pth_ = InjectRefersName
+                    _refers = VoiceSave.load_tensor(_pth_,InjectRefersName,find_func)
+                    for i in range(len(_refers)):
+                        refers.append(_refers[i].to(device))
+            except:
+                traceback.print_exc()
+
+            #print("注入后refers数量:", len(refers))
+            #print("注入后sv_emb数量:", len(sv_emb) if is_v2pro else "无sv_emb")
+
             if is_v2pro:
                 audio = vq_model.decode(
                     pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed, sv_emb=sv_emb
