@@ -118,7 +118,7 @@ def main(args):
         benchmark=False,
         fast_dev_run=False,
         strategy=DDPStrategy(process_group_backend="nccl" if platform.system() != "Windows" else "gloo")
-        if torch.cuda.is_available()
+        if torch.cuda.is_available() and torch.cuda.device_count() > 1
         else "auto",
         precision=config["train"]["precision"],
         logger=logger,
