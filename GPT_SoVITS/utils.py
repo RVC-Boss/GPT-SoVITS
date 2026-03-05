@@ -64,12 +64,25 @@ import shutil
 from time import time as ttime
 
 
+import time
+
 def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
     dir = os.path.dirname(path)
     name = os.path.basename(path)
-    tmp_path = "%s.pth" % (ttime())
+    tmp_path = "%s.pth" % (time.time())
     torch.save(fea, tmp_path)
-    shutil.move(tmp_path, "%s/%s" % (dir, name))
+    target_path = "%s/%s" % (dir, name)
+    try:
+        shutil.move(tmp_path, target_path)
+    except Exception as e:
+        print(f"Move failed with error {e}, retrying via copy and delete...")
+        if os.path.exists(target_path):
+            try:
+                os.remove(target_path)
+            except:
+                pass
+        shutil.copyfile(tmp_path, target_path)
+        os.remove(tmp_path)
 
 
 def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path):

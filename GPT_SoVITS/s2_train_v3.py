@@ -77,12 +77,13 @@ def run(rank, n_gpus, hps):
         writer = SummaryWriter(log_dir=hps.s2_ckpt_dir)
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.s2_ckpt_dir, "eval"))
 
-    dist.init_process_group(
-        backend="gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
-        init_method="env://?use_libuv=False",
-        world_size=n_gpus,
-        rank=rank,
-    )
+    if not (os.name == "nt" and n_gpus == 1):
+        dist.init_process_group(
+            backend="gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
+            init_method="env://?use_libuv=False",
+            world_size=n_gpus,
+            rank=rank,
+        )
     torch.manual_seed(hps.train.seed)
     if torch.cuda.is_available():
         torch.cuda.set_device(rank)
@@ -166,8 +167,18 @@ def run(rank, n_gpus, hps):
     #     eps=hps.train.eps,
     # )
     if torch.cuda.is_available():
-        net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
-        # net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
+        if os.name == "nt" and n_gpus == 1:
+            class DummyDDP(torch.nn.Module):
+                def __init__(self, module):
+                    super().__init__()
+                    self.module = module
+                def forward(self, *args, **kwargs):
+                    return self.module(*args, **kwargs)
+            net_g = DummyDDP(net_g)
+            # net_d = DummyDDP(net_d)
+        else:
+            net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
+            # net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
     else:
         net_g = net_g.to(device)
         # net_d = net_d.to(device)
