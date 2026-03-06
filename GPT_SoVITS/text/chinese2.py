@@ -180,10 +180,15 @@ def _merge_erhua(initials: list[str], finals: list[str], word: str, pos: str) ->
 def _g2p(segments):
     phones_list = []
     word2ph = []
-    for seg in segments:
+    g2pw_batch_results = []
+    g2pw_batch_cursor = 0
+    processed_segments = [re.sub("[a-zA-Z]+", "", seg) for seg in segments]
+    if is_g2pw:
+        batch_inputs = [seg for seg in processed_segments if seg]
+        g2pw_batch_results = g2pw._g2pw(batch_inputs) if batch_inputs else []
+
+    for seg in processed_segments:
         pinyins = []
-        # Replace all English words in the sentence
-        seg = re.sub("[a-zA-Z]+", "", seg)
         seg_cut = psg.lcut(seg)
         seg_cut = tone_modifier.pre_merge_for_modify(seg_cut)
         initials = []
@@ -204,8 +209,10 @@ def _g2p(segments):
             finals = sum(finals, [])
             print("pypinyin结果", initials, finals)
         else:
-            # g2pw采用整句推理
-            pinyins = g2pw.lazy_pinyin(seg, neutral_tone_with_five=True, style=Style.TONE3)
+            # g2pw采用整句推理（批量推理，逐句取结果）
+            if seg:
+                pinyins = g2pw_batch_results[g2pw_batch_cursor]
+                g2pw_batch_cursor += 1
 
             pre_word_length = 0
             for word, pos in seg_cut:
