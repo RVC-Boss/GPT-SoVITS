@@ -187,6 +187,8 @@ class _G2PWBaseOnnxConverter:
             "y",
             "on",
         }
+        # 聚焦到多音字附近上下文，默认左右各16字；设为0表示关闭裁剪（整句）。
+        self.polyphonic_context_chars = max(0, int(os.getenv("g2pw_polyphonic_context_chars", "16")))
 
     def _convert_bopomofo_to_pinyin(self, bopomofo: str) -> str:
         tone = bopomofo[-1]
@@ -209,7 +211,7 @@ class _G2PWBaseOnnxConverter:
                 translated_sentences.append(translated_sent)
             sentences = translated_sentences
 
-        texts, query_ids, sent_ids, partial_results = self._prepare_data(sentences=sentences)
+        texts, model_query_ids, result_query_ids, sent_ids, partial_results = self._prepare_data(sentences=sentences)
         if len(texts) == 0:
             return partial_results
 
@@ -219,7 +221,7 @@ class _G2PWBaseOnnxConverter:
             char2phonemes=self.char2phonemes,
             chars=self.chars,
             texts=texts,
-            query_ids=query_ids,
+            query_ids=model_query_ids,
             use_mask=self.config.use_mask,
             window_size=None,
             char2id=self.char2id,
@@ -238,22 +240,23 @@ class _G2PWBaseOnnxConverter:
             preds = [pred.split(" ")[1] for pred in preds]
 
         results = partial_results
-        for sent_id, query_id, pred in zip(sent_ids, query_ids, preds):
+        for sent_id, query_id, pred in zip(sent_ids, result_query_ids, preds):
             results[sent_id][query_id] = self.style_convert_func(pred)
 
         return results
 
-    def _prepare_data(self, sentences: List[str]) -> Tuple[List[str], List[int], List[int], List[List[str]]]:
-        texts, query_ids, sent_ids, partial_results = [], [], [], []
+    def _prepare_data(
+        self, sentences: List[str]
+    ) -> Tuple[List[str], List[int], List[int], List[int], List[List[str]]]:
+        texts, model_query_ids, result_query_ids, sent_ids, partial_results = [], [], [], [], []
         for sent_id, sent in enumerate(sentences):
             sent_s = tranditional_to_simplified(sent)
             pypinyin_result = pinyin(sent_s, neutral_tone_with_five=True, style=Style.TONE3)
             partial_result = [None] * len(sent)
+            polyphonic_indices: List[int] = []
             for i, char in enumerate(sent):
                 if char in self.polyphonic_chars_new:
-                    texts.append(sent)
-                    query_ids.append(i)
-                    sent_ids.append(sent_id)
+                    polyphonic_indices.append(i)
                 elif char in self.monophonic_chars_dict:
                     partial_result[i] = self.style_convert_func(self.monophonic_chars_dict[char])
                 elif char in self.char_bopomofo_dict:
@@ -261,8 +264,24 @@ class _G2PWBaseOnnxConverter:
                 else:
                     partial_result[i] = pypinyin_result[i][0]
 
+            if polyphonic_indices:
+                if self.polyphonic_context_chars > 0:
+                    left = max(0, polyphonic_indices[0] - self.polyphonic_context_chars)
+                    right = min(len(sent), polyphonic_indices[-1] + self.polyphonic_context_chars + 1)
+                    sent_for_predict = sent[left:right]
+                    query_offset = left
+                else:
+                    sent_for_predict = sent
+                    query_offset = 0
+
+                for index in polyphonic_indices:
+                    texts.append(sent_for_predict)
+                    model_query_ids.append(index - query_offset)
+                    result_query_ids.append(index)
+                    sent_ids.append(sent_id)
+
             partial_results.append(partial_result)
-        return texts, query_ids, sent_ids, partial_results
+        return texts, model_query_ids, result_query_ids, sent_ids, partial_results
 
     def _predict(self, model_input: Dict[str, Any]) -> Tuple[List[str], List[float]]:
         raise NotImplementedError
