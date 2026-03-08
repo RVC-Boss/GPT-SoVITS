@@ -1227,6 +1227,9 @@ class TTS:
             ###### inference ######
             t_34 = 0.0
             t_45 = 0.0
+            t2s_observe_batch_count = 0
+            t2s_observe_fastpath_hits = 0
+            t2s_observe_generated_tokens = 0
             audio = []
             is_first_package = True
             output_sr = self.configs.sampling_rate if not self.configs.use_vocoder else self.vocoder_configs["sr"]
@@ -1280,6 +1283,29 @@ class TTS:
                     )
                     t4 = time.perf_counter()
                     t_34 += t4 - t3
+                    if hasattr(self.t2s_model.model, "get_last_infer_stats"):
+                        t2s_stats = self.t2s_model.model.get_last_infer_stats()
+                        if t2s_stats:
+                            generated_token_count = int(t2s_stats.get("generated_token_count", 0))
+                            t2s_total_ms = (t4 - t3) * 1000.0
+                            avg_decode_ms_per_token = (
+                                t2s_total_ms / generated_token_count if generated_token_count > 0 else 0.0
+                            )
+                            t2s_observe_batch_count += 1
+                            t2s_observe_generated_tokens += generated_token_count
+                            if bool(t2s_stats.get("fastpath_hit", False)):
+                                t2s_observe_fastpath_hits += 1
+                            print(
+                                "[t2s_observe] "
+                                f"mode={t2s_stats.get('infer_mode')} "
+                                f"batch_size={t2s_stats.get('batch_size')} "
+                                f"tokens={generated_token_count} "
+                                f"t2s_ms={t2s_total_ms:.3f} "
+                                f"avg_decode_ms_per_token={avg_decode_ms_per_token:.3f} "
+                                f"requested_fastpath={t2s_stats.get('requested_enable_mask_free_fastpath')} "
+                                f"prefill_all_visible={t2s_stats.get('prefill_after_mask_all_visible')} "
+                                f"fastpath_hit={t2s_stats.get('fastpath_hit')}"
+                            )
 
 
                     batch_audio_fragment = []
@@ -1500,6 +1526,18 @@ class TTS:
 
             if not (return_fragment or streaming_mode):
                 print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t_34, t_45))
+                if t2s_observe_batch_count > 0:
+                    request_avg_decode_ms_per_token = (
+                        (t_34 * 1000.0) / t2s_observe_generated_tokens if t2s_observe_generated_tokens > 0 else 0.0
+                    )
+                    print(
+                        "[t2s_request_observe] "
+                        f"batches={t2s_observe_batch_count} "
+                        f"fastpath_hits={t2s_observe_fastpath_hits} "
+                        f"generated_tokens={t2s_observe_generated_tokens} "
+                        f"t2s_total_ms={t_34 * 1000.0:.3f} "
+                        f"avg_decode_ms_per_token={request_avg_decode_ms_per_token:.3f}"
+                    )
                 if len(audio) == 0:
                     yield output_sr, np.zeros(int(output_sr), dtype=np.int16)
                     return

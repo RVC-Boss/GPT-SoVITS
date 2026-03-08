@@ -351,6 +351,13 @@ class Text2SemanticDecoder(nn.Module):
             blocks.append(block)
 
         self.t2s_transformer = T2STransformer(self.num_layers, blocks)
+        self.last_infer_stats = {}
+
+    def _set_last_infer_stats(self, stats):
+        self.last_infer_stats = stats
+
+    def get_last_infer_stats(self):
+        return dict(self.last_infer_stats)
 
     def make_input_data(self, x, x_lens, y, y_lens, bert_feature):
         x = self.ar_text_embedding(x)
@@ -593,7 +600,19 @@ class Text2SemanticDecoder(nn.Module):
         repetition_penalty: float = 1.35,
         **kwargs,
     ):
+        requested_enable_mask_free_fastpath = bool(kwargs.get("enable_mask_free_fastpath", True))
         if prompts is None:
+            self._set_last_infer_stats(
+                {
+                    "infer_mode": "batch_infer_prompt_free_fallback",
+                    "requested_enable_mask_free_fastpath": requested_enable_mask_free_fastpath,
+                    "batch_size": int(len(x)),
+                    "prefill_after_mask_all_visible": None,
+                    "fastpath_hit": False,
+                    "generated_token_count": 0,
+                    "generated_token_count_list": [],
+                }
+            )
             print("Warning: Prompt free is not supported batch_infer! switch to naive_infer")
             return self.infer_panel_naive_batched(
                 x,
@@ -608,6 +627,7 @@ class Text2SemanticDecoder(nn.Module):
             )
 
         max_len = kwargs.get("max_len", x_lens.max())
+        enable_mask_free_fastpath = requested_enable_mask_free_fastpath
         x_list = []
         for x_item, bert_item in zip(x, bert_feature):
             # max_len = max(max_len, x_item.shape[0], bert_item.shape[1])
@@ -698,17 +718,30 @@ class Text2SemanticDecoder(nn.Module):
         y_list = [None] * y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
         idx_list = [None] * y.shape[0]
+        decode_attn_mask = attn_mask
+        prefill_after_mask_all_visible = None
+        fastpath_hit = False
         for idx in tqdm(range(1500)):
             if idx == 0:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, attn_mask, None)
             else:
-                xy_dec, k_cache, v_cache = self.t2s_transformer.decode_next_token(xy_pos, k_cache, v_cache, attn_mask)
+                xy_dec, k_cache, v_cache = self.t2s_transformer.decode_next_token(
+                    xy_pos, k_cache, v_cache, decode_attn_mask
+                )
             logits = self.ar_predict_layer(xy_dec[:, -1])
 
             if idx == 0:
                 attn_mask = F.pad(attn_mask[:, :, -1].unsqueeze(-2), (0, 1), value=False)
+                prefill_after_mask_all_visible = not attn_mask.any().item()
+                if enable_mask_free_fastpath and y.shape[0] == 1 and prefill_after_mask_all_visible:
+                    decode_attn_mask = None
+                    fastpath_hit = True
+                else:
+                    decode_attn_mask = attn_mask
             else:
-                attn_mask = F.pad(attn_mask, (0, 1), value=False)
+                if decode_attn_mask is not None:
+                    attn_mask = F.pad(attn_mask, (0, 1), value=False)
+                    decode_attn_mask = attn_mask
 
             if idx < 11:  ###至少预测出10个token不然不给停止（0.4s）
                 logits = logits[:, :-1] 
@@ -740,7 +773,9 @@ class Text2SemanticDecoder(nn.Module):
             if reserved_idx_of_batch_for_y is not None:
                 # index = torch.LongTensor(batch_idx_map).to(y.device)
                 y = torch.index_select(y, dim=0, index=reserved_idx_of_batch_for_y)
-                attn_mask = torch.index_select(attn_mask, dim=0, index=reserved_idx_of_batch_for_y)
+                if decode_attn_mask is not None:
+                    attn_mask = torch.index_select(attn_mask, dim=0, index=reserved_idx_of_batch_for_y)
+                    decode_attn_mask = attn_mask
                 if k_cache is not None:
                     for i in range(len(k_cache)):
                         k_cache[i] = torch.index_select(k_cache[i], dim=0, index=reserved_idx_of_batch_for_y)
@@ -775,6 +810,18 @@ class Text2SemanticDecoder(nn.Module):
                 if idx_list[i] is None:
                     idx_list[i] = 1500 - 1  ###如果没有生成到EOS，就用最大长度代替
 
+        self._set_last_infer_stats(
+            {
+                "infer_mode": "batch_infer",
+                "requested_enable_mask_free_fastpath": enable_mask_free_fastpath,
+                "batch_size": int(len(x)),
+                "prefill_after_mask_all_visible": prefill_after_mask_all_visible,
+                "fastpath_hit": fastpath_hit,
+                "generated_token_count": int(sum(idx_list)),
+                "generated_token_count_list": [int(item) for item in idx_list],
+                "max_len": int(max_len),
+            }
+        )
         if ref_free:
             return y_list, [0] * x.shape[0]
         # print(idx_list)
@@ -811,6 +858,17 @@ class Text2SemanticDecoder(nn.Module):
             y_list.append(y[0])
             idx_list.append(idx)
 
+        self._set_last_infer_stats(
+            {
+                "infer_mode": "naive_batched",
+                "requested_enable_mask_free_fastpath": bool(kwargs.get("enable_mask_free_fastpath", True)),
+                "batch_size": int(len(x)),
+                "prefill_after_mask_all_visible": None,
+                "fastpath_hit": False,
+                "generated_token_count": int(sum(idx_list)),
+                "generated_token_count_list": [int(item) for item in idx_list],
+            }
+        )
         return y_list, idx_list
 
     def infer_panel_naive(
@@ -957,6 +1015,18 @@ class Text2SemanticDecoder(nn.Module):
 
 
         if not streaming_mode:
+            generated_token_count = max(int(y.shape[1] - prefix_len), 0)
+            self._set_last_infer_stats(
+                {
+                    "infer_mode": "naive",
+                    "requested_enable_mask_free_fastpath": bool(kwargs.get("enable_mask_free_fastpath", True)),
+                    "batch_size": int(x.shape[0]),
+                    "prefill_after_mask_all_visible": True if prompts is not None else None,
+                    "fastpath_hit": True if prompts is not None else False,
+                    "generated_token_count": generated_token_count,
+                    "generated_token_count_list": [generated_token_count],
+                }
+            )
             if ref_free:
                 yield y, 0
             yield y, idx
