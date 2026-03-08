@@ -1781,6 +1781,7 @@ class TTS:
 
         return audio
 
+    @torch.inference_mode()
     def synthesize_audio_request_local(
         self,
         semantic_tokens: torch.Tensor,

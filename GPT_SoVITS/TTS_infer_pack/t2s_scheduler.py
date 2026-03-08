@@ -70,7 +70,7 @@ class T2SRunningRequest:
     state: T2SRequestState
     y_sequence: torch.LongTensor
     prefix_len: int
-    decode_attn_mask: torch.Tensor
+    decode_attn_mask: Optional[torch.Tensor]
     k_cache: List[torch.Tensor]
     v_cache: List[torch.Tensor]
     step_idx: int
@@ -93,6 +93,7 @@ class T2SActiveBatch:
     y_sequences: List[torch.LongTensor]
     prefix_lens: torch.LongTensor
     xy_pos: torch.Tensor
+    key_padding_mask: torch.Tensor
     prefill_attn_mask: torch.Tensor
     decode_attn_mask: Optional[torch.Tensor]
     k_cache: Optional[List[torch.Tensor]]
@@ -110,6 +111,7 @@ def normalize_sentence(text: str, language: str) -> str:
     return text
 
 
+@torch.inference_mode()
 def prepare_request_state(
     tts: Any,
     spec: SchedulerRequestSpec,
@@ -212,6 +214,7 @@ def _ensure_audio_pe(model: Any, max_position: int, dtype: torch.dtype, device: 
     )
 
 
+@torch.inference_mode()
 def build_prefill_batch(model: Any, states: Sequence[T2SRequestState]) -> T2SActiveBatch:
     x_items: List[torch.Tensor] = []
     y_pos_items: List[torch.Tensor] = []
@@ -240,22 +243,19 @@ def build_prefill_batch(model: Any, states: Sequence[T2SRequestState]) -> T2SAct
     device = x_batch.device
     x_lens_tensor = torch.LongTensor(x_lens).to(device)
     prefix_lens_tensor = torch.LongTensor(prefix_lens).to(device)
-    batch_size = len(states)
     src_len = max_x_len + max_prefix_len
 
     x_padding_mask = make_pad_mask_left(x_lens_tensor, max_x_len)
     y_padding_mask = make_pad_mask_left(prefix_lens_tensor, max_prefix_len)
-    padding_mask = torch.cat([x_padding_mask, y_padding_mask], dim=1)
+    key_padding_mask = torch.cat([x_padding_mask, y_padding_mask], dim=1).bool()
     x_mask = F.pad(torch.zeros(max_x_len, max_x_len, dtype=torch.bool, device=device), (0, max_prefix_len), value=True)
     y_mask = F.pad(
         torch.triu(torch.ones(max_prefix_len, max_prefix_len, dtype=torch.bool, device=device), diagonal=1),
         (max_x_len, 0),
         value=False,
     )
-    causal_mask = torch.cat([x_mask, y_mask], dim=0).view(1, src_len, src_len).repeat(batch_size, 1, 1)
-    padding_mask = padding_mask.view(batch_size, 1, src_len).repeat(1, src_len, 1)
-    attn_mask = causal_mask.logical_or(padding_mask)
-    attn_mask = attn_mask.unsqueeze(1).expand(-1, model.num_head, -1, -1).bool()
+    causal_mask = torch.cat([x_mask, y_mask], dim=0).unsqueeze(0)
+    attn_mask = causal_mask.logical_or(key_padding_mask.unsqueeze(1)).unsqueeze(1)
 
     return T2SActiveBatch(
         request_ids=[state.request_id for state in states],
@@ -265,6 +265,7 @@ def build_prefill_batch(model: Any, states: Sequence[T2SRequestState]) -> T2SAct
         y_sequences=y_sequences,
         prefix_lens=prefix_lens_tensor,
         xy_pos=xy_pos,
+        key_padding_mask=key_padding_mask,
         prefill_attn_mask=attn_mask,
         decode_attn_mask=None,
         k_cache=None,
@@ -322,10 +323,11 @@ def _sample_per_request(
             finish_reason = "eos_argmax"
 
         if finish_reason is not None:
+            prefix_len = int(active_batch.prefix_lens[batch_index].item())
             finished_items.append(
                 T2SFinishedItem(
                     request_id=state.request_id,
-                    semantic_tokens=new_history[:-1].clone(),
+                    semantic_tokens=new_history[prefix_len:-1].clone(),
                     finish_idx=step_idx,
                     finish_reason=finish_reason,
                 )
@@ -346,11 +348,7 @@ def decode_one_step(
         xy_dec, active_batch.k_cache, active_batch.v_cache = model.t2s_transformer.process_prompt(
             active_batch.xy_pos, active_batch.prefill_attn_mask, None
         )
-        active_batch.decode_attn_mask = F.pad(
-            active_batch.prefill_attn_mask[:, :, -1].unsqueeze(-2),
-            (0, 1),
-            value=False,
-        )
+        active_batch.decode_attn_mask = F.pad(active_batch.key_padding_mask.unsqueeze(1).unsqueeze(1), (0, 1), value=False)
         active_batch.prefill_done = True
     else:
         xy_dec, active_batch.k_cache, active_batch.v_cache = model.t2s_transformer.decode_next_token(
@@ -411,6 +409,18 @@ def _pad_decode_mask_left(mask: torch.Tensor, target_len: int) -> torch.Tensor:
     return F.pad(mask, (pad_len, 0), value=True)
 
 
+def _materialize_decode_mask_for_request(running_request: T2SRunningRequest) -> torch.Tensor:
+    if running_request.decode_attn_mask is not None:
+        return running_request.decode_attn_mask
+    current_mask_len = running_request.k_cache[0].shape[1] + 1
+    return torch.zeros(
+        (1, 1, 1, current_mask_len),
+        dtype=torch.bool,
+        device=running_request.k_cache[0].device,
+    )
+
+
+@torch.inference_mode()
 def run_prefill_step(
     model: Any,
     states: Sequence[T2SRequestState],
@@ -421,11 +431,9 @@ def run_prefill_step(
 
     active_batch = build_prefill_batch(model, states)
     xy_dec, k_cache, v_cache = model.t2s_transformer.process_prompt(active_batch.xy_pos, active_batch.prefill_attn_mask, None)
-    decode_attn_mask = F.pad(
-        active_batch.prefill_attn_mask[:, :, -1].unsqueeze(-2),
-        (0, 1),
-        value=False,
-    )
+    decode_attn_mask = F.pad(active_batch.key_padding_mask.unsqueeze(1).unsqueeze(1), (0, 1), value=False)
+    if len(states) == 1 and not decode_attn_mask.any().item():
+        decode_attn_mask = None
     logits = model.ar_predict_layer(xy_dec[:, -1])
 
     running_requests: List[T2SRunningRequest] = []
@@ -463,7 +471,7 @@ def run_prefill_step(
             finished_items.append(
                 T2SFinishedItem(
                     request_id=state.request_id,
-                    semantic_tokens=new_history[:-1].clone(),
+                    semantic_tokens=new_history[prefix_len:-1].clone(),
                     finish_idx=0,
                     finish_reason=finish_reason,
                 )
@@ -479,7 +487,11 @@ def run_prefill_step(
                 state=state,
                 y_sequence=new_history,
                 prefix_len=prefix_len,
-                decode_attn_mask=decode_attn_mask[batch_index : batch_index + 1].clone(),
+                decode_attn_mask=(
+                    None
+                    if decode_attn_mask is None
+                    else decode_attn_mask[batch_index : batch_index + 1].clone()
+                ),
                 k_cache=request_k_cache,
                 v_cache=request_v_cache,
                 step_idx=1,
@@ -492,10 +504,9 @@ def run_prefill_step(
 def _build_decode_batch_from_running(
     model: Any,
     running_requests: Sequence[T2SRunningRequest],
-) -> Tuple[torch.Tensor, List[torch.Tensor], List[torch.Tensor], torch.Tensor]:
+) -> Tuple[torch.Tensor, List[torch.Tensor], List[torch.Tensor], Optional[torch.Tensor]]:
     xy_pos = build_next_xy_pos(model, [item.y_sequence for item in running_requests])
     max_kv_len = max(item.k_cache[0].shape[1] for item in running_requests)
-    max_mask_len = max(item.decode_attn_mask.shape[-1] for item in running_requests)
     num_layers = len(running_requests[0].k_cache)
 
     batched_k_cache: List[torch.Tensor] = []
@@ -508,13 +519,19 @@ def _build_decode_batch_from_running(
             torch.cat([_pad_cache_left(item.v_cache[layer_index], max_kv_len) for item in running_requests], dim=0)
         )
 
-    batched_decode_attn_mask = torch.cat(
-        [_pad_decode_mask_left(item.decode_attn_mask, max_mask_len) for item in running_requests],
-        dim=0,
-    )
+    if all(item.decode_attn_mask is None for item in running_requests):
+        batched_decode_attn_mask = None
+    else:
+        materialized_masks = [_materialize_decode_mask_for_request(item) for item in running_requests]
+        max_mask_len = max(mask.shape[-1] for mask in materialized_masks)
+        batched_decode_attn_mask = torch.cat(
+            [_pad_decode_mask_left(mask, max_mask_len) for mask in materialized_masks],
+            dim=0,
+        )
     return xy_pos, batched_k_cache, batched_v_cache, batched_decode_attn_mask
 
 
+@torch.inference_mode()
 def run_decode_step_for_running(
     model: Any,
     running_requests: Sequence[T2SRunningRequest],
@@ -568,7 +585,7 @@ def run_decode_step_for_running(
             finished_items.append(
                 T2SFinishedItem(
                     request_id=running_request.state.request_id,
-                    semantic_tokens=new_history[:-1].clone(),
+                    semantic_tokens=new_history[running_request.prefix_len:-1].clone(),
                     finish_idx=current_idx,
                     finish_reason=finish_reason,
                 )
@@ -578,12 +595,20 @@ def run_decode_step_for_running(
         real_next_kv_len = running_request.k_cache[0].shape[1] + 1
         request_k_cache = [layer[batch_index : batch_index + 1, -real_next_kv_len:, :].clone() for layer in next_k_cache]
         request_v_cache = [layer[batch_index : batch_index + 1, -real_next_kv_len:, :].clone() for layer in next_v_cache]
+        if batched_decode_attn_mask is None:
+            next_decode_attn_mask = None
+        else:
+            current_decode_mask_len = running_request.k_cache[0].shape[1] + 1
+            current_decode_attn_mask = batched_decode_attn_mask[
+                batch_index : batch_index + 1, :, :, -current_decode_mask_len:
+            ]
+            next_decode_attn_mask = F.pad(current_decode_attn_mask, (0, 1), value=False)
         next_running.append(
             T2SRunningRequest(
                 state=running_request.state,
                 y_sequence=new_history,
                 prefix_len=running_request.prefix_len,
-                decode_attn_mask=F.pad(running_request.decode_attn_mask, (0, 1), value=False),
+                decode_attn_mask=next_decode_attn_mask,
                 k_cache=request_k_cache,
                 v_cache=request_v_cache,
                 step_idx=current_idx + 1,
@@ -593,6 +618,7 @@ def run_decode_step_for_running(
     return next_running, finished_items
 
 
+@torch.inference_mode()
 def run_scheduler_continuous(
     model: Any,
     states: Sequence[T2SRequestState],
