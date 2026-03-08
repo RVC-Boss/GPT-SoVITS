@@ -759,21 +759,35 @@ class TTS:
         self._set_ref_spec(ref_audio_path)
         self._set_ref_audio_path(ref_audio_path)
 
-    def _set_ref_audio_path(self, ref_audio_path):
-        self.prompt_cache["ref_audio_path"] = ref_audio_path
+    def extract_prompt_semantic(self, ref_wav_path: str):
+        zero_wav = np.zeros(
+            int(self.configs.sampling_rate * 0.3),
+            dtype=np.float16 if self.configs.is_half else np.float32,
+        )
+        with torch.no_grad():
+            wav16k, sr = librosa.load(ref_wav_path, sr=16000)
+            if wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000:
+                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
+            wav16k = torch.from_numpy(wav16k)
+            zero_wav_torch = torch.from_numpy(zero_wav)
+            wav16k = wav16k.to(self.configs.device)
+            zero_wav_torch = zero_wav_torch.to(self.configs.device)
+            if self.configs.is_half:
+                wav16k = wav16k.half()
+                zero_wav_torch = zero_wav_torch.half()
 
-    def _set_ref_spec(self, ref_audio_path):
-        spec_audio = self._get_ref_spec(ref_audio_path)
-        if self.prompt_cache["refer_spec"] in [[], None]:
-            self.prompt_cache["refer_spec"] = [spec_audio]
-        else:
-            self.prompt_cache["refer_spec"][0] = spec_audio
+            wav16k = torch.cat([wav16k, zero_wav_torch])
+            hubert_feature = self.cnhuhbert_model.model(wav16k.unsqueeze(0))["last_hidden_state"].transpose(
+                1, 2
+            )  # .float()
+            codes = self.vits_model.extract_latent(hubert_feature)
 
-    def _get_ref_spec(self, ref_audio_path):
+            prompt_semantic = codes[0, 0].to(self.configs.device)
+        return prompt_semantic
+
+    def extract_ref_spec(self, ref_audio_path: str):
         raw_audio, raw_sr = torchaudio.load(ref_audio_path)
         raw_audio = raw_audio.to(self.configs.device).float()
-        self.prompt_cache["raw_audio"] = raw_audio
-        self.prompt_cache["raw_sr"] = raw_sr
 
         if raw_sr != self.configs.sampling_rate:
             audio = raw_audio.to(self.configs.device)
@@ -804,33 +818,30 @@ class TTS:
                 audio = audio.half()
         else:
             audio = None
+        return spec, audio, raw_audio, raw_sr
+
+    def extract_text_features(self, text: str, language: str):
+        return self.text_preprocessor.segment_and_extract_feature_for_text(text, language, self.configs.version)
+
+    def _set_ref_audio_path(self, ref_audio_path):
+        self.prompt_cache["ref_audio_path"] = ref_audio_path
+
+    def _set_ref_spec(self, ref_audio_path):
+        spec_audio = self._get_ref_spec(ref_audio_path)
+        if self.prompt_cache["refer_spec"] in [[], None]:
+            self.prompt_cache["refer_spec"] = [spec_audio]
+        else:
+            self.prompt_cache["refer_spec"][0] = spec_audio
+
+    def _get_ref_spec(self, ref_audio_path):
+        spec, audio, raw_audio, raw_sr = self.extract_ref_spec(ref_audio_path)
+        self.prompt_cache["raw_audio"] = raw_audio
+        self.prompt_cache["raw_sr"] = raw_sr
         return spec, audio
 
     def _set_prompt_semantic(self, ref_wav_path: str):
-        zero_wav = np.zeros(
-            int(self.configs.sampling_rate * 0.3),
-            dtype=np.float16 if self.configs.is_half else np.float32,
-        )
-        with torch.no_grad():
-            wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-            if wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000:
-                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
-            wav16k = torch.from_numpy(wav16k)
-            zero_wav_torch = torch.from_numpy(zero_wav)
-            wav16k = wav16k.to(self.configs.device)
-            zero_wav_torch = zero_wav_torch.to(self.configs.device)
-            if self.configs.is_half:
-                wav16k = wav16k.half()
-                zero_wav_torch = zero_wav_torch.half()
-
-            wav16k = torch.cat([wav16k, zero_wav_torch])
-            hubert_feature = self.cnhuhbert_model.model(wav16k.unsqueeze(0))["last_hidden_state"].transpose(
-                1, 2
-            )  # .float()
-            codes = self.vits_model.extract_latent(hubert_feature)
-
-            prompt_semantic = codes[0, 0].to(self.configs.device)
-            self.prompt_cache["prompt_semantic"] = prompt_semantic
+        prompt_semantic = self.extract_prompt_semantic(ref_wav_path)
+        self.prompt_cache["prompt_semantic"] = prompt_semantic
 
     def batch_sequences(self, sequences: List[torch.Tensor], axis: int = 0, pad_value: int = 0, max_length: int = None):
         seq = sequences[0]
@@ -1700,6 +1711,115 @@ class TTS:
             audio = wav_gen[0][0]  # .cpu().detach().numpy()
 
         return audio
+
+    def using_vocoder_synthesis_request_local(
+        self,
+        semantic_tokens: torch.Tensor,
+        phones: torch.Tensor,
+        prompt_semantic: torch.Tensor,
+        prompt_phones: torch.Tensor,
+        refer_audio_spec: torch.Tensor,
+        raw_audio: torch.Tensor,
+        raw_sr: int,
+        speed: float = 1.0,
+        sample_steps: int = 32,
+    ):
+        prompt_semantic_tokens = prompt_semantic.unsqueeze(0).unsqueeze(0).to(self.configs.device)
+        prompt_phones = prompt_phones.unsqueeze(0).to(self.configs.device)
+        refer_audio_spec = refer_audio_spec.to(dtype=self.precision, device=self.configs.device)
+
+        fea_ref, ge = self.vits_model.decode_encp(prompt_semantic_tokens, prompt_phones, refer_audio_spec)
+        ref_audio = raw_audio.to(self.configs.device).float()
+        if ref_audio.shape[0] == 2:
+            ref_audio = ref_audio.mean(0).unsqueeze(0)
+
+        tgt_sr = 24000 if self.configs.version == "v3" else 32000
+        if raw_sr != tgt_sr:
+            ref_audio = resample(ref_audio, raw_sr, tgt_sr, self.configs.device)
+
+        mel_spec_fn = mel_fn if self.configs.version == "v3" else mel_fn_v4
+        mel2 = mel_spec_fn(ref_audio)
+        mel2 = norm_spec(mel2)
+        T_min = min(mel2.shape[2], fea_ref.shape[2])
+        mel2 = mel2[:, :, :T_min]
+        fea_ref = fea_ref[:, :, :T_min]
+        T_ref = self.vocoder_configs["T_ref"]
+        T_chunk = self.vocoder_configs["T_chunk"]
+        if T_min > T_ref:
+            mel2 = mel2[:, :, -T_ref:]
+            fea_ref = fea_ref[:, :, -T_ref:]
+            T_min = T_ref
+        chunk_len = T_chunk - T_min
+
+        mel2 = mel2.to(self.precision)
+        fea_todo, ge = self.vits_model.decode_encp(semantic_tokens, phones, refer_audio_spec, ge, speed)
+
+        cfm_resss = []
+        idx = 0
+        while 1:
+            fea_todo_chunk = fea_todo[:, :, idx : idx + chunk_len]
+            if fea_todo_chunk.shape[-1] == 0:
+                break
+            idx += chunk_len
+            fea = torch.cat([fea_ref, fea_todo_chunk], 2).transpose(2, 1)
+
+            cfm_res = self.vits_model.cfm.inference(
+                fea, torch.LongTensor([fea.size(1)]).to(fea.device), mel2, sample_steps, inference_cfg_rate=0
+            )
+            cfm_res = cfm_res[:, :, mel2.shape[2] :]
+
+            mel2 = cfm_res[:, :, -T_min:]
+            fea_ref = fea_todo_chunk[:, :, -T_min:]
+
+            cfm_resss.append(cfm_res)
+        cfm_res = torch.cat(cfm_resss, 2)
+        cfm_res = denorm_spec(cfm_res)
+
+        with torch.inference_mode():
+            wav_gen = self.vocoder(cfm_res)
+            audio = wav_gen[0][0]
+
+        return audio
+
+    def synthesize_audio_request_local(
+        self,
+        semantic_tokens: torch.Tensor,
+        phones: torch.Tensor,
+        prompt_semantic: torch.Tensor,
+        prompt_phones: torch.Tensor,
+        refer_spec: tuple,
+        raw_audio: torch.Tensor,
+        raw_sr: int,
+        speed: float = 1.0,
+        sample_steps: int = 32,
+    ):
+        refer_audio_spec, audio_tensor = refer_spec
+        if not self.configs.use_vocoder:
+            refer_audio_spec_list = [refer_audio_spec.to(dtype=self.precision, device=self.configs.device)]
+            sv_emb = None
+            if self.is_v2pro:
+                if audio_tensor is None:
+                    raise ValueError(i18n("v2Pro request-local synthesis 缺少 16k 参考音频"))
+                sv_emb = self.sv_model.compute_embedding3(audio_tensor).to(self.configs.device)
+            return self.vits_model.decode(
+                semantic_tokens,
+                phones,
+                refer_audio_spec_list,
+                speed=speed,
+                sv_emb=sv_emb,
+            ).detach()[0, 0, :]
+
+        return self.using_vocoder_synthesis_request_local(
+            semantic_tokens=semantic_tokens,
+            phones=phones,
+            prompt_semantic=prompt_semantic,
+            prompt_phones=prompt_phones,
+            refer_audio_spec=refer_audio_spec,
+            raw_audio=raw_audio,
+            raw_sr=raw_sr,
+            speed=speed,
+            sample_steps=sample_steps,
+        )
 
     def using_vocoder_synthesis_batched_infer(
         self,
