@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import Future
 from dataclasses import dataclass
 from pathlib import Path
 import time
@@ -123,31 +124,58 @@ def prepare_request_state(
     prompt_text = normalize_sentence(spec.prompt_text, spec.prompt_lang)
     text = spec.text.strip("\n")
 
-    _sync_device(device)
-    prompt_text_features_start = time.perf_counter()
-    prompt_phones, prompt_bert_features, prompt_norm_text = tts.extract_text_features(prompt_text, spec.prompt_lang)
-    _sync_device(device)
-    prompt_text_features_ms = (time.perf_counter() - prompt_text_features_start) * 1000.0
+    prompt_text_profile: Dict[str, float] = {}
+    text_features_profile: Dict[str, float] = {}
+    text_feature_pair_start = time.perf_counter()
+    prompt_future: Future | None = None
+
+    def _extract_prompt_features():
+        _sync_device(device)
+        prompt_start = time.perf_counter()
+        result = tts.extract_text_features(prompt_text, spec.prompt_lang, profile=prompt_text_profile)
+        _sync_device(device)
+        return result, (time.perf_counter() - prompt_start) * 1000.0
+
+    if getattr(tts, "prepare_text_cpu_executor", None) is not None:
+        prompt_future = tts.prepare_text_cpu_executor.submit(_extract_prompt_features)
 
     _sync_device(device)
     text_features_start = time.perf_counter()
-    phones, bert_features, norm_text = tts.extract_text_features(text, spec.text_lang)
+    phones, bert_features, norm_text = tts.extract_text_features(text, spec.text_lang, profile=text_features_profile)
     _sync_device(device)
     text_features_ms = (time.perf_counter() - text_features_start) * 1000.0
+
+    if prompt_future is None:
+        _sync_device(device)
+        prompt_text_features_start = time.perf_counter()
+        prompt_phones, prompt_bert_features, prompt_norm_text = tts.extract_text_features(
+            prompt_text, spec.prompt_lang, profile=prompt_text_profile
+        )
+        _sync_device(device)
+        prompt_text_features_ms = (time.perf_counter() - prompt_text_features_start) * 1000.0
+        prompt_text_profile["parallel_future_wait_ms"] = 0.0
+    else:
+        prompt_wait_start = time.perf_counter()
+        (prompt_phones, prompt_bert_features, prompt_norm_text), prompt_text_features_ms = prompt_future.result()
+        prompt_text_profile["parallel_future_wait_ms"] = (time.perf_counter() - prompt_wait_start) * 1000.0
+
+    text_feature_pair_ms = (time.perf_counter() - text_feature_pair_start) * 1000.0
     if phones is None:
         raise ValueError(f"{spec.request_id} text preprocessing returned no phones")
 
     _sync_device(device)
-    prompt_semantic_start = time.perf_counter()
-    prompt_semantic = tts.extract_prompt_semantic(str(spec.ref_audio_path)).long()
+    ref_audio_bundle_start = time.perf_counter()
+    ref_audio_bundle = tts.extract_ref_audio_bundle(str(spec.ref_audio_path))
+    prompt_semantic = ref_audio_bundle["prompt_semantic"].long()
+    spec_audio, audio_16k = ref_audio_bundle["refer_spec"]
+    raw_audio = ref_audio_bundle["raw_audio"]
+    raw_sr = int(ref_audio_bundle["raw_sr"])
     _sync_device(device)
-    prompt_semantic_ms = (time.perf_counter() - prompt_semantic_start) * 1000.0
-
-    _sync_device(device)
-    ref_spec_start = time.perf_counter()
-    spec_audio, audio_16k, raw_audio, raw_sr = tts.extract_ref_spec(str(spec.ref_audio_path))
-    _sync_device(device)
-    ref_spec_ms = (time.perf_counter() - ref_spec_start) * 1000.0
+    ref_audio_bundle_ms = (time.perf_counter() - ref_audio_bundle_start) * 1000.0
+    bundle_profile = ref_audio_bundle.get("profile", {})
+    prompt_semantic_ms = float(bundle_profile.get("prompt_semantic_ms", ref_audio_bundle_ms))
+    ref_spec_ms = float(bundle_profile.get("ref_spec_ms", 0.0))
+    audio_load_ms = float(bundle_profile.get("audio_load_ms", 0.0))
 
     _sync_device(device)
     tensorize_start = time.perf_counter()
@@ -164,8 +192,43 @@ def prepare_request_state(
     prepare_profile = {
         "prompt_text_features_ms": prompt_text_features_ms,
         "text_features_ms": text_features_ms,
+        "prompt_text_bert_wait_ms": float(prompt_text_profile.get("bert_wait_ms", 0.0)),
+        "prompt_text_bert_forward_ms": float(prompt_text_profile.get("bert_forward_ms", 0.0)),
+        "prompt_text_bert_tokenize_ms": float(prompt_text_profile.get("bert_tokenize_ms", 0.0)),
+        "prompt_text_bert_scatter_ms": float(prompt_text_profile.get("bert_scatter_ms", 0.0)),
+        "prompt_text_bert_calls": float(prompt_text_profile.get("bert_calls", 0.0)),
+        "prompt_text_bert_stage_slots": float(prompt_text_profile.get("bert_stage_slots", 0.0)),
+        "prompt_text_bert_stage_inflight_peak": float(prompt_text_profile.get("bert_stage_inflight_peak", 0.0)),
+        "prompt_text_bert_batch_size_peak": float(prompt_text_profile.get("bert_batch_size_peak", 0.0)),
+        "prompt_text_bert_batch_tokens_peak": float(prompt_text_profile.get("bert_batch_tokens_peak", 0.0)),
+        "prompt_text_parallel_future_wait_ms": float(prompt_text_profile.get("parallel_future_wait_ms", 0.0)),
+        "text_bert_wait_ms": float(text_features_profile.get("bert_wait_ms", 0.0)),
+        "text_bert_forward_ms": float(text_features_profile.get("bert_forward_ms", 0.0)),
+        "text_bert_tokenize_ms": float(text_features_profile.get("bert_tokenize_ms", 0.0)),
+        "text_bert_scatter_ms": float(text_features_profile.get("bert_scatter_ms", 0.0)),
+        "text_bert_calls": float(text_features_profile.get("bert_calls", 0.0)),
+        "text_bert_stage_slots": float(text_features_profile.get("bert_stage_slots", 0.0)),
+        "text_bert_stage_inflight_peak": float(text_features_profile.get("bert_stage_inflight_peak", 0.0)),
+        "text_bert_batch_size_peak": float(text_features_profile.get("bert_batch_size_peak", 0.0)),
+        "text_bert_batch_tokens_peak": float(text_features_profile.get("bert_batch_tokens_peak", 0.0)),
+        "text_feature_pair_ms": text_feature_pair_ms,
+        "text_cpu_parallel_workers": float(getattr(tts, "prepare_text_cpu_workers", 0)),
+        "audio_load_ms": audio_load_ms,
+        "audio_stage_wait_ms": float(bundle_profile.get("audio_stage_wait_ms", 0.0)),
+        "audio_stage_slots": float(bundle_profile.get("audio_stage_slots", 0.0)),
+        "audio_stage_inflight_peak": float(bundle_profile.get("audio_stage_inflight_peak", 0.0)),
         "prompt_semantic_ms": prompt_semantic_ms,
+        "prompt_semantic_wait_ms": float(bundle_profile.get("prompt_semantic_wait_ms", 0.0)),
+        "prompt_semantic_cpu_prepare_ms": float(bundle_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)),
+        "prompt_semantic_forward_ms": float(bundle_profile.get("prompt_semantic_forward_ms", 0.0)),
+        "prompt_semantic_scatter_ms": float(bundle_profile.get("prompt_semantic_scatter_ms", 0.0)),
+        "prompt_semantic_stage_slots": float(bundle_profile.get("prompt_semantic_stage_slots", 0.0)),
+        "prompt_semantic_stage_inflight_peak": float(bundle_profile.get("prompt_semantic_stage_inflight_peak", 0.0)),
+        "prompt_semantic_batch_size": float(bundle_profile.get("prompt_semantic_batch_size", 0.0)),
+        "prompt_semantic_batch_samples": float(bundle_profile.get("prompt_semantic_batch_samples", 0.0)),
+        "ref_spec_wait_ms": float(bundle_profile.get("ref_spec_wait_ms", 0.0)),
         "ref_spec_ms": ref_spec_ms,
+        "ref_audio_bundle_ms": ref_audio_bundle_ms,
         "tensorize_ms": tensorize_ms,
         "total_ms": (time.perf_counter() - prepare_sync_start) * 1000.0,
         "wall_total_ms": (time.perf_counter() - prepare_start) * 1000.0,
@@ -186,7 +249,7 @@ def prepare_request_state(
         prompt_semantic=prompt_semantic,
         refer_spec=(spec_audio, audio_16k),
         raw_audio=raw_audio,
-        raw_sr=int(raw_sr),
+        raw_sr=raw_sr,
         top_k=spec.top_k,
         top_p=spec.top_p,
         temperature=spec.temperature,
@@ -409,9 +472,18 @@ def _pad_decode_mask_left(mask: torch.Tensor, target_len: int) -> torch.Tensor:
     return F.pad(mask, (pad_len, 0), value=True)
 
 
+def _fit_decode_mask_length(mask: torch.Tensor, target_len: int) -> torch.Tensor:
+    if mask.shape[-1] > target_len:
+        return mask[:, :, :, -target_len:]
+    if mask.shape[-1] < target_len:
+        return _pad_decode_mask_left(mask, target_len)
+    return mask
+
+
 def _materialize_decode_mask_for_request(running_request: T2SRunningRequest) -> torch.Tensor:
+    expected_mask_len = running_request.k_cache[0].shape[1] + 1
     if running_request.decode_attn_mask is not None:
-        return running_request.decode_attn_mask
+        return _fit_decode_mask_length(running_request.decode_attn_mask, expected_mask_len)
     current_mask_len = running_request.k_cache[0].shape[1] + 1
     return torch.zeros(
         (1, 1, 1, current_mask_len),
@@ -481,17 +553,19 @@ def run_prefill_step(
         real_kv_len = int(active_batch.x_lens[batch_index].item()) + prefix_len
         request_k_cache = [layer[batch_index : batch_index + 1, -real_kv_len:, :].clone() for layer in k_cache]
         request_v_cache = [layer[batch_index : batch_index + 1, -real_kv_len:, :].clone() for layer in v_cache]
+        request_decode_attn_mask = None
+        if decode_attn_mask is not None:
+            request_decode_attn_mask = decode_attn_mask[batch_index : batch_index + 1].clone()
+            request_decode_attn_mask = _fit_decode_mask_length(request_decode_attn_mask, real_kv_len + 1)
+            if not request_decode_attn_mask.any().item():
+                request_decode_attn_mask = None
 
         running_requests.append(
             T2SRunningRequest(
                 state=state,
                 y_sequence=new_history,
                 prefix_len=prefix_len,
-                decode_attn_mask=(
-                    None
-                    if decode_attn_mask is None
-                    else decode_attn_mask[batch_index : batch_index + 1].clone()
-                ),
+                decode_attn_mask=request_decode_attn_mask,
                 k_cache=request_k_cache,
                 v_cache=request_v_cache,
                 step_idx=1,
@@ -603,6 +677,9 @@ def run_decode_step_for_running(
                 batch_index : batch_index + 1, :, :, -current_decode_mask_len:
             ]
             next_decode_attn_mask = F.pad(current_decode_attn_mask, (0, 1), value=False)
+            next_decode_attn_mask = _fit_decode_mask_length(next_decode_attn_mask, real_next_kv_len + 1)
+            if not next_decode_attn_mask.any().item():
+                next_decode_attn_mask = None
         next_running.append(
             T2SRunningRequest(
                 state=running_request.state,

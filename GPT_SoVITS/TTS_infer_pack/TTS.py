@@ -5,6 +5,7 @@ import random
 import sys
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 
 import torchaudio
@@ -33,7 +34,12 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 from tools.audio_sr import AP_BWE
 from tools.i18n.i18n import I18nAuto, scan_language_list
 from TTS_infer_pack.text_segmentation_method import splits
-from TTS_infer_pack.TextPreprocessor import TextPreprocessor
+from TTS_infer_pack.TextPreprocessor import TextPreprocessor, StageLimiter
+from TTS_infer_pack.prepare_bert_batch_worker import PrepareBertBatchWorker
+from TTS_infer_pack.prepare_ref_semantic_batch_worker import (
+    PrepareRefSemanticBatchWorker,
+    prepare_prompt_semantic_wav16k,
+)
 from sv import SV
 
 resample_transform_dict = {}
@@ -442,11 +448,56 @@ class TTS:
             "upsample_rate": None,
             "overlapped_len": None,
         }
+        self.prepare_bert_stage_limiter = StageLimiter(int(os.environ.get("GPTSOVITS_PREPARE_BERT_SLOTS", "1")))
+        self.prepare_ref_audio_stage_limiter = StageLimiter(int(os.environ.get("GPTSOVITS_PREPARE_REF_SLOTS", "2")))
+        self.prepare_bert_batch_worker = None
+        self.prepare_ref_semantic_batch_worker = None
+        default_text_cpu_workers = 16
+        self.prepare_text_cpu_workers = max(
+            0,
+            int(os.environ.get("GPTSOVITS_PREPARE_TEXT_CPU_WORKERS", str(default_text_cpu_workers))),
+        )
+        self.prepare_text_cpu_executor = None
+        if self.prepare_text_cpu_workers > 0:
+            self.prepare_text_cpu_executor = ThreadPoolExecutor(
+                max_workers=self.prepare_text_cpu_workers,
+                thread_name_prefix="prepare-text-cpu",
+            )
 
         self._init_models()
 
+        if os.environ.get("GPTSOVITS_PREPARE_BERT_BATCHING", "1") != "0":
+            self.prepare_bert_batch_worker = PrepareBertBatchWorker(
+                bert_model=self.bert_model,
+                tokenizer=self.bert_tokenizer,
+                device=self.configs.device,
+                stage_limiter=self.prepare_bert_stage_limiter,
+                batch_window_ms=int(os.environ.get("GPTSOVITS_PREPARE_BERT_BATCH_WINDOW_MS", "5")),
+                max_batch_items=int(os.environ.get("GPTSOVITS_PREPARE_BERT_BATCH_MAX_ITEMS", "16")),
+                max_batch_tokens=int(os.environ.get("GPTSOVITS_PREPARE_BERT_BATCH_MAX_TOKENS", "4096")),
+            )
+        if os.environ.get("GPTSOVITS_PREPARE_REF_BATCHING", "0") != "0":
+            ref_max_batch_samples = os.environ.get("GPTSOVITS_PREPARE_REF_BATCH_MAX_SAMPLES")
+            if ref_max_batch_samples is None:
+                ref_max_batch_samples = os.environ.get("GPTSOVITS_PREPARE_REF_BATCH_MAX_FRAMES", "960000")
+            self.prepare_ref_semantic_batch_worker = PrepareRefSemanticBatchWorker(
+                ssl_model=self.cnhuhbert_model,
+                vits_model=self.vits_model,
+                device=self.configs.device,
+                is_half=self.configs.is_half,
+                zero_wav_samples=int(self.configs.sampling_rate * 0.3),
+                stage_limiter=self.prepare_ref_audio_stage_limiter,
+                batch_window_ms=int(os.environ.get("GPTSOVITS_PREPARE_REF_BATCH_WINDOW_MS", "5")),
+                max_batch_items=int(os.environ.get("GPTSOVITS_PREPARE_REF_BATCH_MAX_ITEMS", "8")),
+                max_batch_samples=int(ref_max_batch_samples),
+            )
+
         self.text_preprocessor: TextPreprocessor = TextPreprocessor(
-            self.bert_model, self.bert_tokenizer, self.configs.device
+            self.bert_model,
+            self.bert_tokenizer,
+            self.configs.device,
+            bert_stage_limiter=self.prepare_bert_stage_limiter,
+            bert_batch_worker=self.prepare_bert_batch_worker,
         )
 
         self.prompt_cache: dict = {
@@ -755,47 +806,52 @@ class TTS:
         Args:
             ref_audio_path: str, the path of the reference audio.
         """
-        self._set_prompt_semantic(ref_audio_path)
-        self._set_ref_spec(ref_audio_path)
+        bundle = self.extract_ref_audio_bundle(ref_audio_path)
+        if self.prompt_cache["refer_spec"] in [[], None]:
+            self.prompt_cache["refer_spec"] = [bundle["refer_spec"]]
+        else:
+            self.prompt_cache["refer_spec"][0] = bundle["refer_spec"]
+        self.prompt_cache["prompt_semantic"] = bundle["prompt_semantic"]
+        self.prompt_cache["raw_audio"] = bundle["raw_audio"]
+        self.prompt_cache["raw_sr"] = bundle["raw_sr"]
         self._set_ref_audio_path(ref_audio_path)
 
-    def extract_prompt_semantic(self, ref_wav_path: str):
-        zero_wav = np.zeros(
-            int(self.configs.sampling_rate * 0.3),
-            dtype=np.float16 if self.configs.is_half else np.float32,
-        )
-        with torch.no_grad():
-            wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-            if wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000:
-                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
-            wav16k = torch.from_numpy(wav16k)
-            zero_wav_torch = torch.from_numpy(zero_wav)
-            wav16k = wav16k.to(self.configs.device)
-            zero_wav_torch = zero_wav_torch.to(self.configs.device)
-            if self.configs.is_half:
-                wav16k = wav16k.half()
-                zero_wav_torch = zero_wav_torch.half()
-
-            wav16k = torch.cat([wav16k, zero_wav_torch])
-            hubert_feature = self.cnhuhbert_model.model(wav16k.unsqueeze(0))["last_hidden_state"].transpose(
-                1, 2
-            )  # .float()
-            codes = self.vits_model.extract_latent(hubert_feature)
-
-            prompt_semantic = codes[0, 0].to(self.configs.device)
-        return prompt_semantic
-
-    def extract_ref_spec(self, ref_audio_path: str):
+    def _load_ref_audio_raw(self, ref_audio_path: str):
         raw_audio, raw_sr = torchaudio.load(ref_audio_path)
-        raw_audio = raw_audio.to(self.configs.device).float()
+        return raw_audio.float(), int(raw_sr)
+
+    @torch.inference_mode()
+    def _extract_prompt_semantic_from_prepared_wav16k(self, wav16k: torch.Tensor):
+        wav16k = wav16k.to(self.configs.device)
+        if self.configs.is_half:
+            wav16k = wav16k.half()
+        hubert_feature = self.cnhuhbert_model.model(wav16k.unsqueeze(0))["last_hidden_state"].transpose(1, 2)
+        codes = self.vits_model.extract_latent(hubert_feature)
+        return codes[0, 0].to(self.configs.device)
+
+    @torch.inference_mode()
+    def _extract_prompt_semantic_from_raw(self, raw_audio: torch.Tensor, raw_sr: int):
+        wav16k = prepare_prompt_semantic_wav16k(
+            raw_audio=raw_audio,
+            raw_sr=raw_sr,
+            zero_wav_samples=int(self.configs.sampling_rate * 0.3),
+        )
+        return self._extract_prompt_semantic_from_prepared_wav16k(wav16k)
+
+    def extract_prompt_semantic(self, ref_wav_path: str):
+        raw_audio, raw_sr = self._load_ref_audio_raw(ref_wav_path)
+        return self._extract_prompt_semantic_from_raw(raw_audio, raw_sr)
+
+    def _extract_ref_spec_from_raw(self, raw_audio: torch.Tensor, raw_sr: int):
+        raw_audio_device = raw_audio.to(self.configs.device).float()
 
         if raw_sr != self.configs.sampling_rate:
-            audio = raw_audio.to(self.configs.device)
+            audio = raw_audio_device
             if audio.shape[0] == 2:
                 audio = audio.mean(0).unsqueeze(0)
             audio = resample(audio, raw_sr, self.configs.sampling_rate, self.configs.device)
         else:
-            audio = raw_audio.to(self.configs.device)
+            audio = raw_audio_device
             if audio.shape[0] == 2:
                 audio = audio.mean(0).unsqueeze(0)
 
@@ -820,8 +876,141 @@ class TTS:
             audio = None
         return spec, audio, raw_audio, raw_sr
 
-    def extract_text_features(self, text: str, language: str):
-        return self.text_preprocessor.segment_and_extract_feature_for_text(text, language, self.configs.version)
+    def extract_ref_spec(self, ref_audio_path: str):
+        raw_audio, raw_sr = self._load_ref_audio_raw(ref_audio_path)
+        return self._extract_ref_spec_from_raw(raw_audio, raw_sr)
+
+    def extract_ref_audio_bundle(self, ref_audio_path: str):
+        load_start = time.perf_counter()
+        raw_audio, raw_sr = self._load_ref_audio_raw(ref_audio_path)
+        load_ms = (time.perf_counter() - load_start) * 1000.0
+        if self.prepare_ref_semantic_batch_worker is None:
+            with self.prepare_ref_audio_stage_limiter.enter() as limiter_stats:
+                prompt_semantic_start = time.perf_counter()
+                prompt_semantic = self._extract_prompt_semantic_from_raw(raw_audio, raw_sr)
+                prompt_semantic_ms = (time.perf_counter() - prompt_semantic_start) * 1000.0
+                ref_spec_start = time.perf_counter()
+                refer_spec = self._extract_ref_spec_from_raw(raw_audio, raw_sr)[:2]
+                ref_spec_ms = (time.perf_counter() - ref_spec_start) * 1000.0
+            audio_stage_wait_ms = float(limiter_stats["wait_ms"])
+            audio_stage_slots = float(limiter_stats["slots"])
+            audio_stage_inflight_peak = float(limiter_stats["peak_inflight"])
+            prompt_semantic_profile = {
+                "prompt_semantic_wait_ms": float(limiter_stats["wait_ms"]),
+                "prompt_semantic_cpu_prepare_ms": 0.0,
+                "prompt_semantic_forward_ms": prompt_semantic_ms,
+                "prompt_semantic_scatter_ms": 0.0,
+                "prompt_semantic_stage_slots": float(limiter_stats["slots"]),
+                "prompt_semantic_stage_inflight_peak": float(limiter_stats["peak_inflight"]),
+                "prompt_semantic_batch_size": 1.0,
+                "prompt_semantic_batch_samples": 0.0,
+            }
+            ref_spec_wait_ms = 0.0
+            return {
+                "prompt_semantic": prompt_semantic,
+                "refer_spec": refer_spec,
+                "raw_audio": raw_audio,
+                "raw_sr": raw_sr,
+                "profile": {
+                    "audio_load_ms": load_ms,
+                    "audio_stage_wait_ms": audio_stage_wait_ms,
+                    "audio_stage_slots": audio_stage_slots,
+                    "audio_stage_inflight_peak": audio_stage_inflight_peak,
+                    "prompt_semantic_ms": prompt_semantic_ms,
+                    "prompt_semantic_wait_ms": float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)),
+                    "prompt_semantic_cpu_prepare_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)
+                    ),
+                    "prompt_semantic_forward_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_forward_ms", 0.0)
+                    ),
+                    "prompt_semantic_scatter_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_scatter_ms", 0.0)
+                    ),
+                    "prompt_semantic_stage_slots": float(
+                        prompt_semantic_profile.get("prompt_semantic_stage_slots", 0.0)
+                    ),
+                    "prompt_semantic_stage_inflight_peak": float(
+                        prompt_semantic_profile.get("prompt_semantic_stage_inflight_peak", 0.0)
+                    ),
+                    "prompt_semantic_batch_size": float(prompt_semantic_profile.get("prompt_semantic_batch_size", 1.0)),
+                    "prompt_semantic_batch_samples": float(
+                        prompt_semantic_profile.get("prompt_semantic_batch_samples", 0.0)
+                    ),
+                    "ref_spec_wait_ms": ref_spec_wait_ms,
+                    "ref_spec_ms": ref_spec_ms,
+                    "bundle_total_ms": load_ms + audio_stage_wait_ms + prompt_semantic_ms + ref_spec_ms,
+                },
+            }
+
+        prompt_semantic_profile = {
+            "prompt_semantic_wait_ms": 0.0,
+            "prompt_semantic_cpu_prepare_ms": 0.0,
+            "prompt_semantic_forward_ms": 0.0,
+            "prompt_semantic_scatter_ms": 0.0,
+            "prompt_semantic_stage_slots": 0.0,
+            "prompt_semantic_stage_inflight_peak": 0.0,
+            "prompt_semantic_batch_size": 1.0,
+            "prompt_semantic_batch_samples": 0.0,
+        }
+        if self.prepare_ref_semantic_batch_worker is not None:
+            prompt_semantic, worker_profile = self.prepare_ref_semantic_batch_worker.submit(raw_audio, raw_sr)
+            prompt_semantic_profile.update(worker_profile)
+            prompt_semantic_ms = (
+                float(prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0))
+                + float(prompt_semantic_profile.get("prompt_semantic_forward_ms", 0.0))
+                + float(prompt_semantic_profile.get("prompt_semantic_scatter_ms", 0.0))
+            )
+        with self.prepare_ref_audio_stage_limiter.enter() as ref_spec_limiter_stats:
+            ref_spec_start = time.perf_counter()
+            refer_spec = self._extract_ref_spec_from_raw(raw_audio, raw_sr)[:2]
+            ref_spec_ms = (time.perf_counter() - ref_spec_start) * 1000.0
+        audio_stage_wait_ms = float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)) + float(
+            ref_spec_limiter_stats["wait_ms"]
+        )
+        audio_stage_slots = max(
+            float(prompt_semantic_profile.get("prompt_semantic_stage_slots", 0.0)),
+            float(ref_spec_limiter_stats["slots"]),
+        )
+        audio_stage_inflight_peak = max(
+            float(prompt_semantic_profile.get("prompt_semantic_stage_inflight_peak", 0.0)),
+            float(ref_spec_limiter_stats["peak_inflight"]),
+        )
+        return {
+            "prompt_semantic": prompt_semantic,
+            "refer_spec": refer_spec,
+            "raw_audio": raw_audio,
+            "raw_sr": raw_sr,
+            "profile": {
+                "audio_load_ms": load_ms,
+                "audio_stage_wait_ms": audio_stage_wait_ms,
+                "audio_stage_slots": audio_stage_slots,
+                "audio_stage_inflight_peak": audio_stage_inflight_peak,
+                "prompt_semantic_ms": prompt_semantic_ms,
+                "prompt_semantic_wait_ms": float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)),
+                "prompt_semantic_cpu_prepare_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)
+                ),
+                "prompt_semantic_forward_ms": float(prompt_semantic_profile.get("prompt_semantic_forward_ms", 0.0)),
+                "prompt_semantic_scatter_ms": float(prompt_semantic_profile.get("prompt_semantic_scatter_ms", 0.0)),
+                "prompt_semantic_stage_slots": float(prompt_semantic_profile.get("prompt_semantic_stage_slots", 0.0)),
+                "prompt_semantic_stage_inflight_peak": float(
+                    prompt_semantic_profile.get("prompt_semantic_stage_inflight_peak", 0.0)
+                ),
+                "prompt_semantic_batch_size": float(prompt_semantic_profile.get("prompt_semantic_batch_size", 1.0)),
+                "prompt_semantic_batch_samples": float(
+                    prompt_semantic_profile.get("prompt_semantic_batch_samples", 0.0)
+                ),
+                "ref_spec_wait_ms": float(ref_spec_limiter_stats["wait_ms"]),
+                "ref_spec_ms": ref_spec_ms,
+                "bundle_total_ms": load_ms + audio_stage_wait_ms + prompt_semantic_ms + ref_spec_ms,
+            },
+        }
+
+    def extract_text_features(self, text: str, language: str, profile: dict | None = None):
+        return self.text_preprocessor.segment_and_extract_feature_for_text(
+            text, language, self.configs.version, profile=profile
+        )
 
     def _set_ref_audio_path(self, ref_audio_path):
         self.prompt_cache["ref_audio_path"] = ref_audio_path

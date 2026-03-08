@@ -261,8 +261,9 @@ class SchedulerDebugWorker:
         self.tts = tts
         self.max_steps = max_steps
         self.micro_batch_wait_s = micro_batch_wait_ms / 1000.0
-        self.prepare_lock = threading.Lock()
         self.condition = threading.Condition()
+        self.prepare_inflight = 0
+        self.prepare_peak_inflight = 0
         self.pending_jobs: List[SchedulerPendingJob] = []
         self.running_requests: List[T2SRunningRequest] = []
         self.job_map: dict[str, SchedulerPendingJob] = {}
@@ -282,8 +283,20 @@ class SchedulerDebugWorker:
             pass
 
     def prepare_state(self, spec: SchedulerRequestSpec) -> T2SRequestState:
-        with self.prepare_lock:
-            return prepare_request_state(self.tts, spec)
+        with self.condition:
+            self.prepare_inflight += 1
+            prepare_inflight_on_enter = self.prepare_inflight
+            if self.prepare_inflight > self.prepare_peak_inflight:
+                self.prepare_peak_inflight = self.prepare_inflight
+            prepare_peak_inflight = self.prepare_peak_inflight
+        try:
+            state = prepare_request_state(self.tts, spec)
+            state.prepare_profile["worker_prepare_inflight_on_enter"] = float(prepare_inflight_on_enter)
+            state.prepare_profile["worker_prepare_peak_inflight"] = float(prepare_peak_inflight)
+            return state
+        finally:
+            with self.condition:
+                self.prepare_inflight = max(0, self.prepare_inflight - 1)
 
     def submit(
         self,
@@ -363,9 +376,28 @@ class SchedulerDebugWorker:
 
     def get_state(self) -> dict:
         with self.condition:
+            bert_stage = self.tts.prepare_bert_stage_limiter.snapshot()
+            ref_audio_stage = self.tts.prepare_ref_audio_stage_limiter.snapshot()
+            bert_batch_worker = (
+                None
+                if self.tts.prepare_bert_batch_worker is None
+                else self.tts.prepare_bert_batch_worker.snapshot()
+            )
+            ref_semantic_batch_worker = (
+                None
+                if self.tts.prepare_ref_semantic_batch_worker is None
+                else self.tts.prepare_ref_semantic_batch_worker.snapshot()
+            )
             return {
                 "pending_jobs": len(self.pending_jobs),
                 "running_requests": len(self.running_requests),
+                "prepare_inflight": self.prepare_inflight,
+                "prepare_peak_inflight": self.prepare_peak_inflight,
+                "prepare_text_cpu_workers": int(getattr(self.tts, "prepare_text_cpu_workers", 0)),
+                "prepare_bert_stage": bert_stage,
+                "prepare_bert_batch_worker": bert_batch_worker,
+                "prepare_ref_audio_stage": ref_audio_stage,
+                "prepare_ref_semantic_batch_worker": ref_semantic_batch_worker,
                 "tracked_jobs": len(self.job_map),
                 "total_submitted": self.total_submitted,
                 "total_finished": self.total_finished,
@@ -907,10 +939,36 @@ async def tts_scheduler_submit_handle(request: Scheduler_Submit_Request):
                 {
                     "X-Prepare-Prompt-Text-Ms": f"{float(prepare_profile.get('prompt_text_features_ms', 0.0)):.3f}",
                     "X-Prepare-Target-Text-Ms": f"{float(prepare_profile.get('text_features_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Bert-Wait-Ms": f"{float(prepare_profile.get('prompt_text_bert_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Bert-Wait-Ms": f"{float(prepare_profile.get('text_bert_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Bert-Forward-Ms": f"{float(prepare_profile.get('prompt_text_bert_forward_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Bert-Forward-Ms": f"{float(prepare_profile.get('text_bert_forward_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Bert-Batch-Size-Peak": str(
+                        int(prepare_profile.get("prompt_text_bert_batch_size_peak", 0.0))
+                    ),
+                    "X-Prepare-Target-Bert-Batch-Size-Peak": str(
+                        int(prepare_profile.get("text_bert_batch_size_peak", 0.0))
+                    ),
+                    "X-Prepare-Text-Pair-Wall-Ms": f"{float(prepare_profile.get('text_feature_pair_ms', 0.0)):.3f}",
+                    "X-Prepare-Text-CPU-Workers": str(int(prepare_profile.get("text_cpu_parallel_workers", 0.0))),
+                    "X-Prepare-Audio-Load-Ms": f"{float(prepare_profile.get('audio_load_ms', 0.0)):.3f}",
+                    "X-Prepare-Audio-Stage-Wait-Ms": f"{float(prepare_profile.get('audio_stage_wait_ms', 0.0)):.3f}",
                     "X-Prepare-Prompt-Semantic-Ms": f"{float(prepare_profile.get('prompt_semantic_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Semantic-Wait-Ms": f"{float(prepare_profile.get('prompt_semantic_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Semantic-CPU-Ms": f"{float(prepare_profile.get('prompt_semantic_cpu_prepare_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Semantic-Forward-Ms": f"{float(prepare_profile.get('prompt_semantic_forward_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Semantic-Batch-Size": str(
+                        int(prepare_profile.get("prompt_semantic_batch_size", 0.0))
+                    ),
                     "X-Prepare-Ref-Spec-Ms": f"{float(prepare_profile.get('ref_spec_ms', 0.0)):.3f}",
+                    "X-Prepare-Ref-Spec-Wait-Ms": f"{float(prepare_profile.get('ref_spec_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Ref-Bundle-Ms": f"{float(prepare_profile.get('ref_audio_bundle_ms', 0.0)):.3f}",
                     "X-Prepare-Tensorize-Ms": f"{float(prepare_profile.get('tensorize_ms', 0.0)):.3f}",
                     "X-Prepare-Profile-Wall-Ms": f"{float(prepare_profile.get('wall_total_ms', 0.0)):.3f}",
+                    "X-Prepare-Inflight-On-Enter": str(
+                        int(prepare_profile.get("worker_prepare_inflight_on_enter", 0.0))
+                    ),
+                    "X-Prepare-Inflight-Peak": str(int(prepare_profile.get("worker_prepare_peak_inflight", 0.0))),
                 }
             )
         return Response(audio_data, media_type=f"audio/{job.media_type}", headers=headers)
