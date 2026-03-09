@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from concurrent.futures import Future
 from dataclasses import dataclass
 from pathlib import Path
 import time
@@ -89,18 +88,29 @@ class T2SFinishedItem:
 class T2SActiveBatch:
     request_ids: List[str]
     states: List[T2SRequestState]
-    x: torch.Tensor
-    x_lens: torch.LongTensor
+    x: Optional[torch.Tensor]
+    x_lens: Optional[torch.LongTensor]
     y_sequences: List[torch.LongTensor]
     prefix_lens: torch.LongTensor
     xy_pos: torch.Tensor
-    key_padding_mask: torch.Tensor
-    prefill_attn_mask: torch.Tensor
+    key_padding_mask: Optional[torch.Tensor]
+    prefill_attn_mask: Optional[torch.Tensor]
     decode_attn_mask: Optional[torch.Tensor]
     k_cache: Optional[List[torch.Tensor]]
     v_cache: Optional[List[torch.Tensor]]
-    step_idx: int
+    kv_lens: Optional[torch.LongTensor]
+    step_indices: torch.LongTensor
     prefill_done: bool
+
+
+@dataclass
+class PreparedTextFeatures:
+    phones: List[int]
+    bert_features: torch.Tensor
+    norm_text: str
+    profile: Dict[str, float]
+    total_ms: float
+    cpu_preprocess_ms: float
 
 
 def normalize_sentence(text: str, language: str) -> str:
@@ -113,105 +123,125 @@ def normalize_sentence(text: str, language: str) -> str:
 
 
 @torch.inference_mode()
-def prepare_request_state(
+def prepare_text_features(
+    tts: Any,
+    text: str,
+    language: str,
+) -> PreparedTextFeatures:
+    device = tts.configs.device
+    profile: Dict[str, float] = {}
+    branch_start = time.perf_counter()
+    _sync_device(device)
+    cpu_start = time.perf_counter()
+    prepared_segments = tts.prepare_text_segments(text, language)
+    _sync_device(device)
+    cpu_preprocess_ms = (time.perf_counter() - cpu_start) * 1000.0
+    profile["cpu_preprocess_ms"] = float(cpu_preprocess_ms)
+    bert_start = time.perf_counter()
+    phones, bert_features, norm_text = tts.build_text_features_from_segments(prepared_segments, profile=profile)
+    _sync_device(device)
+    profile["bert_total_ms"] = (time.perf_counter() - bert_start) * 1000.0
+    total_ms = (time.perf_counter() - branch_start) * 1000.0
+    return PreparedTextFeatures(
+        phones=phones,
+        bert_features=bert_features,
+        norm_text=norm_text,
+        profile=profile,
+        total_ms=float(total_ms),
+        cpu_preprocess_ms=float(cpu_preprocess_ms),
+    )
+
+
+@torch.inference_mode()
+def build_request_state_from_parts(
     tts: Any,
     spec: SchedulerRequestSpec,
+    prompt_text: str,
+    text: str,
+    prompt_result: PreparedTextFeatures,
+    target_result: PreparedTextFeatures,
+    ref_audio_bundle: Dict[str, Any],
+    prepare_start: float,
+    prepare_sync_start: float,
+    profile_overrides: Optional[Dict[str, float]] = None,
 ) -> T2SRequestState:
     device = tts.configs.device
-    prepare_start = time.perf_counter()
     _sync_device(device)
-    prepare_sync_start = time.perf_counter()
-    prompt_text = normalize_sentence(spec.prompt_text, spec.prompt_lang)
-    text = spec.text.strip("\n")
-
-    prompt_text_profile: Dict[str, float] = {}
-    text_features_profile: Dict[str, float] = {}
-    text_feature_pair_start = time.perf_counter()
-    prompt_future: Future | None = None
-
-    def _extract_prompt_features():
-        _sync_device(device)
-        prompt_start = time.perf_counter()
-        result = tts.extract_text_features(prompt_text, spec.prompt_lang, profile=prompt_text_profile)
-        _sync_device(device)
-        return result, (time.perf_counter() - prompt_start) * 1000.0
-
-    if getattr(tts, "prepare_text_cpu_executor", None) is not None:
-        prompt_future = tts.prepare_text_cpu_executor.submit(_extract_prompt_features)
-
-    _sync_device(device)
-    text_features_start = time.perf_counter()
-    phones, bert_features, norm_text = tts.extract_text_features(text, spec.text_lang, profile=text_features_profile)
-    _sync_device(device)
-    text_features_ms = (time.perf_counter() - text_features_start) * 1000.0
-
-    if prompt_future is None:
-        _sync_device(device)
-        prompt_text_features_start = time.perf_counter()
-        prompt_phones, prompt_bert_features, prompt_norm_text = tts.extract_text_features(
-            prompt_text, spec.prompt_lang, profile=prompt_text_profile
-        )
-        _sync_device(device)
-        prompt_text_features_ms = (time.perf_counter() - prompt_text_features_start) * 1000.0
-        prompt_text_profile["parallel_future_wait_ms"] = 0.0
-    else:
-        prompt_wait_start = time.perf_counter()
-        (prompt_phones, prompt_bert_features, prompt_norm_text), prompt_text_features_ms = prompt_future.result()
-        prompt_text_profile["parallel_future_wait_ms"] = (time.perf_counter() - prompt_wait_start) * 1000.0
-
-    text_feature_pair_ms = (time.perf_counter() - text_feature_pair_start) * 1000.0
-    if phones is None:
-        raise ValueError(f"{spec.request_id} text preprocessing returned no phones")
-
-    _sync_device(device)
-    ref_audio_bundle_start = time.perf_counter()
-    ref_audio_bundle = tts.extract_ref_audio_bundle(str(spec.ref_audio_path))
+    ref_audio_bundle_ms = float(ref_audio_bundle.get("profile", {}).get("bundle_total_ms", 0.0))
+    bundle_profile = ref_audio_bundle.get("profile", {})
     prompt_semantic = ref_audio_bundle["prompt_semantic"].long()
     spec_audio, audio_16k = ref_audio_bundle["refer_spec"]
     raw_audio = ref_audio_bundle["raw_audio"]
     raw_sr = int(ref_audio_bundle["raw_sr"])
-    _sync_device(device)
-    ref_audio_bundle_ms = (time.perf_counter() - ref_audio_bundle_start) * 1000.0
-    bundle_profile = ref_audio_bundle.get("profile", {})
     prompt_semantic_ms = float(bundle_profile.get("prompt_semantic_ms", ref_audio_bundle_ms))
     ref_spec_ms = float(bundle_profile.get("ref_spec_ms", 0.0))
     audio_load_ms = float(bundle_profile.get("audio_load_ms", 0.0))
 
     _sync_device(device)
     tensorize_start = time.perf_counter()
-    phones_tensor = torch.LongTensor(phones).to(tts.configs.device)
-    prompt_phones_tensor = torch.LongTensor(prompt_phones).to(tts.configs.device)
-    all_phones = torch.LongTensor(prompt_phones + phones).to(tts.configs.device)
-    all_bert_features = torch.cat([prompt_bert_features, bert_features], dim=1).to(
+    phones_tensor = torch.LongTensor(target_result.phones).to(tts.configs.device)
+    prompt_phones_tensor = torch.LongTensor(prompt_result.phones).to(tts.configs.device)
+    all_phones = torch.LongTensor(prompt_result.phones + target_result.phones).to(tts.configs.device)
+    all_bert_features = torch.cat([prompt_result.bert_features, target_result.bert_features], dim=1).to(
         dtype=tts.precision, device=tts.configs.device
     )
     _sync_device(device)
     tensorize_ms = (time.perf_counter() - tensorize_start) * 1000.0
 
-    _sync_device(device)
     prepare_profile = {
-        "prompt_text_features_ms": prompt_text_features_ms,
-        "text_features_ms": text_features_ms,
-        "prompt_text_bert_wait_ms": float(prompt_text_profile.get("bert_wait_ms", 0.0)),
-        "prompt_text_bert_forward_ms": float(prompt_text_profile.get("bert_forward_ms", 0.0)),
-        "prompt_text_bert_tokenize_ms": float(prompt_text_profile.get("bert_tokenize_ms", 0.0)),
-        "prompt_text_bert_scatter_ms": float(prompt_text_profile.get("bert_scatter_ms", 0.0)),
-        "prompt_text_bert_calls": float(prompt_text_profile.get("bert_calls", 0.0)),
-        "prompt_text_bert_stage_slots": float(prompt_text_profile.get("bert_stage_slots", 0.0)),
-        "prompt_text_bert_stage_inflight_peak": float(prompt_text_profile.get("bert_stage_inflight_peak", 0.0)),
-        "prompt_text_bert_batch_size_peak": float(prompt_text_profile.get("bert_batch_size_peak", 0.0)),
-        "prompt_text_bert_batch_tokens_peak": float(prompt_text_profile.get("bert_batch_tokens_peak", 0.0)),
-        "prompt_text_parallel_future_wait_ms": float(prompt_text_profile.get("parallel_future_wait_ms", 0.0)),
-        "text_bert_wait_ms": float(text_features_profile.get("bert_wait_ms", 0.0)),
-        "text_bert_forward_ms": float(text_features_profile.get("bert_forward_ms", 0.0)),
-        "text_bert_tokenize_ms": float(text_features_profile.get("bert_tokenize_ms", 0.0)),
-        "text_bert_scatter_ms": float(text_features_profile.get("bert_scatter_ms", 0.0)),
-        "text_bert_calls": float(text_features_profile.get("bert_calls", 0.0)),
-        "text_bert_stage_slots": float(text_features_profile.get("bert_stage_slots", 0.0)),
-        "text_bert_stage_inflight_peak": float(text_features_profile.get("bert_stage_inflight_peak", 0.0)),
-        "text_bert_batch_size_peak": float(text_features_profile.get("bert_batch_size_peak", 0.0)),
-        "text_bert_batch_tokens_peak": float(text_features_profile.get("bert_batch_tokens_peak", 0.0)),
-        "text_feature_pair_ms": text_feature_pair_ms,
+        "prompt_text_features_ms": float(prompt_result.total_ms),
+        "text_features_ms": float(target_result.total_ms),
+        "prompt_text_cpu_preprocess_ms": float(prompt_result.cpu_preprocess_ms),
+        "text_cpu_preprocess_ms": float(target_result.cpu_preprocess_ms),
+        "prompt_text_bert_wait_ms": float(prompt_result.profile.get("bert_wait_ms", 0.0)),
+        "prompt_text_bert_admission_wait_ms": float(prompt_result.profile.get("bert_admission_wait_ms", 0.0)),
+        "prompt_text_bert_queue_wait_ms": float(prompt_result.profile.get("bert_queue_wait_ms", 0.0)),
+        "prompt_text_bert_batch_collect_wait_ms": float(prompt_result.profile.get("bert_batch_collect_wait_ms", 0.0)),
+        "prompt_text_bert_forward_ms": float(prompt_result.profile.get("bert_forward_ms", 0.0)),
+        "prompt_text_bert_tokenize_ms": float(prompt_result.profile.get("bert_tokenize_ms", 0.0)),
+        "prompt_text_bert_scatter_ms": float(prompt_result.profile.get("bert_scatter_ms", 0.0)),
+        "prompt_text_bert_calls": float(prompt_result.profile.get("bert_calls", 0.0)),
+        "prompt_text_bert_stage_slots": float(prompt_result.profile.get("bert_stage_slots", 0.0)),
+        "prompt_text_bert_stage_inflight_peak": float(prompt_result.profile.get("bert_stage_inflight_peak", 0.0)),
+        "prompt_text_bert_batch_size_peak": float(prompt_result.profile.get("bert_batch_size_peak", 0.0)),
+        "prompt_text_bert_batch_tokens_peak": float(prompt_result.profile.get("bert_batch_tokens_peak", 0.0)),
+        "prompt_text_bert_pending_depth_on_enqueue_peak": float(
+            prompt_result.profile.get("bert_pending_depth_on_enqueue_peak", 0.0)
+        ),
+        "prompt_text_bert_pending_depth_on_collect_peak": float(
+            prompt_result.profile.get("bert_pending_depth_on_collect_peak", 0.0)
+        ),
+        "prompt_text_bert_high_pressure_mode_peak": float(
+            prompt_result.profile.get("bert_high_pressure_mode_peak", 0.0)
+        ),
+        "prompt_text_bert_batch_window_ms": float(prompt_result.profile.get("bert_batch_window_ms", 0.0)),
+        "prompt_text_parallel_future_wait_ms": 0.0,
+        "prompt_text_parallel_future_executor_queue_ms": 0.0,
+        "prompt_text_parallel_future_run_ms": float(prompt_result.total_ms),
+        "prompt_text_parallel_future_finish_after_submit_ms": float(prompt_result.total_ms),
+        "prompt_text_parallel_future_queue_tail_after_target_ms": 0.0,
+        "prompt_text_parallel_future_run_tail_after_target_ms": 0.0,
+        "text_bert_wait_ms": float(target_result.profile.get("bert_wait_ms", 0.0)),
+        "text_bert_admission_wait_ms": float(target_result.profile.get("bert_admission_wait_ms", 0.0)),
+        "text_bert_queue_wait_ms": float(target_result.profile.get("bert_queue_wait_ms", 0.0)),
+        "text_bert_batch_collect_wait_ms": float(target_result.profile.get("bert_batch_collect_wait_ms", 0.0)),
+        "text_bert_forward_ms": float(target_result.profile.get("bert_forward_ms", 0.0)),
+        "text_bert_tokenize_ms": float(target_result.profile.get("bert_tokenize_ms", 0.0)),
+        "text_bert_scatter_ms": float(target_result.profile.get("bert_scatter_ms", 0.0)),
+        "text_bert_calls": float(target_result.profile.get("bert_calls", 0.0)),
+        "text_bert_stage_slots": float(target_result.profile.get("bert_stage_slots", 0.0)),
+        "text_bert_stage_inflight_peak": float(target_result.profile.get("bert_stage_inflight_peak", 0.0)),
+        "text_bert_batch_size_peak": float(target_result.profile.get("bert_batch_size_peak", 0.0)),
+        "text_bert_batch_tokens_peak": float(target_result.profile.get("bert_batch_tokens_peak", 0.0)),
+        "text_bert_pending_depth_on_enqueue_peak": float(
+            target_result.profile.get("bert_pending_depth_on_enqueue_peak", 0.0)
+        ),
+        "text_bert_pending_depth_on_collect_peak": float(
+            target_result.profile.get("bert_pending_depth_on_collect_peak", 0.0)
+        ),
+        "text_bert_high_pressure_mode_peak": float(target_result.profile.get("bert_high_pressure_mode_peak", 0.0)),
+        "text_bert_batch_window_ms": float(target_result.profile.get("bert_batch_window_ms", 0.0)),
+        "text_feature_pair_ms": float(max(prompt_result.total_ms, target_result.total_ms)),
         "text_cpu_parallel_workers": float(getattr(tts, "prepare_text_cpu_workers", 0)),
         "audio_load_ms": audio_load_ms,
         "audio_stage_wait_ms": float(bundle_profile.get("audio_stage_wait_ms", 0.0)),
@@ -233,6 +263,8 @@ def prepare_request_state(
         "total_ms": (time.perf_counter() - prepare_sync_start) * 1000.0,
         "wall_total_ms": (time.perf_counter() - prepare_start) * 1000.0,
     }
+    if profile_overrides:
+        prepare_profile.update({key: float(value) for key, value in profile_overrides.items()})
     return T2SRequestState(
         request_id=spec.request_id,
         ref_audio_path=spec.ref_audio_path,
@@ -240,8 +272,8 @@ def prepare_request_state(
         prompt_lang=spec.prompt_lang,
         text=text,
         text_lang=spec.text_lang,
-        norm_prompt_text=prompt_norm_text,
-        norm_text=norm_text,
+        norm_prompt_text=prompt_result.norm_text,
+        norm_text=target_result.norm_text,
         phones=phones_tensor,
         prompt_phones=prompt_phones_tensor,
         all_phones=all_phones,
@@ -257,6 +289,33 @@ def prepare_request_state(
         early_stop_num=spec.early_stop_num,
         ready_step=spec.ready_step,
         prepare_profile=prepare_profile,
+    )
+
+
+@torch.inference_mode()
+def prepare_request_state(
+    tts: Any,
+    spec: SchedulerRequestSpec,
+) -> T2SRequestState:
+    prepare_start = time.perf_counter()
+    prepare_sync_start = time.perf_counter()
+    prompt_text = normalize_sentence(spec.prompt_text, spec.prompt_lang)
+    text = spec.text.strip("\n")
+    prompt_result = prepare_text_features(tts, prompt_text, spec.prompt_lang)
+    target_result = prepare_text_features(tts, text, spec.text_lang)
+    if target_result.phones is None:
+        raise ValueError(f"{spec.request_id} text preprocessing returned no phones")
+    ref_audio_bundle = tts.extract_ref_audio_bundle(str(spec.ref_audio_path))
+    return build_request_state_from_parts(
+        tts=tts,
+        spec=spec,
+        prompt_text=prompt_text,
+        text=text,
+        prompt_result=prompt_result,
+        target_result=target_result,
+        ref_audio_bundle=ref_audio_bundle,
+        prepare_start=prepare_start,
+        prepare_sync_start=prepare_sync_start,
     )
 
 
@@ -417,7 +476,8 @@ def build_prefill_batch(model: Any, states: Sequence[T2SRequestState]) -> T2SAct
         decode_attn_mask=None,
         k_cache=None,
         v_cache=None,
-        step_idx=0,
+        kv_lens=None,
+        step_indices=torch.zeros((len(states),), dtype=torch.long, device=device),
         prefill_done=False,
     )
 
@@ -433,6 +493,64 @@ def build_next_xy_pos(model: Any, y_sequences: Sequence[torch.LongTensor]) -> to
     )
 
 
+def _compact_cache_to_kv_lens(
+    cache: torch.Tensor,
+    kv_lens: torch.LongTensor,
+) -> torch.Tensor:
+    target_len = int(kv_lens.max().item())
+    if cache.shape[1] == target_len and torch.all(kv_lens == target_len).item():
+        return cache
+    compacted = cache.new_zeros((cache.shape[0], target_len, cache.shape[2]))
+    for batch_index, kv_len in enumerate(kv_lens.tolist()):
+        if kv_len <= 0:
+            continue
+        compacted[batch_index, -kv_len:, :] = cache[batch_index, -kv_len:, :]
+    return compacted
+
+
+def _compact_decode_mask_to_kv_lens(
+    decode_attn_mask: Optional[torch.Tensor],
+    kv_lens: torch.LongTensor,
+) -> Optional[torch.Tensor]:
+    target_len = int(kv_lens.max().item()) + 1
+    if decode_attn_mask is None:
+        return None
+    if decode_attn_mask.shape[-1] == target_len and torch.all(kv_lens + 1 == target_len).item():
+        return decode_attn_mask
+    compacted = torch.ones(
+        (decode_attn_mask.shape[0], 1, 1, target_len),
+        dtype=decode_attn_mask.dtype,
+        device=decode_attn_mask.device,
+    )
+    for batch_index, kv_len in enumerate(kv_lens.tolist()):
+        current_len = kv_len + 1
+        compacted[batch_index, :, :, -current_len:] = decode_attn_mask[batch_index, :, :, -current_len:]
+    if not compacted.any().item():
+        return None
+    return compacted
+
+
+def _advance_decode_mask(
+    decode_attn_mask: Optional[torch.Tensor],
+    kv_lens: torch.LongTensor,
+) -> Optional[torch.Tensor]:
+    if decode_attn_mask is None:
+        return None
+    target_len = int(kv_lens.max().item()) + 2
+    advanced = torch.zeros(
+        (decode_attn_mask.shape[0], 1, 1, target_len),
+        dtype=decode_attn_mask.dtype,
+        device=decode_attn_mask.device,
+    )
+    for batch_index, kv_len in enumerate(kv_lens.tolist()):
+        current_len = kv_len + 1
+        next_mask = F.pad(decode_attn_mask[batch_index : batch_index + 1, :, :, -current_len:], (0, 1), value=False)
+        advanced[batch_index : batch_index + 1, :, :, -next_mask.shape[-1] :] = next_mask
+    if not advanced.any().item():
+        return None
+    return advanced
+
+
 def _sample_per_request(
     model: Any,
     active_batch: T2SActiveBatch,
@@ -443,16 +561,15 @@ def _sample_per_request(
     keep_indices: List[int] = []
     updated_sequences: List[torch.LongTensor] = []
 
-    step_idx = active_batch.step_idx
     sampling_keys = [
         _sampling_group_key(
             top_k=state.top_k,
             top_p=state.top_p,
             temperature=state.temperature,
             repetition_penalty=state.repetition_penalty,
-            trim_eos=False,
+            trim_eos=int(active_batch.step_indices[batch_index].item()) < 11,
         )
-        for state in active_batch.states
+        for batch_index, state in enumerate(active_batch.states)
     ]
     sampled_items, argmax_tokens = _batched_sample_by_group(
         logits=logits,
@@ -460,6 +577,7 @@ def _sample_per_request(
         sampling_keys=sampling_keys,
     )
     for batch_index, state in enumerate(active_batch.states):
+        step_index = int(active_batch.step_indices[batch_index].item())
         current_history = active_batch.y_sequences[batch_index]
         sampled = sampled_items[batch_index]
         sampled_token = int(sampled[0, 0].item())
@@ -469,7 +587,7 @@ def _sample_per_request(
         finish_reason: Optional[str] = None
         if state.early_stop_num != -1 and (new_history.shape[0] - int(active_batch.prefix_lens[batch_index].item())) > state.early_stop_num:
             finish_reason = "early_stop"
-        elif step_idx + 1 >= max_steps:
+        elif step_index + 1 >= max_steps:
             finish_reason = "max_step"
         elif sampled_token == model.EOS:
             finish_reason = "eos_sample"
@@ -482,7 +600,7 @@ def _sample_per_request(
                 T2SFinishedItem(
                     request_id=state.request_id,
                     semantic_tokens=new_history[prefix_len:-1].clone(),
-                    finish_idx=step_idx,
+                    finish_idx=step_index,
                     finish_reason=finish_reason,
                 )
             )
@@ -493,30 +611,48 @@ def _sample_per_request(
     return finished_items, keep_indices, updated_sequences
 
 
+@torch.inference_mode()
 def decode_one_step(
     model: Any,
     active_batch: T2SActiveBatch,
     max_steps: int,
 ) -> Tuple[Optional[T2SActiveBatch], List[T2SFinishedItem]]:
-    if not active_batch.prefill_done:
+    was_prefill = not active_batch.prefill_done
+    if was_prefill:
+        if active_batch.prefill_attn_mask is None or active_batch.key_padding_mask is None:
+            raise ValueError("prefill 阶段缺少必要 mask")
         xy_dec, active_batch.k_cache, active_batch.v_cache = model.t2s_transformer.process_prompt(
             active_batch.xy_pos, active_batch.prefill_attn_mask, None
         )
+        active_batch.kv_lens = active_batch.x_lens + active_batch.prefix_lens
         active_batch.decode_attn_mask = F.pad(active_batch.key_padding_mask.unsqueeze(1).unsqueeze(1), (0, 1), value=False)
+        if active_batch.k_cache is None or active_batch.v_cache is None or active_batch.kv_lens is None:
+            raise ValueError("prefill 阶段未生成完整 KV cache")
+        active_batch.k_cache = [_compact_cache_to_kv_lens(layer, active_batch.kv_lens) for layer in active_batch.k_cache]
+        active_batch.v_cache = [_compact_cache_to_kv_lens(layer, active_batch.kv_lens) for layer in active_batch.v_cache]
+        active_batch.decode_attn_mask = _compact_decode_mask_to_kv_lens(active_batch.decode_attn_mask, active_batch.kv_lens)
+        active_batch.x = None
+        active_batch.x_lens = None
+        active_batch.key_padding_mask = None
+        active_batch.prefill_attn_mask = None
         active_batch.prefill_done = True
     else:
+        if active_batch.k_cache is None or active_batch.v_cache is None or active_batch.kv_lens is None:
+            raise ValueError("decode 阶段缺少 KV cache")
+        batched_decode_attn_mask = None
+        if active_batch.decode_attn_mask is not None:
+            batched_decode_attn_mask = _materialize_decode_mask_for_active_batch(active_batch)
+            if not batched_decode_attn_mask.any().item():
+                batched_decode_attn_mask = None
         xy_dec, active_batch.k_cache, active_batch.v_cache = model.t2s_transformer.decode_next_token(
             active_batch.xy_pos,
             active_batch.k_cache,
             active_batch.v_cache,
-            active_batch.decode_attn_mask,
+            batched_decode_attn_mask,
         )
-        if active_batch.decode_attn_mask is not None:
-            active_batch.decode_attn_mask = F.pad(active_batch.decode_attn_mask, (0, 1), value=False)
+        active_batch.decode_attn_mask = _advance_decode_mask(active_batch.decode_attn_mask, active_batch.kv_lens)
 
     logits = model.ar_predict_layer(xy_dec[:, -1])
-    if active_batch.step_idx < 11:
-        logits = logits[:, :-1]
 
     finished_items, keep_indices, updated_sequences = _sample_per_request(model, active_batch, logits, max_steps=max_steps)
     if len(keep_indices) == 0:
@@ -528,16 +664,32 @@ def decode_one_step(
     active_batch.states = [active_batch.states[i] for i in keep_indices]
     active_batch.y_sequences = updated_sequences
     active_batch.prefix_lens = torch.index_select(active_batch.prefix_lens, dim=0, index=keep_tensor)
+    next_step_indices = torch.index_select(active_batch.step_indices, dim=0, index=keep_tensor)
+    next_kv_lens = None if active_batch.kv_lens is None else torch.index_select(active_batch.kv_lens, dim=0, index=keep_tensor)
+    active_batch.step_indices = next_step_indices + 1
+    if not was_prefill:
+        if next_kv_lens is not None:
+            active_batch.kv_lens = next_kv_lens + 1
+    else:
+        active_batch.kv_lens = next_kv_lens
 
     if active_batch.decode_attn_mask is not None:
         active_batch.decode_attn_mask = torch.index_select(active_batch.decode_attn_mask, dim=0, index=keep_tensor)
+        if not active_batch.decode_attn_mask.any().item():
+            active_batch.decode_attn_mask = None
     if active_batch.k_cache is not None and active_batch.v_cache is not None:
         for cache_index in range(len(active_batch.k_cache)):
             active_batch.k_cache[cache_index] = torch.index_select(active_batch.k_cache[cache_index], dim=0, index=keep_tensor)
             active_batch.v_cache[cache_index] = torch.index_select(active_batch.v_cache[cache_index], dim=0, index=keep_tensor)
+        if active_batch.kv_lens is not None:
+            active_batch.k_cache = [_compact_cache_to_kv_lens(layer, active_batch.kv_lens) for layer in active_batch.k_cache]
+            active_batch.v_cache = [_compact_cache_to_kv_lens(layer, active_batch.kv_lens) for layer in active_batch.v_cache]
+            active_batch.decode_attn_mask = _compact_decode_mask_to_kv_lens(
+                active_batch.decode_attn_mask,
+                active_batch.kv_lens,
+            )
 
     active_batch.xy_pos = build_next_xy_pos(model, active_batch.y_sequences)
-    active_batch.step_idx += 1
     return active_batch, finished_items
 
 
@@ -580,6 +732,126 @@ def _materialize_decode_mask_for_request(running_request: T2SRunningRequest) -> 
         (1, 1, 1, current_mask_len),
         dtype=torch.bool,
         device=running_request.k_cache[0].device,
+    )
+
+
+def _materialize_decode_mask_for_active_batch(
+    active_batch: T2SActiveBatch,
+    target_mask_len: Optional[int] = None,
+) -> torch.Tensor:
+    if active_batch.k_cache is None or active_batch.kv_lens is None:
+        raise ValueError("active batch 缺少 KV cache 或 kv_lens")
+    current_mask_len = active_batch.k_cache[0].shape[1] + 1
+    if target_mask_len is None:
+        target_mask_len = current_mask_len
+    if active_batch.decode_attn_mask is None:
+        mask = torch.zeros(
+            (len(active_batch.request_ids), 1, 1, current_mask_len),
+            dtype=torch.bool,
+            device=active_batch.k_cache[0].device,
+        )
+    else:
+        rows: List[torch.Tensor] = []
+        for batch_index, kv_len in enumerate(active_batch.kv_lens.tolist()):
+            row_len = kv_len + 1
+            row_mask = _fit_decode_mask_length(
+                active_batch.decode_attn_mask[batch_index : batch_index + 1],
+                row_len,
+            )
+            rows.append(_pad_decode_mask_left(row_mask, target_mask_len))
+        mask = torch.cat(rows, dim=0)
+    if target_mask_len != current_mask_len and active_batch.decode_attn_mask is None:
+        mask = _pad_decode_mask_left(mask, target_mask_len)
+    return mask
+
+
+@torch.inference_mode()
+def run_prefill_active_batch(
+    model: Any,
+    states: Sequence[T2SRequestState],
+    max_steps: int,
+) -> Tuple[Optional[T2SActiveBatch], List[T2SFinishedItem]]:
+    if not states:
+        return None, []
+    active_batch = build_prefill_batch(model, states)
+    return decode_one_step(model, active_batch, max_steps=max_steps)
+
+
+@torch.inference_mode()
+def merge_active_batches(
+    model: Any,
+    left_batch: Optional[T2SActiveBatch],
+    right_batch: Optional[T2SActiveBatch],
+) -> Optional[T2SActiveBatch]:
+    if left_batch is None:
+        return right_batch
+    if right_batch is None:
+        return left_batch
+    if not left_batch.prefill_done or not right_batch.prefill_done:
+        raise ValueError("只有 prefill 完成后的 active batch 才能 merge")
+    if left_batch.k_cache is None or left_batch.v_cache is None or right_batch.k_cache is None or right_batch.v_cache is None:
+        raise ValueError("merge active batch 时缺少 KV cache")
+
+    left_kv_len = int(left_batch.k_cache[0].shape[1])
+    right_kv_len = int(right_batch.k_cache[0].shape[1])
+    merged_kv_len = max(left_kv_len, right_kv_len)
+    merged_mask_len = merged_kv_len + 1
+
+    merged_k_cache: List[torch.Tensor] = []
+    merged_v_cache: List[torch.Tensor] = []
+    for layer_index in range(len(left_batch.k_cache)):
+        merged_k_cache.append(
+            torch.cat(
+                [
+                    _pad_cache_left(left_batch.k_cache[layer_index], merged_kv_len),
+                    _pad_cache_left(right_batch.k_cache[layer_index], merged_kv_len),
+                ],
+                dim=0,
+            )
+        )
+        merged_v_cache.append(
+            torch.cat(
+                [
+                    _pad_cache_left(left_batch.v_cache[layer_index], merged_kv_len),
+                    _pad_cache_left(right_batch.v_cache[layer_index], merged_kv_len),
+                ],
+                dim=0,
+            )
+        )
+
+    merged_decode_attn_mask = torch.cat(
+        [
+            _materialize_decode_mask_for_active_batch(left_batch, merged_mask_len),
+            _materialize_decode_mask_for_active_batch(right_batch, merged_mask_len),
+        ],
+        dim=0,
+    )
+    merged_request_ids = list(left_batch.request_ids) + list(right_batch.request_ids)
+    merged_states = list(left_batch.states) + list(right_batch.states)
+    merged_y_sequences = list(left_batch.y_sequences) + list(right_batch.y_sequences)
+    merged_prefix_lens = torch.cat([left_batch.prefix_lens, right_batch.prefix_lens], dim=0)
+    if left_batch.kv_lens is None or right_batch.kv_lens is None:
+        raise ValueError("merge active batch 时缺少 kv_lens")
+    merged_kv_lens = torch.cat([left_batch.kv_lens, right_batch.kv_lens], dim=0)
+    merged_decode_attn_mask = _compact_decode_mask_to_kv_lens(merged_decode_attn_mask, merged_kv_lens)
+    merged_step_indices = torch.cat([left_batch.step_indices, right_batch.step_indices], dim=0)
+
+    return T2SActiveBatch(
+        request_ids=merged_request_ids,
+        states=merged_states,
+        x=None,
+        x_lens=None,
+        y_sequences=merged_y_sequences,
+        prefix_lens=merged_prefix_lens,
+        xy_pos=build_next_xy_pos(model, merged_y_sequences),
+        key_padding_mask=None,
+        prefill_attn_mask=None,
+        decode_attn_mask=merged_decode_attn_mask,
+        k_cache=merged_k_cache,
+        v_cache=merged_v_cache,
+        kv_lens=merged_kv_lens,
+        step_indices=merged_step_indices,
+        prefill_done=True,
     )
 
 
@@ -804,29 +1076,24 @@ def run_scheduler_continuous(
     max_steps: int,
 ) -> List[T2SFinishedItem]:
     pending = sorted(states, key=lambda item: (item.ready_step, item.request_id))
-    running_requests: List[T2SRunningRequest] = []
+    active_batch: Optional[T2SActiveBatch] = None
     finished: List[T2SFinishedItem] = []
     current_tick = 0
 
-    while pending or running_requests:
+    while pending or active_batch is not None:
         admitted: List[T2SRequestState] = []
         while pending and pending[0].ready_step <= current_tick:
             admitted.append(pending.pop(0))
 
-        admitted_running, admitted_finished = run_prefill_step(model, admitted, max_steps=max_steps)
+        admitted_active_batch, admitted_finished = run_prefill_active_batch(model, admitted, max_steps=max_steps)
         finished.extend(admitted_finished)
+        active_batch = merge_active_batches(model, active_batch, admitted_active_batch)
 
-        if running_requests:
-            running_requests, step_finished = run_decode_step_for_running(
-                model,
-                running_requests,
-                max_steps=max_steps,
-            )
+        if active_batch is not None:
+            active_batch, step_finished = decode_one_step(model, active_batch, max_steps=max_steps)
             finished.extend(step_finished)
 
-        running_requests.extend(admitted_running)
-
-        if not running_requests and pending:
+        if active_batch is None and pending:
             current_tick = max(current_tick + 1, pending[0].ready_step)
             continue
 

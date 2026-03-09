@@ -1,26 +1,27 @@
 import gc
+import concurrent.futures
 import math
 import os
 import random
 import sys
 import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-
-import torchaudio
-from tqdm import tqdm
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-import os
 from typing import List, Tuple, Union
+
+from runtime_preload import preload_text_runtime_deps
+
+preload_text_runtime_deps()
 
 import ffmpeg
 import librosa
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torchaudio
 import yaml
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from BigVGAN.bigvgan import BigVGAN
@@ -30,6 +31,7 @@ from module.models import SynthesizerTrn, SynthesizerTrnV3, Generator
 from peft import LoraConfig, get_peft_model
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 from transformers import AutoModelForMaskedLM, AutoTokenizer
+from tqdm import tqdm
 
 from tools.audio_sr import AP_BWE
 from tools.i18n.i18n import I18nAuto, scan_language_list
@@ -449,20 +451,21 @@ class TTS:
             "overlapped_len": None,
         }
         self.prepare_bert_stage_limiter = StageLimiter(int(os.environ.get("GPTSOVITS_PREPARE_BERT_SLOTS", "1")))
-        self.prepare_ref_audio_stage_limiter = StageLimiter(int(os.environ.get("GPTSOVITS_PREPARE_REF_SLOTS", "2")))
+        self.prepare_ref_audio_stage_limiter = StageLimiter(int(os.environ.get("GPTSOVITS_PREPARE_REF_SLOTS", "4")))
         self.prepare_bert_batch_worker = None
         self.prepare_ref_semantic_batch_worker = None
-        default_text_cpu_workers = 16
         self.prepare_text_cpu_workers = max(
             0,
-            int(os.environ.get("GPTSOVITS_PREPARE_TEXT_CPU_WORKERS", str(default_text_cpu_workers))),
+            int(os.environ.get("GPTSOVITS_PREPARE_TEXT_CPU_WORKERS", "0")),
         )
-        self.prepare_text_cpu_executor = None
-        if self.prepare_text_cpu_workers > 0:
-            self.prepare_text_cpu_executor = ThreadPoolExecutor(
+        self.prepare_text_cpu_executor = (
+            concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.prepare_text_cpu_workers,
                 thread_name_prefix="prepare-text-cpu",
             )
+            if self.prepare_text_cpu_workers > 0
+            else None
+        )
 
         self._init_models()
 
@@ -475,6 +478,20 @@ class TTS:
                 batch_window_ms=int(os.environ.get("GPTSOVITS_PREPARE_BERT_BATCH_WINDOW_MS", "5")),
                 max_batch_items=int(os.environ.get("GPTSOVITS_PREPARE_BERT_BATCH_MAX_ITEMS", "16")),
                 max_batch_tokens=int(os.environ.get("GPTSOVITS_PREPARE_BERT_BATCH_MAX_TOKENS", "4096")),
+                max_pending_tasks=int(os.environ.get("GPTSOVITS_PREPARE_BERT_MAX_PENDING_TASKS", "0")),
+                admission_poll_ms=int(os.environ.get("GPTSOVITS_PREPARE_BERT_ADMISSION_POLL_MS", "1")),
+                high_pressure_pending_threshold=int(
+                    os.environ.get("GPTSOVITS_PREPARE_BERT_HIGH_PRESSURE_PENDING_THRESHOLD", "0")
+                ),
+                high_pressure_batch_window_ms=int(
+                    os.environ.get("GPTSOVITS_PREPARE_BERT_HIGH_PRESSURE_BATCH_WINDOW_MS", "1")
+                ),
+                high_pressure_max_batch_items=int(
+                    os.environ.get("GPTSOVITS_PREPARE_BERT_HIGH_PRESSURE_MAX_ITEMS", "32")
+                ),
+                high_pressure_max_batch_tokens=int(
+                    os.environ.get("GPTSOVITS_PREPARE_BERT_HIGH_PRESSURE_MAX_TOKENS", "8192")
+                ),
             )
         if os.environ.get("GPTSOVITS_PREPARE_REF_BATCHING", "0") != "0":
             ref_max_batch_samples = os.environ.get("GPTSOVITS_PREPARE_REF_BATCH_MAX_SAMPLES")
@@ -830,13 +847,23 @@ class TTS:
         return codes[0, 0].to(self.configs.device)
 
     @torch.inference_mode()
-    def _extract_prompt_semantic_from_raw(self, raw_audio: torch.Tensor, raw_sr: int):
+    def _extract_prompt_semantic_profile_from_raw(self, raw_audio: torch.Tensor, raw_sr: int):
+        cpu_prepare_start = time.perf_counter()
         wav16k = prepare_prompt_semantic_wav16k(
             raw_audio=raw_audio,
             raw_sr=raw_sr,
             zero_wav_samples=int(self.configs.sampling_rate * 0.3),
         )
-        return self._extract_prompt_semantic_from_prepared_wav16k(wav16k)
+        cpu_prepare_ms = (time.perf_counter() - cpu_prepare_start) * 1000.0
+        forward_start = time.perf_counter()
+        prompt_semantic = self._extract_prompt_semantic_from_prepared_wav16k(wav16k)
+        forward_ms = (time.perf_counter() - forward_start) * 1000.0
+        return prompt_semantic, cpu_prepare_ms, forward_ms
+
+    @torch.inference_mode()
+    def _extract_prompt_semantic_from_raw(self, raw_audio: torch.Tensor, raw_sr: int):
+        prompt_semantic, _, _ = self._extract_prompt_semantic_profile_from_raw(raw_audio, raw_sr)
+        return prompt_semantic
 
     def extract_prompt_semantic(self, ref_wav_path: str):
         raw_audio, raw_sr = self._load_ref_audio_raw(ref_wav_path)
@@ -887,7 +914,9 @@ class TTS:
         if self.prepare_ref_semantic_batch_worker is None:
             with self.prepare_ref_audio_stage_limiter.enter() as limiter_stats:
                 prompt_semantic_start = time.perf_counter()
-                prompt_semantic = self._extract_prompt_semantic_from_raw(raw_audio, raw_sr)
+                prompt_semantic, prompt_semantic_cpu_prepare_ms, prompt_semantic_forward_ms = (
+                    self._extract_prompt_semantic_profile_from_raw(raw_audio, raw_sr)
+                )
                 prompt_semantic_ms = (time.perf_counter() - prompt_semantic_start) * 1000.0
                 ref_spec_start = time.perf_counter()
                 refer_spec = self._extract_ref_spec_from_raw(raw_audio, raw_sr)[:2]
@@ -897,8 +926,8 @@ class TTS:
             audio_stage_inflight_peak = float(limiter_stats["peak_inflight"])
             prompt_semantic_profile = {
                 "prompt_semantic_wait_ms": float(limiter_stats["wait_ms"]),
-                "prompt_semantic_cpu_prepare_ms": 0.0,
-                "prompt_semantic_forward_ms": prompt_semantic_ms,
+                "prompt_semantic_cpu_prepare_ms": float(prompt_semantic_cpu_prepare_ms),
+                "prompt_semantic_forward_ms": float(prompt_semantic_forward_ms),
                 "prompt_semantic_scatter_ms": 0.0,
                 "prompt_semantic_stage_slots": float(limiter_stats["slots"]),
                 "prompt_semantic_stage_inflight_peak": float(limiter_stats["peak_inflight"]),
@@ -1010,6 +1039,32 @@ class TTS:
     def extract_text_features(self, text: str, language: str, profile: dict | None = None):
         return self.text_preprocessor.segment_and_extract_feature_for_text(
             text, language, self.configs.version, profile=profile
+        )
+
+    def prepare_text_segments(self, text: str, language: str):
+        return self.text_preprocessor.preprocess_text_segments(text, language, self.configs.version)
+
+    def build_text_features_from_segments(self, prepared_segments, profile: dict | None = None):
+        return self.text_preprocessor.build_phones_and_bert_from_segments(prepared_segments, profile=profile)
+
+    async def build_text_features_from_segments_async(self, prepared_segments, profile: dict | None = None):
+        return await self.text_preprocessor.build_phones_and_bert_from_segments_async(
+            prepared_segments,
+            profile=profile,
+        )
+
+    async def build_text_feature_pair_from_segments_async(
+        self,
+        prompt_segments,
+        target_segments,
+        prompt_profile: dict | None = None,
+        target_profile: dict | None = None,
+    ):
+        return await self.text_preprocessor.build_phones_and_bert_pair_from_segments_async(
+            prompt_segments,
+            target_segments,
+            prompt_profile=prompt_profile,
+            target_profile=target_profile,
         )
 
     def _set_ref_audio_path(self, ref_audio_path):
@@ -2010,6 +2065,79 @@ class TTS:
             speed=speed,
             sample_steps=sample_steps,
         )
+
+    @torch.inference_mode()
+    def synthesize_audio_requests_local_batched(
+        self,
+        semantic_tokens_list: List[torch.Tensor],
+        phones_list: List[torch.Tensor],
+        refer_specs: List[tuple],
+        speeds: List[float] | None = None,
+        sample_steps_list: List[int] | None = None,
+    ) -> List[torch.Tensor]:
+        batch_size = len(semantic_tokens_list)
+        if batch_size == 0:
+            return []
+        if len(phones_list) != batch_size or len(refer_specs) != batch_size:
+            raise ValueError("batched request-local synthesis 输入长度不一致")
+        if speeds is None:
+            speeds = [1.0] * batch_size
+        if sample_steps_list is None:
+            sample_steps_list = [32] * batch_size
+        if len(speeds) != batch_size or len(sample_steps_list) != batch_size:
+            raise ValueError("batched request-local synthesis 参数长度不一致")
+        first_speed = float(speeds[0])
+        first_sample_steps = int(sample_steps_list[0])
+        if any(abs(float(item) - first_speed) > 1e-6 for item in speeds):
+            raise ValueError("batched request-local synthesis 目前要求 speed 一致")
+        if any(int(item) != first_sample_steps for item in sample_steps_list):
+            raise ValueError("batched request-local synthesis 目前要求 sample_steps 一致")
+        if self.configs.use_vocoder:
+            raise NotImplementedError("request-local batched VITS synthesis 暂不支持 vocoder 模型")
+
+        device = self.configs.device
+        max_semantic_len = max(int(item.shape[-1]) for item in semantic_tokens_list)
+        max_phone_len = max(int(item.shape[-1]) for item in phones_list)
+        semantic_batch = torch.zeros((1, batch_size, max_semantic_len), dtype=torch.long, device=device)
+        phone_batch = torch.zeros((batch_size, max_phone_len), dtype=torch.long, device=device)
+        semantic_lengths = []
+        phone_lengths = []
+        refer_audio_specs: List[torch.Tensor] = []
+        sv_emb_batch = None
+        sv_emb_list: List[torch.Tensor] = []
+
+        for batch_index, semantic_tokens in enumerate(semantic_tokens_list):
+            semantic_len = int(semantic_tokens.shape[-1])
+            phone_len = int(phones_list[batch_index].shape[-1])
+            semantic_batch[0, batch_index, :semantic_len] = semantic_tokens.to(device=device, dtype=torch.long)
+            phone_batch[batch_index, :phone_len] = phones_list[batch_index].to(device=device, dtype=torch.long)
+            semantic_lengths.append(semantic_len)
+            phone_lengths.append(phone_len)
+
+            refer_audio_spec, audio_tensor = refer_specs[batch_index]
+            refer_audio_specs.append(refer_audio_spec.to(dtype=self.precision, device=device))
+            if self.is_v2pro:
+                if audio_tensor is None:
+                    raise ValueError(i18n("v2Pro request-local batched synthesis 缺少 16k 参考音频"))
+                sv_emb_list.append(self.sv_model.compute_embedding3(audio_tensor).to(device))
+
+        if self.is_v2pro:
+            sv_emb_batch = torch.cat(sv_emb_list, dim=0)
+
+        audio_batch, audio_lengths = self.vits_model.decode_batched_request_local(
+            codes=semantic_batch,
+            code_lengths=torch.LongTensor(semantic_lengths).to(device),
+            text=phone_batch,
+            text_lengths=torch.LongTensor(phone_lengths).to(device),
+            refer_list=refer_audio_specs,
+            speed=first_speed,
+            sv_emb=sv_emb_batch,
+        )
+        audios: List[torch.Tensor] = []
+        for batch_index in range(batch_size):
+            audio_len = int(audio_lengths[batch_index].item())
+            audios.append(audio_batch[batch_index, 0, :audio_len].detach())
+        return audios
 
     def using_vocoder_synthesis_batched_infer(
         self,

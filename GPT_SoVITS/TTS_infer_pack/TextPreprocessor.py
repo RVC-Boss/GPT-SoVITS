@@ -1,8 +1,10 @@
+import asyncio
 import os
 import sys
 import threading
 import time
 from contextlib import contextmanager
+from dataclasses import dataclass
 
 from tqdm import tqdm
 
@@ -13,12 +15,13 @@ import re
 import torch
 from text.LangSegmenter import LangSegmenter
 from text import chinese
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from text.cleaner import clean_text
 from text import cleaned_text_to_sequence
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 from TTS_infer_pack.prepare_bert_batch_worker import PrepareBertBatchWorker
+from TTS_infer_pack.text_cpu_preprocess import preprocess_text_segments_payload
 
 from tools.i18n.i18n import I18nAuto, scan_language_list
 
@@ -92,6 +95,14 @@ class StageLimiter:
             }
 
 
+@dataclass
+class PreparedTextSegment:
+    language: str
+    phones: List[int]
+    word2ph: Optional[List[int]]
+    norm_text: str
+
+
 class TextPreprocessor:
     def __init__(
         self,
@@ -149,7 +160,7 @@ class TextPreprocessor:
             # 解决输入目标文本的空行导致报错的问题
             if len(text.strip()) == 0:
                 continue
-            if not re.sub("\W+", "", text):
+            if not re.sub(r"\W+", "", text):
                 # 检测一下，如果是纯符号，就跳过。
                 continue
             if text[-1] not in splits:
@@ -168,7 +179,8 @@ class TextPreprocessor:
     def segment_and_extract_feature_for_text(
         self, text: str, language: str, version: str = "v1", profile: Dict | None = None
     ) -> Tuple[list, torch.Tensor, str]:
-        return self.get_phones_and_bert(text, language, version, profile=profile)
+        prepared_segments = self.preprocess_text_segments(text, language, version)
+        return self.build_phones_and_bert_from_segments(prepared_segments, profile=profile)
 
     def _split_text_by_language(self, text: str, language: str) -> Tuple[List[str], List[str]]:
         textlist = []
@@ -223,24 +235,49 @@ class TextPreprocessor:
     def get_phones_and_bert(
         self, text: str, language: str, version: str, final: bool = False, profile: Dict | None = None
     ):
-        text = re.sub(r' {2,}', ' ', text)
-        textlist, langlist = self._split_text_by_language(text, language)
-        phones_list = []
-        bert_list = []
-        norm_text_list = []
-        for segment_text, segment_lang in zip(textlist, langlist):
-            phones, word2ph, norm_text = self.clean_text_inf(segment_text, segment_lang, version)
-            bert = self.get_bert_inf(phones, word2ph, norm_text, segment_lang, profile=profile)
-            phones_list.append(phones)
-            norm_text_list.append(norm_text)
+        prepared_segments = self.preprocess_text_segments(text, language, version, final=final)
+        return self.build_phones_and_bert_from_segments(prepared_segments, profile=profile)
+
+    def preprocess_text_segments(
+        self,
+        text: str,
+        language: str,
+        version: str,
+        final: bool = False,
+    ) -> List[PreparedTextSegment]:
+        payloads = preprocess_text_segments_payload(text, language, version, final=final)
+        return [
+            PreparedTextSegment(
+                language=str(payload["language"]),
+                phones=list(payload["phones"]),
+                word2ph=None if payload["word2ph"] is None else list(payload["word2ph"]),
+                norm_text=str(payload["norm_text"]),
+            )
+            for payload in payloads
+        ]
+
+    def build_phones_and_bert_from_segments(
+        self,
+        prepared_segments: List[PreparedTextSegment],
+        profile: Dict | None = None,
+    ) -> Tuple[list, torch.Tensor, str]:
+        phones_list: List[List[int]] = []
+        bert_list: List[torch.Tensor] = []
+        norm_text_list: List[str] = []
+        for segment in prepared_segments:
+            bert = self.get_bert_inf(
+                segment.phones,
+                segment.word2ph,
+                segment.norm_text,
+                segment.language,
+                profile=profile,
+            )
+            phones_list.append(segment.phones)
+            norm_text_list.append(segment.norm_text)
             bert_list.append(bert)
         bert = torch.cat(bert_list, dim=1)
         phones = sum(phones_list, [])
         norm_text = "".join(norm_text_list)
-
-        if not final and len(phones) < 6:
-            return self.get_phones_and_bert("." + text, language, version, final=True, profile=profile)
-
         return phones, bert, norm_text
 
     def _accumulate_profile(self, profile: Dict | None, key: str, value: float) -> None:
@@ -253,21 +290,41 @@ class TextPreprocessor:
             return
         profile[key] = float(max(float(profile.get(key, 0.0)), float(value)))
 
+    def _merge_bert_worker_profile(self, profile: Dict | None, worker_profile: Dict[str, float]) -> None:
+        self._accumulate_profile(profile, "bert_wait_ms", worker_profile.get("bert_wait_ms", 0.0))
+        self._accumulate_profile(profile, "bert_admission_wait_ms", worker_profile.get("bert_admission_wait_ms", 0.0))
+        self._accumulate_profile(profile, "bert_queue_wait_ms", worker_profile.get("bert_queue_wait_ms", 0.0))
+        self._accumulate_profile(
+            profile,
+            "bert_batch_collect_wait_ms",
+            worker_profile.get("bert_batch_collect_wait_ms", 0.0),
+        )
+        self._accumulate_profile(profile, "bert_forward_ms", worker_profile.get("bert_forward_ms", 0.0))
+        self._accumulate_profile(profile, "bert_tokenize_ms", worker_profile.get("bert_tokenize_ms", 0.0))
+        self._accumulate_profile(profile, "bert_scatter_ms", worker_profile.get("bert_scatter_ms", 0.0))
+        self._accumulate_profile(profile, "bert_calls", worker_profile.get("bert_calls", 1.0))
+        self._update_profile_peak(profile, "bert_stage_inflight_peak", worker_profile.get("bert_stage_inflight_peak", 0.0))
+        self._update_profile_peak(profile, "bert_batch_size_peak", worker_profile.get("bert_batch_size", 0.0))
+        self._update_profile_peak(profile, "bert_batch_tokens_peak", worker_profile.get("bert_batch_tokens", 0.0))
+        self._update_profile_peak(
+            profile,
+            "bert_pending_depth_on_enqueue_peak",
+            worker_profile.get("bert_pending_depth_on_enqueue", 0.0),
+        )
+        self._update_profile_peak(
+            profile,
+            "bert_pending_depth_on_collect_peak",
+            worker_profile.get("bert_pending_depth_on_collect", 0.0),
+        )
+        self._update_profile_peak(profile, "bert_high_pressure_mode_peak", worker_profile.get("bert_high_pressure_mode", 0.0))
+        if profile is not None:
+            profile["bert_stage_slots"] = float(worker_profile.get("bert_stage_slots", 0.0))
+            profile["bert_batch_window_ms"] = float(worker_profile.get("bert_batch_window_ms", 0.0))
+
     def get_bert_feature(self, text: str, word2ph: list, profile: Dict | None = None) -> torch.Tensor:
         if self.bert_batch_worker is not None:
             feature, worker_profile = self.bert_batch_worker.submit(text, word2ph)
-            self._accumulate_profile(profile, "bert_wait_ms", worker_profile.get("bert_wait_ms", 0.0))
-            self._accumulate_profile(profile, "bert_forward_ms", worker_profile.get("bert_forward_ms", 0.0))
-            self._accumulate_profile(profile, "bert_tokenize_ms", worker_profile.get("bert_tokenize_ms", 0.0))
-            self._accumulate_profile(profile, "bert_scatter_ms", worker_profile.get("bert_scatter_ms", 0.0))
-            self._accumulate_profile(profile, "bert_calls", worker_profile.get("bert_calls", 1.0))
-            self._update_profile_peak(
-                profile, "bert_stage_inflight_peak", worker_profile.get("bert_stage_inflight_peak", 0.0)
-            )
-            self._update_profile_peak(profile, "bert_batch_size_peak", worker_profile.get("bert_batch_size", 0.0))
-            self._update_profile_peak(profile, "bert_batch_tokens_peak", worker_profile.get("bert_batch_tokens", 0.0))
-            if profile is not None:
-                profile["bert_stage_slots"] = float(worker_profile.get("bert_stage_slots", 0.0))
+            self._merge_bert_worker_profile(profile, worker_profile)
             return feature
 
         limiter_stats = {"wait_ms": 0.0, "inflight": 1, "peak_inflight": 1, "slots": 0}
@@ -310,9 +367,18 @@ class TextPreprocessor:
         phones = cleaned_text_to_sequence(phones, version)
         return phones, word2ph, norm_text
 
-    def get_bert_inf(self, phones: list, word2ph: list, norm_text: str, language: str, profile: Dict | None = None):
+    def get_bert_inf(
+        self,
+        phones: list,
+        word2ph: Optional[list],
+        norm_text: str,
+        language: str,
+        profile: Dict | None = None,
+    ):
         language = language.replace("all_", "")
         if language == "zh":
+            if word2ph is None:
+                raise ValueError("中文文本缺少 word2ph，无法提取 BERT 特征")
             feature = self.get_bert_feature(norm_text, word2ph, profile=profile).to(self.device)
         else:
             feature = torch.zeros(
@@ -321,6 +387,112 @@ class TextPreprocessor:
             ).to(self.device)
 
         return feature
+
+    async def build_phones_and_bert_from_segments_async(
+        self,
+        prepared_segments: List[PreparedTextSegment],
+        profile: Dict | None = None,
+    ) -> Tuple[list, torch.Tensor, str]:
+        segment_jobs = self._build_async_segment_jobs(prepared_segments, profile)
+        pending_items: List[Tuple[List[torch.Tensor | None], int, Dict | None, asyncio.Future]] = []
+        for segment_index, segment in enumerate(prepared_segments):
+            if segment.language.replace("all_", "") != "zh" or self.bert_batch_worker is None:
+                continue
+            if segment.word2ph is None:
+                raise ValueError("中文文本缺少 word2ph，无法提取 BERT 特征")
+            pending_items.append(
+                (
+                    segment_jobs["bert_list"],
+                    segment_index,
+                    profile,
+                    self.bert_batch_worker.submit_async(segment.norm_text, segment.word2ph),
+                )
+            )
+
+        if pending_items:
+            pending_results = await asyncio.gather(*[future for _, _, _, future in pending_items])
+            for (bert_list, bert_index, item_profile, _), (feature, worker_profile) in zip(pending_items, pending_results):
+                self._merge_bert_worker_profile(item_profile, worker_profile)
+                bert_list[bert_index] = feature.to(self.device)
+
+        return self._finalize_async_segment_jobs(segment_jobs)
+
+    def _build_async_segment_jobs(
+        self,
+        prepared_segments: List[PreparedTextSegment],
+        profile: Dict | None,
+    ) -> Dict[str, List]:
+        phones_list: List[List[int]] = []
+        bert_list: List[torch.Tensor | None] = []
+        norm_text_list: List[str] = []
+
+        for segment in prepared_segments:
+            phones_list.append(segment.phones)
+            norm_text_list.append(segment.norm_text)
+            segment_language = segment.language.replace("all_", "")
+            if segment_language == "zh" and self.bert_batch_worker is not None:
+                if segment.word2ph is None:
+                    raise ValueError("中文文本缺少 word2ph，无法提取 BERT 特征")
+                bert_list.append(None)
+                continue
+            bert_list.append(
+                self.get_bert_inf(
+                    segment.phones,
+                    segment.word2ph,
+                    segment.norm_text,
+                    segment.language,
+                    profile=profile,
+                )
+            )
+        return {
+            "phones_list": phones_list,
+            "bert_list": bert_list,
+            "norm_text_list": norm_text_list,
+        }
+
+    @staticmethod
+    def _finalize_async_segment_jobs(segment_jobs: Dict[str, List]) -> Tuple[list, torch.Tensor, str]:
+        bert = torch.cat([feature for feature in segment_jobs["bert_list"] if feature is not None], dim=1)
+        phones = sum(segment_jobs["phones_list"], [])
+        norm_text = "".join(segment_jobs["norm_text_list"])
+        return phones, bert, norm_text
+
+    async def build_phones_and_bert_pair_from_segments_async(
+        self,
+        prompt_segments: List[PreparedTextSegment],
+        target_segments: List[PreparedTextSegment],
+        prompt_profile: Dict | None = None,
+        target_profile: Dict | None = None,
+    ) -> Tuple[Tuple[list, torch.Tensor, str], Tuple[list, torch.Tensor, str]]:
+        prompt_jobs = self._build_async_segment_jobs(prompt_segments, prompt_profile)
+        target_jobs = self._build_async_segment_jobs(target_segments, target_profile)
+        pending_items: List[Tuple[List[torch.Tensor | None], int, Dict | None, asyncio.Future]] = []
+
+        for segment_jobs, prepared_segments, profile in (
+            (prompt_jobs, prompt_segments, prompt_profile),
+            (target_jobs, target_segments, target_profile),
+        ):
+            for segment_index, segment in enumerate(prepared_segments):
+                if segment.language.replace("all_", "") != "zh" or self.bert_batch_worker is None:
+                    continue
+                if segment.word2ph is None:
+                    raise ValueError("中文文本缺少 word2ph，无法提取 BERT 特征")
+                pending_items.append(
+                    (
+                        segment_jobs["bert_list"],
+                        segment_index,
+                        profile,
+                        self.bert_batch_worker.submit_async(segment.norm_text, segment.word2ph),
+                    )
+                )
+
+        if pending_items:
+            pending_results = await asyncio.gather(*[future for _, _, _, future in pending_items])
+            for (bert_list, bert_index, profile, _), (feature, worker_profile) in zip(pending_items, pending_results):
+                self._merge_bert_worker_profile(profile, worker_profile)
+                bert_list[bert_index] = feature.to(self.device)
+
+        return self._finalize_async_segment_jobs(prompt_jobs), self._finalize_async_segment_jobs(target_jobs)
 
     def filter_text(self, texts):
         _text = []

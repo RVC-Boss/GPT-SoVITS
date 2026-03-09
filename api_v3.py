@@ -107,6 +107,7 @@ import sys
 import time
 import traceback
 import uuid
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator, List, Union
@@ -114,6 +115,10 @@ from typing import Generator, List, Union
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
+
+from runtime_preload import preload_text_runtime_deps
+
+preload_text_runtime_deps()
 
 import argparse
 import subprocess
@@ -128,14 +133,15 @@ import uvicorn
 from io import BytesIO
 from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
+from GPT_SoVITS.TTS_infer_pack.prepare_coordinator import PrepareCoordinator
 from GPT_SoVITS.TTS_infer_pack.t2s_scheduler import (
     SchedulerRequestSpec,
+    T2SActiveBatch,
     T2SFinishedItem,
-    T2SRunningRequest,
     T2SRequestState,
-    prepare_request_state,
-    run_decode_step_for_running,
-    run_prefill_step,
+    merge_active_batches,
+    decode_one_step,
+    run_prefill_active_batch,
     run_scheduler_continuous,
 )
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
@@ -238,22 +244,34 @@ class SchedulerPendingJob:
     request_id: str
     state: T2SRequestState
     done_event: threading.Event
+    done_loop: asyncio.AbstractEventLoop | None
+    done_future: asyncio.Future | None
     enqueue_time: float
     speed_factor: float
     sample_steps: int
     media_type: str
-    prepare_ms: float = 0.0
     prepare_wall_ms: float = 0.0
+    prepare_profile_total_ms: float = 0.0
     first_schedule_time: float | None = None
     prefill_ms: float = 0.0
+    merge_ms: float = 0.0
     decode_ms: float = 0.0
+    finalize_wait_ms: float = 0.0
     synth_ms: float = 0.0
     pack_ms: float = 0.0
     decode_steps: int = 0
+    result_ready_time: float | None = None
     result: dict | None = None
     sample_rate: int | None = None
     audio_data: np.ndarray | None = None
     error: str | None = None
+
+
+@dataclass
+class SchedulerFinalizeTask:
+    request_id: str
+    item: T2SFinishedItem
+    enqueued_time: float
 
 
 class SchedulerDebugWorker:
@@ -261,16 +279,36 @@ class SchedulerDebugWorker:
         self.tts = tts
         self.max_steps = max_steps
         self.micro_batch_wait_s = micro_batch_wait_ms / 1000.0
+        self.prepare_coordinator = PrepareCoordinator(tts)
         self.condition = threading.Condition()
         self.prepare_inflight = 0
         self.prepare_peak_inflight = 0
+        self.finalize_condition = threading.Condition()
+        self.finalize_pending_tasks: deque[SchedulerFinalizeTask] = deque()
+        self.finalize_pending_peak = 0
+        self.finalize_inflight = 0
+        self.finalize_inflight_peak = 0
+        self.finalize_workers = max(1, int(os.environ.get("GPTSOVITS_FINALIZE_WORKERS", 1)))
+        self.finalize_mode = os.environ.get("GPTSOVITS_FINALIZE_MODE", "async").strip().lower()
+        self.finalize_batch_max_items = max(1, int(os.environ.get("GPTSOVITS_FINALIZE_BATCH_MAX_ITEMS", 16)))
+        self.finalize_batch_wait_s = max(0.0, float(os.environ.get("GPTSOVITS_FINALIZE_BATCH_WAIT_MS", "2")) / 1000.0)
         self.pending_jobs: List[SchedulerPendingJob] = []
-        self.running_requests: List[T2SRunningRequest] = []
+        self.active_batch: T2SActiveBatch | None = None
         self.job_map: dict[str, SchedulerPendingJob] = {}
         self.total_finished = 0
         self.total_submitted = 0
         self.worker_thread = threading.Thread(target=self._run_loop, name="t2s-scheduler-debug-worker", daemon=True)
         self.worker_thread.start()
+        self.finalize_threads = [
+            threading.Thread(
+                target=self._run_finalize_loop,
+                name=f"t2s-scheduler-finalize-{worker_index}",
+                daemon=True,
+            )
+            for worker_index in range(self.finalize_workers)
+        ]
+        for finalize_thread in self.finalize_threads:
+            finalize_thread.start()
 
     def _sync_device(self) -> None:
         try:
@@ -283,20 +321,7 @@ class SchedulerDebugWorker:
             pass
 
     def prepare_state(self, spec: SchedulerRequestSpec) -> T2SRequestState:
-        with self.condition:
-            self.prepare_inflight += 1
-            prepare_inflight_on_enter = self.prepare_inflight
-            if self.prepare_inflight > self.prepare_peak_inflight:
-                self.prepare_peak_inflight = self.prepare_inflight
-            prepare_peak_inflight = self.prepare_peak_inflight
-        try:
-            state = prepare_request_state(self.tts, spec)
-            state.prepare_profile["worker_prepare_inflight_on_enter"] = float(prepare_inflight_on_enter)
-            state.prepare_profile["worker_prepare_peak_inflight"] = float(prepare_peak_inflight)
-            return state
-        finally:
-            with self.condition:
-                self.prepare_inflight = max(0, self.prepare_inflight - 1)
+        raise RuntimeError("prepare_state sync path has been replaced by PrepareCoordinator")
 
     def submit(
         self,
@@ -304,26 +329,46 @@ class SchedulerDebugWorker:
         speed_factor: float,
         sample_steps: int,
         media_type: str,
-        prepare_ms: float,
         prepare_wall_ms: float,
+        prepare_profile_total_ms: float,
+        done_loop: asyncio.AbstractEventLoop | None = None,
+        done_future: asyncio.Future | None = None,
     ) -> SchedulerPendingJob:
         job = SchedulerPendingJob(
             request_id=state.request_id,
             state=state,
             done_event=threading.Event(),
+            done_loop=done_loop,
+            done_future=done_future,
             enqueue_time=time.perf_counter(),
             speed_factor=float(speed_factor),
             sample_steps=int(sample_steps),
             media_type=media_type,
-            prepare_ms=float(prepare_ms),
             prepare_wall_ms=float(prepare_wall_ms),
+            prepare_profile_total_ms=float(prepare_profile_total_ms),
         )
         with self.condition:
             self.pending_jobs.append(job)
             self.job_map[job.request_id] = job
             self.total_submitted += 1
             self.condition.notify_all()
+        with self.finalize_condition:
+            self.finalize_condition.notify_all()
         return job
+
+    async def prepare_state_async(self, spec: SchedulerRequestSpec) -> T2SRequestState:
+        state, _, _ = await self.prepare_coordinator.prepare_state_profiled_async(spec, time.perf_counter())
+        return state
+
+    async def prepare_states_batch_async(self, specs: List[SchedulerRequestSpec]) -> List[T2SRequestState]:
+        return await asyncio.gather(*[self.prepare_state_async(spec) for spec in specs])
+
+    async def prepare_state_profiled_async(
+        self,
+        spec: SchedulerRequestSpec,
+        prepare_submit_at: float,
+    ) -> tuple[T2SRequestState, float, float]:
+        return await self.prepare_coordinator.prepare_state_profiled_async(spec, prepare_submit_at)
 
     def _mark_prefill_started(self, jobs: List[SchedulerPendingJob], started_at: float) -> None:
         with self.condition:
@@ -340,6 +385,14 @@ class SchedulerDebugWorker:
                 if tracked_job is not None:
                     tracked_job.prefill_ms += elapsed_ms
 
+    def _add_merge_time(self, request_ids: List[str], elapsed_s: float) -> None:
+        elapsed_ms = elapsed_s * 1000.0
+        with self.condition:
+            for request_id in request_ids:
+                job = self.job_map.get(request_id)
+                if job is not None:
+                    job.merge_ms += elapsed_ms
+
     def _add_decode_time(self, request_ids: List[str], elapsed_s: float) -> None:
         elapsed_ms = elapsed_s * 1000.0
         with self.condition:
@@ -349,16 +402,30 @@ class SchedulerDebugWorker:
                     job.decode_ms += elapsed_ms
                     job.decode_steps += 1
 
+    def _add_finalize_wait_ms(self, request_ids: List[str], elapsed_ms: float) -> None:
+        with self.condition:
+            for request_id in request_ids:
+                job = self.job_map.get(request_id)
+                if job is not None:
+                    job.finalize_wait_ms += elapsed_ms
+
     def _synthesize_finished_audio(self, job: SchedulerPendingJob, item: T2SFinishedItem) -> tuple[int, np.ndarray]:
-        semantic_tokens = item.semantic_tokens.unsqueeze(0).unsqueeze(0).to(self.tts.configs.device)
-        phones = job.state.phones.unsqueeze(0).to(self.tts.configs.device)
+        semantic_tokens = item.semantic_tokens.detach().clone().unsqueeze(0).unsqueeze(0).to(self.tts.configs.device)
+        phones = job.state.phones.detach().clone().unsqueeze(0).to(self.tts.configs.device)
+        prompt_semantic = job.state.prompt_semantic.detach().clone()
+        prompt_phones = job.state.prompt_phones.detach().clone()
+        refer_spec = (
+            job.state.refer_spec[0].detach().clone(),
+            None if job.state.refer_spec[1] is None else job.state.refer_spec[1].detach().clone(),
+        )
+        raw_audio = job.state.raw_audio.detach().clone()
         audio_fragment = self.tts.synthesize_audio_request_local(
             semantic_tokens=semantic_tokens,
             phones=phones,
-            prompt_semantic=job.state.prompt_semantic,
-            prompt_phones=job.state.prompt_phones,
-            refer_spec=job.state.refer_spec,
-            raw_audio=job.state.raw_audio,
+            prompt_semantic=prompt_semantic,
+            prompt_phones=prompt_phones,
+            refer_spec=refer_spec,
+            raw_audio=raw_audio,
             raw_sr=job.state.raw_sr,
             speed=float(job.speed_factor),
             sample_steps=int(job.sample_steps),
@@ -375,6 +442,11 @@ class SchedulerDebugWorker:
         )
 
     def get_state(self) -> dict:
+        with self.finalize_condition:
+            finalize_pending = len(self.finalize_pending_tasks)
+            finalize_pending_peak = self.finalize_pending_peak
+            finalize_inflight = self.finalize_inflight
+            finalize_inflight_peak = self.finalize_inflight_peak
         with self.condition:
             bert_stage = self.tts.prepare_bert_stage_limiter.snapshot()
             ref_audio_stage = self.tts.prepare_ref_audio_stage_limiter.snapshot()
@@ -388,12 +460,24 @@ class SchedulerDebugWorker:
                 if self.tts.prepare_ref_semantic_batch_worker is None
                 else self.tts.prepare_ref_semantic_batch_worker.snapshot()
             )
+            prepare_coordinator_state = self.prepare_coordinator.snapshot()
             return {
                 "pending_jobs": len(self.pending_jobs),
-                "running_requests": len(self.running_requests),
-                "prepare_inflight": self.prepare_inflight,
-                "prepare_peak_inflight": self.prepare_peak_inflight,
+                "running_requests": 0 if self.active_batch is None else len(self.active_batch.request_ids),
+                "prepare_inflight": prepare_coordinator_state["inflight"],
+                "prepare_peak_inflight": prepare_coordinator_state["peak_inflight"],
+                "finalize_pending": finalize_pending,
+                "finalize_pending_peak": finalize_pending_peak,
+                "finalize_inflight": finalize_inflight,
+                "finalize_inflight_peak": finalize_inflight_peak,
+                "finalize_workers": self.finalize_workers,
+                "finalize_mode": self.finalize_mode,
+                "finalize_batch_max_items": self.finalize_batch_max_items,
+                "finalize_batch_wait_ms": self.finalize_batch_wait_s * 1000.0,
+                "prepare_request_executor_workers": 0,
                 "prepare_text_cpu_workers": int(getattr(self.tts, "prepare_text_cpu_workers", 0)),
+                "prepare_text_feature_workers": int(prepare_coordinator_state["text_feature_workers"]),
+                "prepare_ref_audio_workers": int(prepare_coordinator_state["ref_audio_workers"]),
                 "prepare_bert_stage": bert_stage,
                 "prepare_bert_batch_worker": bert_batch_worker,
                 "prepare_ref_audio_stage": ref_audio_stage,
@@ -405,59 +489,217 @@ class SchedulerDebugWorker:
                 "micro_batch_wait_ms": int(self.micro_batch_wait_s * 1000),
             }
 
-    def _finalize_finished(self, items: List[T2SFinishedItem]) -> None:
+    def _enqueue_finalize_finished(self, items: List[T2SFinishedItem]) -> None:
         if not items:
             return
-        jobs_to_finalize: List[tuple[SchedulerPendingJob, T2SFinishedItem]] = []
+        tasks: List[SchedulerFinalizeTask] = []
+        enqueued_time = time.perf_counter()
         with self.condition:
             for item in items:
                 job = self.job_map.get(item.request_id)
                 if job is not None:
-                    jobs_to_finalize.append((job, item))
+                    tasks.append(
+                        SchedulerFinalizeTask(
+                            request_id=item.request_id,
+                            item=item,
+                            enqueued_time=enqueued_time,
+                        )
+                    )
+        if not tasks:
+            return
+        with self.finalize_condition:
+            self.finalize_pending_tasks.extend(tasks)
+            if len(self.finalize_pending_tasks) > self.finalize_pending_peak:
+                self.finalize_pending_peak = len(self.finalize_pending_tasks)
+            self.finalize_condition.notify_all()
 
-        for job, item in jobs_to_finalize:
+    @staticmethod
+    def _finalize_batch_key(job: SchedulerPendingJob) -> tuple[float, int]:
+        return (round(float(job.speed_factor), 6), int(job.sample_steps))
+
+    def _take_finalize_task_batch(self) -> List[SchedulerFinalizeTask]:
+        with self.finalize_condition:
+            while not self.finalize_pending_tasks:
+                self.finalize_condition.wait()
+            if self.finalize_mode == "after_t2s_drain":
+                while not self._is_t2s_drained():
+                    self.finalize_condition.wait(timeout=self.micro_batch_wait_s)
+            task = self.finalize_pending_tasks.popleft()
+            selected_tasks = [task]
+            batch_key = None
+            with self.condition:
+                first_job = self.job_map.get(task.request_id)
+                if first_job is not None:
+                    batch_key = self._finalize_batch_key(first_job)
+            batch_deadline = time.perf_counter() + self.finalize_batch_wait_s
+            while len(selected_tasks) < self.finalize_batch_max_items:
+                if batch_key is None:
+                    break
+                matched_index = None
+                for pending_index, pending_task in enumerate(self.finalize_pending_tasks):
+                    with self.condition:
+                        pending_job = self.job_map.get(pending_task.request_id)
+                    if pending_job is None:
+                        matched_index = pending_index
+                        break
+                    if self._finalize_batch_key(pending_job) == batch_key:
+                        matched_index = pending_index
+                        break
+                if matched_index is not None:
+                    selected_tasks.append(self.finalize_pending_tasks[matched_index])
+                    del self.finalize_pending_tasks[matched_index]
+                    continue
+                remaining = batch_deadline - time.perf_counter()
+                if remaining <= 0:
+                    break
+                self.finalize_condition.wait(timeout=remaining)
+            self.finalize_inflight += len(selected_tasks)
+            if self.finalize_inflight > self.finalize_inflight_peak:
+                self.finalize_inflight_peak = self.finalize_inflight
+            return selected_tasks
+
+    def _finalize_task_done(self, count: int) -> None:
+        with self.finalize_condition:
+            self.finalize_inflight = max(0, self.finalize_inflight - count)
+
+    def _is_t2s_drained(self) -> bool:
+        with self.condition:
+            return (
+                self.active_batch is None
+                and not self.pending_jobs
+                and self.prepare_inflight <= 0
+            )
+
+    def _complete_finalize_task(self, job: SchedulerPendingJob, item: T2SFinishedItem, sample_rate: int, audio_data: np.ndarray) -> None:
+        finished_at = time.perf_counter()
+        with self.condition:
+            if self.job_map.get(item.request_id) is not job:
+                return
+            queue_wait_ms = 0.0
+            if job.first_schedule_time is not None:
+                queue_wait_ms = max(0.0, (job.first_schedule_time - job.enqueue_time) * 1000.0)
+            worker_total_ms = max(0.0, (finished_at - job.enqueue_time) * 1000.0)
+            worker_residual_ms = max(
+                0.0,
+                worker_total_ms
+                - queue_wait_ms
+                - job.prefill_ms
+                - job.merge_ms
+                - job.decode_ms
+                - job.finalize_wait_ms
+                - job.synth_ms,
+            )
+            worker_other_ms = max(0.0, job.merge_ms + job.finalize_wait_ms + worker_residual_ms)
+            job.sample_rate = int(sample_rate)
+            job.audio_data = audio_data
+            job.result_ready_time = finished_at
+            prepare_profile = dict(job.state.prepare_profile)
+            job.result = {
+                "request_id": item.request_id,
+                "semantic_len": int(item.semantic_tokens.shape[0]),
+                "finish_idx": int(item.finish_idx),
+                "finish_reason": item.finish_reason,
+                "prepare_ms": job.prepare_wall_ms,
+                "prepare_wall_ms": job.prepare_wall_ms,
+                "prepare_profile_total_ms": job.prepare_profile_total_ms,
+                "prepare_profile": prepare_profile,
+                "queue_wait_ms": queue_wait_ms,
+                "prefill_ms": job.prefill_ms,
+                "merge_ms": job.merge_ms,
+                "decode_ms": job.decode_ms,
+                "finalize_wait_ms": job.finalize_wait_ms,
+                "synth_ms": job.synth_ms,
+                "worker_residual_ms": worker_residual_ms,
+                "worker_other_ms": worker_other_ms,
+                "worker_total_ms": worker_total_ms,
+                "decode_steps": int(job.decode_steps),
+                "sample_rate": int(sample_rate),
+                "media_type": job.media_type,
+            }
+            job.done_event.set()
+            self._notify_done_future(job)
+            self.job_map.pop(item.request_id, None)
+            self.total_finished += 1
+
+    def _synthesize_finished_audio_batch(
+        self,
+        jobs_and_items: List[tuple[SchedulerPendingJob, T2SFinishedItem]],
+    ) -> List[tuple[int, np.ndarray]]:
+        semantic_tokens_list = [item.semantic_tokens.detach().clone() for _, item in jobs_and_items]
+        phones_list = [job.state.phones.detach().clone() for job, _ in jobs_and_items]
+        refer_specs = []
+        speeds = []
+        sample_steps_list = []
+        for job, _ in jobs_and_items:
+            refer_specs.append(
+                (
+                    job.state.refer_spec[0].detach().clone(),
+                    None if job.state.refer_spec[1] is None else job.state.refer_spec[1].detach().clone(),
+                )
+            )
+            speeds.append(float(job.speed_factor))
+            sample_steps_list.append(int(job.sample_steps))
+        audio_fragments = self.tts.synthesize_audio_requests_local_batched(
+            semantic_tokens_list=semantic_tokens_list,
+            phones_list=phones_list,
+            refer_specs=refer_specs,
+            speeds=speeds,
+            sample_steps_list=sample_steps_list,
+        )
+        output_sr = self.tts.configs.sampling_rate if not self.tts.configs.use_vocoder else self.tts.vocoder_configs["sr"]
+        results: List[tuple[int, np.ndarray]] = []
+        for (job, _), audio_fragment in zip(jobs_and_items, audio_fragments):
+            results.append(
+                self.tts.audio_postprocess(
+                    audio=[[audio_fragment]],
+                    sr=int(output_sr),
+                    batch_index_list=None,
+                    speed_factor=float(job.speed_factor),
+                    split_bucket=False,
+                    fragment_interval=0.0,
+                    super_sampling=False,
+                )
+            )
+        return results
+
+    def _run_finalize_loop(self) -> None:
+        while True:
+            tasks = self._take_finalize_task_batch()
             try:
+                jobs_and_items: List[tuple[SchedulerPendingJob, T2SFinishedItem]] = []
+                finalize_wait_request_ids: List[str] = []
+                with self.condition:
+                    for task in tasks:
+                        job = self.job_map.get(task.request_id)
+                        if job is None:
+                            continue
+                        jobs_and_items.append((job, task.item))
+                        finalize_wait_request_ids.append(task.request_id)
+                if not jobs_and_items:
+                    continue
+                now = time.perf_counter()
+                for task in tasks:
+                    self._add_finalize_wait_ms([task.request_id], max(0.0, (now - task.enqueued_time) * 1000.0))
                 self._sync_device()
                 synth_start = time.perf_counter()
-                sample_rate, audio_data = self._synthesize_finished_audio(job, item)
+                if len(jobs_and_items) == 1 or self.tts.configs.use_vocoder:
+                    job, item = jobs_and_items[0]
+                    batch_results = [self._synthesize_finished_audio(job, item)]
+                else:
+                    batch_results = self._synthesize_finished_audio_batch(jobs_and_items)
                 self._sync_device()
                 synth_ms = (time.perf_counter() - synth_start) * 1000.0
+                with self.condition:
+                    for job, _ in jobs_and_items:
+                        tracked_job = self.job_map.get(job.request_id)
+                        if tracked_job is not None:
+                            tracked_job.synth_ms += synth_ms
+                for (job, item), (sample_rate, audio_data) in zip(jobs_and_items, batch_results):
+                    self._complete_finalize_task(job, item, sample_rate=sample_rate, audio_data=audio_data)
             except Exception as exc:
-                self._finalize_error([item.request_id], str(exc))
-                continue
-
-            finished_at = time.perf_counter()
-            with self.condition:
-                if self.job_map.get(item.request_id) is not job:
-                    continue
-                queue_wait_ms = 0.0
-                if job.first_schedule_time is not None:
-                    queue_wait_ms = max(0.0, (job.first_schedule_time - job.enqueue_time) * 1000.0)
-                worker_total_ms = max(0.0, (finished_at - job.enqueue_time) * 1000.0)
-                job.synth_ms += synth_ms
-                job.sample_rate = int(sample_rate)
-                job.audio_data = audio_data
-                prepare_profile = dict(job.state.prepare_profile)
-                job.result = {
-                    "request_id": item.request_id,
-                    "semantic_len": int(item.semantic_tokens.shape[0]),
-                    "finish_idx": int(item.finish_idx),
-                    "finish_reason": item.finish_reason,
-                    "prepare_ms": job.prepare_ms,
-                    "prepare_wall_ms": job.prepare_wall_ms,
-                    "prepare_profile": prepare_profile,
-                    "queue_wait_ms": queue_wait_ms,
-                    "prefill_ms": job.prefill_ms,
-                    "decode_ms": job.decode_ms,
-                    "synth_ms": job.synth_ms,
-                    "worker_total_ms": worker_total_ms,
-                    "decode_steps": int(job.decode_steps),
-                    "sample_rate": int(sample_rate),
-                    "media_type": job.media_type,
-                }
-                job.done_event.set()
-                self.job_map.pop(item.request_id, None)
-                self.total_finished += 1
+                self._finalize_error([task.request_id for task in tasks], str(exc))
+            finally:
+                self._finalize_task_done(len(tasks))
 
     def _finalize_error(self, request_ids: List[str], error: str) -> None:
         if not request_ids:
@@ -469,12 +711,28 @@ class SchedulerDebugWorker:
                     continue
                 job.error = error
                 job.done_event.set()
+                self._notify_done_future(job)
                 self.job_map.pop(request_id, None)
                 self.total_finished += 1
 
+    @staticmethod
+    def _resolve_done_future(job: SchedulerPendingJob) -> None:
+        future = job.done_future
+        if future is None or future.done():
+            return
+        future.set_result(True)
+
+    def _notify_done_future(self, job: SchedulerPendingJob) -> None:
+        if job.done_loop is None or job.done_future is None:
+            return
+        try:
+            job.done_loop.call_soon_threadsafe(self._resolve_done_future, job)
+        except RuntimeError:
+            pass
+
     def _take_pending_snapshot(self, wait_for_batch: bool) -> List[SchedulerPendingJob]:
         with self.condition:
-            if not self.pending_jobs and not self.running_requests:
+            if not self.pending_jobs and self.active_batch is None:
                 self.condition.wait(timeout=self.micro_batch_wait_s)
             elif wait_for_batch and self.pending_jobs:
                 self.condition.wait(timeout=self.micro_batch_wait_s)
@@ -482,11 +740,13 @@ class SchedulerDebugWorker:
                 return []
             pending = list(self.pending_jobs)
             self.pending_jobs.clear()
+            with self.finalize_condition:
+                self.finalize_condition.notify_all()
             return pending
 
     def _run_loop(self) -> None:
         while True:
-            wait_for_batch = len(self.running_requests) == 0
+            wait_for_batch = self.active_batch is None
             pending_jobs = self._take_pending_snapshot(wait_for_batch=wait_for_batch)
 
             if pending_jobs:
@@ -494,37 +754,54 @@ class SchedulerDebugWorker:
                     self._sync_device()
                     prefill_start = time.perf_counter()
                     self._mark_prefill_started(pending_jobs, prefill_start)
-                    admitted_running, admitted_finished = run_prefill_step(
+                    admitted_active_batch, admitted_finished = run_prefill_active_batch(
                         self.tts.t2s_model.model,
                         [job.state for job in pending_jobs],
                         max_steps=self.max_steps,
                     )
                     self._sync_device()
                     self._add_prefill_time(pending_jobs, time.perf_counter() - prefill_start)
-                    self._finalize_finished(admitted_finished)
-                    self.running_requests.extend(admitted_running)
+                    self._enqueue_finalize_finished(admitted_finished)
+                    merge_start = time.perf_counter()
+                    self.active_batch = merge_active_batches(
+                        self.tts.t2s_model.model,
+                        self.active_batch,
+                        admitted_active_batch,
+                    )
+                    self._add_merge_time(
+                        [] if self.active_batch is None else list(self.active_batch.request_ids),
+                        time.perf_counter() - merge_start,
+                    )
+                    with self.finalize_condition:
+                        self.finalize_condition.notify_all()
                 except Exception as exc:
                     self._finalize_error([job.request_id for job in pending_jobs], str(exc))
 
-            if self.running_requests:
+            if self.active_batch is not None:
                 try:
-                    active_request_ids = [item.state.request_id for item in self.running_requests]
+                    active_request_ids = [state.request_id for state in self.active_batch.states]
                     self._sync_device()
                     decode_start = time.perf_counter()
-                    self.running_requests, step_finished = run_decode_step_for_running(
+                    self.active_batch, step_finished = decode_one_step(
                         self.tts.t2s_model.model,
-                        self.running_requests,
+                        self.active_batch,
                         max_steps=self.max_steps,
                     )
                     self._sync_device()
                     self._add_decode_time(active_request_ids, time.perf_counter() - decode_start)
-                    self._finalize_finished(step_finished)
+                    self._enqueue_finalize_finished(step_finished)
+                    with self.finalize_condition:
+                        self.finalize_condition.notify_all()
                 except Exception as exc:
                     self._finalize_error(active_request_ids, str(exc))
-                    self.running_requests = []
+                    self.active_batch = None
+                    with self.finalize_condition:
+                        self.finalize_condition.notify_all()
                 continue
 
             if not pending_jobs:
+                with self.finalize_condition:
+                    self.finalize_condition.notify_all()
                 time.sleep(self.micro_batch_wait_s)
 
 
@@ -788,10 +1065,6 @@ def summarize_scheduler_finished(items: List[T2SFinishedItem]) -> List[dict]:
     ]
 
 
-def prepare_scheduler_states_batch(specs: List[SchedulerRequestSpec]) -> List[T2SRequestState]:
-    return [scheduler_debug_worker.prepare_state(spec) for spec in specs]
-
-
 def build_scheduler_submit_spec(request: Scheduler_Submit_Request) -> SchedulerRequestSpec:
     payload = request.dict()
     request_id = payload["request_id"] or f"job_{uuid.uuid4().hex[:12]}"
@@ -845,7 +1118,7 @@ async def tts_scheduler_debug_handle(request: Scheduler_Debug_Request):
     try:
         set_scheduler_seed(request.seed)
         specs = build_scheduler_request_specs(request.requests)
-        states = await asyncio.to_thread(prepare_scheduler_states_batch, specs)
+        states = await scheduler_debug_worker.prepare_states_batch_async(specs)
         finished = run_scheduler_continuous(tts_pipeline.t2s_model.model, states, max_steps=int(request.max_steps))
         return JSONResponse(
             status_code=200,
@@ -867,20 +1140,51 @@ async def tts_scheduler_debug_handle(request: Scheduler_Debug_Request):
 async def tts_scheduler_submit_handle(request: Scheduler_Submit_Request):
     try:
         request_start = time.perf_counter()
+        prepare_start = request_start
         spec = build_scheduler_submit_spec(request)
-        prepare_start = time.perf_counter()
-        state = await asyncio.to_thread(scheduler_debug_worker.prepare_state, spec)
-        prepare_wall_ms = (time.perf_counter() - prepare_start) * 1000.0
-        prepare_ms = float(state.prepare_profile.get("total_ms", prepare_wall_ms))
+        spec_ready_at = time.perf_counter()
+        prepare_spec_build_ms = max(0.0, (spec_ready_at - prepare_start) * 1000.0)
+        state, prepare_exec_started_at, prepare_exec_finished_at = await scheduler_debug_worker.prepare_state_profiled_async(
+            spec,
+            spec_ready_at,
+        )
+        prepare_end = time.perf_counter()
+        prepare_wall_ms = (prepare_end - prepare_start) * 1000.0
+        prepare_profile_total_ms = float(state.prepare_profile.get("total_ms", prepare_wall_ms))
+        prepare_profile_wall_ms = float(state.prepare_profile.get("wall_total_ms", prepare_profile_total_ms))
+        prepare_executor_queue_ms = float(
+            state.prepare_profile.get("executor_queue_ms", max(0.0, (prepare_exec_started_at - spec_ready_at) * 1000.0))
+        )
+        prepare_executor_run_ms = float(
+            state.prepare_profile.get(
+                "executor_run_wall_ms",
+                max(0.0, (prepare_exec_finished_at - prepare_exec_started_at) * 1000.0),
+            )
+        )
+        prepare_other_ms = max(
+            0.0,
+            prepare_wall_ms - prepare_spec_build_ms - prepare_executor_queue_ms - prepare_profile_wall_ms,
+        )
+        loop = asyncio.get_running_loop()
+        done_future = loop.create_future()
         job = scheduler_debug_worker.submit(
             state,
             speed_factor=float(request.speed_factor),
             sample_steps=int(request.sample_steps),
             media_type=request.media_type,
-            prepare_ms=prepare_ms,
             prepare_wall_ms=prepare_wall_ms,
+            prepare_profile_total_ms=prepare_profile_total_ms,
+            done_loop=loop,
+            done_future=done_future,
         )
-        timeout_ok = await asyncio.to_thread(job.done_event.wait, float(request.timeout_sec))
+        api_after_prepare_ms = max(0.0, (job.enqueue_time - prepare_end) * 1000.0)
+        timeout_ok = False
+        try:
+            await asyncio.wait_for(asyncio.shield(done_future), timeout=float(request.timeout_sec))
+            timeout_ok = True
+        except asyncio.TimeoutError:
+            timeout_ok = False
+        wait_return_at = time.perf_counter()
         if not timeout_ok:
             return JSONResponse(
                 status_code=202,
@@ -888,8 +1192,10 @@ async def tts_scheduler_submit_handle(request: Scheduler_Submit_Request):
                     "message": "queued",
                     "request_id": job.request_id,
                     "timings": {
-                        "prepare_ms": prepare_ms,
+                        "prepare_ms": prepare_wall_ms,
                         "prepare_wall_ms": prepare_wall_ms,
+                        "prepare_profile_total_ms": prepare_profile_total_ms,
+                        "api_after_prepare_ms": api_after_prepare_ms,
                         "request_elapsed_ms": max(0.0, (time.perf_counter() - request_start) * 1000.0),
                     },
                     "worker_state": scheduler_debug_worker.get_state(),
@@ -911,9 +1217,13 @@ async def tts_scheduler_submit_handle(request: Scheduler_Submit_Request):
             )
         pack_start = time.perf_counter()
         audio_data = pack_audio(BytesIO(), job.audio_data, int(job.sample_rate), job.media_type).getvalue()
-        pack_ms = (time.perf_counter() - pack_start) * 1000.0
+        pack_end = time.perf_counter()
+        pack_ms = (pack_end - pack_start) * 1000.0
         job.pack_ms = pack_ms
-        request_total_ms = max(0.0, (time.perf_counter() - request_start) * 1000.0)
+        api_wait_result_ms = 0.0
+        if job.result_ready_time is not None:
+            api_wait_result_ms = max(0.0, (wait_return_at - job.result_ready_time) * 1000.0)
+        worker_total_ms = float(job.result["worker_total_ms"]) if job.result is not None else 0.0
         headers = {
             "X-Request-Id": job.request_id,
             "X-Semantic-Len": str(job.result["semantic_len"]) if job.result is not None else "0",
@@ -921,16 +1231,32 @@ async def tts_scheduler_submit_handle(request: Scheduler_Submit_Request):
             "X-Queue-Wait-Ms": (
                 f"{float(job.result['queue_wait_ms']):.3f}" if job.result is not None else "0.000"
             ),
-            "X-Prepare-Ms": f"{prepare_ms:.3f}",
+            "X-Prepare-Ms": f"{prepare_wall_ms:.3f}",
             "X-Prepare-Wall-Ms": f"{prepare_wall_ms:.3f}",
+            "X-Prepare-Spec-Build-Ms": f"{prepare_spec_build_ms:.3f}",
+            "X-Prepare-Executor-Queue-Ms": f"{prepare_executor_queue_ms:.3f}",
+            "X-Prepare-Admission-Wait-Ms": (
+                f"{float(job.result['prepare_profile'].get('prepare_admission_wait_ms', 0.0)):.3f}"
+                if job.result is not None
+                else "0.000"
+            ),
+            "X-Prepare-Executor-Run-Ms": f"{prepare_executor_run_ms:.3f}",
+            "X-Prepare-Profile-Total-Ms": f"{prepare_profile_total_ms:.3f}",
+            "X-Prepare-Profile-Wall-Ms": f"{prepare_profile_wall_ms:.3f}",
+            "X-Prepare-Other-Ms": f"{prepare_other_ms:.3f}",
+            "X-Api-After-Prepare-Ms": f"{api_after_prepare_ms:.3f}",
             "X-Prefill-Ms": f"{float(job.result['prefill_ms']):.3f}" if job.result is not None else "0.000",
+            "X-Merge-Ms": f"{float(job.result['merge_ms']):.3f}" if job.result is not None else "0.000",
             "X-Decode-Ms": f"{float(job.result['decode_ms']):.3f}" if job.result is not None else "0.000",
+            "X-Finalize-Wait-Ms": f"{float(job.result['finalize_wait_ms']):.3f}" if job.result is not None else "0.000",
             "X-Synth-Ms": f"{float(job.result['synth_ms']):.3f}" if job.result is not None else "0.000",
+            "X-Worker-Residual-Ms": f"{float(job.result['worker_residual_ms']):.3f}" if job.result is not None else "0.000",
+            "X-Worker-Other-Ms": f"{float(job.result['worker_other_ms']):.3f}" if job.result is not None else "0.000",
             "X-Pack-Ms": f"{pack_ms:.3f}",
             "X-Worker-Total-Ms": (
                 f"{float(job.result['worker_total_ms']):.3f}" if job.result is not None else "0.000"
             ),
-            "X-Request-Total-Ms": f"{request_total_ms:.3f}",
+            "X-Api-Wait-Result-Ms": f"{api_wait_result_ms:.3f}",
             "X-Decode-Steps": str(job.result["decode_steps"]) if job.result is not None else "0",
         }
         if job.result is not None:
@@ -939,16 +1265,48 @@ async def tts_scheduler_submit_handle(request: Scheduler_Submit_Request):
                 {
                     "X-Prepare-Prompt-Text-Ms": f"{float(prepare_profile.get('prompt_text_features_ms', 0.0)):.3f}",
                     "X-Prepare-Target-Text-Ms": f"{float(prepare_profile.get('text_features_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Text-CPU-Preprocess-Ms": f"{float(prepare_profile.get('prompt_text_cpu_preprocess_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Text-CPU-Preprocess-Ms": f"{float(prepare_profile.get('text_cpu_preprocess_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Text-CPU-Queue-Ms": f"{float(prepare_profile.get('prompt_text_cpu_queue_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Text-CPU-Queue-Ms": f"{float(prepare_profile.get('text_cpu_queue_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Text-Feature-Queue-Ms": f"{float(prepare_profile.get('prompt_text_feature_queue_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Text-Feature-Queue-Ms": f"{float(prepare_profile.get('text_feature_queue_ms', 0.0)):.3f}",
                     "X-Prepare-Prompt-Bert-Wait-Ms": f"{float(prepare_profile.get('prompt_text_bert_wait_ms', 0.0)):.3f}",
                     "X-Prepare-Target-Bert-Wait-Ms": f"{float(prepare_profile.get('text_bert_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Bert-Admission-Wait-Ms": f"{float(prepare_profile.get('prompt_text_bert_admission_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Bert-Admission-Wait-Ms": f"{float(prepare_profile.get('text_bert_admission_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Bert-Queue-Wait-Ms": f"{float(prepare_profile.get('prompt_text_bert_queue_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Bert-Queue-Wait-Ms": f"{float(prepare_profile.get('text_bert_queue_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Bert-Batch-Collect-Wait-Ms": f"{float(prepare_profile.get('prompt_text_bert_batch_collect_wait_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Bert-Batch-Collect-Wait-Ms": f"{float(prepare_profile.get('text_bert_batch_collect_wait_ms', 0.0)):.3f}",
                     "X-Prepare-Prompt-Bert-Forward-Ms": f"{float(prepare_profile.get('prompt_text_bert_forward_ms', 0.0)):.3f}",
                     "X-Prepare-Target-Bert-Forward-Ms": f"{float(prepare_profile.get('text_bert_forward_ms', 0.0)):.3f}",
+                    "X-Prepare-Prompt-Bert-Pending-On-Enqueue-Peak": str(
+                        int(prepare_profile.get("prompt_text_bert_pending_depth_on_enqueue_peak", 0.0))
+                    ),
+                    "X-Prepare-Target-Bert-Pending-On-Enqueue-Peak": str(
+                        int(prepare_profile.get("text_bert_pending_depth_on_enqueue_peak", 0.0))
+                    ),
+                    "X-Prepare-Prompt-Bert-Pending-On-Collect-Peak": str(
+                        int(prepare_profile.get("prompt_text_bert_pending_depth_on_collect_peak", 0.0))
+                    ),
+                    "X-Prepare-Target-Bert-Pending-On-Collect-Peak": str(
+                        int(prepare_profile.get("text_bert_pending_depth_on_collect_peak", 0.0))
+                    ),
+                    "X-Prepare-Prompt-Bert-High-Pressure-Peak": str(
+                        int(prepare_profile.get("prompt_text_bert_high_pressure_mode_peak", 0.0))
+                    ),
+                    "X-Prepare-Target-Bert-High-Pressure-Peak": str(
+                        int(prepare_profile.get("text_bert_high_pressure_mode_peak", 0.0))
+                    ),
                     "X-Prepare-Prompt-Bert-Batch-Size-Peak": str(
                         int(prepare_profile.get("prompt_text_bert_batch_size_peak", 0.0))
                     ),
                     "X-Prepare-Target-Bert-Batch-Size-Peak": str(
                         int(prepare_profile.get("text_bert_batch_size_peak", 0.0))
                     ),
+                    "X-Prepare-Prompt-Bert-Batch-Window-Ms": f"{float(prepare_profile.get('prompt_text_bert_batch_window_ms', 0.0)):.3f}",
+                    "X-Prepare-Target-Bert-Batch-Window-Ms": f"{float(prepare_profile.get('text_bert_batch_window_ms', 0.0)):.3f}",
                     "X-Prepare-Text-Pair-Wall-Ms": f"{float(prepare_profile.get('text_feature_pair_ms', 0.0)):.3f}",
                     "X-Prepare-Text-CPU-Workers": str(int(prepare_profile.get("text_cpu_parallel_workers", 0.0))),
                     "X-Prepare-Audio-Load-Ms": f"{float(prepare_profile.get('audio_load_ms', 0.0)):.3f}",
@@ -964,13 +1322,22 @@ async def tts_scheduler_submit_handle(request: Scheduler_Submit_Request):
                     "X-Prepare-Ref-Spec-Wait-Ms": f"{float(prepare_profile.get('ref_spec_wait_ms', 0.0)):.3f}",
                     "X-Prepare-Ref-Bundle-Ms": f"{float(prepare_profile.get('ref_audio_bundle_ms', 0.0)):.3f}",
                     "X-Prepare-Tensorize-Ms": f"{float(prepare_profile.get('tensorize_ms', 0.0)):.3f}",
-                    "X-Prepare-Profile-Wall-Ms": f"{float(prepare_profile.get('wall_total_ms', 0.0)):.3f}",
                     "X-Prepare-Inflight-On-Enter": str(
                         int(prepare_profile.get("worker_prepare_inflight_on_enter", 0.0))
                     ),
                     "X-Prepare-Inflight-Peak": str(int(prepare_profile.get("worker_prepare_peak_inflight", 0.0))),
                 }
             )
+        response_ready_at = time.perf_counter()
+        response_overhead_ms = max(0.0, (response_ready_at - pack_end) * 1000.0)
+        request_total_ms = max(0.0, (response_ready_at - request_start) * 1000.0)
+        request_other_ms = max(
+            0.0,
+            request_total_ms - prepare_wall_ms - api_after_prepare_ms - worker_total_ms - api_wait_result_ms - pack_ms,
+        )
+        headers["X-Response-Overhead-Ms"] = f"{response_overhead_ms:.3f}"
+        headers["X-Request-Other-Ms"] = f"{request_other_ms:.3f}"
+        headers["X-Request-Total-Ms"] = f"{request_total_ms:.3f}"
         return Response(audio_data, media_type=f"audio/{job.media_type}", headers=headers)
     except Exception as e:
         return JSONResponse(

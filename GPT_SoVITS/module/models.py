@@ -2,6 +2,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 import math
+from typing import List
 
 import torch
 from torch import nn
@@ -1037,6 +1038,67 @@ class SynthesizerTrn(nn.Module):
 
         o = self.dec((z * y_mask)[:, :, :], g=ge)
         return o
+
+    @torch.no_grad()
+    def decode_batched_request_local(
+        self,
+        codes: torch.Tensor,
+        code_lengths: torch.Tensor,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        refer_list: List[torch.Tensor],
+        noise_scale: float = 0.5,
+        speed: float = 1,
+        sv_emb: torch.Tensor | None = None,
+    ):
+        batch_size = int(codes.size(1))
+        if batch_size <= 0:
+            raise ValueError("decode_batched_request_local 收到空 batch")
+        if len(refer_list) != batch_size:
+            raise ValueError("refer_list 数量与 batch size 不一致")
+
+        refer_lengths = torch.LongTensor([int(item.size(2)) for item in refer_list]).to(codes.device)
+        max_refer_len = int(refer_lengths.max().item())
+        refer_batch = torch.zeros(
+            (batch_size, int(refer_list[0].size(1)), max_refer_len),
+            dtype=refer_list[0].dtype,
+            device=codes.device,
+        )
+        for batch_index, refer in enumerate(refer_list):
+            refer_batch[batch_index, :, : int(refer.size(2))] = refer.squeeze(0)
+        refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, max_refer_len), 1).to(refer_batch.dtype)
+        if self.version == "v1":
+            ge = self.ref_enc(refer_batch * refer_mask, refer_mask)
+        else:
+            ge = self.ref_enc(refer_batch[:, :704] * refer_mask, refer_mask)
+        if self.is_v2pro:
+            if sv_emb is None:
+                raise ValueError("v2Pro batched request-local synthesis 缺少 sv_emb")
+            ge = ge + self.sv_emb(sv_emb).unsqueeze(-1)
+            ge = self.prelu(ge)
+
+        quantized = self.quantizer.decode(codes)
+        if self.semantic_frame_rate == "25hz":
+            quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")
+        y_lengths = code_lengths.to(device=codes.device, dtype=torch.long) * 2
+        text_lengths = text_lengths.to(device=text.device, dtype=torch.long)
+        x, m_p, logs_p, y_mask, _, _ = self.enc_p(
+            quantized,
+            y_lengths,
+            text,
+            text_lengths,
+            self.ge_to512(ge.transpose(2, 1)).transpose(2, 1) if self.is_v2pro else ge,
+            speed,
+        )
+        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+        z = self.flow(z_p, y_mask, g=ge, reverse=True)
+        audio = self.dec((z * y_mask)[:, :, :], g=ge)
+        upsample_factor = 1
+        for up_layer in self.dec.ups:
+            stride = up_layer.stride[0] if isinstance(up_layer.stride, tuple) else int(up_layer.stride)
+            upsample_factor *= int(stride)
+        audio_lengths = y_mask.squeeze(1).sum(dim=1).to(dtype=torch.long) * int(upsample_factor)
+        return audio, audio_lengths
 
 
     @torch.no_grad()
