@@ -468,7 +468,26 @@ class TTS:
         )
 
         self._init_models()
+        self.refresh_runtime_components()
 
+        self.prompt_cache: dict = {
+            "ref_audio_path": None,
+            "prompt_semantic": None,
+            "refer_spec": [],
+            "prompt_text": None,
+            "prompt_lang": None,
+            "phones": None,
+            "bert_features": None,
+            "norm_text": None,
+            "aux_ref_audio_paths": [],
+        }
+
+        self.stop_flag: bool = False
+        self.precision: torch.dtype = torch.float16 if self.configs.is_half else torch.float32
+
+    def refresh_runtime_components(self):
+        self.prepare_bert_batch_worker = None
+        self.prepare_ref_semantic_batch_worker = None
         if os.environ.get("GPTSOVITS_PREPARE_BERT_BATCHING", "1") != "0":
             self.prepare_bert_batch_worker = PrepareBertBatchWorker(
                 bert_model=self.bert_model,
@@ -509,28 +528,13 @@ class TTS:
                 max_batch_samples=int(ref_max_batch_samples),
             )
 
-        self.text_preprocessor: TextPreprocessor = TextPreprocessor(
+        self.text_preprocessor = TextPreprocessor(
             self.bert_model,
             self.bert_tokenizer,
             self.configs.device,
             bert_stage_limiter=self.prepare_bert_stage_limiter,
             bert_batch_worker=self.prepare_bert_batch_worker,
         )
-
-        self.prompt_cache: dict = {
-            "ref_audio_path": None,
-            "prompt_semantic": None,
-            "refer_spec": [],
-            "prompt_text": None,
-            "prompt_lang": None,
-            "phones": None,
-            "bert_features": None,
-            "norm_text": None,
-            "aux_ref_audio_paths": [],
-        }
-
-        self.stop_flag: bool = False
-        self.precision: torch.dtype = torch.float16 if self.configs.is_half else torch.float32
 
     def _init_models(
         self,

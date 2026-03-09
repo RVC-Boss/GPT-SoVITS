@@ -123,6 +123,7 @@ from io import BytesIO
 from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
+from GPT_SoVITS.TTS_infer_pack.unified_engine import RuntimeControlCallbacks, UnifiedTTSEngine
 from pydantic import BaseModel
 import threading
 
@@ -147,6 +148,14 @@ if config_path in [None, ""]:
 tts_config = TTS_Config(config_path)
 print(tts_config)
 tts_pipeline = TTS(tts_config)
+tts_engine = UnifiedTTSEngine(
+    tts_pipeline,
+    cut_method_names=cut_method_names,
+    control_callbacks=RuntimeControlCallbacks(
+        restart=lambda: os.execl(sys.executable, sys.executable, *argv),
+        exit=lambda: os.kill(os.getpid(), signal.SIGTERM),
+    ),
+)
 
 APP = FastAPI()
 
@@ -377,70 +386,11 @@ async def tts_handle(req: dict):
         StreamingResponse: audio stream response.
     """
 
-    streaming_mode = req.get("streaming_mode", False)
-    return_fragment = req.get("return_fragment", False)
-    media_type = req.get("media_type", "wav")
-
-    check_res = check_params(req)
-    if check_res is not None:
-        return check_res
-    
-    if streaming_mode == 0:
-        streaming_mode = False
-        return_fragment = False
-        fixed_length_chunk = False
-    elif streaming_mode == 1:
-        streaming_mode = False
-        return_fragment = True
-        fixed_length_chunk = False
-    elif streaming_mode == 2:
-        streaming_mode = True
-        return_fragment = False
-        fixed_length_chunk = False
-    elif streaming_mode == 3:
-        streaming_mode = True
-        return_fragment = False
-        fixed_length_chunk = True
-
-    else:
-        return JSONResponse(status_code=400, content={"message": f"the value of streaming_mode must be 0, 1, 2, 3(int) or true/false(bool)"})
-
-    req["streaming_mode"] = streaming_mode
-    req["return_fragment"] = return_fragment
-    req["fixed_length_chunk"] = fixed_length_chunk
-
-    print(f"{streaming_mode} {return_fragment} {fixed_length_chunk}")
-
-    streaming_mode = streaming_mode or return_fragment
-
-
     try:
-        tts_generator = tts_pipeline.run(req)
-
-        if streaming_mode:
-
-            def streaming_generator(tts_generator: Generator, media_type: str):
-                if_frist_chunk = True
-                for sr, chunk in tts_generator:
-                    if if_frist_chunk and media_type == "wav":
-                        yield wave_header_chunk(sample_rate=sr)
-                        media_type = "raw"
-                        if_frist_chunk = False
-                    yield pack_audio(BytesIO(), chunk, sr, media_type).getvalue()
-
-            # _media_type = f"audio/{media_type}" if not (streaming_mode and media_type in ["wav", "raw"]) else f"audio/x-{media_type}"
-            return StreamingResponse(
-                streaming_generator(
-                    tts_generator,
-                    media_type,
-                ),
-                media_type=f"audio/{media_type}",
-            )
-
-        else:
-            sr, audio_data = next(tts_generator)
-            audio_data = pack_audio(BytesIO(), audio_data, sr, media_type).getvalue()
-            return Response(audio_data, media_type=f"audio/{media_type}")
+        result = tts_engine.run_direct_tts(req)
+        if result.streaming:
+            return StreamingResponse(result.audio_generator, media_type=f"audio/{result.media_type}")
+        return Response(result.audio_bytes, media_type=f"audio/{result.media_type}")
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "tts failed", "Exception": str(e)})
 
@@ -449,7 +399,11 @@ async def tts_handle(req: dict):
 async def control(command: str = None):
     if command is None:
         return JSONResponse(status_code=400, content={"message": "command is required"})
-    handle_control(command)
+    try:
+        tts_engine.handle_control(command)
+        return JSONResponse(status_code=200, content={"message": "success"})
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"message": "control failed", "Exception": str(e)})
 
 
 @APP.get("/tts")
@@ -517,10 +471,10 @@ async def tts_post_endpoint(request: TTS_Request):
 @APP.get("/set_refer_audio")
 async def set_refer_aduio(refer_audio_path: str = None):
     try:
-        tts_pipeline.set_ref_audio(refer_audio_path)
+        payload = tts_engine.set_refer_audio(refer_audio_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "set refer audio failed", "Exception": str(e)})
-    return JSONResponse(status_code=200, content={"message": "success"})
+    return JSONResponse(status_code=200, content=payload)
 
 
 # @APP.post("/set_refer_audio")
@@ -545,24 +499,19 @@ async def set_refer_aduio(refer_audio_path: str = None):
 @APP.get("/set_gpt_weights")
 async def set_gpt_weights(weights_path: str = None):
     try:
-        if weights_path in ["", None]:
-            return JSONResponse(status_code=400, content={"message": "gpt weight path is required"})
-        tts_pipeline.init_t2s_weights(weights_path)
+        payload = tts_engine.set_gpt_weights(weights_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "change gpt weight failed", "Exception": str(e)})
-
-    return JSONResponse(status_code=200, content={"message": "success"})
+    return JSONResponse(status_code=200, content=payload)
 
 
 @APP.get("/set_sovits_weights")
 async def set_sovits_weights(weights_path: str = None):
     try:
-        if weights_path in ["", None]:
-            return JSONResponse(status_code=400, content={"message": "sovits weight path is required"})
-        tts_pipeline.init_vits_weights(weights_path)
+        payload = tts_engine.set_sovits_weights(weights_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "change sovits weight failed", "Exception": str(e)})
-    return JSONResponse(status_code=200, content={"message": "success"})
+    return JSONResponse(status_code=200, content=payload)
 
 
 if __name__ == "__main__":
