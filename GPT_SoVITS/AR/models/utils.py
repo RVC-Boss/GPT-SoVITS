@@ -147,6 +147,7 @@ def multinomial_sample_one_no_sync(
 def logits_to_probs(
     logits,
     previous_tokens: Optional[torch.Tensor] = None,
+    previous_token_mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
     top_p: Optional[int] = None,
@@ -158,13 +159,27 @@ def logits_to_probs(
     # pdb.set_trace()
     if previous_tokens is not None and repetition_penalty != 1.0:
         previous_tokens = previous_tokens.long()
-        score = torch.gather(logits, dim=1, index=previous_tokens)
-        score = torch.where(
-            score < 0,
-            score * repetition_penalty,
-            score / repetition_penalty,
-        )
-        logits.scatter_(dim=1, index=previous_tokens, src=score)
+        if previous_token_mask is None:
+            score = torch.gather(logits, dim=1, index=previous_tokens)
+            score = torch.where(
+                score < 0,
+                score * repetition_penalty,
+                score / repetition_penalty,
+            )
+            logits.scatter_(dim=1, index=previous_tokens, src=score)
+        else:
+            previous_token_mask = previous_token_mask.to(dtype=torch.bool, device=logits.device)
+            if previous_token_mask.any():
+                batch_index = torch.arange(logits.size(0), device=logits.device).unsqueeze(1).expand_as(previous_tokens)
+                valid_batch_index = batch_index[previous_token_mask]
+                valid_token_index = previous_tokens[previous_token_mask]
+                score = logits[valid_batch_index, valid_token_index]
+                score = torch.where(
+                    score < 0,
+                    score * repetition_penalty,
+                    score / repetition_penalty,
+                )
+                logits[valid_batch_index, valid_token_index] = score
 
     if top_p is not None and top_p < 1.0:
         sorted_logits, sorted_indices = torch.sort(logits, descending=True)
@@ -192,9 +207,15 @@ def logits_to_probs(
 def sample(
     logits,
     previous_tokens: Optional[torch.Tensor] = None,
+    previous_token_mask: Optional[torch.Tensor] = None,
     **sampling_kwargs,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    probs = logits_to_probs(logits=logits, previous_tokens=previous_tokens, **sampling_kwargs)
+    probs = logits_to_probs(
+        logits=logits,
+        previous_tokens=previous_tokens,
+        previous_token_mask=previous_token_mask,
+        **sampling_kwargs,
+    )
     idx_next = multinomial_sample_one_no_sync(probs)
     return idx_next, probs
 
