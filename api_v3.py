@@ -290,7 +290,7 @@ async def tts_handle(req: dict):
     """
 
     try:
-        result = tts_engine.run_direct_tts(req)
+        result = await tts_engine.run_direct_tts_async(req)
         if result.streaming:
             return StreamingResponse(result.audio_generator, media_type=f"audio/{result.media_type}")
         return Response(result.audio_bytes, media_type=f"audio/{result.media_type}")
