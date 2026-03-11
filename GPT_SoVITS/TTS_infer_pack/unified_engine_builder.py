@@ -143,7 +143,7 @@ class EngineCompositionBuilder:
             policy_config=owner.engine_policy_config,
             arbiter_config=owner.engine_arbiter_config,
             snapshot_request_registry=owner._snapshot_request_registry,
-            get_worker_state=owner.get_scheduler_state,
+            get_worker_state=owner.scheduler_worker.snapshot,
             snapshot_prepare_state=owner._snapshot_engine_prepare_state,
             snapshot_finalize_state=owner._snapshot_engine_finalize_state,
             snapshot_dispatch_state=owner._snapshot_engine_dispatch_state,

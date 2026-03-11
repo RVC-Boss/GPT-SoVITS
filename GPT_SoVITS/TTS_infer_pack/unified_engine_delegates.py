@@ -360,33 +360,6 @@ class EngineApiDelegates:
             fallback_reason=fallback_reason,
         )
 
-    async def run_direct_tts_async(self, req: dict) -> DirectTTSExecution:
-        return await self.api_facade.run_direct_tts_async(req)
-
-    def run_direct_tts(self, req: dict) -> DirectTTSExecution:
-        return self.api_facade.run_direct_tts(req)
-
-    def build_scheduler_request_specs(self, request_items: List[dict]) -> List[SchedulerRequestSpec]:
-        return self.api_facade.build_scheduler_request_specs(request_items)
-
-    def build_scheduler_submit_spec(self, payload: dict | NormalizedEngineRequest) -> SchedulerRequestSpec:
-        return self.api_facade.build_scheduler_submit_spec(payload)
-
-    @staticmethod
-    def summarize_scheduler_states(states: List[T2SRequestState]) -> List[dict]:
-        return EngineApiFacade.summarize_scheduler_states(states)
-
-    @staticmethod
-    def summarize_scheduler_finished(items: List[T2SFinishedItem]) -> List[dict]:
-        return EngineApiFacade.summarize_scheduler_finished(items)
-
-    async def run_scheduler_debug(self, request_items: List[dict], max_steps: int, seed: int) -> SchedulerDebugExecution:
-        return await self.api_facade.run_scheduler_debug(request_items, max_steps, seed)
-
-    async def run_scheduler_submit(self, payload: dict) -> SchedulerSubmitExecution:
-        return await self.api_facade.run_scheduler_submit(payload)
-
-
 class EngineRuntimeDelegates:
     @staticmethod
     def _safe_component_snapshot(component: Any) -> Dict[str, Any] | None:
@@ -424,23 +397,5 @@ class EngineRuntimeDelegates:
     ) -> Dict[str, Any]:
         return self.runtime_facade._build_stage_summary(request_registry, worker_state)
 
-    def get_scheduler_state(self) -> dict:
-        return self.runtime_facade.get_scheduler_state()
-
-    def get_runtime_state(self) -> dict:
-        return self.runtime_facade.get_runtime_state()
-
     def _wait_for_safe_reload(self, timeout_sec: float = 300.0) -> None:
         self.runtime_facade._wait_for_safe_reload(timeout_sec=timeout_sec)
-
-    def set_refer_audio(self, refer_audio_path: str | None) -> dict:
-        return self.runtime_facade.set_refer_audio(refer_audio_path)
-
-    def set_gpt_weights(self, weights_path: str) -> dict:
-        return self.runtime_facade.set_gpt_weights(weights_path)
-
-    def set_sovits_weights(self, weights_path: str) -> dict:
-        return self.runtime_facade.set_sovits_weights(weights_path)
-
-    def handle_control(self, command: str) -> None:
-        self.runtime_facade.handle_control(command)

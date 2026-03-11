@@ -826,7 +826,7 @@ class EngineApiFacade:
                 request_id=f"{request_id}_seg_{segment_index:03d}",
                 text=segment_text,
             )
-            segment_specs.append(self.build_scheduler_submit_spec(segment_request))
+            segment_specs.append(self._build_scheduler_submit_spec(segment_request))
 
         prepared_items = await asyncio.gather(
             *[
@@ -1131,7 +1131,7 @@ class EngineApiFacade:
             fallback_reason="sync_direct_compat",
         )
 
-    def build_scheduler_request_specs(self, request_items: List[dict]) -> List[SchedulerRequestSpec]:
+    def _build_scheduler_request_specs(self, request_items: List[dict]) -> List[SchedulerRequestSpec]:
         specs: List[SchedulerRequestSpec] = []
         for index, payload in enumerate(request_items):
             normalized = self._normalize_engine_request(
@@ -1142,7 +1142,7 @@ class EngineApiFacade:
             specs.append(normalized.to_scheduler_spec())
         return specs
 
-    def build_scheduler_submit_spec(self, payload: dict | NormalizedEngineRequest) -> SchedulerRequestSpec:
+    def _build_scheduler_submit_spec(self, payload: dict | NormalizedEngineRequest) -> SchedulerRequestSpec:
         normalized = self._normalize_engine_request(
             payload,
             request_id=(
@@ -1154,7 +1154,7 @@ class EngineApiFacade:
         return normalized.to_scheduler_spec()
 
     @staticmethod
-    def summarize_scheduler_states(states: List[T2SRequestState]) -> List[dict]:
+    def _summarize_scheduler_states(states: List[T2SRequestState]) -> List[dict]:
         return [
             {
                 "request_id": state.request_id,
@@ -1169,7 +1169,7 @@ class EngineApiFacade:
         ]
 
     @staticmethod
-    def summarize_scheduler_finished(items: List[T2SFinishedItem]) -> List[dict]:
+    def _summarize_scheduler_finished(items: List[T2SFinishedItem]) -> List[dict]:
         return [
             {
                 "request_id": item.request_id,
@@ -1183,7 +1183,7 @@ class EngineApiFacade:
     async def run_scheduler_debug(self, request_items: List[dict], max_steps: int, seed: int) -> SchedulerDebugExecution:
         request_start = time.perf_counter()
         set_scheduler_seed(seed)
-        specs = self.build_scheduler_request_specs(request_items)
+        specs = self._build_scheduler_request_specs(request_items)
         request_ids = [spec.request_id for spec in specs]
         for spec in specs:
             self._register_request_state(
@@ -1270,8 +1270,8 @@ class EngineApiFacade:
                     request_total_ms=request_total_ms,
                     finished_items=finished,
                 ),
-                "requests": self.summarize_scheduler_states(states),
-                "finished": self.summarize_scheduler_finished(finished),
+                "requests": self._summarize_scheduler_states(states),
+                "finished": self._summarize_scheduler_finished(finished),
                 "request_profiles": request_profiles,
                 "request_traces": self._collect_request_summaries(request_ids),
             }
@@ -1284,7 +1284,7 @@ class EngineApiFacade:
             payload,
             request_id=str(payload.get("request_id") or f"job_{uuid.uuid4().hex[:12]}"),
         )
-        spec = self.build_scheduler_submit_spec(normalized)
+        spec = self._build_scheduler_submit_spec(normalized)
         deadline_ts = None
         timeout_sec = normalized.timeout_sec
         if timeout_sec is not None:

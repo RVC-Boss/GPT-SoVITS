@@ -7,9 +7,10 @@ from GPT_SoVITS.TTS_infer_pack.TTS import TTS
 from GPT_SoVITS.TTS_infer_pack.unified_engine_builder import EngineCompositionBuilder
 from GPT_SoVITS.TTS_infer_pack.unified_engine_components import RuntimeControlCallbacks
 from GPT_SoVITS.TTS_infer_pack.unified_engine_delegates import EngineApiDelegates, EngineBridgeDelegates, EngineRuntimeDelegates
+from GPT_SoVITS.TTS_infer_pack.unified_engine_public import EngineCompatInterface, EnginePublicInterface
 
 
-class UnifiedTTSEngine(EngineBridgeDelegates, EngineApiDelegates, EngineRuntimeDelegates):
+class UnifiedTTSEngine(EnginePublicInterface, EngineCompatInterface, EngineBridgeDelegates, EngineApiDelegates, EngineRuntimeDelegates):
     @staticmethod
     def _env_flag(name: str, default: bool) -> bool:
         value = os.environ.get(name)
