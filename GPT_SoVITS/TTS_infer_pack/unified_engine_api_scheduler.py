@@ -280,4 +280,4 @@ class EngineApiSchedulerFlow:
             spec.request_id,
             dict(submit_profile, response_headers_emitted=True),
         )
-        return SchedulerSubmitExecution(audio_bytes=audio_data, media_type=f"audio/{job.media_type}", headers=headers)
+        return SchedulerSubmitExecution(audio_bytes=audio_data, media_type=str(job.media_type), headers=headers)
