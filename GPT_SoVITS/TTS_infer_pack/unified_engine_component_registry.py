@@ -303,6 +303,7 @@ class SchedulerPendingJob:
     speed_factor: float
     sample_steps: int
     media_type: str
+    super_sampling: bool = False
     admission_wait_ms: float = 0.0
     engine_policy_wait_ms: float = 0.0
     engine_dispatch_wait_ms: float = 0.0

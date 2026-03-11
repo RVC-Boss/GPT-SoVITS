@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import os
 from pathlib import Path
 import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -35,6 +36,7 @@ class SchedulerRequestSpec:
     temperature: float
     repetition_penalty: float
     early_stop_num: int
+    aux_ref_audio_paths: List[str] = field(default_factory=list)
     ready_step: int = 0
 
 
@@ -54,6 +56,7 @@ class T2SRequestState:
     all_bert_features: torch.Tensor
     prompt_semantic: torch.LongTensor
     refer_spec: Tuple[torch.Tensor, Optional[torch.Tensor]]
+    aux_refer_specs: List[Tuple[torch.Tensor, Optional[torch.Tensor]]]
     raw_audio: torch.Tensor
     raw_sr: int
     top_k: int
@@ -111,6 +114,21 @@ class PreparedTextFeatures:
     profile: Dict[str, float]
     total_ms: float
     cpu_preprocess_ms: float
+
+
+def build_empty_text_features(
+    *,
+    feature_dim: int = 1024,
+    dtype: torch.dtype = torch.float32,
+) -> PreparedTextFeatures:
+    return PreparedTextFeatures(
+        phones=[],
+        bert_features=torch.empty((int(feature_dim), 0), dtype=dtype),
+        norm_text="",
+        profile={"cpu_preprocess_ms": 0.0, "bert_total_ms": 0.0},
+        total_ms=0.0,
+        cpu_preprocess_ms=0.0,
+    )
 
 
 def normalize_sentence(text: str, language: str) -> str:
@@ -171,6 +189,14 @@ def build_request_state_from_parts(
     bundle_profile = ref_audio_bundle.get("profile", {})
     prompt_semantic = ref_audio_bundle["prompt_semantic"].long()
     spec_audio, audio_16k = ref_audio_bundle["refer_spec"]
+    aux_refer_specs: List[Tuple[torch.Tensor, Optional[torch.Tensor]]] = []
+    for aux_ref_audio_path in list(getattr(spec, "aux_ref_audio_paths", []) or []):
+        if aux_ref_audio_path in [None, ""]:
+            continue
+        if not os.path.exists(str(aux_ref_audio_path)):
+            continue
+        aux_spec_audio, aux_audio_16k, _, _ = tts.extract_ref_spec(str(aux_ref_audio_path))
+        aux_refer_specs.append((aux_spec_audio, aux_audio_16k))
     raw_audio = ref_audio_bundle["raw_audio"]
     raw_sr = int(ref_audio_bundle["raw_sr"])
     prompt_semantic_ms = float(bundle_profile.get("prompt_semantic_ms", ref_audio_bundle_ms))
@@ -182,9 +208,9 @@ def build_request_state_from_parts(
     phones_tensor = torch.LongTensor(target_result.phones).to(tts.configs.device)
     prompt_phones_tensor = torch.LongTensor(prompt_result.phones).to(tts.configs.device)
     all_phones = torch.LongTensor(prompt_result.phones + target_result.phones).to(tts.configs.device)
-    all_bert_features = torch.cat([prompt_result.bert_features, target_result.bert_features], dim=1).to(
-        dtype=tts.precision, device=tts.configs.device
-    )
+    prompt_bert_features = prompt_result.bert_features.to(dtype=tts.precision, device=tts.configs.device)
+    target_bert_features = target_result.bert_features.to(dtype=tts.precision, device=tts.configs.device)
+    all_bert_features = torch.cat([prompt_bert_features, target_bert_features], dim=1)
     _sync_device(device)
     tensorize_ms = (time.perf_counter() - tensorize_start) * 1000.0
 
@@ -280,6 +306,7 @@ def build_request_state_from_parts(
         all_bert_features=all_bert_features,
         prompt_semantic=prompt_semantic,
         refer_spec=(spec_audio, audio_16k),
+        aux_refer_specs=aux_refer_specs,
         raw_audio=raw_audio,
         raw_sr=raw_sr,
         top_k=spec.top_k,
@@ -301,10 +328,16 @@ def prepare_request_state(
     prepare_sync_start = time.perf_counter()
     prompt_text = normalize_sentence(spec.prompt_text, spec.prompt_lang)
     text = spec.text.strip("\n")
-    prompt_result = prepare_text_features(tts, prompt_text, spec.prompt_lang)
     target_result = prepare_text_features(tts, text, spec.text_lang)
     if target_result.phones is None:
         raise ValueError(f"{spec.request_id} text preprocessing returned no phones")
+    if prompt_text in [None, ""]:
+        prompt_result = build_empty_text_features(
+            feature_dim=int(target_result.bert_features.shape[0]),
+            dtype=target_result.bert_features.dtype,
+        )
+    else:
+        prompt_result = prepare_text_features(tts, prompt_text, spec.prompt_lang)
     ref_audio_bundle = tts.extract_ref_audio_bundle(str(spec.ref_audio_path))
     return build_request_state_from_parts(
         tts=tts,

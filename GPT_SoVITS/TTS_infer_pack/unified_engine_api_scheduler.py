@@ -6,7 +6,7 @@ import uuid
 from io import BytesIO
 from typing import Any, Dict, List
 
-from GPT_SoVITS.TTS_infer_pack.t2s_scheduler import SchedulerRequestSpec, T2SFinishedItem, T2SRequestState, run_scheduler_continuous
+from GPT_SoVITS.TTS_infer_pack.t2s_scheduler import SchedulerRequestSpec, T2SFinishedItem, T2SRequestState
 from GPT_SoVITS.TTS_infer_pack.unified_engine_audio import pack_audio, set_scheduler_seed
 from GPT_SoVITS.TTS_infer_pack.unified_engine_components import EngineStatus, NormalizedEngineRequest, SchedulerDebugExecution, SchedulerSubmitExecution
 
@@ -67,39 +67,58 @@ class EngineApiSchedulerFlow:
     async def run_scheduler_debug(self, request_items: List[dict], max_steps: int, seed: int) -> SchedulerDebugExecution:
         request_start = time.perf_counter()
         set_scheduler_seed(seed)
-        specs = self._build_scheduler_request_specs(request_items)
-        request_ids = [spec.request_id for spec in specs]
-        for spec in specs:
+        normalized_requests: List[NormalizedEngineRequest] = []
+        for index, payload in enumerate(request_items):
+            normalized_requests.append(
+                self.api._normalize_engine_request(
+                    payload,
+                    request_id=str(payload.get("request_id") or f"req_{index:03d}"),
+                    error_prefix=f"request[{index}] 参数非法: ",
+                )
+            )
+        specs = [normalized.to_scheduler_spec() for normalized in normalized_requests]
+        request_ids = [normalized.request_id for normalized in normalized_requests]
+        for normalized, spec in zip(normalized_requests, specs):
             self.api._register_request_state(
-                request_id=spec.request_id,
+                request_id=normalized.request_id,
                 api_mode="scheduler_debug",
                 backend="scheduler_debug",
-                media_type="wav",
+                media_type=normalized.media_type,
                 response_streaming=False,
-                meta={
-                    "text_len": len(spec.text),
-                    "prompt_text_len": len(spec.prompt_text),
-                    "text_lang": spec.text_lang,
-                    "prompt_lang": spec.prompt_lang,
-                    "ref_audio_path": str(spec.ref_audio_path),
-                    "ready_step": int(spec.ready_step),
-                },
+                meta=self.api._build_request_meta(normalized.to_payload()),
             )
-            self.api._update_request_state(spec.request_id, EngineStatus.VALIDATED, {"request_source": "scheduler_debug"})
-            self.api._update_request_state(spec.request_id, EngineStatus.CPU_PREPARING, None)
+            self.api._update_request_state(normalized.request_id, EngineStatus.VALIDATED, {"request_source": "scheduler_debug"})
+            self.api._update_request_state(normalized.request_id, EngineStatus.CPU_PREPARING, None)
         prepare_started_at = time.perf_counter()
+        original_worker_max_steps = int(self.api.scheduler_worker.max_steps)
+        original_decode_max_steps = int(self.api.scheduler_worker.decode_executor.max_steps)
         try:
-            states = await self.api.scheduler_worker.prepare_states_batch_async(specs)
+            self.api.scheduler_worker.max_steps = int(max_steps)
+            self.api.scheduler_worker.decode_executor.max_steps = int(max_steps)
+            prepared_payloads = await asyncio.gather(
+                *[
+                    self.api._prepare_state_via_engine_gpu_queue(
+                        spec=spec,
+                        prepare_submit_at=time.perf_counter(),
+                        engine_request_id=normalized.request_id,
+                    )
+                    for normalized, spec in zip(normalized_requests, specs)
+                ]
+            )
         except Exception as exc:
             for request_id in request_ids:
                 self.api._fail_request_state(request_id, str(exc))
             raise
+        finally:
+            self.api.scheduler_worker.max_steps = int(original_worker_max_steps)
+            self.api.scheduler_worker.decode_executor.max_steps = int(original_decode_max_steps)
         prepare_finished_at = time.perf_counter()
         prepare_batch_wall_ms = max(0.0, (prepare_finished_at - prepare_started_at) * 1000.0)
+        states = [payload[0] for payload in prepared_payloads]
         for state in states:
             self.api._update_request_state(
                 state.request_id,
-                EngineStatus.ACTIVE_DECODE,
+                EngineStatus.READY_FOR_PREFILL,
                 {
                     "prepare_profile": dict(state.prepare_profile),
                     "norm_text": state.norm_text,
@@ -108,7 +127,27 @@ class EngineApiSchedulerFlow:
             )
         decode_started_at = time.perf_counter()
         try:
-            finished = run_scheduler_continuous(self.api.tts.t2s_model.model, states, max_steps=int(max_steps))
+            loop = asyncio.get_running_loop()
+            done_futures: List[asyncio.Future] = []
+            for normalized, state in zip(normalized_requests, states):
+                done_future = loop.create_future()
+                done_futures.append(done_future)
+                await self.api._enqueue_prepared_state_for_dispatch(
+                    state=state,
+                    speed_factor=float(normalized.speed_factor),
+                    sample_steps=int(normalized.sample_steps),
+                    media_type=normalized.media_type,
+                    super_sampling=bool(normalized.super_sampling),
+                    prepare_wall_ms=float(state.prepare_profile.get("wall_total_ms", 0.0)),
+                    prepare_profile_total_ms=float(state.prepare_profile.get("wall_total_ms", 0.0)),
+                    done_loop=loop,
+                    done_future=done_future,
+                    engine_request_id=normalized.request_id,
+                    timeout_sec=normalized.timeout_sec,
+                )
+            timeout_candidates = [float(item.timeout_sec) for item in normalized_requests if item.timeout_sec not in [None, ""]]
+            timeout_sec = max(timeout_candidates) if timeout_candidates else 60.0
+            jobs = list(await asyncio.wait_for(asyncio.gather(*done_futures), timeout=float(timeout_sec)))
         except Exception as exc:
             for request_id in request_ids:
                 self.api._fail_request_state(request_id, str(exc))
@@ -116,46 +155,63 @@ class EngineApiSchedulerFlow:
         decode_finished_at = time.perf_counter()
         decode_batch_wall_ms = max(0.0, (decode_finished_at - decode_started_at) * 1000.0)
         request_total_ms = max(0.0, (decode_finished_at - request_start) * 1000.0)
-        finished_map = {item.request_id: item for item in finished}
         request_profiles: List[Dict[str, Any]] = []
-        for state in states:
-            item = finished_map.get(state.request_id)
-            if item is None:
+        finished: List[Dict[str, Any]] = []
+        finish_reason_counts: Dict[str, int] = {}
+        total_semantic_len = 0
+        for state, job in zip(states, jobs):
+            if job.error is not None:
+                self.api._fail_request_state(state.request_id, str(job.error))
+                raise RuntimeError(str(job.error))
+            if job.result is None:
                 self.api._fail_request_state(state.request_id, "scheduler_debug finished without result")
-                continue
-            request_profile = self.api._build_scheduler_debug_request_profile(
-                state=state,
-                item=item,
-                batch_request_count=len(states),
-                prepare_batch_wall_ms=prepare_batch_wall_ms,
-                decode_batch_wall_ms=decode_batch_wall_ms,
-                batch_request_total_ms=request_total_ms,
-            )
-            request_profiles.append(
+                raise RuntimeError(f"{state.request_id} finished without result")
+            job_result = dict(job.result)
+            request_profile = {
+                **job_result,
+                "backend": "scheduler_debug",
+                "backend_mode": "scheduler_debug",
+                "batch_request_count": int(len(states)),
+                "batch_prepare_wall_ms": float(prepare_batch_wall_ms),
+                "batch_decode_wall_ms": float(decode_batch_wall_ms),
+                "batch_request_total_ms": float(request_total_ms),
+                "prepare_ms": float(state.prepare_profile.get("wall_total_ms", 0.0)),
+                "prepare_wall_ms": float(state.prepare_profile.get("wall_total_ms", 0.0)),
+                "prepare_profile_total_ms": float(state.prepare_profile.get("wall_total_ms", 0.0)),
+                "prepare_profile": dict(state.prepare_profile),
+                "norm_text": state.norm_text,
+                "norm_prompt_text": state.norm_prompt_text,
+            }
+            request_profiles.append({"request_id": state.request_id, "profile": dict(request_profile)})
+            self.api._merge_request_state_profile(state.request_id, request_profile)
+            semantic_len = int(job_result.get("semantic_len", 0))
+            finish_reason = str(job_result.get("finish_reason", "unknown"))
+            finished.append(
                 {
                     "request_id": state.request_id,
-                    "profile": dict(request_profile),
+                    "semantic_len": semantic_len,
+                    "finish_idx": int(job_result.get("finish_idx", job_result.get("decode_steps", 0))),
+                    "finish_reason": finish_reason,
                 }
             )
-            self.api._complete_request_state(
-                state.request_id,
-                dict(request_profile),
-            )
+            finish_reason_counts[finish_reason] = finish_reason_counts.get(finish_reason, 0) + 1
+            total_semantic_len += semantic_len
         return SchedulerDebugExecution(
             payload={
                 "message": "success",
                 "request_count": len(states),
                 "max_steps": int(max_steps),
-                "batch_profile": self.api._build_scheduler_debug_batch_profile(
-                    request_count=len(states),
-                    max_steps=int(max_steps),
-                    prepare_batch_wall_ms=prepare_batch_wall_ms,
-                    decode_batch_wall_ms=decode_batch_wall_ms,
-                    request_total_ms=request_total_ms,
-                    finished_items=finished,
-                ),
+                "batch_profile": {
+                    "request_count": int(len(states)),
+                    "max_steps": int(max_steps),
+                    "prepare_batch_wall_ms": float(prepare_batch_wall_ms),
+                    "decode_batch_wall_ms": float(decode_batch_wall_ms),
+                    "request_total_ms": float(request_total_ms),
+                    "total_semantic_len": int(total_semantic_len),
+                    "finish_reason_counts": finish_reason_counts,
+                },
                 "requests": self._summarize_scheduler_states(states),
-                "finished": self._summarize_scheduler_finished(finished),
+                "finished": finished,
                 "request_profiles": request_profiles,
                 "request_traces": self.api._collect_request_summaries(request_ids),
             }
@@ -222,6 +278,7 @@ class EngineApiSchedulerFlow:
             speed_factor=float(normalized.speed_factor),
             sample_steps=int(normalized.sample_steps),
             media_type=normalized.media_type,
+            super_sampling=bool(normalized.super_sampling),
             prepare_wall_ms=prepare_wall_ms,
             prepare_profile_total_ms=prepare_profile_total_ms,
             done_loop=loop,

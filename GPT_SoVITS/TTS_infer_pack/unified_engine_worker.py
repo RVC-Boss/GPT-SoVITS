@@ -46,7 +46,7 @@ class UnifiedSchedulerWorker(
         self.decode_backlog_max = max(0, int(os.environ.get("GPTSOVITS_ENGINE_DECODE_BACKLOG_MAX", "0")))
         self.finalize_pending_max = max(0, int(os.environ.get("GPTSOVITS_ENGINE_FINALIZE_PENDING_MAX", "0")))
         self.engine_decode_control_enabled = (
-            str(os.environ.get("GPTSOVITS_ENGINE_DRIVE_DECODE", "0")).strip().lower() in {"1", "true", "yes", "on"}
+            str(os.environ.get("GPTSOVITS_ENGINE_DRIVE_DECODE", "1")).strip().lower() in {"1", "true", "yes", "on"}
         )
         self.job_registry = SchedulerJobRegistry(self.condition)
         self.worker_thread: threading.Thread | None = None

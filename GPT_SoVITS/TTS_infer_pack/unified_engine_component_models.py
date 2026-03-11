@@ -104,6 +104,7 @@ class NormalizedEngineRequest:
             temperature=self.temperature,
             repetition_penalty=self.repetition_penalty,
             early_stop_num=self.early_stop_num,
+            aux_ref_audio_paths=list(self.aux_ref_audio_paths or []),
             ready_step=self.ready_step,
         )
 

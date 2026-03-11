@@ -149,16 +149,25 @@ class WorkerFinalizeExecutor:
         except Exception:
             pass
 
+    @staticmethod
+    def _collect_job_refer_specs(job: SchedulerPendingJob) -> List[tuple]:
+        refer_specs = [job.state.refer_spec]
+        refer_specs.extend(list(getattr(job.state, "aux_refer_specs", []) or []))
+        return refer_specs
+
     def _synthesize_finished_audio(self, job: SchedulerPendingJob, item: T2SFinishedItem) -> tuple[int, np.ndarray]:
         audio_fragment = self.tts.synthesize_audio_request_local(
             semantic_tokens=item.semantic_tokens.detach().clone().unsqueeze(0).unsqueeze(0),
             phones=job.state.phones.detach().clone().unsqueeze(0),
             prompt_semantic=job.state.prompt_semantic.detach().clone(),
             prompt_phones=job.state.prompt_phones.detach().clone(),
-            refer_spec=(
-                job.state.refer_spec[0].detach().clone(),
-                None if job.state.refer_spec[1] is None else job.state.refer_spec[1].detach().clone(),
-            ),
+            refer_spec=[
+                (
+                    refer_spec_item[0].detach().clone(),
+                    None if refer_spec_item[1] is None else refer_spec_item[1].detach().clone(),
+                )
+                for refer_spec_item in self._collect_job_refer_specs(job)
+            ],
             raw_audio=job.state.raw_audio.detach().clone(),
             raw_sr=int(job.state.raw_sr),
             speed=float(job.speed_factor),
@@ -172,7 +181,7 @@ class WorkerFinalizeExecutor:
             speed_factor=float(job.speed_factor),
             split_bucket=False,
             fragment_interval=0.0,
-            super_sampling=False,
+            super_sampling=bool(job.super_sampling),
         )
 
     def _synthesize_finished_audio_batch(
@@ -185,11 +194,14 @@ class WorkerFinalizeExecutor:
         speeds = []
         sample_steps_list = []
         for job, _ in jobs_and_items:
+            refer_spec_group = self._collect_job_refer_specs(job)
+            if len(refer_spec_group) != 1:
+                raise ValueError("batched finalize 暂不支持单请求多参考音频")
             refer_specs.append(
-                (
-                    job.state.refer_spec[0].detach().clone(),
-                    None if job.state.refer_spec[1] is None else job.state.refer_spec[1].detach().clone(),
-                )
+                [(
+                    refer_spec_group[0][0].detach().clone(),
+                    None if refer_spec_group[0][1] is None else refer_spec_group[0][1].detach().clone(),
+                )]
             )
             speeds.append(float(job.speed_factor))
             sample_steps_list.append(int(job.sample_steps))
@@ -211,7 +223,7 @@ class WorkerFinalizeExecutor:
                     speed_factor=float(job.speed_factor),
                     split_bucket=False,
                     fragment_interval=0.0,
-                    super_sampling=False,
+                    super_sampling=bool(job.super_sampling),
                 )
             )
         return results
@@ -224,9 +236,12 @@ class WorkerFinalizeExecutor:
             return 0.0, []
         self._sync_device()
         synth_start = time.perf_counter()
-        if len(jobs_and_items) == 1 or self.tts.configs.use_vocoder:
-            job, item = jobs_and_items[0]
-            batch_results = [self._synthesize_finished_audio(job, item)]
+        if (
+            len(jobs_and_items) == 1
+            or self.tts.configs.use_vocoder
+            or any(len(self._collect_job_refer_specs(job)) != 1 for job, _ in jobs_and_items)
+        ):
+            batch_results = [self._synthesize_finished_audio(job, item) for job, item in jobs_and_items]
         else:
             batch_results = self._synthesize_finished_audio_batch(jobs_and_items)
         self._sync_device()

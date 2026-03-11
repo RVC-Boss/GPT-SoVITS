@@ -291,6 +291,7 @@ class EngineDispatchTask:
     speed_factor: float
     sample_steps: int
     media_type: str
+    super_sampling: bool
     prepare_wall_ms: float
     prepare_profile_total_ms: float
     done_loop: asyncio.AbstractEventLoop | None

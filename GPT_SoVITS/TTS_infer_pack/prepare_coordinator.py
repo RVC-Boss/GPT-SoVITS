@@ -12,6 +12,7 @@ from GPT_SoVITS.TTS_infer_pack.t2s_scheduler import (
     PreparedTextFeatures,
     SchedulerRequestSpec,
     T2SRequestState,
+    build_empty_text_features,
     build_request_state_from_parts,
     normalize_sentence,
 )
@@ -118,6 +119,21 @@ class PrepareCoordinator:
     def _prepare_text_cpu(self, text: str, language: str):
         return self.tts.prepare_text_segments(text, language)
 
+    @staticmethod
+    def _build_empty_text_features_like(reference: PreparedTextFeatures | None = None) -> PreparedTextFeatures:
+        feature_dim = 1024
+        dtype = None
+        if reference is not None:
+            try:
+                feature_dim = int(reference.bert_features.shape[0])
+                dtype = reference.bert_features.dtype
+            except Exception:
+                pass
+        return build_empty_text_features(
+            feature_dim=int(feature_dim),
+            dtype=(dtype if dtype is not None else None) or __import__("torch").float32,
+        )
+
     def _build_text_features(self, prepared_segments, language: str, cpu_run_ms: float) -> PreparedTextFeatures:
         profile: Dict[str, float] = {"cpu_preprocess_ms": float(cpu_run_ms)}
         branch_start = time.perf_counter()
@@ -139,6 +155,9 @@ class PrepareCoordinator:
         return await loop.run_in_executor(executor, self._run_profiled, fn, float(submit_at), *args)
 
     async def _run_text_cpu_stage(self, text: str, language: str) -> ProfiledResult:
+        if text in [None, ""]:
+            submit_at = time.perf_counter()
+            return ProfiledResult(result=[], submit_at=submit_at, started_at=submit_at, finished_at=submit_at)
         executor = getattr(self.tts, "prepare_text_cpu_executor", None)
         if executor is None:
             submit_at = time.perf_counter()
@@ -164,19 +183,71 @@ class PrepareCoordinator:
         prompt_cpu_run_ms: float,
         target_cpu_run_ms: float,
     ) -> tuple[ProfiledResult, ProfiledResult]:
+        prompt_is_empty = len(prompt_segments or []) == 0
         if self.text_feature_executor is not None:
-            prompt_feature_task = asyncio.create_task(
-                self._run_text_feature_stage(prompt_segments, None, prompt_cpu_run_ms)
+            target_feature_task = asyncio.create_task(self._run_text_feature_stage(target_segments, None, target_cpu_run_ms))
+            if not prompt_is_empty:
+                prompt_feature_task = asyncio.create_task(self._run_text_feature_stage(prompt_segments, None, prompt_cpu_run_ms))
+                return await asyncio.gather(prompt_feature_task, target_feature_task)
+            target_profiled = await target_feature_task
+            submit_at = time.perf_counter()
+            prompt_profiled = ProfiledResult(
+                result=self._build_empty_text_features_like(target_profiled.result),
+                submit_at=float(submit_at),
+                started_at=float(submit_at),
+                finished_at=float(submit_at),
             )
-            target_feature_task = asyncio.create_task(
-                self._run_text_feature_stage(target_segments, None, target_cpu_run_ms)
-            )
-            return await asyncio.gather(prompt_feature_task, target_feature_task)
+            return prompt_profiled, target_profiled
 
-        prompt_profile: Dict[str, float] = {"cpu_preprocess_ms": float(prompt_cpu_run_ms)}
         target_profile: Dict[str, float] = {"cpu_preprocess_ms": float(target_cpu_run_ms)}
         submit_at = time.perf_counter()
         started_at = float(submit_at)
+        if prompt_is_empty:
+            target_result_raw = await self.tts.build_text_features_from_segments_async(
+                target_segments,
+                profile=target_profile,
+            )
+            prompt_result = self._build_empty_text_features_like(
+                PreparedTextFeatures(
+                    phones=target_result_raw[0],
+                    bert_features=target_result_raw[1],
+                    norm_text=target_result_raw[2],
+                    profile=target_profile,
+                    total_ms=float(target_cpu_run_ms + self._estimate_text_feature_run_ms(target_profile)),
+                    cpu_preprocess_ms=float(target_cpu_run_ms),
+                )
+            )
+            finished_at = time.perf_counter()
+            prompt_profiled = ProfiledResult(
+                result=prompt_result,
+                submit_at=float(submit_at),
+                started_at=float(submit_at),
+                finished_at=float(submit_at),
+            )
+            target_result = PreparedTextFeatures(
+                phones=target_result_raw[0],
+                bert_features=target_result_raw[1],
+                norm_text=target_result_raw[2],
+                profile=target_profile,
+                total_ms=float(target_cpu_run_ms + self._estimate_text_feature_run_ms(target_profile)),
+                cpu_preprocess_ms=float(target_cpu_run_ms),
+            )
+            target_profiled = ProfiledResult(
+                result=target_result,
+                submit_at=float(submit_at),
+                started_at=started_at,
+                finished_at=float(submit_at + self._estimate_text_feature_run_ms(target_profile) / 1000.0),
+            )
+            if finished_at > target_profiled.finished_at:
+                target_result.profile["bert_total_ms"] = max(
+                    self._estimate_text_feature_run_ms(target_profile),
+                    (finished_at - submit_at) * 1000.0,
+                )
+            else:
+                target_result.profile["bert_total_ms"] = self._estimate_text_feature_run_ms(target_profile)
+            return prompt_profiled, target_profiled
+
+        prompt_profile: Dict[str, float] = {"cpu_preprocess_ms": float(prompt_cpu_run_ms)}
         prompt_result_raw, target_result_raw = await self.tts.build_text_feature_pair_from_segments_async(
             prompt_segments,
             target_segments,

@@ -323,7 +323,7 @@ class TTS_Config:
         assert isinstance(configs, dict)
         configs_ = deepcopy(self.default_configs)
         configs_.update(configs)
-        self.configs: dict = configs_.get("custom", configs_["v2"])
+        self.configs: dict = configs_.get("custom", configs_["v2ProPlus"])
         self.default_configs = deepcopy(configs_)
 
         self.device = self.configs.get("device", torch.device("cpu"))
@@ -1872,19 +1872,19 @@ class TTS:
             self.init_sr_model()
             if not self.sr_model_not_exist:
                 audio, sr = self.sr_model(audio.unsqueeze(0), sr)
-                max_audio = np.abs(audio).max()
+                if isinstance(audio, torch.Tensor):
+                    max_audio = float(torch.abs(audio).max().item())
+                else:
+                    max_audio = float(np.abs(audio).max())
                 if max_audio > 1:
                     audio /= max_audio
-            audio = (audio * 32768).astype(np.int16)
             t2 = time.perf_counter()
             print(f"超采样用时：{t2 - t1:.3f}s")
+        if isinstance(audio, torch.Tensor):
+            audio = audio.detach().float().cpu().numpy()
         else:
-            # audio = audio.float() * 32768
-            # audio = audio.to(dtype=torch.int16).clamp(-32768, 32767).cpu().numpy()
-
-            audio = audio.cpu().numpy()
-
-        audio = (audio * 32768).astype(np.int16)
+            audio = np.asarray(audio)
+        audio = (audio.reshape(-1) * 32768).astype(np.int16)
 
 
         # try:
@@ -2036,20 +2036,23 @@ class TTS:
         phones: torch.Tensor,
         prompt_semantic: torch.Tensor,
         prompt_phones: torch.Tensor,
-        refer_spec: tuple,
+        refer_spec: tuple | List[tuple],
         raw_audio: torch.Tensor,
         raw_sr: int,
         speed: float = 1.0,
         sample_steps: int = 32,
     ):
-        refer_audio_spec, audio_tensor = refer_spec
+        refer_specs = list(refer_spec) if isinstance(refer_spec, list) else [refer_spec]
+        refer_audio_spec, audio_tensor = refer_specs[0]
         if not self.configs.use_vocoder:
-            refer_audio_spec_list = [refer_audio_spec.to(dtype=self.precision, device=self.configs.device)]
+            refer_audio_spec_list = [item[0].to(dtype=self.precision, device=self.configs.device) for item in refer_specs]
             sv_emb = None
             if self.is_v2pro:
-                if audio_tensor is None:
-                    raise ValueError(i18n("v2Pro request-local synthesis 缺少 16k 参考音频"))
-                sv_emb = self.sv_model.compute_embedding3(audio_tensor).to(self.configs.device)
+                sv_emb = []
+                for _, audio_tensor_item in refer_specs:
+                    if audio_tensor_item is None:
+                        raise ValueError(i18n("v2Pro request-local synthesis 缺少 16k 参考音频"))
+                    sv_emb.append(self.sv_model.compute_embedding3(audio_tensor_item).to(self.configs.device))
             return self.vits_model.decode(
                 semantic_tokens,
                 phones,
@@ -2075,7 +2078,7 @@ class TTS:
         self,
         semantic_tokens_list: List[torch.Tensor],
         phones_list: List[torch.Tensor],
-        refer_specs: List[tuple],
+        refer_specs: List[tuple | List[tuple]],
         speeds: List[float] | None = None,
         sample_steps_list: List[int] | None = None,
     ) -> List[torch.Tensor]:
@@ -2118,7 +2121,11 @@ class TTS:
             semantic_lengths.append(semantic_len)
             phone_lengths.append(phone_len)
 
-            refer_audio_spec, audio_tensor = refer_specs[batch_index]
+            refer_spec_item = refer_specs[batch_index]
+            refer_spec_group = list(refer_spec_item) if isinstance(refer_spec_item, list) else [refer_spec_item]
+            if len(refer_spec_group) != 1:
+                raise ValueError("batched request-local synthesis 暂不支持单请求多参考音频")
+            refer_audio_spec, audio_tensor = refer_spec_group[0]
             refer_audio_specs.append(refer_audio_spec.to(dtype=self.precision, device=device))
             if self.is_v2pro:
                 if audio_tensor is None:

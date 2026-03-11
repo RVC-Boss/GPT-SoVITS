@@ -122,16 +122,6 @@ def is_aux_ref_enabled(aux_ref_audio_paths: List[str] | None) -> bool:
 
 
 def select_direct_backend(normalized: NormalizedEngineRequest) -> Tuple[str, str | None]:
-    if normalized.response_streaming:
-        if normalized.return_fragment or normalized.fixed_length_chunk:
-            return "legacy_direct_fragment", "fragment_streaming_mode"
-        return "legacy_direct_streaming", "streaming_mode"
-    if is_aux_ref_enabled(normalized.aux_ref_audio_paths):
-        return "legacy_direct_aux_ref", "aux_ref_audio_paths"
-    if normalized.super_sampling:
-        return "legacy_direct_super_sampling", "super_sampling"
-    if normalized.prompt_text in [None, ""]:
-        return "legacy_direct_missing_prompt", "missing_prompt_text"
     return "scheduler_v1_direct", None
 
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import queue
+import threading
 import time
 import uuid
 from io import BytesIO
@@ -122,6 +124,173 @@ class EngineApiDirectFlow:
         payload["response_streaming"] = False
         return self.api._normalize_engine_request(payload, error_prefix="segment request 参数非法: ")
 
+    async def _execute_single_segment_scheduler_job(
+        self,
+        normalized: NormalizedEngineRequest,
+        *,
+        segment_request: NormalizedEngineRequest,
+    ) -> tuple[SchedulerPendingJob, Dict[str, Any]]:
+        spec = self.api._build_scheduler_submit_spec(segment_request)
+        state, prepare_exec_started_at, prepare_exec_finished_at = await self.api._prepare_state_via_engine_gpu_queue(
+            spec=spec,
+            prepare_submit_at=time.perf_counter(),
+            engine_request_id=None,
+        )
+        prepare_wall_ms = max(0.0, (prepare_exec_finished_at - prepare_exec_started_at) * 1000.0)
+        prepare_profile_total_ms = float(state.prepare_profile.get("wall_total_ms", prepare_wall_ms))
+        loop = asyncio.get_running_loop()
+        done_future = loop.create_future()
+        await self.api._enqueue_prepared_state_for_dispatch(
+            state=state,
+            speed_factor=float(normalized.speed_factor),
+            sample_steps=int(normalized.sample_steps),
+            media_type=normalized.media_type,
+            super_sampling=bool(normalized.super_sampling),
+            prepare_wall_ms=prepare_wall_ms,
+            prepare_profile_total_ms=prepare_profile_total_ms,
+            done_loop=loop,
+            done_future=done_future,
+            engine_request_id=None,
+            timeout_sec=normalized.timeout_sec,
+        )
+        timeout_sec = float(normalized.timeout_sec if normalized.timeout_sec is not None else 30.0)
+        job: SchedulerPendingJob = await asyncio.wait_for(done_future, timeout=timeout_sec)
+        return job, {
+            "request_id": spec.request_id,
+            "prepare_wall_ms": prepare_wall_ms,
+            "prepare_profile_total_ms": prepare_profile_total_ms,
+            "prepare_profile": dict(state.prepare_profile),
+        }
+
+    def _iter_scheduler_direct_tts_bytes(self, normalized: NormalizedEngineRequest) -> Generator[bytes, None, None]:
+        request_start = time.perf_counter()
+        request_id = normalized.request_id
+        media_type = normalized.media_type
+        segment_texts = self._segment_direct_text(normalized)
+        if not segment_texts:
+            raise ValueError("text preprocessing returned no valid segments")
+        chunk_queue: queue.Queue[object] = queue.Queue(maxsize=8)
+        done_marker = object()
+
+        async def _produce_chunks() -> None:
+            self.api._update_request_state(
+                request_id,
+                EngineStatus.CPU_PREPARING,
+                {"backend": "scheduler_v1_direct", "backend_mode": "scheduler_v1_direct", "segment_count": len(segment_texts)},
+            )
+            sample_rate: int | None = None
+            current_media_type = media_type
+            chunk_count = 0
+            stream_total_bytes = 0
+            first_chunk_ms: float | None = None
+            prepare_profiles: List[Dict[str, Any]] = []
+            worker_profiles: List[Dict[str, Any]] = []
+            try:
+                for segment_index, segment_text in enumerate(segment_texts):
+                    segment_request = self._build_segment_request(
+                        normalized,
+                        request_id=f"{request_id}_seg_{segment_index:03d}",
+                        text=segment_text,
+                    )
+                    self.api._update_request_state(
+                        request_id,
+                        EngineStatus.READY_FOR_PREFILL,
+                        {
+                            "backend": "scheduler_v1_direct",
+                            "backend_mode": "scheduler_v1_direct",
+                            "segment_index": segment_index,
+                            "segment_count": len(segment_texts),
+                        },
+                    )
+                    job, prepare_profile = await self._execute_single_segment_scheduler_job(
+                        normalized,
+                        segment_request=segment_request,
+                    )
+                    prepare_profiles.append(prepare_profile)
+                    if job.error is not None:
+                        raise RuntimeError(job.error)
+                    if job.audio_data is None or job.sample_rate is None or job.result is None:
+                        raise RuntimeError(f"{job.request_id} finished without audio result")
+                    worker_profiles.append(dict(job.result))
+                    if sample_rate is None:
+                        sample_rate = int(job.sample_rate)
+                        first_chunk_ms = max(0.0, (time.perf_counter() - request_start) * 1000.0)
+                        self.api._update_request_state(
+                            request_id,
+                            EngineStatus.STREAMING,
+                            {
+                                "backend": "scheduler_v1_direct",
+                                "backend_mode": "scheduler_v1_direct",
+                                "sample_rate": int(sample_rate),
+                            },
+                        )
+                        if media_type == "wav":
+                            header = wave_header_chunk(sample_rate=int(sample_rate))
+                            chunk_count += 1
+                            stream_total_bytes += len(header)
+                            chunk_queue.put(header)
+                            current_media_type = "raw"
+                    packed_chunk = pack_audio(BytesIO(), job.audio_data, int(job.sample_rate), current_media_type).getvalue()
+                    chunk_count += 1
+                    stream_total_bytes += len(packed_chunk)
+                    chunk_queue.put(packed_chunk)
+                    if segment_index + 1 < len(segment_texts):
+                        silence_samples = int(float(normalized.fragment_interval) * float(job.sample_rate))
+                        if silence_samples > 0:
+                            silence_chunk = np.zeros(silence_samples, dtype=np.int16)
+                            packed_silence = pack_audio(
+                                BytesIO(), silence_chunk, int(job.sample_rate), current_media_type
+                            ).getvalue()
+                            chunk_count += 1
+                            stream_total_bytes += len(packed_silence)
+                            chunk_queue.put(packed_silence)
+            except Exception as exc:
+                self.api._fail_request_state(request_id, str(exc))
+                chunk_queue.put(exc)
+            else:
+                self.api._merge_request_state_profile(
+                    request_id,
+                    {
+                        "prepare_aggregate": self.api._aggregate_numeric_dicts(
+                            [item["prepare_profile"] for item in prepare_profiles]
+                        ),
+                        "engine_policy_wait_ms": sum(
+                            float(item.get("engine_policy_wait_ms", 0.0)) for item in worker_profiles
+                        ),
+                        "engine_dispatch_wait_ms": sum(
+                            float(item.get("engine_dispatch_wait_ms", 0.0)) for item in worker_profiles
+                        ),
+                    },
+                )
+                direct_profile = self.api._build_direct_scheduler_profile(
+                    backend="scheduler_v1_direct",
+                    request_start=request_start,
+                    response_ready_at=time.perf_counter(),
+                    audio_bytes=stream_total_bytes,
+                    sample_rate=int(sample_rate or 0),
+                    segment_texts=segment_texts,
+                    prepare_profiles=prepare_profiles,
+                    worker_profiles=worker_profiles,
+                    pack_ms=0.0,
+                    response_overhead_ms=0.0,
+                )
+                self.api._complete_request_state(
+                    request_id,
+                    dict(direct_profile, streaming_completed=True, first_chunk_ms=first_chunk_ms),
+                )
+            finally:
+                chunk_queue.put(done_marker)
+
+        producer_thread = threading.Thread(target=lambda: asyncio.run(_produce_chunks()), daemon=True)
+        producer_thread.start()
+        while True:
+            item = chunk_queue.get()
+            if item is done_marker:
+                break
+            if isinstance(item, Exception):
+                raise item
+            yield item
+
     async def _run_direct_tts_via_scheduler(self, normalized: NormalizedEngineRequest) -> DirectTTSExecution:
         request_start = time.perf_counter()
         request_id = normalized.request_id
@@ -129,63 +298,48 @@ class EngineApiDirectFlow:
         segment_texts = self._segment_direct_text(normalized)
         if not segment_texts:
             raise ValueError("text preprocessing returned no valid segments")
+        if normalized.response_streaming:
+            return DirectTTSExecution(
+                media_type=media_type,
+                streaming=True,
+                audio_generator=self._iter_scheduler_direct_tts_bytes(normalized),
+                request_id=request_id,
+            )
         self.api._update_request_state(
             request_id,
             EngineStatus.CPU_PREPARING,
             {"backend": "scheduler_v1_direct", "backend_mode": "scheduler_v1_direct", "segment_count": len(segment_texts)},
         )
-        segment_specs = []
-        for segment_index, segment_text in enumerate(segment_texts):
-            segment_request = self._build_segment_request(
+        segment_requests = [
+            self._build_segment_request(
                 normalized,
                 request_id=f"{request_id}_seg_{segment_index:03d}",
                 text=segment_text,
             )
-            segment_specs.append(self.api._build_scheduler_submit_spec(segment_request))
-
-        prepared_items = await asyncio.gather(
-            *[
-                self.api._prepare_state_via_engine_gpu_queue(
-                    spec=spec,
-                    prepare_submit_at=time.perf_counter(),
-                    engine_request_id=None,
-                )
-                for spec in segment_specs
-            ]
-        )
+            for segment_index, segment_text in enumerate(segment_texts)
+        ]
         prepare_profiles: List[Dict[str, Any]] = []
         loop = asyncio.get_running_loop()
         done_futures: List[asyncio.Future] = []
         self.api._update_request_state(
             request_id,
             EngineStatus.READY_FOR_PREFILL,
-            {"backend": "scheduler_v1_direct", "backend_mode": "scheduler_v1_direct", "segment_count": len(segment_specs)},
+            {"backend": "scheduler_v1_direct", "backend_mode": "scheduler_v1_direct", "segment_count": len(segment_requests)},
         )
-        for spec, (state, prepare_exec_started_at, prepare_exec_finished_at) in zip(segment_specs, prepared_items):
-            prepare_wall_ms = max(0.0, (prepare_exec_finished_at - prepare_exec_started_at) * 1000.0)
-            prepare_profile_total_ms = float(state.prepare_profile.get("wall_total_ms", prepare_wall_ms))
-            prepare_profiles.append(
-                {
-                    "request_id": spec.request_id,
-                    "prepare_wall_ms": prepare_wall_ms,
-                    "prepare_profile_total_ms": prepare_profile_total_ms,
-                    "prepare_profile": dict(state.prepare_profile),
-                }
-            )
+        prepared_items = await asyncio.gather(
+            *[
+                self._execute_single_segment_scheduler_job(
+                    normalized,
+                    segment_request=segment_request,
+                )
+                for segment_request in segment_requests
+            ]
+        )
+        for job, prepare_profile in prepared_items:
+            prepare_profiles.append(prepare_profile)
             done_future = loop.create_future()
+            done_future.set_result(job)
             done_futures.append(done_future)
-            await self.api._enqueue_prepared_state_for_dispatch(
-                state=state,
-                speed_factor=float(normalized.speed_factor),
-                sample_steps=int(normalized.sample_steps),
-                media_type=media_type,
-                prepare_wall_ms=prepare_wall_ms,
-                prepare_profile_total_ms=prepare_profile_total_ms,
-                done_loop=loop,
-                done_future=done_future,
-                engine_request_id=None,
-                timeout_sec=normalized.timeout_sec,
-            )
         self.api._update_request_state(
             request_id,
             EngineStatus.ACTIVE_DECODE,

@@ -39,8 +39,8 @@ POST:
     "seed": -1,                   # int. random seed for reproducibility.
     "parallel_infer": True,       # bool. whether to use parallel inference.
     "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
-    "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-    "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
+    "sample_steps": 32,           # int. 仅 v3/v4 vocoder 路径使用；当前 v2/v2ProPlus 主线可忽略。
+    "super_sampling": False,      # bool. 仅 v3/v4 路径使用；不属于当前 v2/v2ProPlus 正式支持目标。
     "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
     "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
     "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
@@ -79,7 +79,7 @@ endpoint: `/set_gpt_weights`
 
 GET:
 ```
-http://127.0.0.1:9880/set_gpt_weights?weights_path=GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
+http://127.0.0.1:9880/set_gpt_weights?weights_path=GPT_SoVITS/pretrained_models/s1v3.ckpt
 ```
 RESP:
 成功: 返回"success", http code 200
@@ -92,7 +92,7 @@ endpoint: `/set_sovits_weights`
 
 GET:
 ```
-http://127.0.0.1:9880/set_sovits_weights?weights_path=GPT_SoVITS/pretrained_models/s2G488k.pth
+http://127.0.0.1:9880/set_sovits_weights?weights_path=GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth
 ```
 
 RESP:
@@ -211,7 +211,7 @@ async def tts_handle(req: dict):
                 "parallel_infer": True,       # bool. whether to use parallel inference.
                 "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
                 "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-                "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
+                "super_sampling": False,      # bool. only for v3/v4; not part of current v2/v2ProPlus mainline.
                 "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
                 "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
                 "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
