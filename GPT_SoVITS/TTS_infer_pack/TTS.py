@@ -529,6 +529,7 @@ class TTS:
             self.bert_model,
             self.bert_tokenizer,
             self.configs.device,
+            version=self.configs.version,
             bert_stage_limiter=self.prepare_bert_stage_limiter,
             bert_batch_worker=self.prepare_bert_batch_worker,
         )
@@ -558,6 +559,16 @@ class TTS:
             return None
 
     def snapshot_prepare_runtime_components(self) -> dict:
+        g2pw_runtime = None
+        try:
+            from text import chinese2
+
+            g2pw_instance = getattr(chinese2, "g2pw", None)
+            g2pw_backend = None if g2pw_instance is None else getattr(g2pw_instance, "_g2pw", None)
+            if g2pw_backend is not None and hasattr(g2pw_backend, "snapshot"):
+                g2pw_runtime = dict(g2pw_backend.snapshot())
+        except Exception:
+            g2pw_runtime = None
         return {
             "text_cpu": {
                 "workers": int(self.prepare_text_cpu_workers),
@@ -587,6 +598,7 @@ class TTS:
             "text_preprocessor": (
                 None if self.text_preprocessor is None or not hasattr(self.text_preprocessor, "snapshot") else self.text_preprocessor.snapshot()
             ),
+            "g2pw": g2pw_runtime,
         }
 
     def _build_text_cpu_admission_state(self) -> dict:
@@ -1203,6 +1215,9 @@ class TTS:
 
     def prepare_text_segments(self, text: str, language: str):
         return self.text_preprocessor.preprocess_text_segments(text, language, self.configs.version)
+
+    def resolve_g2pw_segments(self, prepared_segments, profile: dict | None = None):
+        return self.text_preprocessor.resolve_g2pw_segments(prepared_segments, profile=profile)
 
     def build_text_features_from_segments(self, prepared_segments, profile: dict | None = None):
         return self.text_preprocessor.build_phones_and_bert_from_segments(prepared_segments, profile=profile)

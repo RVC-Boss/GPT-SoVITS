@@ -8,6 +8,7 @@ from pypinyin.core import Pinyin, Style
 from pypinyin.seg.simpleseg import simple_seg
 from pypinyin.converter import UltimateConverter
 from pypinyin.contrib.tone_convert import to_tone
+from .cuda_api import G2PWCudaConverter
 from .onnx_api import G2PWOnnxConverter
 
 current_file_path = os.path.dirname(__file__)
@@ -27,12 +28,36 @@ class G2PWPinyin(Pinyin):
         tone_sandhi=False,
         **kwargs,
     ):
-        self._g2pw = G2PWOnnxConverter(
-            model_dir=model_dir,
-            style="pinyin",
-            model_source=model_source,
-            enable_non_tradional_chinese=enable_non_tradional_chinese,
-        )
+        backend = os.environ.get("GPTSOVITS_G2PW_BACKEND", "cuda").strip().lower()
+        last_error = None
+        self._g2pw = None
+        if backend in {"cuda", "auto"}:
+            try:
+                self._g2pw = G2PWCudaConverter(
+                    model_dir=model_dir,
+                    style="pinyin",
+                    model_source=model_source,
+                    enable_non_tradional_chinese=enable_non_tradional_chinese,
+                )
+            except Exception as exc:
+                last_error = exc
+                strict_mode = os.environ.get("GPTSOVITS_G2PW_CUDA_STRICT", "0").strip().lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                    "on",
+                }
+                if backend == "cuda" and strict_mode:
+                    raise
+        if self._g2pw is None:
+            self._g2pw = G2PWOnnxConverter(
+                model_dir=model_dir,
+                style="pinyin",
+                model_source=model_source,
+                enable_non_tradional_chinese=enable_non_tradional_chinese,
+            )
+            if last_error is not None:
+                print(f"[g2pw] cuda backend unavailable, fallback to onnx: {last_error}")
         self._converter = Converter(
             self._g2pw,
             v_to_u=v_to_u,

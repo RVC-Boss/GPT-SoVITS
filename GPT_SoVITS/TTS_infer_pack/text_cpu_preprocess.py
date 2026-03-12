@@ -8,6 +8,7 @@ sys.path.append(now_dir)
 
 from text.LangSegmenter import LangSegmenter
 from text import cleaned_text_to_sequence
+from text import chinese2
 from text.cleaner import clean_text
 
 
@@ -83,16 +84,27 @@ def preprocess_text_segments_payload(
     payloads: List[PreparedTextSegmentPayload] = []
     total_phones_len = 0
     for segment_text, segment_lang in zip(textlist, langlist):
-        phones, word2ph, norm_text = clean_text_segment(segment_text, segment_lang, version)
+        normalized_language = segment_lang.replace("all_", "")
+        if normalized_language == "zh":
+            norm_text = chinese2.text_normalize(segment_text)
+            phones = []
+            word2ph = None
+            needs_g2pw = True
+            estimated_phones_len = max(0, len(norm_text) * 2)
+        else:
+            phones, word2ph, norm_text = clean_text_segment(segment_text, segment_lang, version)
+            needs_g2pw = False
+            estimated_phones_len = len(phones)
         payloads.append(
             {
-                "language": segment_lang.replace("all_", ""),
+                "language": normalized_language,
                 "phones": phones,
                 "word2ph": word2ph,
                 "norm_text": norm_text,
+                "needs_g2pw": needs_g2pw,
             }
         )
-        total_phones_len += len(phones)
+        total_phones_len += int(estimated_phones_len)
 
     if not final and total_phones_len < 6:
         return preprocess_text_segments_payload("." + text, language, version, final=True)

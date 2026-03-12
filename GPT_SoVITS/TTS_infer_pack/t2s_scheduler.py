@@ -241,6 +241,24 @@ def build_request_state_from_parts(
             prompt_result.profile.get("bert_high_pressure_mode_peak", 0.0)
         ),
         "prompt_text_bert_batch_window_ms": float(prompt_result.profile.get("bert_batch_window_ms", 0.0)),
+        "prompt_text_g2pw_total_ms": float(prompt_result.profile.get("g2pw_total_ms", 0.0)),
+        "prompt_text_g2pw_prepare_ms": float(prompt_result.profile.get("g2pw_prepare_ms", 0.0)),
+        "prompt_text_g2pw_predict_ms": float(prompt_result.profile.get("g2pw_predict_ms", 0.0)),
+        "prompt_text_g2pw_post_ms": float(prompt_result.profile.get("g2pw_post_ms", 0.0)),
+        "prompt_text_g2pw_runtime_total_ms": float(prompt_result.profile.get("g2pw_runtime_total_ms", 0.0)),
+        "prompt_text_g2pw_runtime_queue_wait_ms": float(
+            prompt_result.profile.get("g2pw_runtime_queue_wait_ms", 0.0)
+        ),
+        "prompt_text_g2pw_runtime_collect_wait_ms": float(
+            prompt_result.profile.get("g2pw_runtime_collect_wait_ms", 0.0)
+        ),
+        "prompt_text_g2pw_runtime_run_ms": float(prompt_result.profile.get("g2pw_runtime_run_ms", 0.0)),
+        "prompt_text_g2pw_runtime_batch_rows_peak": float(
+            prompt_result.profile.get("g2pw_runtime_batch_rows_peak", 0.0)
+        ),
+        "prompt_text_g2pw_runtime_batch_requests_peak": float(
+            prompt_result.profile.get("g2pw_runtime_batch_requests_peak", 0.0)
+        ),
         "prompt_text_parallel_future_wait_ms": 0.0,
         "prompt_text_parallel_future_executor_queue_ms": 0.0,
         "prompt_text_parallel_future_run_ms": float(prompt_result.total_ms),
@@ -267,6 +285,18 @@ def build_request_state_from_parts(
         ),
         "text_bert_high_pressure_mode_peak": float(target_result.profile.get("bert_high_pressure_mode_peak", 0.0)),
         "text_bert_batch_window_ms": float(target_result.profile.get("bert_batch_window_ms", 0.0)),
+        "text_g2pw_total_ms": float(target_result.profile.get("g2pw_total_ms", 0.0)),
+        "text_g2pw_prepare_ms": float(target_result.profile.get("g2pw_prepare_ms", 0.0)),
+        "text_g2pw_predict_ms": float(target_result.profile.get("g2pw_predict_ms", 0.0)),
+        "text_g2pw_post_ms": float(target_result.profile.get("g2pw_post_ms", 0.0)),
+        "text_g2pw_runtime_total_ms": float(target_result.profile.get("g2pw_runtime_total_ms", 0.0)),
+        "text_g2pw_runtime_queue_wait_ms": float(target_result.profile.get("g2pw_runtime_queue_wait_ms", 0.0)),
+        "text_g2pw_runtime_collect_wait_ms": float(target_result.profile.get("g2pw_runtime_collect_wait_ms", 0.0)),
+        "text_g2pw_runtime_run_ms": float(target_result.profile.get("g2pw_runtime_run_ms", 0.0)),
+        "text_g2pw_runtime_batch_rows_peak": float(target_result.profile.get("g2pw_runtime_batch_rows_peak", 0.0)),
+        "text_g2pw_runtime_batch_requests_peak": float(
+            target_result.profile.get("g2pw_runtime_batch_requests_peak", 0.0)
+        ),
         "text_feature_pair_ms": float(max(prompt_result.total_ms, target_result.total_ms)),
         "text_cpu_parallel_workers": float(getattr(tts, "prepare_text_cpu_workers", 0)),
         "audio_load_ms": audio_load_ms,

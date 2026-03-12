@@ -3,6 +3,7 @@
 
 import json
 import os
+import time
 import warnings
 import zipfile
 from typing import Any, Dict, List, Tuple
@@ -71,6 +72,23 @@ def _find_first_existing_file(*paths: str) -> str:
     raise FileNotFoundError(f"Files not found: {paths}")
 
 
+def _resolve_tokenizer_source(model_source: str | None) -> str:
+    candidate_paths = []
+    if model_source:
+        candidate_paths.append(model_source)
+    repo_root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    candidate_paths.extend(
+        [
+            os.path.join(repo_root, "pretrained_models", "g2pw-chinese"),
+            os.path.join(repo_root, "pretrained_models", "chinese-roberta-wwm-ext-large"),
+        ]
+    )
+    for candidate in candidate_paths:
+        if candidate and os.path.exists(candidate):
+            return candidate
+    return model_source or "bert-base-chinese"
+
+
 def download_and_decompress(model_dir: str = "G2PWModel/"):
     if not os.path.exists(model_dir):
         parent_directory = os.path.dirname(model_dir)
@@ -106,9 +124,9 @@ class _G2PWBaseOnnxConverter:
         self.model_dir = download_and_decompress(model_dir)
         self.config = load_config(config_path=os.path.join(self.model_dir, "config.py"), use_default=True)
 
-        self.model_source = model_source if model_source else self.config.model_source
+        self.model_source = _resolve_tokenizer_source(model_source if model_source else self.config.model_source)
         self.enable_opencc = enable_non_tradional_chinese
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_source)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_source, local_files_only=True)
 
         polyphonic_chars_path = os.path.join(self.model_dir, "POLYPHONIC_CHARS.txt")
         monophonic_chars_path = os.path.join(self.model_dir, "MONOPHONIC_CHARS.txt")
@@ -200,6 +218,10 @@ class _G2PWBaseOnnxConverter:
         return None
 
     def __call__(self, sentences: List[str]) -> List[List[str]]:
+        results, _profile = self.predict_sentences_with_profile(sentences)
+        return results
+
+    def predict_sentences_with_profile(self, sentences: List[str]) -> Tuple[List[List[str]], Dict[str, float]]:
         if isinstance(sentences, str):
             sentences = [sentences]
 
@@ -213,7 +235,7 @@ class _G2PWBaseOnnxConverter:
 
         texts, model_query_ids, result_query_ids, sent_ids, partial_results = self._prepare_data(sentences=sentences)
         if len(texts) == 0:
-            return partial_results
+            return partial_results, {}
 
         model_input = prepare_onnx_input(
             tokenizer=self.tokenizer,
@@ -229,12 +251,21 @@ class _G2PWBaseOnnxConverter:
         )
 
         if not model_input:
-            return partial_results
+            return partial_results, {}
 
+        predict_profile: Dict[str, float] = {}
         if self.enable_sentence_dedup:
-            preds, _confidences = self._predict_with_sentence_dedup(model_input=model_input, texts=texts)
+            preds, _confidences, predict_profile = self._predict_with_sentence_dedup_profiled(
+                model_input=model_input,
+                texts=texts,
+            )
         else:
-            preds, _confidences = self._predict(model_input=model_input)
+            if hasattr(self, "_predict_with_profile"):
+                preds, _confidences, predict_profile = self._predict_with_profile(model_input=model_input)
+            else:
+                predict_started = time.perf_counter()
+                preds, _confidences = self._predict(model_input=model_input)
+                predict_profile["g2pw_predict_ms"] = float((time.perf_counter() - predict_started) * 1000.0)
 
         if self.config.use_char_phoneme:
             preds = [pred.split(" ")[1] for pred in preds]
@@ -243,7 +274,7 @@ class _G2PWBaseOnnxConverter:
         for sent_id, query_id, pred in zip(sent_ids, result_query_ids, preds):
             results[sent_id][query_id] = self.style_convert_func(pred)
 
-        return results
+        return results, predict_profile
 
     def _prepare_data(
         self, sentences: List[str]
@@ -313,6 +344,52 @@ class _G2PWBaseOnnxConverter:
                 confidences[output_idx] = confidence
 
         return preds, confidences
+
+    def _predict_with_sentence_dedup_profiled(
+        self,
+        model_input: Dict[str, Any],
+        texts: List[str],
+    ) -> Tuple[List[str], List[float], Dict[str, float]]:
+        if len(texts) <= 1:
+            if hasattr(self, "_predict_with_profile"):
+                return self._predict_with_profile(model_input=model_input)
+            predict_started = time.perf_counter()
+            preds, confidences = self._predict(model_input=model_input)
+            return preds, confidences, {"g2pw_predict_ms": float((time.perf_counter() - predict_started) * 1000.0)}
+
+        grouped_indices: Dict[str, List[int]] = {}
+        for idx, text in enumerate(texts):
+            grouped_indices.setdefault(text, []).append(idx)
+
+        if all(len(indices) == 1 for indices in grouped_indices.values()):
+            if hasattr(self, "_predict_with_profile"):
+                return self._predict_with_profile(model_input=model_input)
+            predict_started = time.perf_counter()
+            preds, confidences = self._predict(model_input=model_input)
+            return preds, confidences, {"g2pw_predict_ms": float((time.perf_counter() - predict_started) * 1000.0)}
+
+        preds: List[str] = [""] * len(texts)
+        confidences: List[float] = [0.0] * len(texts)
+        merged_profile: Dict[str, float] = {}
+        for indices in grouped_indices.values():
+            group_input = {name: value[indices] for name, value in model_input.items()}
+            if len(indices) > 1:
+                for name in ("input_ids", "token_type_ids", "attention_masks"):
+                    group_input[name] = group_input[name][:1]
+            if hasattr(self, "_predict_with_profile"):
+                group_preds, group_confidences, group_profile = self._predict_with_profile(model_input=group_input)
+                for key, value in dict(group_profile or {}).items():
+                    merged_profile[key] = float(merged_profile.get(key, 0.0)) + float(value)
+            else:
+                predict_started = time.perf_counter()
+                group_preds, group_confidences = self._predict(model_input=group_input)
+                merged_profile["g2pw_predict_ms"] = float(
+                    merged_profile.get("g2pw_predict_ms", 0.0) + (time.perf_counter() - predict_started) * 1000.0
+                )
+            for output_idx, pred, confidence in zip(indices, group_preds, group_confidences):
+                preds[output_idx] = pred
+                confidences[output_idx] = confidence
+        return preds, confidences, merged_profile
 
 
 class G2PWOnnxConverter(_G2PWBaseOnnxConverter):

@@ -1,5 +1,6 @@
 import os
 import re
+import time
 
 import cn2an
 from pypinyin import lazy_pinyin, Style
@@ -75,6 +76,205 @@ def g2p(text):
     sentences = [i for i in re.split(pattern, text) if i.strip() != ""]
     phones, word2ph = _g2p(sentences)
     return phones, word2ph
+
+
+def _prepare_g2p_segments(segments):
+    prepared_segments = []
+    batch_inputs = []
+    for segment in segments:
+        processed_segment = re.sub("[a-zA-Z]+", "", segment)
+        seg_cut = psg.lcut(processed_segment)
+        seg_cut = tone_modifier.pre_merge_for_modify(seg_cut)
+        prepared_segments.append(
+            {
+                "segment": processed_segment,
+                "seg_cut": seg_cut,
+            }
+        )
+        if processed_segment:
+            batch_inputs.append(processed_segment)
+    return prepared_segments, batch_inputs
+
+
+def _build_segment_from_g2pw(segment: str, seg_cut, pinyins):
+    phones_list = []
+    word2ph = []
+    initials = []
+    finals = []
+    pre_word_length = 0
+    for word, pos in seg_cut:
+        sub_initials = []
+        sub_finals = []
+        now_word_length = pre_word_length + len(word)
+
+        if pos == "eng":
+            pre_word_length = now_word_length
+            continue
+
+        word_pinyins = pinyins[pre_word_length:now_word_length]
+        word_pinyins = correct_pronunciation(word, word_pinyins)
+
+        for pinyin in word_pinyins:
+            if pinyin[0].isalpha():
+                sub_initials.append(to_initials(pinyin))
+                sub_finals.append(to_finals_tone3(pinyin, neutral_tone_with_five=True))
+            else:
+                sub_initials.append(pinyin)
+                sub_finals.append(pinyin)
+
+        pre_word_length = now_word_length
+        sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
+        sub_initials, sub_finals = _merge_erhua(sub_initials, sub_finals, word, pos)
+        initials.append(sub_initials)
+        finals.append(sub_finals)
+
+    initials = sum(initials, [])
+    finals = sum(finals, [])
+    for c, v in zip(initials, finals):
+        raw_pinyin = c + v
+        if c == v:
+            assert c in punctuation
+            phone = [c]
+            word2ph.append(1)
+        else:
+            v_without_tone = v[:-1]
+            tone = v[-1]
+
+            pinyin = c + v_without_tone
+            assert tone in "12345"
+
+            if c:
+                v_rep_map = {
+                    "uei": "ui",
+                    "iou": "iu",
+                    "uen": "un",
+                }
+                if v_without_tone in v_rep_map.keys():
+                    pinyin = c + v_rep_map[v_without_tone]
+            else:
+                pinyin_rep_map = {
+                    "ing": "ying",
+                    "i": "yi",
+                    "in": "yin",
+                    "u": "wu",
+                }
+                if pinyin in pinyin_rep_map.keys():
+                    pinyin = pinyin_rep_map[pinyin]
+                else:
+                    single_rep_map = {
+                        "v": "yu",
+                        "e": "e",
+                        "i": "y",
+                        "u": "w",
+                    }
+                    if pinyin[0] in single_rep_map.keys():
+                        pinyin = single_rep_map[pinyin[0]] + pinyin[1:]
+
+            assert pinyin in pinyin_to_symbol_map.keys(), (pinyin, segment, raw_pinyin)
+            new_c, new_v = pinyin_to_symbol_map[pinyin].split(" ")
+            new_v = new_v + tone
+            phone = [new_c, new_v]
+            word2ph.append(len(phone))
+
+        phones_list += phone
+    return phones_list, word2ph
+
+
+def _build_segment_without_g2pw(segment: str, seg_cut):
+    initials = []
+    finals = []
+    for word, pos in seg_cut:
+        if pos == "eng":
+            continue
+        sub_initials, sub_finals = _get_initials_finals(word)
+        sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
+        sub_initials, sub_finals = _merge_erhua(sub_initials, sub_finals, word, pos)
+        initials.append(sub_initials)
+        finals.append(sub_finals)
+    phones_list = []
+    word2ph = []
+    for c, v in zip(sum(initials, []), sum(finals, [])):
+        raw_pinyin = c + v
+        if c == v:
+            assert c in punctuation
+            phone = [c]
+            word2ph.append(1)
+        else:
+            v_without_tone = v[:-1]
+            tone = v[-1]
+            pinyin = c + v_without_tone
+            assert tone in "12345"
+            if c:
+                v_rep_map = {"uei": "ui", "iou": "iu", "uen": "un"}
+                if v_without_tone in v_rep_map:
+                    pinyin = c + v_rep_map[v_without_tone]
+            else:
+                pinyin_rep_map = {"ing": "ying", "i": "yi", "in": "yin", "u": "wu"}
+                if pinyin in pinyin_rep_map:
+                    pinyin = pinyin_rep_map[pinyin]
+                else:
+                    single_rep_map = {"v": "yu", "e": "e", "i": "y", "u": "w"}
+                    if pinyin[0] in single_rep_map:
+                        pinyin = single_rep_map[pinyin[0]] + pinyin[1:]
+            assert pinyin in pinyin_to_symbol_map.keys(), (pinyin, segment, raw_pinyin)
+            new_c, new_v = pinyin_to_symbol_map[pinyin].split(" ")
+            new_v = new_v + tone
+            phone = [new_c, new_v]
+            word2ph.append(len(phone))
+        phones_list += phone
+    return phones_list, word2ph
+
+
+def g2p_segments(segments, return_profile: bool = False):
+    prepare_start = time.perf_counter()
+    prepared_segments, batch_inputs = _prepare_g2p_segments(segments)
+    profile = {
+        "g2pw_prepare_ms": 0.0,
+        "g2pw_predict_ms": 0.0,
+        "g2pw_post_ms": 0.0,
+        "g2pw_runtime_total_ms": 0.0,
+        "g2pw_runtime_queue_wait_ms": 0.0,
+        "g2pw_runtime_collect_wait_ms": 0.0,
+        "g2pw_runtime_run_ms": 0.0,
+        "g2pw_runtime_batch_rows": 0.0,
+        "g2pw_runtime_batch_requests": 0.0,
+        "g2pw_runtime_pool_workers": 0.0,
+        "g2pw_runtime_shard_index": 0.0,
+    }
+    profile["g2pw_prepare_ms"] = float((time.perf_counter() - prepare_start) * 1000.0)
+    if is_g2pw and batch_inputs:
+        converter = g2pw._g2pw
+        if hasattr(converter, "predict_sentences_with_profile"):
+            g2pw_batch_results, predict_profile = converter.predict_sentences_with_profile(batch_inputs)
+            for key, value in dict(predict_profile or {}).items():
+                profile[key] = float(value)
+        else:
+            predict_start = time.perf_counter()
+            g2pw_batch_results = converter(batch_inputs)
+            profile["g2pw_predict_ms"] = float((time.perf_counter() - predict_start) * 1000.0)
+    else:
+        g2pw_batch_results = []
+    post_start = time.perf_counter()
+    results = []
+    batch_cursor = 0
+    for item in prepared_segments:
+        segment = item["segment"]
+        if not segment:
+            results.append(([], [], segment))
+            continue
+        if not is_g2pw:
+            phones, word2ph = _build_segment_without_g2pw(segment, item["seg_cut"])
+            results.append((phones, word2ph, segment))
+            continue
+        pinyins = g2pw_batch_results[batch_cursor]
+        batch_cursor += 1
+        phones, word2ph = _build_segment_from_g2pw(segment, item["seg_cut"], pinyins)
+        results.append((phones, word2ph, segment))
+    profile["g2pw_post_ms"] = float((time.perf_counter() - post_start) * 1000.0)
+    profile["g2pw_total_ms"] = float(profile["g2pw_prepare_ms"] + profile["g2pw_predict_ms"] + profile["g2pw_post_ms"])
+    if return_profile:
+        return results, profile
+    return results
 
 
 def _get_initials_finals(word):
@@ -180,125 +380,9 @@ def _merge_erhua(initials: list[str], finals: list[str], word: str, pos: str) ->
 def _g2p(segments):
     phones_list = []
     word2ph = []
-    g2pw_batch_results = []
-    g2pw_batch_cursor = 0
-    processed_segments = [re.sub("[a-zA-Z]+", "", seg) for seg in segments]
-    if is_g2pw:
-        batch_inputs = [seg for seg in processed_segments if seg]
-        g2pw_batch_results = g2pw._g2pw(batch_inputs) if batch_inputs else []
-
-    for seg in processed_segments:
-        pinyins = []
-        seg_cut = psg.lcut(seg)
-        seg_cut = tone_modifier.pre_merge_for_modify(seg_cut)
-        initials = []
-        finals = []
-
-        if not is_g2pw:
-            for word, pos in seg_cut:
-                if pos == "eng":
-                    continue
-                sub_initials, sub_finals = _get_initials_finals(word)
-                sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
-                # 儿化
-                sub_initials, sub_finals = _merge_erhua(sub_initials, sub_finals, word, pos)
-                initials.append(sub_initials)
-                finals.append(sub_finals)
-                # assert len(sub_initials) == len(sub_finals) == len(word)
-            initials = sum(initials, [])
-            finals = sum(finals, [])
-            print("pypinyin结果", initials, finals)
-        else:
-            # g2pw采用整句推理（批量推理，逐句取结果）
-            if seg:
-                pinyins = g2pw_batch_results[g2pw_batch_cursor]
-                g2pw_batch_cursor += 1
-
-            pre_word_length = 0
-            for word, pos in seg_cut:
-                sub_initials = []
-                sub_finals = []
-                now_word_length = pre_word_length + len(word)
-
-                if pos == "eng":
-                    pre_word_length = now_word_length
-                    continue
-
-                word_pinyins = pinyins[pre_word_length:now_word_length]
-
-                # 多音字消歧
-                word_pinyins = correct_pronunciation(word, word_pinyins)
-
-                for pinyin in word_pinyins:
-                    if pinyin[0].isalpha():
-                        sub_initials.append(to_initials(pinyin))
-                        sub_finals.append(to_finals_tone3(pinyin, neutral_tone_with_five=True))
-                    else:
-                        sub_initials.append(pinyin)
-                        sub_finals.append(pinyin)
-
-                pre_word_length = now_word_length
-                sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
-                # 儿化
-                sub_initials, sub_finals = _merge_erhua(sub_initials, sub_finals, word, pos)
-                initials.append(sub_initials)
-                finals.append(sub_finals)
-
-            initials = sum(initials, [])
-            finals = sum(finals, [])
-            # print("g2pw结果",initials,finals)
-
-        for c, v in zip(initials, finals):
-            raw_pinyin = c + v
-            # NOTE: post process for pypinyin outputs
-            # we discriminate i, ii and iii
-            if c == v:
-                assert c in punctuation
-                phone = [c]
-                word2ph.append(1)
-            else:
-                v_without_tone = v[:-1]
-                tone = v[-1]
-
-                pinyin = c + v_without_tone
-                assert tone in "12345"
-
-                if c:
-                    # 多音节
-                    v_rep_map = {
-                        "uei": "ui",
-                        "iou": "iu",
-                        "uen": "un",
-                    }
-                    if v_without_tone in v_rep_map.keys():
-                        pinyin = c + v_rep_map[v_without_tone]
-                else:
-                    # 单音节
-                    pinyin_rep_map = {
-                        "ing": "ying",
-                        "i": "yi",
-                        "in": "yin",
-                        "u": "wu",
-                    }
-                    if pinyin in pinyin_rep_map.keys():
-                        pinyin = pinyin_rep_map[pinyin]
-                    else:
-                        single_rep_map = {
-                            "v": "yu",
-                            "e": "e",
-                            "i": "y",
-                            "u": "w",
-                        }
-                        if pinyin[0] in single_rep_map.keys():
-                            pinyin = single_rep_map[pinyin[0]] + pinyin[1:]
-
-                assert pinyin in pinyin_to_symbol_map.keys(), (pinyin, seg, raw_pinyin)
-                new_c, new_v = pinyin_to_symbol_map[pinyin].split(" ")
-                new_v = new_v + tone
-                phone = [new_c, new_v]
-                word2ph.append(len(phone))
-
-            phones_list += phone
+    for phones, item_word2ph, _segment in g2p_segments(segments):
+        phones_list += phones
+        word2ph += item_word2ph
     return phones_list, word2ph
 
 

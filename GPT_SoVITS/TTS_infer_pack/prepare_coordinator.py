@@ -120,6 +120,15 @@ class PrepareCoordinator:
                 max_workers=self.text_feature_workers,
                 thread_name_prefix="prepare-text-feature",
             )
+        g2pw_default_workers = max(8, int(getattr(tts, "prepare_text_cpu_workers", 8) or 8))
+        self.g2pw_workers = max(
+            1,
+            int(os.environ.get("GPTSOVITS_PREPARE_G2PW_WORKERS", str(g2pw_default_workers))),
+        )
+        self.g2pw_executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.g2pw_workers,
+            thread_name_prefix="prepare-g2pw",
+        )
         ref_audio_default_workers = max(1, int(os.environ.get("GPTSOVITS_PREPARE_REF_SLOTS", "4")))
         self.ref_audio_workers = max(
             1,
@@ -130,10 +139,15 @@ class PrepareCoordinator:
             thread_name_prefix="prepare-ref-audio",
         )
         text_cpu_gate_default = max(0, int(getattr(tts, "prepare_text_cpu_workers", 0) or 0))
+        g2pw_gate_default = max(0, int(self.g2pw_workers))
         text_feature_gate_default = max(0, int(self.text_feature_workers))
         ref_audio_gate_default = max(0, int(self.ref_audio_workers))
         self.text_cpu_gate = AsyncStageGate(
             int(os.environ.get("GPTSOVITS_PREPARE_TEXT_CPU_MAX_INFLIGHT", str(text_cpu_gate_default))),
+            poll_ms=gate_poll_ms,
+        )
+        self.g2pw_gate = AsyncStageGate(
+            int(os.environ.get("GPTSOVITS_PREPARE_G2PW_MAX_INFLIGHT", str(g2pw_gate_default))),
             poll_ms=gate_poll_ms,
         )
         self.text_feature_gate = AsyncStageGate(
@@ -172,6 +186,7 @@ class PrepareCoordinator:
                 "peak_inflight": int(self.peak_inflight),
                 "max_inflight": int(self.max_inflight),
                 "text_feature_workers": int(self.text_feature_workers),
+                "g2pw_workers": int(self.g2pw_workers),
                 "ref_audio_workers": int(self.ref_audio_workers),
             }
         runtime_snapshot_fn = getattr(self.tts, "snapshot_prepare_runtime_components", None)
@@ -182,6 +197,7 @@ class PrepareCoordinator:
                 snapshot["prepare_runtime_state"] = None
         snapshot["prepare_stage_gates"] = {
             "text_cpu": self.text_cpu_gate.snapshot(),
+            "g2pw": self.g2pw_gate.snapshot(),
             "text_feature": self.text_feature_gate.snapshot(),
             "ref_audio": self.ref_audio_gate.snapshot(),
             "ref_load": self.ref_load_gate.snapshot(),
@@ -204,6 +220,11 @@ class PrepareCoordinator:
     def _prepare_text_cpu(self, text: str, language: str):
         return self.tts.prepare_text_segments(text, language)
 
+    def _resolve_g2pw_segments(self, prepared_segments):
+        profile: Dict[str, float] = {}
+        resolved_segments = self.tts.resolve_g2pw_segments(prepared_segments, profile=profile)
+        return resolved_segments, profile
+
     def _load_ref_audio_raw(self, ref_audio_path: str):
         return self.tts._load_ref_audio_raw(ref_audio_path)
 
@@ -225,8 +246,15 @@ class PrepareCoordinator:
             dtype=(dtype if dtype is not None else None) or __import__("torch").float32,
         )
 
-    def _build_text_features(self, prepared_segments, language: str, cpu_run_ms: float) -> PreparedTextFeatures:
-        profile: Dict[str, float] = {"cpu_preprocess_ms": float(cpu_run_ms)}
+    def _build_text_features(
+        self,
+        prepared_segments,
+        language: str,
+        cpu_run_ms: float,
+        base_profile: Dict[str, float] | None = None,
+    ) -> PreparedTextFeatures:
+        profile: Dict[str, float] = dict(base_profile or {})
+        profile["cpu_preprocess_ms"] = float(cpu_run_ms)
         branch_start = time.perf_counter()
         phones, bert_features, norm_text = self.tts.build_text_features_from_segments(prepared_segments, profile=profile)
         total_ms = float(cpu_run_ms + (time.perf_counter() - branch_start) * 1000.0)
@@ -291,9 +319,52 @@ class PrepareCoordinator:
                 prepared_segments,
                 language,
                 cpu_run_ms,
+                None,
             )
         finally:
             self.text_feature_gate.release()
+
+    async def _run_g2pw_stage(self, prepared_segments) -> ProfiledResult:
+        has_pending = any(bool(getattr(segment, "needs_g2pw", False)) for segment in (prepared_segments or []))
+        if not has_pending:
+            submit_at = time.perf_counter()
+            return ProfiledResult(
+                result=prepared_segments,
+                submit_at=float(submit_at),
+                started_at=float(submit_at),
+                finished_at=float(submit_at),
+                profile={},
+            )
+        await self.g2pw_gate.acquire()
+        try:
+            profiled = await self._run_on_executor(self.g2pw_executor, self._resolve_g2pw_segments, prepared_segments)
+            result, stage_profile = profiled.result
+            return ProfiledResult(
+                result=result,
+                submit_at=float(profiled.submit_at),
+                started_at=float(profiled.started_at),
+                finished_at=float(profiled.finished_at),
+                profile=dict(stage_profile),
+            )
+        finally:
+            self.g2pw_gate.release()
+
+    async def _run_g2pw_pair_stage(self, prompt_segments, target_segments) -> tuple[ProfiledResult, ProfiledResult]:
+        prompt_is_empty = len(prompt_segments or []) == 0
+        target_task = asyncio.create_task(self._run_g2pw_stage(target_segments))
+        if not prompt_is_empty:
+            prompt_task = asyncio.create_task(self._run_g2pw_stage(prompt_segments))
+            return await asyncio.gather(prompt_task, target_task)
+        target_profiled = await target_task
+        submit_at = time.perf_counter()
+        prompt_profiled = ProfiledResult(
+            result=prompt_segments,
+            submit_at=float(submit_at),
+            started_at=float(submit_at),
+            finished_at=float(submit_at),
+            profile={},
+        )
+        return prompt_profiled, target_profiled
 
     @staticmethod
     def _estimate_text_feature_run_ms(profile: Dict[str, float]) -> float:
@@ -310,12 +381,32 @@ class PrepareCoordinator:
         target_segments,
         prompt_cpu_run_ms: float,
         target_cpu_run_ms: float,
+        prompt_base_profile: Dict[str, float] | None = None,
+        target_base_profile: Dict[str, float] | None = None,
     ) -> tuple[ProfiledResult, ProfiledResult]:
         prompt_is_empty = len(prompt_segments or []) == 0
         if self.text_feature_executor is not None:
-            target_feature_task = asyncio.create_task(self._run_text_feature_stage(target_segments, None, target_cpu_run_ms))
+            target_feature_task = asyncio.create_task(
+                self._run_on_executor(
+                    self.text_feature_executor,
+                    self._build_text_features,
+                    target_segments,
+                    None,
+                    target_cpu_run_ms,
+                    target_base_profile,
+                )
+            )
             if not prompt_is_empty:
-                prompt_feature_task = asyncio.create_task(self._run_text_feature_stage(prompt_segments, None, prompt_cpu_run_ms))
+                prompt_feature_task = asyncio.create_task(
+                    self._run_on_executor(
+                        self.text_feature_executor,
+                        self._build_text_features,
+                        prompt_segments,
+                        None,
+                        prompt_cpu_run_ms,
+                        prompt_base_profile,
+                    )
+                )
                 return await asyncio.gather(prompt_feature_task, target_feature_task)
             target_profiled = await target_feature_task
             submit_at = time.perf_counter()
@@ -328,7 +419,8 @@ class PrepareCoordinator:
             return prompt_profiled, target_profiled
 
         await self.text_feature_gate.acquire()
-        target_profile: Dict[str, float] = {"cpu_preprocess_ms": float(target_cpu_run_ms)}
+        target_profile: Dict[str, float] = dict(target_base_profile or {})
+        target_profile["cpu_preprocess_ms"] = float(target_cpu_run_ms)
         submit_at = time.perf_counter()
         started_at = float(submit_at)
         try:
@@ -377,7 +469,8 @@ class PrepareCoordinator:
                     target_result.profile["bert_total_ms"] = self._estimate_text_feature_run_ms(target_profile)
                 return prompt_profiled, target_profiled
 
-            prompt_profile: Dict[str, float] = {"cpu_preprocess_ms": float(prompt_cpu_run_ms)}
+            prompt_profile: Dict[str, float] = dict(prompt_base_profile or {})
+            prompt_profile["cpu_preprocess_ms"] = float(prompt_cpu_run_ms)
             prompt_result_raw, target_result_raw = await self.tts.build_text_feature_pair_from_segments_async(
                 prompt_segments,
                 target_segments,
@@ -589,20 +682,31 @@ class PrepareCoordinator:
         cpu_stage: PreparedCpuStage,
     ) -> tuple[T2SRequestState, float, float]:
         try:
-            text_pair_start = time.perf_counter()
-            ref_audio_task = asyncio.create_task(self._run_ref_audio_stage(str(cpu_stage.spec.ref_audio_path)))
-            text_feature_pair_task = asyncio.create_task(
-                self._run_text_feature_pair_stage(
+            g2pw_pair_start = time.perf_counter()
+            g2pw_pair_task = asyncio.create_task(
+                self._run_g2pw_pair_stage(
                     cpu_stage.prompt_cpu_profiled.result,
                     cpu_stage.target_cpu_profiled.result,
-                    cpu_stage.prompt_cpu_profiled.run_ms,
-                    cpu_stage.target_cpu_profiled.run_ms,
                 )
             )
-            (prompt_feature_profiled, target_feature_profiled), ref_audio_profiled = await asyncio.gather(
-                text_feature_pair_task,
+            ref_audio_task = asyncio.create_task(self._run_ref_audio_stage(str(cpu_stage.spec.ref_audio_path)))
+            (prompt_g2pw_profiled, target_g2pw_profiled), ref_audio_profiled = await asyncio.gather(
+                g2pw_pair_task,
                 ref_audio_task,
             )
+            g2pw_pair_end = time.perf_counter()
+            text_pair_start = time.perf_counter()
+            text_feature_pair_task = asyncio.create_task(
+                self._run_text_feature_pair_stage(
+                    prompt_g2pw_profiled.result,
+                    target_g2pw_profiled.result,
+                    cpu_stage.prompt_cpu_profiled.run_ms,
+                    cpu_stage.target_cpu_profiled.run_ms,
+                    prompt_base_profile=dict(prompt_g2pw_profiled.profile or {}),
+                    target_base_profile=dict(target_g2pw_profiled.profile or {}),
+                )
+            )
+            prompt_feature_profiled, target_feature_profiled = await text_feature_pair_task
             text_pair_end = time.perf_counter()
             state = build_request_state_from_parts(
                 tts=self.tts,
@@ -619,6 +723,17 @@ class PrepareCoordinator:
                     "prepare_admission_wait_ms": cpu_stage.prepare_admission_wait_ms,
                     "executor_run_wall_ms": max(0.0, (time.perf_counter() - cpu_stage.prepare_start) * 1000.0),
                     "text_feature_pair_ms": max(0.0, (text_pair_end - text_pair_start) * 1000.0),
+                    "g2pw_pair_ms": max(0.0, (g2pw_pair_end - g2pw_pair_start) * 1000.0),
+                    "prompt_text_g2pw_queue_ms": prompt_g2pw_profiled.queue_ms,
+                    "prompt_text_g2pw_run_ms": prompt_g2pw_profiled.run_ms,
+                    "prompt_text_g2pw_prepare_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_prepare_ms", 0.0)),
+                    "prompt_text_g2pw_predict_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_predict_ms", 0.0)),
+                    "prompt_text_g2pw_post_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_post_ms", 0.0)),
+                    "text_g2pw_queue_ms": target_g2pw_profiled.queue_ms,
+                    "text_g2pw_run_ms": target_g2pw_profiled.run_ms,
+                    "text_g2pw_prepare_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_prepare_ms", 0.0)),
+                    "text_g2pw_predict_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_predict_ms", 0.0)),
+                    "text_g2pw_post_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_post_ms", 0.0)),
                     "prompt_text_parallel_future_wait_ms": 0.0,
                     "prompt_text_parallel_future_executor_queue_ms": 0.0,
                     "prompt_text_parallel_future_run_ms": 0.0,
