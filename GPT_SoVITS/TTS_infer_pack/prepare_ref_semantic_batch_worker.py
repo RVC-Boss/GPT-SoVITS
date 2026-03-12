@@ -51,6 +51,7 @@ class RefSemanticTask:
     raw_sr: int
     task_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     created_at: float = field(default_factory=time.perf_counter)
+    batch_popped_at: float = 0.0
     done_event: threading.Event = field(default_factory=threading.Event)
     done_loop: asyncio.AbstractEventLoop | None = None
     done_future: asyncio.Future | None = None
@@ -170,12 +171,14 @@ class PrepareRefSemanticBatchWorker:
                 "max_batch_samples": self.max_batch_samples,
             }
 
-    def _collect_batch(self) -> List[RefSemanticTask]:
+    def _collect_batch(self) -> tuple[List[RefSemanticTask], float]:
         with self.condition:
             while not self.pending_tasks:
                 self.condition.wait()
 
-            batch: List[RefSemanticTask] = [self.pending_tasks.popleft()]
+            first_task = self.pending_tasks.popleft()
+            first_task.batch_popped_at = time.perf_counter()
+            batch: List[RefSemanticTask] = [first_task]
             batch_samples = self._estimate_task_samples(batch[0])
             deadline = time.perf_counter() + self.batch_window_s
 
@@ -190,7 +193,9 @@ class PrepareRefSemanticBatchWorker:
                 next_samples = self._estimate_task_samples(next_task)
                 if len(batch) >= self.max_batch_items or (batch_samples + next_samples) > self.max_batch_samples:
                     break
-                batch.append(self.pending_tasks.popleft())
+                popped_task = self.pending_tasks.popleft()
+                popped_task.batch_popped_at = time.perf_counter()
+                batch.append(popped_task)
                 batch_samples += next_samples
 
             self.active_batch_size = len(batch)
@@ -199,7 +204,7 @@ class PrepareRefSemanticBatchWorker:
                 self.active_batch_peak = self.active_batch_size
             if self.active_batch_samples > self.active_batch_samples_peak:
                 self.active_batch_samples_peak = self.active_batch_samples
-            return batch
+            return batch, time.perf_counter()
 
     def _finalize_batch(self, batch: List[RefSemanticTask]) -> None:
         with self.condition:
@@ -219,7 +224,7 @@ class PrepareRefSemanticBatchWorker:
         return torch.full((attention_mask.shape[0],), int(hidden_length), dtype=torch.long, device=attention_mask.device)
 
     @torch.inference_mode()
-    def _run_batch(self, batch: List[RefSemanticTask]) -> None:
+    def _run_batch(self, batch: List[RefSemanticTask], batch_collected_at: float) -> None:
         batch_started = time.perf_counter()
         prepared_start = time.perf_counter()
         prepared_wavs = [
@@ -268,8 +273,19 @@ class PrepareRefSemanticBatchWorker:
             try:
                 code_len = int(code_lengths[batch_index].item())
                 task.result_prompt_semantic = codes[batch_index, 0, :code_len].detach().clone()
+                worker_queue_wait_ms = max(0.0, (float(task.batch_popped_at) - float(task.created_at)) * 1000.0)
+                batch_collect_wait_ms = max(0.0, (float(batch_collected_at) - float(task.batch_popped_at)) * 1000.0)
+                stage_limiter_wait_ms = float(limiter_stats["wait_ms"])
                 task.profile = {
-                    "prompt_semantic_wait_ms": (batch_started - task.created_at) * 1000.0 + float(limiter_stats["wait_ms"]),
+                    "prompt_semantic_wait_ms": worker_queue_wait_ms
+                    + batch_collect_wait_ms
+                    + stage_limiter_wait_ms,
+                    "prompt_semantic_worker_queue_wait_ms": worker_queue_wait_ms,
+                    "prompt_semantic_batch_collect_wait_ms": batch_collect_wait_ms,
+                    "prompt_semantic_stage_limiter_wait_ms": stage_limiter_wait_ms,
+                    "prompt_semantic_batch_dispatch_delay_ms": max(
+                        0.0, (float(batch_started) - float(batch_collected_at)) * 1000.0
+                    ),
                     "prompt_semantic_cpu_prepare_ms": float(cpu_prepare_ms),
                     "prompt_semantic_forward_ms": float(forward_ms),
                     "prompt_semantic_scatter_ms": 0.0,
@@ -289,9 +305,9 @@ class PrepareRefSemanticBatchWorker:
 
     def _run_loop(self) -> None:
         while True:
-            batch = self._collect_batch()
+            batch, batch_collected_at = self._collect_batch()
             try:
-                self._run_batch(batch)
+                self._run_batch(batch, batch_collected_at)
             except Exception as exc:  # noqa: PERF203
                 for task in batch:
                     task.error = exc

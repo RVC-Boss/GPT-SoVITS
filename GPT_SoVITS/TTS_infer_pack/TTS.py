@@ -946,6 +946,13 @@ class TTS:
         return codes[0, 0].to(self.configs.device)
 
     @torch.inference_mode()
+    def _extract_prompt_semantic_profile_from_prepared_wav16k(self, wav16k: torch.Tensor):
+        forward_start = time.perf_counter()
+        prompt_semantic = self._extract_prompt_semantic_from_prepared_wav16k(wav16k)
+        forward_ms = (time.perf_counter() - forward_start) * 1000.0
+        return prompt_semantic, forward_ms
+
+    @torch.inference_mode()
     def _extract_prompt_semantic_profile_from_raw(self, raw_audio: torch.Tensor, raw_sr: int):
         cpu_prepare_start = time.perf_counter()
         wav16k = prepare_prompt_semantic_wav16k(
@@ -954,9 +961,7 @@ class TTS:
             zero_wav_samples=int(self.configs.sampling_rate * 0.3),
         )
         cpu_prepare_ms = (time.perf_counter() - cpu_prepare_start) * 1000.0
-        forward_start = time.perf_counter()
-        prompt_semantic = self._extract_prompt_semantic_from_prepared_wav16k(wav16k)
-        forward_ms = (time.perf_counter() - forward_start) * 1000.0
+        prompt_semantic, forward_ms = self._extract_prompt_semantic_profile_from_prepared_wav16k(wav16k)
         return prompt_semantic, cpu_prepare_ms, forward_ms
 
     @torch.inference_mode()
@@ -1011,10 +1016,17 @@ class TTS:
         raw_audio, raw_sr = self._load_ref_audio_raw(ref_audio_path)
         load_ms = (time.perf_counter() - load_start) * 1000.0
         if self.prepare_ref_semantic_batch_worker is None:
+            prompt_semantic_cpu_prepare_start = time.perf_counter()
+            wav16k = prepare_prompt_semantic_wav16k(
+                raw_audio=raw_audio,
+                raw_sr=raw_sr,
+                zero_wav_samples=int(self.configs.sampling_rate * 0.3),
+            )
+            prompt_semantic_cpu_prepare_ms = (time.perf_counter() - prompt_semantic_cpu_prepare_start) * 1000.0
             with self.prepare_ref_audio_stage_limiter.enter() as limiter_stats:
                 prompt_semantic_start = time.perf_counter()
-                prompt_semantic, prompt_semantic_cpu_prepare_ms, prompt_semantic_forward_ms = (
-                    self._extract_prompt_semantic_profile_from_raw(raw_audio, raw_sr)
+                prompt_semantic, prompt_semantic_forward_ms = self._extract_prompt_semantic_profile_from_prepared_wav16k(
+                    wav16k
                 )
                 prompt_semantic_ms = (time.perf_counter() - prompt_semantic_start) * 1000.0
                 ref_spec_start = time.perf_counter()
@@ -1025,6 +1037,10 @@ class TTS:
             audio_stage_inflight_peak = float(limiter_stats["peak_inflight"])
             prompt_semantic_profile = {
                 "prompt_semantic_wait_ms": float(limiter_stats["wait_ms"]),
+                "prompt_semantic_worker_queue_wait_ms": 0.0,
+                "prompt_semantic_batch_collect_wait_ms": 0.0,
+                "prompt_semantic_stage_limiter_wait_ms": float(limiter_stats["wait_ms"]),
+                "prompt_semantic_batch_dispatch_delay_ms": 0.0,
                 "prompt_semantic_cpu_prepare_ms": float(prompt_semantic_cpu_prepare_ms),
                 "prompt_semantic_forward_ms": float(prompt_semantic_forward_ms),
                 "prompt_semantic_scatter_ms": 0.0,
@@ -1046,6 +1062,18 @@ class TTS:
                     "audio_stage_inflight_peak": audio_stage_inflight_peak,
                     "prompt_semantic_ms": prompt_semantic_ms,
                     "prompt_semantic_wait_ms": float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)),
+                    "prompt_semantic_worker_queue_wait_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_worker_queue_wait_ms", 0.0)
+                    ),
+                    "prompt_semantic_batch_collect_wait_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_batch_collect_wait_ms", 0.0)
+                    ),
+                    "prompt_semantic_stage_limiter_wait_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_stage_limiter_wait_ms", 0.0)
+                    ),
+                    "prompt_semantic_batch_dispatch_delay_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_batch_dispatch_delay_ms", 0.0)
+                    ),
                     "prompt_semantic_cpu_prepare_ms": float(
                         prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)
                     ),
@@ -1073,6 +1101,10 @@ class TTS:
 
         prompt_semantic_profile = {
             "prompt_semantic_wait_ms": 0.0,
+            "prompt_semantic_worker_queue_wait_ms": 0.0,
+            "prompt_semantic_batch_collect_wait_ms": 0.0,
+            "prompt_semantic_stage_limiter_wait_ms": 0.0,
+            "prompt_semantic_batch_dispatch_delay_ms": 0.0,
             "prompt_semantic_cpu_prepare_ms": 0.0,
             "prompt_semantic_forward_ms": 0.0,
             "prompt_semantic_scatter_ms": 0.0,
@@ -1116,6 +1148,18 @@ class TTS:
                 "audio_stage_inflight_peak": audio_stage_inflight_peak,
                 "prompt_semantic_ms": prompt_semantic_ms,
                 "prompt_semantic_wait_ms": float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)),
+                "prompt_semantic_worker_queue_wait_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_worker_queue_wait_ms", 0.0)
+                ),
+                "prompt_semantic_batch_collect_wait_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_batch_collect_wait_ms", 0.0)
+                ),
+                "prompt_semantic_stage_limiter_wait_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_stage_limiter_wait_ms", 0.0)
+                ),
+                "prompt_semantic_batch_dispatch_delay_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_batch_dispatch_delay_ms", 0.0)
+                ),
                 "prompt_semantic_cpu_prepare_ms": float(
                     prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)
                 ),
@@ -1193,6 +1237,18 @@ class TTS:
                 "audio_stage_inflight_peak": float(audio_stage_inflight_peak),
                 "prompt_semantic_ms": float(prompt_semantic_ms),
                 "prompt_semantic_wait_ms": float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)),
+                "prompt_semantic_worker_queue_wait_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_worker_queue_wait_ms", 0.0)
+                ),
+                "prompt_semantic_batch_collect_wait_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_batch_collect_wait_ms", 0.0)
+                ),
+                "prompt_semantic_stage_limiter_wait_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_stage_limiter_wait_ms", 0.0)
+                ),
+                "prompt_semantic_batch_dispatch_delay_ms": float(
+                    prompt_semantic_profile.get("prompt_semantic_batch_dispatch_delay_ms", 0.0)
+                ),
                 "prompt_semantic_cpu_prepare_ms": float(prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)),
                 "prompt_semantic_forward_ms": float(prompt_semantic_profile.get("prompt_semantic_forward_ms", 0.0)),
                 "prompt_semantic_scatter_ms": float(prompt_semantic_profile.get("prompt_semantic_scatter_ms", 0.0)),

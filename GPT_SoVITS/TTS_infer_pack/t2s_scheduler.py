@@ -305,6 +305,18 @@ def build_request_state_from_parts(
         "audio_stage_inflight_peak": float(bundle_profile.get("audio_stage_inflight_peak", 0.0)),
         "prompt_semantic_ms": prompt_semantic_ms,
         "prompt_semantic_wait_ms": float(bundle_profile.get("prompt_semantic_wait_ms", 0.0)),
+        "prompt_semantic_worker_queue_wait_ms": float(
+            bundle_profile.get("prompt_semantic_worker_queue_wait_ms", 0.0)
+        ),
+        "prompt_semantic_batch_collect_wait_ms": float(
+            bundle_profile.get("prompt_semantic_batch_collect_wait_ms", 0.0)
+        ),
+        "prompt_semantic_stage_limiter_wait_ms": float(
+            bundle_profile.get("prompt_semantic_stage_limiter_wait_ms", 0.0)
+        ),
+        "prompt_semantic_batch_dispatch_delay_ms": float(
+            bundle_profile.get("prompt_semantic_batch_dispatch_delay_ms", 0.0)
+        ),
         "prompt_semantic_cpu_prepare_ms": float(bundle_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)),
         "prompt_semantic_forward_ms": float(bundle_profile.get("prompt_semantic_forward_ms", 0.0)),
         "prompt_semantic_scatter_ms": float(bundle_profile.get("prompt_semantic_scatter_ms", 0.0)),
