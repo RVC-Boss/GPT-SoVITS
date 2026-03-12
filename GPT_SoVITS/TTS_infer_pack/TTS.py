@@ -1,4 +1,5 @@
 import gc
+import asyncio
 import concurrent.futures
 import math
 import os
@@ -42,6 +43,7 @@ from TTS_infer_pack.prepare_ref_semantic_batch_worker import (
     PrepareRefSemanticBatchWorker,
     prepare_prompt_semantic_wav16k,
 )
+from TTS_infer_pack.prepare_text_cpu_worker import PrepareTextCpuWorker
 from sv import SV
 
 resample_transform_dict = {}
@@ -454,18 +456,12 @@ class TTS:
         self.prepare_ref_audio_stage_limiter = StageLimiter(int(os.environ.get("GPTSOVITS_PREPARE_REF_SLOTS", "4")))
         self.prepare_bert_batch_worker = None
         self.prepare_ref_semantic_batch_worker = None
+        self.prepare_text_cpu_worker = None
         self.prepare_text_cpu_workers = max(
             0,
             int(os.environ.get("GPTSOVITS_PREPARE_TEXT_CPU_WORKERS", "0")),
         )
-        self.prepare_text_cpu_executor = (
-            concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.prepare_text_cpu_workers,
-                thread_name_prefix="prepare-text-cpu",
-            )
-            if self.prepare_text_cpu_workers > 0
-            else None
-        )
+        self.prepare_text_cpu_executor = None
 
         self._init_models()
         self.refresh_runtime_components()
@@ -488,6 +484,7 @@ class TTS:
     def refresh_runtime_components(self):
         self.prepare_bert_batch_worker = None
         self.prepare_ref_semantic_batch_worker = None
+        self.prepare_text_cpu_worker = None
         if os.environ.get("GPTSOVITS_PREPARE_BERT_BATCHING", "1") != "0":
             self.prepare_bert_batch_worker = PrepareBertBatchWorker(
                 bert_model=self.bert_model,
@@ -535,6 +532,92 @@ class TTS:
             bert_stage_limiter=self.prepare_bert_stage_limiter,
             bert_batch_worker=self.prepare_bert_batch_worker,
         )
+        if self.prepare_text_cpu_workers > 0:
+            self.prepare_text_cpu_worker = PrepareTextCpuWorker(
+                process_fn=lambda text, language: self.text_preprocessor.preprocess_text_segments(
+                    text,
+                    language,
+                    self.configs.version,
+                ),
+                worker_count=self.prepare_text_cpu_workers,
+                max_pending_tasks=int(os.environ.get("GPTSOVITS_PREPARE_TEXT_CPU_MAX_PENDING_TASKS", "0")),
+                admission_poll_ms=int(os.environ.get("GPTSOVITS_PREPARE_TEXT_CPU_ADMISSION_POLL_MS", "1")),
+                admission_controller=self._build_text_cpu_admission_state,
+            )
+
+    @staticmethod
+    def _safe_queue_qsize(executor) -> int | None:
+        if executor is None:
+            return None
+        queue = getattr(executor, "_work_queue", None)
+        if queue is None or not hasattr(queue, "qsize"):
+            return None
+        try:
+            return int(queue.qsize())
+        except Exception:
+            return None
+
+    def snapshot_prepare_runtime_components(self) -> dict:
+        return {
+            "text_cpu": {
+                "workers": int(self.prepare_text_cpu_workers),
+                "queue_size": self._safe_queue_qsize(self.prepare_text_cpu_executor),
+                "enabled": bool(self.prepare_text_cpu_worker is not None or self.prepare_text_cpu_executor is not None),
+                "worker": (
+                    None if self.prepare_text_cpu_worker is None else dict(self.prepare_text_cpu_worker.snapshot())
+                ),
+                "admission": self._build_text_cpu_admission_state(),
+            },
+            "bert": {
+                "stage_limiter": dict(self.prepare_bert_stage_limiter.snapshot()),
+                "batch_worker": (
+                    None if self.prepare_bert_batch_worker is None else dict(self.prepare_bert_batch_worker.snapshot())
+                ),
+                "batching_enabled": bool(self.prepare_bert_batch_worker is not None),
+            },
+            "ref_semantic": {
+                "stage_limiter": dict(self.prepare_ref_audio_stage_limiter.snapshot()),
+                "batch_worker": (
+                    None
+                    if self.prepare_ref_semantic_batch_worker is None
+                    else dict(self.prepare_ref_semantic_batch_worker.snapshot())
+                ),
+                "batching_enabled": bool(self.prepare_ref_semantic_batch_worker is not None),
+            },
+            "text_preprocessor": (
+                None if self.text_preprocessor is None or not hasattr(self.text_preprocessor, "snapshot") else self.text_preprocessor.snapshot()
+            ),
+        }
+
+    def _build_text_cpu_admission_state(self) -> dict:
+        bert_pending_soft_max = max(
+            0,
+            int(
+                os.environ.get(
+                    "GPTSOVITS_PREPARE_TEXT_CPU_BERT_PENDING_SOFT_MAX",
+                    os.environ.get("GPTSOVITS_PREPARE_BERT_HIGH_PRESSURE_PENDING_THRESHOLD", "32"),
+                )
+            ),
+        )
+        if self.prepare_bert_batch_worker is None or bert_pending_soft_max <= 0:
+            return {
+                "blocked": False,
+                "reason": "",
+                "bert_pending": 0,
+                "bert_active_batch_size": 0,
+                "bert_pending_soft_max": int(bert_pending_soft_max),
+            }
+        bert_state = dict(self.prepare_bert_batch_worker.snapshot())
+        bert_pending = int(bert_state.get("pending", 0))
+        bert_active_batch_size = int(bert_state.get("active_batch_size", 0))
+        blocked = bert_pending >= bert_pending_soft_max
+        return {
+            "blocked": bool(blocked),
+            "reason": ("bert_pending" if blocked else ""),
+            "bert_pending": int(bert_pending),
+            "bert_active_batch_size": int(bert_active_batch_size),
+            "bert_pending_soft_max": int(bert_pending_soft_max),
+        }
 
     def _init_models(
         self,
@@ -1037,6 +1120,79 @@ class TTS:
                 "ref_spec_wait_ms": float(ref_spec_limiter_stats["wait_ms"]),
                 "ref_spec_ms": ref_spec_ms,
                 "bundle_total_ms": load_ms + audio_stage_wait_ms + prompt_semantic_ms + ref_spec_ms,
+            },
+        }
+
+    async def extract_ref_audio_bundle_async(self, ref_audio_path: str):
+        if self.prepare_ref_semantic_batch_worker is None:
+            return await asyncio.to_thread(self.extract_ref_audio_bundle, ref_audio_path)
+
+        load_start = time.perf_counter()
+        raw_audio, raw_sr = await asyncio.to_thread(self._load_ref_audio_raw, ref_audio_path)
+        load_ms = (time.perf_counter() - load_start) * 1000.0
+
+        prompt_semantic_task = asyncio.create_task(
+            self.prepare_ref_semantic_batch_worker.submit_async(raw_audio, raw_sr)
+        )
+
+        def _build_ref_spec_profile():
+            with self.prepare_ref_audio_stage_limiter.enter() as ref_spec_limiter_stats:
+                ref_spec_start = time.perf_counter()
+                refer_spec = self._extract_ref_spec_from_raw(raw_audio, raw_sr)[:2]
+                ref_spec_ms = (time.perf_counter() - ref_spec_start) * 1000.0
+            return refer_spec, {
+                "ref_spec_wait_ms": float(ref_spec_limiter_stats["wait_ms"]),
+                "ref_spec_ms": float(ref_spec_ms),
+                "audio_stage_slots": float(ref_spec_limiter_stats["slots"]),
+                "audio_stage_inflight_peak": float(ref_spec_limiter_stats["peak_inflight"]),
+            }
+
+        ref_spec_task = asyncio.create_task(asyncio.to_thread(_build_ref_spec_profile))
+        (prompt_semantic, prompt_semantic_profile), (refer_spec, ref_spec_profile) = await asyncio.gather(
+            prompt_semantic_task,
+            ref_spec_task,
+        )
+
+        prompt_semantic_ms = (
+            float(prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0))
+            + float(prompt_semantic_profile.get("prompt_semantic_forward_ms", 0.0))
+            + float(prompt_semantic_profile.get("prompt_semantic_scatter_ms", 0.0))
+        )
+        audio_stage_wait_ms = float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)) + float(
+            ref_spec_profile.get("ref_spec_wait_ms", 0.0)
+        )
+        audio_stage_slots = max(
+            float(prompt_semantic_profile.get("prompt_semantic_stage_slots", 0.0)),
+            float(ref_spec_profile.get("audio_stage_slots", 0.0)),
+        )
+        audio_stage_inflight_peak = max(
+            float(prompt_semantic_profile.get("prompt_semantic_stage_inflight_peak", 0.0)),
+            float(ref_spec_profile.get("audio_stage_inflight_peak", 0.0)),
+        )
+        return {
+            "prompt_semantic": prompt_semantic,
+            "refer_spec": refer_spec,
+            "raw_audio": raw_audio,
+            "raw_sr": raw_sr,
+            "profile": {
+                "audio_load_ms": float(load_ms),
+                "audio_stage_wait_ms": float(audio_stage_wait_ms),
+                "audio_stage_slots": float(audio_stage_slots),
+                "audio_stage_inflight_peak": float(audio_stage_inflight_peak),
+                "prompt_semantic_ms": float(prompt_semantic_ms),
+                "prompt_semantic_wait_ms": float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)),
+                "prompt_semantic_cpu_prepare_ms": float(prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)),
+                "prompt_semantic_forward_ms": float(prompt_semantic_profile.get("prompt_semantic_forward_ms", 0.0)),
+                "prompt_semantic_scatter_ms": float(prompt_semantic_profile.get("prompt_semantic_scatter_ms", 0.0)),
+                "prompt_semantic_stage_slots": float(prompt_semantic_profile.get("prompt_semantic_stage_slots", 0.0)),
+                "prompt_semantic_stage_inflight_peak": float(
+                    prompt_semantic_profile.get("prompt_semantic_stage_inflight_peak", 0.0)
+                ),
+                "prompt_semantic_batch_size": float(prompt_semantic_profile.get("prompt_semantic_batch_size", 1.0)),
+                "prompt_semantic_batch_samples": float(prompt_semantic_profile.get("prompt_semantic_batch_samples", 0.0)),
+                "ref_spec_wait_ms": float(ref_spec_profile.get("ref_spec_wait_ms", 0.0)),
+                "ref_spec_ms": float(ref_spec_profile.get("ref_spec_ms", 0.0)),
+                "bundle_total_ms": float(load_ms + audio_stage_wait_ms + prompt_semantic_ms + ref_spec_profile.get("ref_spec_ms", 0.0)),
             },
         }
 

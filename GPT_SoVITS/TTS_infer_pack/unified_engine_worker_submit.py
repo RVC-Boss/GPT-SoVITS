@@ -32,6 +32,9 @@ class WorkerSubmitLifecycleMixin:
     def get_finalize_batch_policy(self) -> Dict[str, Any]:
         return dict(self.finalize_executor.get_batch_policy())
 
+    def get_prepare_batch_policy(self) -> Dict[str, int]:
+        return dict(self.prepare_executor.get_batch_policy())
+
     def get_decode_runtime_counters(self) -> Dict[str, int]:
         with self.condition:
             return self.decode_runtime_tracker.get_counters()
@@ -258,3 +261,9 @@ class WorkerSubmitLifecycleMixin:
         cpu_stage: PreparedCpuStage,
     ) -> tuple[T2SRequestState, float, float]:
         return await self.prepare_executor.prepare_gpu_stage_profiled_async(cpu_stage)
+
+    async def prepare_gpu_stages_profiled_async(
+        self,
+        cpu_stages: List[PreparedCpuStage],
+    ) -> List[tuple[T2SRequestState, float, float] | Exception]:
+        return await self.prepare_executor.prepare_gpu_stages_profiled_async(cpu_stages)

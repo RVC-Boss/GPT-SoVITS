@@ -118,6 +118,15 @@ class TextPreprocessor:
         self.bert_stage_limiter = bert_stage_limiter
         self.bert_batch_worker = bert_batch_worker
 
+    def snapshot(self) -> Dict[str, object]:
+        return {
+            "device": str(self.device),
+            "bert_stage_limiter": (
+                None if self.bert_stage_limiter is None else dict(self.bert_stage_limiter.snapshot())
+            ),
+            "bert_batch_worker": None if self.bert_batch_worker is None else dict(self.bert_batch_worker.snapshot()),
+        }
+
     def preprocess(self, text: str, lang: str, text_split_method: str, version: str = "v2") -> List[Dict]:
         print(f"############ {i18n('切分文本')} ############")
         text = self.replace_consecutive_punctuation(text)

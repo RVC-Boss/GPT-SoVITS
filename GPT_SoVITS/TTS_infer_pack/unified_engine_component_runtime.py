@@ -44,6 +44,16 @@ class EngineTaskQueueOwner:
                 return None
             return self.queue.popleft()
 
+    def pop_left_many(self, max_items: int) -> List[Any]:
+        limit = max(1, int(max_items))
+        with self.condition:
+            if not self.queue:
+                return []
+            selected: List[Any] = []
+            while self.queue and len(selected) < limit:
+                selected.append(self.queue.popleft())
+            return selected
+
     def mark_completed(self, count: int = 1, *, notify: bool = False) -> None:
         if count <= 0:
             return
@@ -315,6 +325,7 @@ class EngineGpuPrepareTask:
     engine_request_id: str | None
     enqueue_time: float
     queue_wait_ms: float = 0.0
+    admission_wait_ms: float = 0.0
     error: str | None = None
 
 

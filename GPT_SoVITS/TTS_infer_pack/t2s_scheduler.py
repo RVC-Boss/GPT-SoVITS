@@ -421,6 +421,55 @@ def _iter_contiguous_sampling_groups(
     return groups
 
 
+def _uniform_sampling_group_key(active_batch: T2SActiveBatch) -> Optional[Tuple[int, float, float, float, bool]]:
+    if not active_batch.states:
+        return None
+    if active_batch.step_indices.numel() <= 0:
+        return None
+    first_step_index = int(active_batch.step_indices[0].item())
+    if bool((active_batch.step_indices != first_step_index).any().item()):
+        return None
+    first_state = active_batch.states[0]
+    first_key = _sampling_group_key(
+        top_k=first_state.top_k,
+        top_p=first_state.top_p,
+        temperature=first_state.temperature,
+        repetition_penalty=first_state.repetition_penalty,
+        trim_eos=first_step_index < 11,
+    )
+    for state in active_batch.states[1:]:
+        if (
+            state.top_k != first_state.top_k
+            or state.top_p != first_state.top_p
+            or state.temperature != first_state.temperature
+            or state.repetition_penalty != first_state.repetition_penalty
+        ):
+            return None
+    return first_key
+
+
+def _batched_sample_uniform(
+    logits: torch.Tensor,
+    histories: Sequence[torch.LongTensor],
+    sampling_key: Tuple[int, float, float, float, bool],
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    top_k, top_p, temperature, repetition_penalty, trim_eos = sampling_key
+    sample_logits = logits[:, :-1] if trim_eos else logits
+    padded_histories, history_mask = _pad_token_sequences(histories)
+    probs = logits_to_probs(
+        logits=sample_logits,
+        previous_tokens=padded_histories,
+        previous_token_mask=history_mask,
+        top_k=top_k,
+        top_p=top_p,
+        repetition_penalty=repetition_penalty,
+        temperature=temperature,
+    )
+    sampled = multinomial_sample_one_no_sync(probs)
+    argmax_tokens = torch.argmax(sample_logits, dim=-1)
+    return sampled, argmax_tokens
+
+
 def _batched_sample_by_group(
     logits: torch.Tensor,
     histories: Sequence[torch.LongTensor],
@@ -594,27 +643,59 @@ def _sample_per_request(
     keep_indices: List[int] = []
     updated_sequences: List[torch.LongTensor] = []
 
-    sampling_keys = [
-        _sampling_group_key(
-            top_k=state.top_k,
-            top_p=state.top_p,
-            temperature=state.temperature,
-            repetition_penalty=state.repetition_penalty,
-            trim_eos=int(active_batch.step_indices[batch_index].item()) < 11,
+    uniform_sampling_key = _uniform_sampling_group_key(active_batch)
+    sampled_items: List[torch.Tensor]
+    argmax_tokens: List[int]
+    sampled_token_tensor: Optional[torch.Tensor] = None
+    argmax_token_tensor: Optional[torch.Tensor] = None
+    if uniform_sampling_key is not None:
+        sampled_tensor, argmax_tensor = _batched_sample_uniform(
+            logits=logits,
+            histories=active_batch.y_sequences,
+            sampling_key=uniform_sampling_key,
         )
-        for batch_index, state in enumerate(active_batch.states)
-    ]
-    sampled_items, argmax_tokens = _batched_sample_by_group(
-        logits=logits,
-        histories=active_batch.y_sequences,
-        sampling_keys=sampling_keys,
-    )
+        sampled_token_tensor = sampled_tensor.view(-1)
+        argmax_token_tensor = argmax_tensor.view(-1)
+        if (
+            all(state.early_stop_num == -1 for state in active_batch.states)
+            and int(active_batch.step_indices[0].item()) + 1 < max_steps
+            and not bool(sampled_token_tensor.eq(model.EOS).any().item())
+            and not bool(argmax_token_tensor.eq(model.EOS).any().item())
+        ):
+            return (
+                [],
+                list(range(len(active_batch.states))),
+                [torch.cat([history, sampled_token_tensor[index : index + 1]], dim=0) for index, history in enumerate(active_batch.y_sequences)],
+            )
+        sampled_items = [sampled_tensor[index : index + 1] for index in range(sampled_tensor.shape[0])]
+        argmax_tokens = [int(item) for item in argmax_tensor.tolist()]
+    else:
+        sampling_keys = [
+            _sampling_group_key(
+                top_k=state.top_k,
+                top_p=state.top_p,
+                temperature=state.temperature,
+                repetition_penalty=state.repetition_penalty,
+                trim_eos=int(active_batch.step_indices[batch_index].item()) < 11,
+            )
+            for batch_index, state in enumerate(active_batch.states)
+        ]
+        sampled_items, argmax_tokens = _batched_sample_by_group(
+            logits=logits,
+            histories=active_batch.y_sequences,
+            sampling_keys=sampling_keys,
+        )
     for batch_index, state in enumerate(active_batch.states):
         step_index = int(active_batch.step_indices[batch_index].item())
         current_history = active_batch.y_sequences[batch_index]
-        sampled = sampled_items[batch_index]
-        sampled_token = int(sampled[0, 0].item())
-        argmax_token = argmax_tokens[batch_index]
+        if sampled_token_tensor is not None and argmax_token_tensor is not None:
+            sampled = sampled_token_tensor[batch_index : batch_index + 1]
+            sampled_token = int(sampled_token_tensor[batch_index].item())
+            argmax_token = int(argmax_token_tensor[batch_index].item())
+        else:
+            sampled = sampled_items[batch_index]
+            sampled_token = int(sampled[0, 0].item())
+            argmax_token = argmax_tokens[batch_index]
         new_history = torch.cat([current_history, sampled.view(-1)], dim=0)
 
         finish_reason: Optional[str] = None
@@ -690,6 +771,13 @@ def decode_one_step(
     finished_items, keep_indices, updated_sequences = _sample_per_request(model, active_batch, logits, max_steps=max_steps)
     if len(keep_indices) == 0:
         return None, finished_items
+    if len(keep_indices) == len(active_batch.request_ids):
+        active_batch.y_sequences = updated_sequences
+        active_batch.step_indices = active_batch.step_indices + 1
+        if not was_prefill and active_batch.kv_lens is not None:
+            active_batch.kv_lens = active_batch.kv_lens + 1
+        active_batch.xy_pos = build_next_xy_pos(model, active_batch.y_sequences)
+        return active_batch, finished_items
 
     device = logits.device
     keep_tensor = torch.LongTensor(keep_indices).to(device)

@@ -1,3 +1,4 @@
+import asyncio
 import threading
 import time
 import uuid
@@ -51,6 +52,8 @@ class RefSemanticTask:
     task_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     created_at: float = field(default_factory=time.perf_counter)
     done_event: threading.Event = field(default_factory=threading.Event)
+    done_loop: asyncio.AbstractEventLoop | None = None
+    done_future: asyncio.Future | None = None
     result_prompt_semantic: torch.Tensor | None = None
     error: Exception | None = None
     profile: Dict[str, float] = field(default_factory=dict)
@@ -114,6 +117,41 @@ class PrepareRefSemanticBatchWorker:
             raise task.error
         assert task.result_prompt_semantic is not None
         return task.result_prompt_semantic, dict(task.profile)
+
+    async def submit_async(self, raw_audio: torch.Tensor, raw_sr: int) -> Tuple[torch.Tensor, Dict[str, float]]:
+        loop = asyncio.get_running_loop()
+        task = RefSemanticTask(
+            raw_audio=raw_audio,
+            raw_sr=int(raw_sr),
+            done_loop=loop,
+            done_future=loop.create_future(),
+        )
+        with self.condition:
+            self.pending_tasks.append(task)
+            self.total_submitted += 1
+            if len(self.pending_tasks) > self.pending_peak:
+                self.pending_peak = len(self.pending_tasks)
+            self.condition.notify_all()
+        return await task.done_future
+
+    @staticmethod
+    def _resolve_done_future(task: RefSemanticTask) -> None:
+        if task.done_future is None or task.done_future.done():
+            return
+        if task.error is not None:
+            task.done_future.set_exception(task.error)
+            return
+        assert task.result_prompt_semantic is not None
+        task.done_future.set_result((task.result_prompt_semantic, dict(task.profile)))
+
+    def _notify_task_done(self, task: RefSemanticTask) -> None:
+        task.done_event.set()
+        if task.done_loop is None or task.done_future is None:
+            return
+        try:
+            task.done_loop.call_soon_threadsafe(self._resolve_done_future, task)
+        except RuntimeError:
+            pass
 
     def snapshot(self) -> Dict[str, int]:
         with self.condition:
@@ -247,7 +285,7 @@ class PrepareRefSemanticBatchWorker:
         for task in batch:
             if task.result_prompt_semantic is not None:
                 task.profile["prompt_semantic_scatter_ms"] = float(scatter_ms)
-            task.done_event.set()
+            self._notify_task_done(task)
 
     def _run_loop(self) -> None:
         while True:
@@ -257,6 +295,6 @@ class PrepareRefSemanticBatchWorker:
             except Exception as exc:  # noqa: PERF203
                 for task in batch:
                     task.error = exc
-                    task.done_event.set()
+                    self._notify_task_done(task)
             finally:
                 self._finalize_batch(batch)
