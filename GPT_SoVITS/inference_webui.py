@@ -521,7 +521,23 @@ def get_spepc(hps, filename, dtype, device, is_v2pro=False):
     # audio = torch.FloatTensor(audio)
 
     sr1 = int(hps.data.sampling_rate)
-    audio, sr0 = torchaudio.load(filename)
+
+    #audio, sr0 = torchaudio.load(filename)
+    try:
+        # Attempt to load using the author's preferred torchaudio method
+        audio, sr0 = torchaudio.load(filename)
+    except Exception as e:
+        # Fallback for environments where torchcodec/torchaudio is broken (e.g., RTX 50-series)
+        print(f"Warning: torchaudio load failed, falling back to librosa. Error: {e}")
+        import librosa
+        import numpy as np
+        # Load using librosa as a robust CPU-based alternative
+        audio_np, sr0 = librosa.load(filename, sr=None)
+        # Convert back to tensor and match the [1, N] shape expected by the pipeline
+        audio = torch.from_numpy(audio_np).unsqueeze(0)
+    
+    
+    
     if sr0 != sr1:
         audio = audio.to(device)
         if audio.shape[0] == 2:

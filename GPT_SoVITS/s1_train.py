@@ -8,7 +8,21 @@ import logging
 import platform
 from pathlib import Path
 
+#import torch
+
 import torch
+import pathlib
+
+# Fix for PyTorch 2.6+ where weights_only=True is the default.
+# This allows the trainer to safely load PosixPath objects from checkpoints.
+if hasattr(torch.serialization, 'add_safe_globals'):
+    try:
+        torch.serialization.add_safe_globals([pathlib.PosixPath])
+    except Exception as e:
+        print(f"Note: Could not add pathlib.PosixPath to safe_globals: {e}")
+
+
+
 from AR.data.data_module import Text2SemanticDataModule
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from AR.utils.io import load_yaml_config
