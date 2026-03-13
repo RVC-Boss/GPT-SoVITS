@@ -1,4 +1,5 @@
 import asyncio
+import os
 import threading
 import time
 import uuid
@@ -6,28 +7,48 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Deque, Dict, List, Tuple
 
-import librosa
-import numpy as np
 import torch
+import torchaudio
 
 
 REF_AUDIO_MIN_SAMPLES_16K = 48000
 REF_AUDIO_MAX_SAMPLES_16K = 160000
+_RESAMPLE_CACHE_LOCK = threading.Lock()
+_RESAMPLE_CACHE: Dict[Tuple[int, int, str], torchaudio.transforms.Resample] = {}
+
+
+def _get_resampler(orig_sr: int, target_sr: int, device: str) -> torchaudio.transforms.Resample:
+    device_key = str(device)
+    key = (int(orig_sr), int(target_sr), device_key)
+    with _RESAMPLE_CACHE_LOCK:
+        transform = _RESAMPLE_CACHE.get(key)
+        if transform is None:
+            transform = torchaudio.transforms.Resample(orig_freq=int(orig_sr), new_freq=int(target_sr)).to(device_key)
+            _RESAMPLE_CACHE[key] = transform
+    return transform
 
 
 def prepare_prompt_semantic_wav16k(raw_audio: torch.Tensor, raw_sr: int, zero_wav_samples: int) -> torch.Tensor:
+    resample_device = os.environ.get("GPTSOVITS_PREPARE_REF_RESAMPLE_DEVICE", "cpu").strip().lower() or "cpu"
+    if resample_device not in {"cpu", "cuda"}:
+        resample_device = "cpu"
+    if resample_device == "cuda" and not torch.cuda.is_available():
+        resample_device = "cpu"
     wav_mono = raw_audio
     if wav_mono.dim() == 2 and wav_mono.shape[0] != 1:
         wav_mono = wav_mono.mean(0, keepdim=True)
-    wav16k = wav_mono.squeeze(0).cpu().numpy()
+    wav16k = wav_mono.to(dtype=torch.float32, device=resample_device)
     if raw_sr != 16000:
-        wav16k = librosa.resample(wav16k, orig_sr=raw_sr, target_sr=16000)
+        wav16k = _get_resampler(int(raw_sr), 16000, resample_device)(wav16k)
+    wav16k = wav16k.squeeze(0).contiguous()
     if wav16k.shape[0] > REF_AUDIO_MAX_SAMPLES_16K or wav16k.shape[0] < REF_AUDIO_MIN_SAMPLES_16K:
         raise OSError("参考音频在3~10秒范围外，请更换！")
-    wav16k = np.ascontiguousarray(wav16k, dtype=np.float32)
     if zero_wav_samples > 0:
-        wav16k = np.concatenate([wav16k, np.zeros(int(zero_wav_samples), dtype=np.float32)], axis=0)
-    return torch.from_numpy(wav16k)
+        wav16k = torch.cat(
+            [wav16k, torch.zeros(int(zero_wav_samples), dtype=torch.float32, device=wav16k.device)],
+            dim=0,
+        )
+    return wav16k.contiguous()
 
 
 def conv1d_output_lengths(input_lengths: torch.Tensor, conv1d: torch.nn.Conv1d | None) -> torch.Tensor:
