@@ -24,6 +24,10 @@ class EngineDispatchStageMixin:
         engine_request_id: str | None,
         timeout_sec: float | None,
     ) -> EngineDispatchTask:
+        if float(state.prepare_profile.get("ref_spec_async_failed", 0.0) or 0.0) > 0.0:
+            error = RuntimeError("ref_spec async stage failed before dispatch")
+            self.fail_request_state(engine_request_id or state.request_id, str(error))
+            raise error
         task = EngineDispatchTask(
             request_id=state.request_id,
             state=state,

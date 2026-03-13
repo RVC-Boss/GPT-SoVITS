@@ -324,8 +324,24 @@ class EngineGpuPrepareTask:
     done_future: asyncio.Future | None
     engine_request_id: str | None
     enqueue_time: float
-    queue_wait_ms: float = 0.0
+    phase: str = "audio"
+    audio_enqueue_time: float = 0.0
+    audio_start_time: float = 0.0
+    audio_end_time: float = 0.0
+    text_enqueue_time: float = 0.0
+    text_start_time: float = 0.0
+    text_end_time: float = 0.0
+    ref_spec_enqueue_time: float = 0.0
+    ref_spec_start_time: float = 0.0
+    ref_spec_end_time: float = 0.0
+    audio_queue_wait_ms: float = 0.0
+    text_queue_wait_ms: float = 0.0
+    ref_spec_queue_wait_ms: float = 0.0
     admission_wait_ms: float = 0.0
+    phase_one: Dict[str, Any] | None = None
+    ref_spec_result: tuple[tuple[Any, Any], Dict[str, float]] | None = None
+    state_result: T2SRequestState | None = None
+    cancelled: bool = False
     error: str | None = None
 
 

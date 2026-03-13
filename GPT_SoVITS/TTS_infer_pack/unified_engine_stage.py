@@ -24,6 +24,8 @@ class EngineStageCoordinator:
         tts: TTS,
         scheduler_worker: UnifiedSchedulerWorker,
         prepare_queue_owner: EngineTaskQueueOwner,
+        prepare_text_queue_owner: EngineTaskQueueOwner,
+        prepare_ref_spec_queue_owner: EngineTaskQueueOwner,
         finalize_queue_owner: EngineTaskQueueOwner,
         dispatch_queue_owner: EngineTaskQueueOwner,
         decode_runtime_owner: EngineDecodeRuntimeOwner,
@@ -45,6 +47,8 @@ class EngineStageCoordinator:
             tts=tts,
             scheduler_worker=scheduler_worker,
             prepare_queue_owner=prepare_queue_owner,
+            prepare_text_queue_owner=prepare_text_queue_owner,
+            prepare_ref_spec_queue_owner=prepare_ref_spec_queue_owner,
             finalize_queue_owner=finalize_queue_owner,
             dispatch_queue_owner=dispatch_queue_owner,
             decode_runtime_owner=decode_runtime_owner,
@@ -66,6 +70,8 @@ class EngineStageCoordinator:
             executor=self.executor,
             scheduler_worker=scheduler_worker,
             prepare_queue_owner=prepare_queue_owner,
+            prepare_text_queue_owner=prepare_text_queue_owner,
+            prepare_ref_spec_queue_owner=prepare_ref_spec_queue_owner,
             finalize_queue_owner=finalize_queue_owner,
             dispatch_queue_owner=dispatch_queue_owner,
             decode_runtime_owner=decode_runtime_owner,
@@ -143,6 +149,15 @@ class EngineStageCoordinator:
 
     def run_engine_prepare_once(self) -> bool:
         return self.executor.run_engine_prepare_once()
+
+    def run_engine_prepare_audio_once(self) -> bool:
+        return self.executor.run_engine_prepare_audio_once()
+
+    def run_engine_prepare_text_once(self) -> bool:
+        return self.executor.run_engine_prepare_text_once()
+
+    def run_engine_prepare_ref_spec_once(self) -> bool:
+        return self.executor.run_engine_prepare_ref_spec_once()
 
     def run_engine_finalize_once(self) -> bool:
         return self.executor.run_engine_finalize_once()

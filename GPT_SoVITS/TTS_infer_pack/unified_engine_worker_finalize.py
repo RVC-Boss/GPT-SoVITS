@@ -151,7 +151,9 @@ class WorkerFinalizeExecutor:
 
     @staticmethod
     def _collect_job_refer_specs(job: SchedulerPendingJob) -> List[tuple]:
-        refer_specs = [job.state.refer_spec]
+        refer_specs = []
+        if job.state.refer_spec is not None:
+            refer_specs.append(job.state.refer_spec)
         refer_specs.extend(list(getattr(job.state, "aux_refer_specs", []) or []))
         return refer_specs
 

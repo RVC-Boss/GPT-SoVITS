@@ -110,6 +110,8 @@ class EngineCompositionBuilder:
             get_micro_batch_wait_s=owner.scheduler_worker.get_micro_batch_wait_s,
         )
         owner.engine_prepare_queue_owner = EngineTaskQueueOwner(completion_key="total_completed")
+        owner.engine_prepare_text_queue_owner = EngineTaskQueueOwner(completion_key="total_completed")
+        owner.engine_prepare_ref_spec_queue_owner = EngineTaskQueueOwner(completion_key="total_completed")
         owner.engine_finalize_queue_owner = EngineTaskQueueOwner(completion_key="total_completed")
         owner.engine_dispatch_queue_owner = EngineTaskQueueOwner(completion_key="total_dispatched")
 
@@ -119,6 +121,8 @@ class EngineCompositionBuilder:
             tts=owner.tts,
             scheduler_worker=owner.scheduler_worker,
             prepare_queue_owner=owner.engine_prepare_queue_owner,
+            prepare_text_queue_owner=owner.engine_prepare_text_queue_owner,
+            prepare_ref_spec_queue_owner=owner.engine_prepare_ref_spec_queue_owner,
             finalize_queue_owner=owner.engine_finalize_queue_owner,
             dispatch_queue_owner=owner.engine_dispatch_queue_owner,
             decode_runtime_owner=owner.engine_decode_runtime_owner,

@@ -15,6 +15,7 @@ REF_AUDIO_MIN_SAMPLES_16K = 48000
 REF_AUDIO_MAX_SAMPLES_16K = 160000
 _RESAMPLE_CACHE_LOCK = threading.Lock()
 _RESAMPLE_CACHE: Dict[Tuple[int, int, str], torchaudio.transforms.Resample] = {}
+_RESAMPLE_STREAM_CACHE: Dict[str, torch.cuda.Stream] = {}
 
 
 def _get_resampler(orig_sr: int, target_sr: int, device: str) -> torchaudio.transforms.Resample:
@@ -28,6 +29,16 @@ def _get_resampler(orig_sr: int, target_sr: int, device: str) -> torchaudio.tran
     return transform
 
 
+def _get_resample_stream(device: str) -> torch.cuda.Stream:
+    device_key = str(device)
+    with _RESAMPLE_CACHE_LOCK:
+        stream = _RESAMPLE_STREAM_CACHE.get(device_key)
+        if stream is None:
+            stream = torch.cuda.Stream(device=device_key)
+            _RESAMPLE_STREAM_CACHE[device_key] = stream
+    return stream
+
+
 def prepare_prompt_semantic_wav16k(raw_audio: torch.Tensor, raw_sr: int, zero_wav_samples: int) -> torch.Tensor:
     resample_device = os.environ.get("GPTSOVITS_PREPARE_REF_RESAMPLE_DEVICE", "cpu").strip().lower() or "cpu"
     if resample_device not in {"cpu", "cuda"}:
@@ -37,10 +48,20 @@ def prepare_prompt_semantic_wav16k(raw_audio: torch.Tensor, raw_sr: int, zero_wa
     wav_mono = raw_audio
     if wav_mono.dim() == 2 and wav_mono.shape[0] != 1:
         wav_mono = wav_mono.mean(0, keepdim=True)
-    wav16k = wav_mono.to(dtype=torch.float32, device=resample_device)
-    if raw_sr != 16000:
-        wav16k = _get_resampler(int(raw_sr), 16000, resample_device)(wav16k)
-    wav16k = wav16k.squeeze(0).contiguous()
+    if resample_device == "cuda":
+        stream = _get_resample_stream(resample_device)
+        with torch.cuda.stream(stream):
+            wav16k = wav_mono.to(dtype=torch.float32, device=resample_device)
+            if raw_sr != 16000:
+                wav16k = _get_resampler(int(raw_sr), 16000, resample_device)(wav16k)
+            wav16k = wav16k.squeeze(0).contiguous()
+        stream.synchronize()
+        wav16k = wav16k.detach().to(device="cpu", dtype=torch.float32).contiguous()
+    else:
+        wav16k = wav_mono.to(dtype=torch.float32, device=resample_device)
+        if raw_sr != 16000:
+            wav16k = _get_resampler(int(raw_sr), 16000, resample_device)(wav16k)
+        wav16k = wav16k.squeeze(0).contiguous()
     if wav16k.shape[0] > REF_AUDIO_MAX_SAMPLES_16K or wav16k.shape[0] < REF_AUDIO_MIN_SAMPLES_16K:
         raise OSError("参考音频在3~10秒范围外，请更换！")
     if zero_wav_samples > 0:
@@ -256,37 +277,56 @@ class PrepareRefSemanticBatchWorker:
         batch_samples = int(wav_lengths.sum().item())
         max_wav_len = int(wav_lengths.max().item())
 
+        pack_start = time.perf_counter()
         input_values_cpu = torch.zeros((len(batch), max_wav_len), dtype=torch.float32)
         attention_mask_cpu = torch.zeros((len(batch), max_wav_len), dtype=torch.long)
         for batch_index, wav in enumerate(prepared_wavs):
             wav_len = int(wav.shape[0])
             input_values_cpu[batch_index, :wav_len] = wav
             attention_mask_cpu[batch_index, :wav_len] = 1
+        pack_ms = (time.perf_counter() - pack_start) * 1000.0
 
         limiter_stats = {"wait_ms": 0.0, "peak_inflight": 1, "slots": 0}
+        h2d_ms = 0.0
+        ssl_forward_ms = 0.0
+        hidden_length_ms = 0.0
+        extract_latent_ms = 0.0
         if self.stage_limiter is None:
+            h2d_start = time.perf_counter()
             input_values = input_values_cpu.to(self.device)
             attention_mask = attention_mask_cpu.to(self.device)
             if self.is_half:
                 input_values = input_values.half()
-            forward_start = time.perf_counter()
+            h2d_ms = (time.perf_counter() - h2d_start) * 1000.0
+            ssl_start = time.perf_counter()
             outputs = self.ssl_model.model(input_values, attention_mask=attention_mask)
+            ssl_forward_ms = (time.perf_counter() - ssl_start) * 1000.0
             hubert_feature = outputs["last_hidden_state"].transpose(1, 2)
+            hidden_length_start = time.perf_counter()
             hidden_lengths = self._get_hidden_lengths(attention_mask, int(hubert_feature.shape[-1]))
+            hidden_length_ms = (time.perf_counter() - hidden_length_start) * 1000.0
+            latent_start = time.perf_counter()
             codes = self.vits_model.extract_latent(hubert_feature)
-            forward_ms = (time.perf_counter() - forward_start) * 1000.0
+            extract_latent_ms = (time.perf_counter() - latent_start) * 1000.0
         else:
             with self.stage_limiter.enter() as limiter_stats:
+                h2d_start = time.perf_counter()
                 input_values = input_values_cpu.to(self.device)
                 attention_mask = attention_mask_cpu.to(self.device)
                 if self.is_half:
                     input_values = input_values.half()
-                forward_start = time.perf_counter()
+                h2d_ms = (time.perf_counter() - h2d_start) * 1000.0
+                ssl_start = time.perf_counter()
                 outputs = self.ssl_model.model(input_values, attention_mask=attention_mask)
+                ssl_forward_ms = (time.perf_counter() - ssl_start) * 1000.0
                 hubert_feature = outputs["last_hidden_state"].transpose(1, 2)
+                hidden_length_start = time.perf_counter()
                 hidden_lengths = self._get_hidden_lengths(attention_mask, int(hubert_feature.shape[-1]))
+                hidden_length_ms = (time.perf_counter() - hidden_length_start) * 1000.0
+                latent_start = time.perf_counter()
                 codes = self.vits_model.extract_latent(hubert_feature)
-                forward_ms = (time.perf_counter() - forward_start) * 1000.0
+                extract_latent_ms = (time.perf_counter() - latent_start) * 1000.0
+        forward_ms = float(h2d_ms + ssl_forward_ms + hidden_length_ms + extract_latent_ms)
 
         code_lengths = conv1d_output_lengths(hidden_lengths.detach().cpu(), getattr(self.vits_model, "ssl_proj", None))
         scatter_start = time.perf_counter()
@@ -308,6 +348,11 @@ class PrepareRefSemanticBatchWorker:
                         0.0, (float(batch_started) - float(batch_collected_at)) * 1000.0
                     ),
                     "prompt_semantic_cpu_prepare_ms": float(cpu_prepare_ms),
+                    "prompt_semantic_pack_ms": float(pack_ms),
+                    "prompt_semantic_h2d_ms": float(h2d_ms),
+                    "prompt_semantic_ssl_forward_ms": float(ssl_forward_ms),
+                    "prompt_semantic_hidden_length_ms": float(hidden_length_ms),
+                    "prompt_semantic_extract_latent_ms": float(extract_latent_ms),
                     "prompt_semantic_forward_ms": float(forward_ms),
                     "prompt_semantic_scatter_ms": 0.0,
                     "prompt_semantic_calls": 1.0,

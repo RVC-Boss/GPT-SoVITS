@@ -14,6 +14,8 @@ class EngineStageOrchestrator:
         executor: EngineStageExecutor,
         scheduler_worker: UnifiedSchedulerWorker,
         prepare_queue_owner: EngineTaskQueueOwner,
+        prepare_text_queue_owner: EngineTaskQueueOwner,
+        prepare_ref_spec_queue_owner: EngineTaskQueueOwner,
         finalize_queue_owner: EngineTaskQueueOwner,
         dispatch_queue_owner: EngineTaskQueueOwner,
         decode_runtime_owner: EngineDecodeRuntimeOwner,
@@ -22,6 +24,8 @@ class EngineStageOrchestrator:
         self.executor = executor
         self.scheduler_worker = scheduler_worker
         self.prepare_queue_owner = prepare_queue_owner
+        self.prepare_text_queue_owner = prepare_text_queue_owner
+        self.prepare_ref_spec_queue_owner = prepare_ref_spec_queue_owner
         self.finalize_queue_owner = finalize_queue_owner
         self.dispatch_queue_owner = dispatch_queue_owner
         self.decode_runtime_owner = decode_runtime_owner
@@ -45,7 +49,17 @@ class EngineStageOrchestrator:
 
     def peek_queue_age_ms(self, queue_name: str) -> float:
         if queue_name == "prepare":
+            return max(
+                self.prepare_queue_owner.peek_oldest_age_ms("enqueue_time"),
+                self.prepare_text_queue_owner.peek_oldest_age_ms("enqueue_time"),
+                self.prepare_ref_spec_queue_owner.peek_oldest_age_ms("enqueue_time"),
+            )
+        if queue_name == "prepare_audio":
             return self.prepare_queue_owner.peek_oldest_age_ms("enqueue_time")
+        if queue_name == "prepare_text":
+            return self.prepare_text_queue_owner.peek_oldest_age_ms("enqueue_time")
+        if queue_name == "prepare_ref_spec":
+            return self.prepare_ref_spec_queue_owner.peek_oldest_age_ms("enqueue_time")
         if queue_name == "finalize":
             return self.finalize_queue_owner.peek_oldest_age_ms("enqueued_time")
         if queue_name == "decode_runtime_pending":
@@ -61,6 +75,10 @@ class EngineStageOrchestrator:
         ) > 0:
             return True
         if self.prepare_queue_owner.has_items():
+            return True
+        if self.prepare_text_queue_owner.has_items():
+            return True
+        if self.prepare_ref_spec_queue_owner.has_items():
             return True
         if self.finalize_queue_owner.has_items():
             return True
@@ -79,6 +97,12 @@ class EngineStageOrchestrator:
             executed = False
             if stage == "prepare":
                 executed = self.executor.run_engine_prepare_once()
+            elif stage == "prepare_audio":
+                executed = self.executor.run_engine_prepare_audio_once()
+            elif stage == "prepare_text":
+                executed = self.executor.run_engine_prepare_text_once()
+            elif stage == "prepare_ref_spec":
+                executed = self.executor.run_engine_prepare_ref_spec_once()
             elif stage == "finalize":
                 executed = self.executor.run_engine_finalize_once()
             elif stage == "decode_dispatch":

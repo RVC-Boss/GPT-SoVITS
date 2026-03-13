@@ -22,6 +22,14 @@ class EngineRegistryBridgeFacade:
         return self.owner.engine_prepare_queue_owner
 
     @property
+    def engine_prepare_text_queue_owner(self):
+        return self.owner.engine_prepare_text_queue_owner
+
+    @property
+    def engine_prepare_ref_spec_queue_owner(self):
+        return self.owner.engine_prepare_ref_spec_queue_owner
+
+    @property
     def engine_finalize_queue_owner(self):
         return self.owner.engine_finalize_queue_owner
 
@@ -82,7 +90,33 @@ class EngineRegistryBridgeFacade:
         return self.request_registry.snapshot()
 
     def _snapshot_engine_prepare_state(self) -> Dict[str, Any]:
-        return self.engine_prepare_queue_owner.snapshot(max_request_ids=16)
+        audio_snapshot = self.engine_prepare_queue_owner.snapshot(max_request_ids=16)
+        text_snapshot = self.engine_prepare_text_queue_owner.snapshot(max_request_ids=16)
+        ref_spec_snapshot = self.engine_prepare_ref_spec_queue_owner.snapshot(max_request_ids=16)
+        return {
+            "waiting_count": int(audio_snapshot.get("waiting_count", 0))
+            + int(text_snapshot.get("waiting_count", 0))
+            + int(ref_spec_snapshot.get("waiting_count", 0)),
+            "audio_waiting_count": int(audio_snapshot.get("waiting_count", 0)),
+            "text_waiting_count": int(text_snapshot.get("waiting_count", 0)),
+            "ref_spec_waiting_count": int(ref_spec_snapshot.get("waiting_count", 0)),
+            "audio_waiting_request_ids": list(audio_snapshot.get("waiting_request_ids", [])),
+            "text_waiting_request_ids": list(text_snapshot.get("waiting_request_ids", [])),
+            "ref_spec_waiting_request_ids": list(ref_spec_snapshot.get("waiting_request_ids", [])),
+            "peak_waiting": int(
+                max(
+                    int(audio_snapshot.get("peak_waiting", 0)),
+                    int(text_snapshot.get("peak_waiting", 0)),
+                    int(ref_spec_snapshot.get("peak_waiting", 0)),
+                )
+            ),
+            "total_submitted": int(audio_snapshot.get("total_submitted", 0)),
+            "total_completed": int(audio_snapshot.get("total_completed", 0)),
+            "text_total_submitted": int(text_snapshot.get("total_submitted", 0)),
+            "text_total_completed": int(text_snapshot.get("total_completed", 0)),
+            "ref_spec_total_submitted": int(ref_spec_snapshot.get("total_submitted", 0)),
+            "ref_spec_total_completed": int(ref_spec_snapshot.get("total_completed", 0)),
+        }
 
     def _snapshot_engine_finalize_state(self) -> Dict[str, Any]:
         return self.engine_finalize_queue_owner.snapshot(max_request_ids=16)
@@ -107,6 +141,8 @@ class EngineRegistryBridgeFacade:
 
     def _is_engine_drained(self) -> bool:
         prepare_empty = self.engine_prepare_queue_owner.is_drained()
+        prepare_text_empty = self.engine_prepare_text_queue_owner.is_drained()
+        prepare_ref_spec_empty = self.engine_prepare_ref_spec_queue_owner.is_drained()
         dispatch_empty = self.engine_dispatch_queue_owner.is_drained()
         finalize_empty = self.engine_finalize_queue_owner.is_drained()
         decode_pending_empty = not self.engine_decode_runtime_owner.has_pending_jobs()
@@ -114,6 +150,8 @@ class EngineRegistryBridgeFacade:
         worker_state = self.scheduler_worker.snapshot()
         return bool(
             prepare_empty
+            and prepare_text_empty
+            and prepare_ref_spec_empty
             and dispatch_empty
             and finalize_empty
             and decode_pending_empty

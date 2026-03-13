@@ -228,8 +228,74 @@ class PrepareCoordinator:
     def _load_ref_audio_raw(self, ref_audio_path: str):
         return self.tts._load_ref_audio_raw(ref_audio_path)
 
+    def _build_ref_prompt_semantic_from_raw(self, raw_audio, raw_sr: int):
+        load_profile = {"audio_load_ms": 0.0}
+        if getattr(self.tts, "prepare_ref_semantic_batch_worker", None) is not None:
+            prompt_semantic, worker_profile = self.tts.prepare_ref_semantic_batch_worker.submit(raw_audio, raw_sr)
+            return {
+                "prompt_semantic": prompt_semantic,
+                "raw_audio": raw_audio,
+                "raw_sr": raw_sr,
+                "profile": {
+                    **load_profile,
+                    "audio_stage_wait_ms": float(worker_profile.get("prompt_semantic_wait_ms", 0.0)),
+                    "audio_stage_slots": float(worker_profile.get("prompt_semantic_stage_slots", 0.0)),
+                    "audio_stage_inflight_peak": float(worker_profile.get("prompt_semantic_stage_inflight_peak", 0.0)),
+                    "prompt_semantic_ms": float(
+                        worker_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)
+                        + worker_profile.get("prompt_semantic_forward_ms", 0.0)
+                        + worker_profile.get("prompt_semantic_scatter_ms", 0.0)
+                    ),
+                    **{key: float(value) for key, value in worker_profile.items()},
+                    "ref_spec_wait_ms": 0.0,
+                    "ref_spec_ms": 0.0,
+                    "bundle_total_ms": float(worker_profile.get("prompt_semantic_wait_ms", 0.0))
+                    + float(worker_profile.get("prompt_semantic_cpu_prepare_ms", 0.0))
+                    + float(worker_profile.get("prompt_semantic_forward_ms", 0.0))
+                    + float(worker_profile.get("prompt_semantic_scatter_ms", 0.0)),
+                },
+            }
+        wav16k, cpu_prepare_ms, limiter_stats = self.tts._prepare_prompt_semantic_wav16k_profile(raw_audio, raw_sr)
+        with self.tts.prepare_ref_audio_stage_limiter.enter() as stage_stats:
+            prompt_semantic, forward_ms = self.tts._extract_prompt_semantic_profile_from_prepared_wav16k(wav16k)
+        return {
+            "prompt_semantic": prompt_semantic,
+            "raw_audio": raw_audio,
+            "raw_sr": raw_sr,
+            "profile": {
+                "audio_load_ms": 0.0,
+                "audio_stage_wait_ms": float(stage_stats.get("wait_ms", 0.0)),
+                "audio_stage_slots": float(stage_stats.get("slots", 0.0)),
+                "audio_stage_inflight_peak": float(stage_stats.get("peak_inflight", 0.0)),
+                "prompt_semantic_wait_ms": float(stage_stats.get("wait_ms", 0.0)),
+                "prompt_semantic_cpu_prepare_wait_ms": float(limiter_stats.get("wait_ms", 0.0)),
+                "prompt_semantic_cpu_prepare_slots": float(limiter_stats.get("slots", 0.0)),
+                "prompt_semantic_cpu_prepare_inflight_peak": float(limiter_stats.get("peak_inflight", 0.0)),
+                "prompt_semantic_worker_queue_wait_ms": 0.0,
+                "prompt_semantic_batch_collect_wait_ms": 0.0,
+                "prompt_semantic_stage_limiter_wait_ms": float(stage_stats.get("wait_ms", 0.0)),
+                "prompt_semantic_batch_dispatch_delay_ms": 0.0,
+                "prompt_semantic_cpu_prepare_ms": float(cpu_prepare_ms),
+                "prompt_semantic_pack_ms": 0.0,
+                "prompt_semantic_h2d_ms": 0.0,
+                "prompt_semantic_ssl_forward_ms": 0.0,
+                "prompt_semantic_hidden_length_ms": 0.0,
+                "prompt_semantic_extract_latent_ms": 0.0,
+                "prompt_semantic_forward_ms": float(forward_ms),
+                "prompt_semantic_scatter_ms": 0.0,
+                "prompt_semantic_stage_slots": float(stage_stats.get("slots", 0.0)),
+                "prompt_semantic_stage_inflight_peak": float(stage_stats.get("peak_inflight", 0.0)),
+                "prompt_semantic_batch_size": 1.0,
+                "prompt_semantic_batch_samples": 0.0,
+                "ref_spec_wait_ms": 0.0,
+                "ref_spec_ms": 0.0,
+                "bundle_total_ms": float(cpu_prepare_ms + forward_ms + stage_stats.get("wait_ms", 0.0)),
+            },
+        }
+
     def _extract_ref_spec_from_raw(self, raw_audio, raw_sr: int):
-        return self.tts._extract_ref_spec_from_raw(raw_audio, raw_sr)[:2]
+        spec, audio, _, _, profile = self.tts._extract_ref_spec_profile_from_raw(raw_audio, raw_sr)
+        return (spec, audio), profile
 
     @staticmethod
     def _build_empty_text_features_like(reference: PreparedTextFeatures | None = None) -> PreparedTextFeatures:
@@ -523,7 +589,7 @@ class PrepareCoordinator:
         finally:
             self.text_feature_gate.release()
 
-    async def _run_ref_audio_stage(self, ref_audio_path: str) -> ProfiledResult:
+    async def _run_ref_prompt_semantic_stage(self, ref_audio_path: str) -> ProfiledResult:
         if getattr(self.tts, "prepare_ref_semantic_batch_worker", None) is not None:
             submit_at = time.perf_counter()
             started_at = float(submit_at)
@@ -538,19 +604,7 @@ class PrepareCoordinator:
             prompt_semantic_task = asyncio.create_task(
                 self.tts.prepare_ref_semantic_batch_worker.submit_async(raw_audio, raw_sr)
             )
-            await self.ref_spec_gate.acquire()
-            try:
-                ref_spec_task = asyncio.create_task(
-                    self._run_on_executor(self.ref_audio_executor, self._extract_ref_spec_from_raw, raw_audio, raw_sr)
-                )
-                (prompt_semantic, prompt_semantic_profile), ref_spec_profiled = await asyncio.gather(
-                    prompt_semantic_task,
-                    ref_spec_task,
-                )
-            finally:
-                self.ref_spec_gate.release()
-
-            refer_spec = ref_spec_profiled.result
+            prompt_semantic, prompt_semantic_profile = await prompt_semantic_task
             limiter_snapshot = (
                 self.tts.prepare_ref_audio_stage_limiter.snapshot()
                 if getattr(self.tts, "prepare_ref_audio_stage_limiter", None) is not None
@@ -561,21 +615,15 @@ class PrepareCoordinator:
                 + float(prompt_semantic_profile.get("prompt_semantic_forward_ms", 0.0))
                 + float(prompt_semantic_profile.get("prompt_semantic_scatter_ms", 0.0))
             )
-            audio_stage_wait_ms = (
-                float(load_profiled.queue_ms)
-                + float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0))
-                + float(ref_spec_profiled.queue_ms)
-            )
             finished_at = time.perf_counter()
             result = {
                 "prompt_semantic": prompt_semantic,
-                "refer_spec": refer_spec,
                 "raw_audio": raw_audio,
                 "raw_sr": raw_sr,
                 "profile": {
                     "audio_load_queue_ms": float(load_profiled.queue_ms),
                     "audio_load_ms": float(load_profiled.run_ms),
-                    "audio_stage_wait_ms": float(audio_stage_wait_ms),
+                    "audio_stage_wait_ms": float(prompt_semantic_profile.get("prompt_semantic_wait_ms", 0.0)),
                     "audio_stage_slots": float(
                         max(
                             float(prompt_semantic_profile.get("prompt_semantic_stage_slots", 0.0)),
@@ -593,6 +641,17 @@ class PrepareCoordinator:
                     "prompt_semantic_cpu_prepare_ms": float(
                         prompt_semantic_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)
                     ),
+                    "prompt_semantic_pack_ms": float(prompt_semantic_profile.get("prompt_semantic_pack_ms", 0.0)),
+                    "prompt_semantic_h2d_ms": float(prompt_semantic_profile.get("prompt_semantic_h2d_ms", 0.0)),
+                    "prompt_semantic_ssl_forward_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_ssl_forward_ms", 0.0)
+                    ),
+                    "prompt_semantic_hidden_length_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_hidden_length_ms", 0.0)
+                    ),
+                    "prompt_semantic_extract_latent_ms": float(
+                        prompt_semantic_profile.get("prompt_semantic_extract_latent_ms", 0.0)
+                    ),
                     "prompt_semantic_forward_ms": float(prompt_semantic_profile.get("prompt_semantic_forward_ms", 0.0)),
                     "prompt_semantic_scatter_ms": float(prompt_semantic_profile.get("prompt_semantic_scatter_ms", 0.0)),
                     "prompt_semantic_stage_slots": float(prompt_semantic_profile.get("prompt_semantic_stage_slots", 0.0)),
@@ -603,14 +662,10 @@ class PrepareCoordinator:
                     "prompt_semantic_batch_samples": float(
                         prompt_semantic_profile.get("prompt_semantic_batch_samples", 0.0)
                     ),
-                    "ref_spec_wait_ms": float(ref_spec_profiled.queue_ms),
-                    "ref_spec_ms": float(ref_spec_profiled.run_ms),
                     "bundle_total_ms": float(
                         load_profiled.queue_ms
                         + load_profiled.run_ms
                         + prompt_semantic_ms
-                        + ref_spec_profiled.queue_ms
-                        + ref_spec_profiled.run_ms
                     ),
                 },
             }
@@ -623,20 +678,25 @@ class PrepareCoordinator:
 
         await self.ref_audio_gate.acquire()
         try:
-            if hasattr(self.tts, "extract_ref_audio_bundle_async"):
-                submit_at = time.perf_counter()
-                started_at = time.perf_counter()
-                result = await self.tts.extract_ref_audio_bundle_async(ref_audio_path)
-                finished_at = time.perf_counter()
-                return ProfiledResult(
-                    result=result,
-                    submit_at=float(submit_at),
-                    started_at=float(started_at),
-                    finished_at=float(finished_at),
-                )
-            return await self._run_on_executor(self.ref_audio_executor, self.tts.extract_ref_audio_bundle, ref_audio_path)
+            load_profiled = await self._run_on_executor(self.ref_audio_executor, self._load_ref_audio_raw, ref_audio_path)
+            raw_audio, raw_sr = load_profiled.result
+            submit_at = time.perf_counter()
+            started_at = time.perf_counter()
+            result = await asyncio.to_thread(self._build_ref_prompt_semantic_from_raw, raw_audio, raw_sr)
+            result.setdefault("profile", {})
+            result["profile"]["audio_load_queue_ms"] = float(load_profiled.queue_ms)
+            result["profile"]["audio_load_ms"] = float(load_profiled.run_ms)
+            finished_at = time.perf_counter()
+            return ProfiledResult(result=result, submit_at=float(submit_at), started_at=float(started_at), finished_at=float(finished_at))
         finally:
             self.ref_audio_gate.release()
+
+    async def _run_ref_spec_stage(self, raw_audio, raw_sr: int) -> ProfiledResult:
+        await self.ref_spec_gate.acquire()
+        try:
+            return await self._run_on_executor(self.ref_audio_executor, self._extract_ref_spec_from_raw, raw_audio, raw_sr)
+        finally:
+            self.ref_spec_gate.release()
 
     def _release_split_stage_slot(self) -> None:
         self._mark_leave()
@@ -682,101 +742,318 @@ class PrepareCoordinator:
         cpu_stage: PreparedCpuStage,
     ) -> tuple[T2SRequestState, float, float]:
         try:
-            g2pw_pair_start = time.perf_counter()
-            g2pw_pair_task = asyncio.create_task(
-                self._run_g2pw_pair_stage(
-                    cpu_stage.prompt_cpu_profiled.result,
-                    cpu_stage.target_cpu_profiled.result,
-                )
-            )
-            ref_audio_task = asyncio.create_task(self._run_ref_audio_stage(str(cpu_stage.spec.ref_audio_path)))
-            (prompt_g2pw_profiled, target_g2pw_profiled), ref_audio_profiled = await asyncio.gather(
-                g2pw_pair_task,
-                ref_audio_task,
-            )
-            g2pw_pair_end = time.perf_counter()
-            text_pair_start = time.perf_counter()
-            text_feature_pair_task = asyncio.create_task(
-                self._run_text_feature_pair_stage(
-                    prompt_g2pw_profiled.result,
-                    target_g2pw_profiled.result,
-                    cpu_stage.prompt_cpu_profiled.run_ms,
-                    cpu_stage.target_cpu_profiled.run_ms,
-                    prompt_base_profile=dict(prompt_g2pw_profiled.profile or {}),
-                    target_base_profile=dict(target_g2pw_profiled.profile or {}),
-                )
-            )
-            prompt_feature_profiled, target_feature_profiled = await text_feature_pair_task
-            text_pair_end = time.perf_counter()
-            state = build_request_state_from_parts(
-                tts=self.tts,
-                spec=cpu_stage.spec,
-                prompt_text=cpu_stage.prompt_text,
-                text=cpu_stage.text,
-                prompt_result=prompt_feature_profiled.result,
-                target_result=target_feature_profiled.result,
-                ref_audio_bundle=ref_audio_profiled.result,
-                prepare_start=cpu_stage.prepare_start,
-                prepare_sync_start=cpu_stage.prepare_start,
-                profile_overrides={
-                    "executor_queue_ms": max(0.0, (cpu_stage.prepare_start - cpu_stage.prepare_submit_at) * 1000.0),
-                    "prepare_admission_wait_ms": cpu_stage.prepare_admission_wait_ms,
-                    "executor_run_wall_ms": max(0.0, (time.perf_counter() - cpu_stage.prepare_start) * 1000.0),
-                    "text_feature_pair_ms": max(0.0, (text_pair_end - text_pair_start) * 1000.0),
-                    "g2pw_pair_ms": max(0.0, (g2pw_pair_end - g2pw_pair_start) * 1000.0),
-                    "prompt_text_g2pw_queue_ms": prompt_g2pw_profiled.queue_ms,
-                    "prompt_text_g2pw_run_ms": prompt_g2pw_profiled.run_ms,
-                    "prompt_text_g2pw_prepare_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_prepare_ms", 0.0)),
-                    "prompt_text_g2pw_predict_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_predict_ms", 0.0)),
-                    "prompt_text_g2pw_post_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_post_ms", 0.0)),
-                    "text_g2pw_queue_ms": target_g2pw_profiled.queue_ms,
-                    "text_g2pw_run_ms": target_g2pw_profiled.run_ms,
-                    "text_g2pw_prepare_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_prepare_ms", 0.0)),
-                    "text_g2pw_predict_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_predict_ms", 0.0)),
-                    "text_g2pw_post_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_post_ms", 0.0)),
-                    "prompt_text_parallel_future_wait_ms": 0.0,
-                    "prompt_text_parallel_future_executor_queue_ms": 0.0,
-                    "prompt_text_parallel_future_run_ms": 0.0,
-                    "prompt_text_parallel_future_finish_after_submit_ms": 0.0,
-                    "prompt_text_parallel_future_queue_tail_after_target_ms": 0.0,
-                    "prompt_text_parallel_future_run_tail_after_target_ms": 0.0,
-                    "prompt_text_cpu_queue_ms": cpu_stage.prompt_cpu_profiled.queue_ms,
-                    "prompt_text_cpu_run_ms": cpu_stage.prompt_cpu_profiled.run_ms,
-                    "prompt_text_cpu_admission_wait_ms": float(
-                        (cpu_stage.prompt_cpu_profiled.profile or {}).get("text_cpu_admission_wait_ms", 0.0)
-                    ),
-                    "prompt_text_cpu_backpressure_wait_ms": float(
-                        (cpu_stage.prompt_cpu_profiled.profile or {}).get("text_cpu_backpressure_wait_ms", 0.0)
-                    ),
-                    "prompt_text_cpu_capacity_wait_ms": float(
-                        (cpu_stage.prompt_cpu_profiled.profile or {}).get("text_cpu_capacity_wait_ms", 0.0)
-                    ),
-                    "prompt_text_feature_queue_ms": prompt_feature_profiled.queue_ms,
-                    "prompt_text_feature_run_ms": prompt_feature_profiled.run_ms,
-                    "text_cpu_queue_ms": cpu_stage.target_cpu_profiled.queue_ms,
-                    "text_cpu_run_ms": cpu_stage.target_cpu_profiled.run_ms,
-                    "text_cpu_admission_wait_ms": float(
-                        (cpu_stage.target_cpu_profiled.profile or {}).get("text_cpu_admission_wait_ms", 0.0)
-                    ),
-                    "text_cpu_backpressure_wait_ms": float(
-                        (cpu_stage.target_cpu_profiled.profile or {}).get("text_cpu_backpressure_wait_ms", 0.0)
-                    ),
-                    "text_cpu_capacity_wait_ms": float(
-                        (cpu_stage.target_cpu_profiled.profile or {}).get("text_cpu_capacity_wait_ms", 0.0)
-                    ),
-                    "text_feature_queue_ms": target_feature_profiled.queue_ms,
-                    "text_feature_run_ms": target_feature_profiled.run_ms,
-                    "ref_audio_task_queue_ms": ref_audio_profiled.queue_ms,
-                    "ref_audio_task_run_ms": ref_audio_profiled.run_ms,
-                    "worker_prepare_inflight_on_enter": float(cpu_stage.current_inflight),
-                    "worker_prepare_peak_inflight": float(cpu_stage.peak_inflight),
+            phase_one = await self._prepare_gpu_phase_one(cpu_stage)
+            phase_two = await self._prepare_gpu_phase_two(cpu_stage, phase_one)
+            return self._build_gpu_prepare_result(
+                cpu_stage,
+                phase_one,
+                phase_two,
+                extra_profile={
+                    "engine_prepare_audio_phase_mode": 0.0,
+                    "engine_prepare_audio_phase_wall_ms": float(phase_one["phase_wall_ms"]),
+                    "engine_prepare_audio_phase_batch_size": 1.0,
+                    "engine_prepare_text_phase_wall_ms": float(phase_two["phase_wall_ms"]),
+                    "engine_prepare_text_phase_batch_size": 1.0,
                 },
             )
-            prepare_exec_finished_at = time.perf_counter()
-            state.prepare_profile["executor_run_wall_ms"] = max(
-                0.0, (prepare_exec_finished_at - cpu_stage.prepare_start) * 1000.0
+        finally:
+            self._release_split_stage_slot()
+
+    async def _prepare_gpu_phase_one(self, cpu_stage: PreparedCpuStage) -> Dict[str, Any]:
+        phase_start = time.perf_counter()
+        g2pw_pair_task = asyncio.create_task(
+            self._run_g2pw_pair_stage(
+                cpu_stage.prompt_cpu_profiled.result,
+                cpu_stage.target_cpu_profiled.result,
             )
-            return state, cpu_stage.prepare_start, prepare_exec_finished_at
+        )
+        ref_audio_task = asyncio.create_task(self._run_ref_prompt_semantic_stage(str(cpu_stage.spec.ref_audio_path)))
+        prompt_g2pw_profiled, target_g2pw_profiled = await g2pw_pair_task
+        g2pw_pair_end = time.perf_counter()
+        ref_audio_profiled = await ref_audio_task
+        phase_end = time.perf_counter()
+        return {
+            "prompt_g2pw_profiled": prompt_g2pw_profiled,
+            "target_g2pw_profiled": target_g2pw_profiled,
+            "ref_audio_profiled": ref_audio_profiled,
+            "ref_spec_result": None,
+            "g2pw_pair_ms": max(0.0, (g2pw_pair_end - phase_start) * 1000.0),
+            "phase_wall_ms": max(0.0, (phase_end - phase_start) * 1000.0),
+        }
+
+    async def _prepare_gpu_phase_two(
+        self,
+        cpu_stage: PreparedCpuStage,
+        phase_one: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        phase_start = time.perf_counter()
+        prompt_g2pw_profiled = phase_one["prompt_g2pw_profiled"]
+        target_g2pw_profiled = phase_one["target_g2pw_profiled"]
+        prompt_feature_profiled, target_feature_profiled = await self._run_text_feature_pair_stage(
+            prompt_g2pw_profiled.result,
+            target_g2pw_profiled.result,
+            cpu_stage.prompt_cpu_profiled.run_ms,
+            cpu_stage.target_cpu_profiled.run_ms,
+            prompt_base_profile=dict(prompt_g2pw_profiled.profile or {}),
+            target_base_profile=dict(target_g2pw_profiled.profile or {}),
+        )
+        phase_end = time.perf_counter()
+        return {
+            "prompt_feature_profiled": prompt_feature_profiled,
+            "target_feature_profiled": target_feature_profiled,
+            "phase_wall_ms": max(0.0, (phase_end - phase_start) * 1000.0),
+        }
+
+    def _build_gpu_prepare_result(
+        self,
+        cpu_stage: PreparedCpuStage,
+        phase_one: Dict[str, Any],
+        phase_two: Dict[str, Any],
+        extra_profile: Dict[str, float] | None = None,
+    ) -> tuple[T2SRequestState, float, float]:
+        prompt_g2pw_profiled = phase_one["prompt_g2pw_profiled"]
+        target_g2pw_profiled = phase_one["target_g2pw_profiled"]
+        ref_audio_profiled = phase_one["ref_audio_profiled"]
+        ref_spec_result = phase_one.get("ref_spec_result")
+        prompt_feature_profiled = phase_two["prompt_feature_profiled"]
+        target_feature_profiled = phase_two["target_feature_profiled"]
+        profile_overrides = {
+            "executor_queue_ms": max(0.0, (cpu_stage.prepare_start - cpu_stage.prepare_submit_at) * 1000.0),
+            "prepare_admission_wait_ms": cpu_stage.prepare_admission_wait_ms,
+            "prepare_submit_ts": float(cpu_stage.prepare_submit_at),
+            "prepare_cpu_start_ts": float(cpu_stage.prepare_start),
+            "prepare_cpu_done_ts": float(
+                max(cpu_stage.prompt_cpu_profiled.finished_at, cpu_stage.target_cpu_profiled.finished_at)
+            ),
+            "prompt_text_cpu_start_ts": float(cpu_stage.prompt_cpu_profiled.started_at),
+            "prompt_text_cpu_end_ts": float(cpu_stage.prompt_cpu_profiled.finished_at),
+            "text_cpu_start_ts": float(cpu_stage.target_cpu_profiled.started_at),
+            "text_cpu_end_ts": float(cpu_stage.target_cpu_profiled.finished_at),
+            "executor_run_wall_ms": max(0.0, (time.perf_counter() - cpu_stage.prepare_start) * 1000.0),
+            "text_feature_pair_ms": float(phase_two["phase_wall_ms"]),
+            "g2pw_pair_ms": float(phase_one["g2pw_pair_ms"]),
+            "prompt_text_g2pw_queue_ms": prompt_g2pw_profiled.queue_ms,
+            "prompt_text_g2pw_run_ms": prompt_g2pw_profiled.run_ms,
+            "prompt_text_g2pw_prepare_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_prepare_ms", 0.0)),
+            "prompt_text_g2pw_predict_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_predict_ms", 0.0)),
+            "prompt_text_g2pw_post_ms": float((prompt_g2pw_profiled.profile or {}).get("g2pw_post_ms", 0.0)),
+            "text_g2pw_queue_ms": target_g2pw_profiled.queue_ms,
+            "text_g2pw_run_ms": target_g2pw_profiled.run_ms,
+            "text_g2pw_prepare_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_prepare_ms", 0.0)),
+            "text_g2pw_predict_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_predict_ms", 0.0)),
+            "text_g2pw_post_ms": float((target_g2pw_profiled.profile or {}).get("g2pw_post_ms", 0.0)),
+            "prompt_text_parallel_future_wait_ms": 0.0,
+            "prompt_text_parallel_future_executor_queue_ms": 0.0,
+            "prompt_text_parallel_future_run_ms": 0.0,
+            "prompt_text_parallel_future_finish_after_submit_ms": 0.0,
+            "prompt_text_parallel_future_queue_tail_after_target_ms": 0.0,
+            "prompt_text_parallel_future_run_tail_after_target_ms": 0.0,
+            "prompt_text_cpu_queue_ms": cpu_stage.prompt_cpu_profiled.queue_ms,
+            "prompt_text_cpu_run_ms": cpu_stage.prompt_cpu_profiled.run_ms,
+            "prompt_text_cpu_admission_wait_ms": float(
+                (cpu_stage.prompt_cpu_profiled.profile or {}).get("text_cpu_admission_wait_ms", 0.0)
+            ),
+            "prompt_text_cpu_backpressure_wait_ms": float(
+                (cpu_stage.prompt_cpu_profiled.profile or {}).get("text_cpu_backpressure_wait_ms", 0.0)
+            ),
+            "prompt_text_cpu_capacity_wait_ms": float(
+                (cpu_stage.prompt_cpu_profiled.profile or {}).get("text_cpu_capacity_wait_ms", 0.0)
+            ),
+            "prompt_text_feature_queue_ms": prompt_feature_profiled.queue_ms,
+            "prompt_text_feature_run_ms": prompt_feature_profiled.run_ms,
+            "text_cpu_queue_ms": cpu_stage.target_cpu_profiled.queue_ms,
+            "text_cpu_run_ms": cpu_stage.target_cpu_profiled.run_ms,
+            "text_cpu_admission_wait_ms": float(
+                (cpu_stage.target_cpu_profiled.profile or {}).get("text_cpu_admission_wait_ms", 0.0)
+            ),
+            "text_cpu_backpressure_wait_ms": float(
+                (cpu_stage.target_cpu_profiled.profile or {}).get("text_cpu_backpressure_wait_ms", 0.0)
+            ),
+            "text_cpu_capacity_wait_ms": float(
+                (cpu_stage.target_cpu_profiled.profile or {}).get("text_cpu_capacity_wait_ms", 0.0)
+            ),
+            "text_feature_queue_ms": target_feature_profiled.queue_ms,
+            "text_feature_run_ms": target_feature_profiled.run_ms,
+            "ref_audio_task_queue_ms": ref_audio_profiled.queue_ms,
+            "ref_audio_task_run_ms": ref_audio_profiled.run_ms,
+            "worker_prepare_inflight_on_enter": float(cpu_stage.current_inflight),
+            "worker_prepare_peak_inflight": float(cpu_stage.peak_inflight),
+        }
+        if extra_profile:
+            profile_overrides.update({key: float(value) for key, value in extra_profile.items()})
+        ref_audio_bundle = dict(ref_audio_profiled.result)
+        ref_audio_profile = dict(ref_audio_bundle.get("profile", {}))
+        if ref_spec_result is not None:
+            refer_spec, ref_spec_profiled = ref_spec_result
+            ref_audio_bundle["refer_spec"] = refer_spec
+            ref_audio_profile.update(
+                {
+                    "ref_spec_wait_ms": float(ref_spec_profiled.get("ref_spec_wait_ms", 0.0)),
+                    "ref_spec_ms": float(ref_spec_profiled.get("ref_spec_ms", 0.0)),
+                    "ref_spec_to_device_ms": float(ref_spec_profiled.get("ref_spec_to_device_ms", 0.0)),
+                    "ref_spec_main_resample_ms": float(ref_spec_profiled.get("ref_spec_main_resample_ms", 0.0)),
+                    "ref_spec_norm_ms": float(ref_spec_profiled.get("ref_spec_norm_ms", 0.0)),
+                    "ref_spec_spectrogram_ms": float(ref_spec_profiled.get("ref_spec_spectrogram_ms", 0.0)),
+                    "ref_spec_post_resample_ms": float(ref_spec_profiled.get("ref_spec_post_resample_ms", 0.0)),
+                }
+            )
+        else:
+            ref_audio_bundle["refer_spec"] = None
+            ref_audio_profile.setdefault("ref_spec_wait_ms", 0.0)
+            ref_audio_profile.setdefault("ref_spec_ms", 0.0)
+            ref_audio_profile.setdefault("ref_spec_to_device_ms", 0.0)
+            ref_audio_profile.setdefault("ref_spec_main_resample_ms", 0.0)
+            ref_audio_profile.setdefault("ref_spec_norm_ms", 0.0)
+            ref_audio_profile.setdefault("ref_spec_spectrogram_ms", 0.0)
+            ref_audio_profile.setdefault("ref_spec_post_resample_ms", 0.0)
+        ref_audio_bundle["profile"] = ref_audio_profile
+        state = build_request_state_from_parts(
+            tts=self.tts,
+            spec=cpu_stage.spec,
+            prompt_text=cpu_stage.prompt_text,
+            text=cpu_stage.text,
+            prompt_result=prompt_feature_profiled.result,
+            target_result=target_feature_profiled.result,
+            ref_audio_bundle=ref_audio_bundle,
+            prepare_start=cpu_stage.prepare_start,
+            prepare_sync_start=cpu_stage.prepare_start,
+            profile_overrides=profile_overrides,
+        )
+        prepare_exec_finished_at = time.perf_counter()
+        state.prepare_profile["executor_run_wall_ms"] = max(0.0, (prepare_exec_finished_at - cpu_stage.prepare_start) * 1000.0)
+        return state, cpu_stage.prepare_start, prepare_exec_finished_at
+
+    async def prepare_ref_spec_stages_async(
+        self,
+        phase_ones: list[Dict[str, Any]],
+    ) -> list[tuple[tuple[Any, Any], Dict[str, float]] | Exception]:
+        async def _one(phase_one: Dict[str, Any]):
+            ref_audio_profiled = phase_one["ref_audio_profiled"]
+            raw_audio = ref_audio_profiled.result["raw_audio"]
+            raw_sr = int(ref_audio_profiled.result["raw_sr"])
+            profiled = await self._run_ref_spec_stage(raw_audio, raw_sr)
+            refer_spec, profile = profiled.result
+            merged_profile = dict(profile)
+            merged_profile["ref_spec_wait_ms"] = float(profiled.queue_ms)
+            merged_profile["ref_spec_ms"] = float(profiled.run_ms)
+            return refer_spec, merged_profile
+
+        if not phase_ones:
+            return []
+        return list(await asyncio.gather(*[_one(phase_one) for phase_one in phase_ones], return_exceptions=True))
+
+    def apply_ref_spec_result_to_state(
+        self,
+        state: T2SRequestState,
+        ref_spec_result: tuple[tuple[Any, Any], Dict[str, float]],
+    ) -> None:
+        refer_spec, profile = ref_spec_result
+        state.refer_spec = refer_spec
+        state.prepare_profile["ref_spec_wait_ms"] = float(profile.get("ref_spec_wait_ms", 0.0))
+        state.prepare_profile["ref_spec_ms"] = float(profile.get("ref_spec_ms", 0.0))
+        state.prepare_profile["ref_spec_to_device_ms"] = float(profile.get("ref_spec_to_device_ms", 0.0))
+        state.prepare_profile["ref_spec_main_resample_ms"] = float(profile.get("ref_spec_main_resample_ms", 0.0))
+        state.prepare_profile["ref_spec_norm_ms"] = float(profile.get("ref_spec_norm_ms", 0.0))
+        state.prepare_profile["ref_spec_spectrogram_ms"] = float(profile.get("ref_spec_spectrogram_ms", 0.0))
+        state.prepare_profile["ref_spec_post_resample_ms"] = float(profile.get("ref_spec_post_resample_ms", 0.0))
+
+    async def prepare_gpu_stages_profiled_async(
+        self,
+        cpu_stages: list[PreparedCpuStage],
+    ) -> list[tuple[T2SRequestState, float, float] | Exception]:
+        if not cpu_stages:
+            return []
+        if len(cpu_stages) == 1:
+            single_stage = cpu_stages[0]
+            try:
+                return [await self.prepare_gpu_stage_profiled_async(single_stage)]
+            except Exception as exc:  # noqa: PERF203
+                return [exc]
+
+        phase_one_started_at = time.perf_counter()
+        phase_one_results = await asyncio.gather(
+            *[self._prepare_gpu_phase_one(cpu_stage) for cpu_stage in cpu_stages],
+            return_exceptions=True,
+        )
+        phase_one_finished_at = time.perf_counter()
+        phase_one_wall_ms = max(0.0, (phase_one_finished_at - phase_one_started_at) * 1000.0)
+
+        outputs: list[tuple[T2SRequestState, float, float] | Exception | None] = [None] * len(cpu_stages)
+        pending_phase_two: list[tuple[int, PreparedCpuStage, Dict[str, Any]]] = []
+        for index, (cpu_stage, phase_one) in enumerate(zip(cpu_stages, phase_one_results)):
+            if isinstance(phase_one, Exception):
+                outputs[index] = phase_one
+                self._release_split_stage_slot()
+                continue
+            pending_phase_two.append((index, cpu_stage, phase_one))
+
+        phase_two_started_at = time.perf_counter()
+        phase_two_results = await asyncio.gather(
+            *[self._prepare_gpu_phase_two(cpu_stage, phase_one) for _, cpu_stage, phase_one in pending_phase_two],
+            return_exceptions=True,
+        )
+        phase_two_finished_at = time.perf_counter()
+        phase_two_wall_ms = max(0.0, (phase_two_finished_at - phase_two_started_at) * 1000.0)
+
+        for (index, cpu_stage, phase_one), phase_two in zip(pending_phase_two, phase_two_results):
+            try:
+                if isinstance(phase_two, Exception):
+                    outputs[index] = phase_two
+                    continue
+                outputs[index] = self._build_gpu_prepare_result(
+                    cpu_stage,
+                    phase_one,
+                    phase_two,
+                    extra_profile={
+                        "engine_prepare_audio_phase_mode": 1.0,
+                        "engine_prepare_audio_phase_wall_ms": float(phase_one_wall_ms),
+                        "engine_prepare_audio_phase_batch_size": float(len(cpu_stages)),
+                        "engine_prepare_text_phase_wall_ms": float(phase_two_wall_ms),
+                        "engine_prepare_text_phase_batch_size": float(len(pending_phase_two)),
+                    },
+                )
+            except Exception as exc:  # noqa: PERF203
+                outputs[index] = exc
+            finally:
+                self._release_split_stage_slot()
+
+        return [item if item is not None else RuntimeError("prepare batch result missing") for item in outputs]
+
+    async def prepare_gpu_audio_phases_async(
+        self,
+        cpu_stages: list[PreparedCpuStage],
+    ) -> list[Dict[str, Any] | Exception]:
+        if not cpu_stages:
+            return []
+        return list(
+            await asyncio.gather(
+                *[self._prepare_gpu_phase_one(cpu_stage) for cpu_stage in cpu_stages],
+                return_exceptions=True,
+            )
+        )
+
+    async def prepare_gpu_text_phases_async(
+        self,
+        items: list[tuple[PreparedCpuStage, Dict[str, Any]]],
+    ) -> list[Dict[str, Any] | Exception]:
+        if not items:
+            return []
+        return list(
+            await asyncio.gather(
+                *[self._prepare_gpu_phase_two(cpu_stage, phase_one) for cpu_stage, phase_one in items],
+                return_exceptions=True,
+            )
+        )
+
+    def build_gpu_prepare_result_from_phases(
+        self,
+        cpu_stage: PreparedCpuStage,
+        phase_one: Dict[str, Any],
+        phase_two: Dict[str, Any],
+        extra_profile: Dict[str, float] | None = None,
+    ) -> tuple[T2SRequestState, float, float]:
+        try:
+            return self._build_gpu_prepare_result(cpu_stage, phase_one, phase_two, extra_profile=extra_profile)
         finally:
             self._release_split_stage_slot()
 

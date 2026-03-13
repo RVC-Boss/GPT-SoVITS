@@ -55,7 +55,7 @@ class T2SRequestState:
     all_phones: torch.LongTensor
     all_bert_features: torch.Tensor
     prompt_semantic: torch.LongTensor
-    refer_spec: Tuple[torch.Tensor, Optional[torch.Tensor]]
+    refer_spec: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]
     aux_refer_specs: List[Tuple[torch.Tensor, Optional[torch.Tensor]]]
     raw_audio: torch.Tensor
     raw_sr: int
@@ -188,7 +188,11 @@ def build_request_state_from_parts(
     ref_audio_bundle_ms = float(ref_audio_bundle.get("profile", {}).get("bundle_total_ms", 0.0))
     bundle_profile = ref_audio_bundle.get("profile", {})
     prompt_semantic = ref_audio_bundle["prompt_semantic"].long()
-    spec_audio, audio_16k = ref_audio_bundle["refer_spec"]
+    refer_spec_value = ref_audio_bundle.get("refer_spec")
+    if refer_spec_value in [None, ()]:
+        spec_audio, audio_16k = None, None
+    else:
+        spec_audio, audio_16k = refer_spec_value
     aux_refer_specs: List[Tuple[torch.Tensor, Optional[torch.Tensor]]] = []
     for aux_ref_audio_path in list(getattr(spec, "aux_ref_audio_paths", []) or []):
         if aux_ref_audio_path in [None, ""]:
@@ -323,6 +327,11 @@ def build_request_state_from_parts(
             bundle_profile.get("prompt_semantic_batch_dispatch_delay_ms", 0.0)
         ),
         "prompt_semantic_cpu_prepare_ms": float(bundle_profile.get("prompt_semantic_cpu_prepare_ms", 0.0)),
+        "prompt_semantic_pack_ms": float(bundle_profile.get("prompt_semantic_pack_ms", 0.0)),
+        "prompt_semantic_h2d_ms": float(bundle_profile.get("prompt_semantic_h2d_ms", 0.0)),
+        "prompt_semantic_ssl_forward_ms": float(bundle_profile.get("prompt_semantic_ssl_forward_ms", 0.0)),
+        "prompt_semantic_hidden_length_ms": float(bundle_profile.get("prompt_semantic_hidden_length_ms", 0.0)),
+        "prompt_semantic_extract_latent_ms": float(bundle_profile.get("prompt_semantic_extract_latent_ms", 0.0)),
         "prompt_semantic_forward_ms": float(bundle_profile.get("prompt_semantic_forward_ms", 0.0)),
         "prompt_semantic_scatter_ms": float(bundle_profile.get("prompt_semantic_scatter_ms", 0.0)),
         "prompt_semantic_stage_slots": float(bundle_profile.get("prompt_semantic_stage_slots", 0.0)),
@@ -331,6 +340,11 @@ def build_request_state_from_parts(
         "prompt_semantic_batch_samples": float(bundle_profile.get("prompt_semantic_batch_samples", 0.0)),
         "ref_spec_wait_ms": float(bundle_profile.get("ref_spec_wait_ms", 0.0)),
         "ref_spec_ms": ref_spec_ms,
+        "ref_spec_to_device_ms": float(bundle_profile.get("ref_spec_to_device_ms", 0.0)),
+        "ref_spec_main_resample_ms": float(bundle_profile.get("ref_spec_main_resample_ms", 0.0)),
+        "ref_spec_norm_ms": float(bundle_profile.get("ref_spec_norm_ms", 0.0)),
+        "ref_spec_spectrogram_ms": float(bundle_profile.get("ref_spec_spectrogram_ms", 0.0)),
+        "ref_spec_post_resample_ms": float(bundle_profile.get("ref_spec_post_resample_ms", 0.0)),
         "ref_audio_bundle_ms": ref_audio_bundle_ms,
         "tensorize_ms": tensorize_ms,
         "total_ms": (time.perf_counter() - prepare_sync_start) * 1000.0,
@@ -352,7 +366,7 @@ def build_request_state_from_parts(
         all_phones=all_phones,
         all_bert_features=all_bert_features,
         prompt_semantic=prompt_semantic,
-        refer_spec=(spec_audio, audio_16k),
+        refer_spec=(None if spec_audio is None else (spec_audio, audio_16k)),
         aux_refer_specs=aux_refer_specs,
         raw_audio=raw_audio,
         raw_sr=raw_sr,

@@ -39,10 +39,37 @@ class EngineFinalizeStageMixin:
         tasks = self.take_engine_finalize_batch_nonblocking()
         if not tasks:
             return False
-        self.scheduler_worker.begin_finalize_execution(len(tasks))
+        ready_tasks: List[SchedulerFinalizeTask] = []
+        failed_tasks: List[SchedulerFinalizeTask] = []
+        deferred_tasks: List[SchedulerFinalizeTask] = []
+        for task in tasks:
+            job = self.get_engine_job(task.request_id)
+            if job is None:
+                continue
+            if float(job.state.prepare_profile.get("ref_spec_async_failed", 0.0) or 0.0) > 0.0:
+                failed_tasks.append(task)
+                continue
+            if job.state.refer_spec is None:
+                deferred_tasks.append(task)
+                self.merge_request_state_profile(
+                    job.engine_request_id or job.request_id,
+                    {
+                        "engine_finalize_ref_spec_blocked": 1.0,
+                    },
+                )
+                continue
+            ready_tasks.append(task)
+        if deferred_tasks:
+            self.finalize_queue_owner.enqueue_many(deferred_tasks)
+        if failed_tasks:
+            self.fail_engine_jobs([task.request_id for task in failed_tasks], "ref_spec async stage failed")
+        if not ready_tasks:
+            self.finalize_queue_owner.mark_completed(len(failed_tasks), notify=True)
+            return False
+        self.scheduler_worker.begin_finalize_execution(len(ready_tasks))
         try:
             jobs_and_items: List[tuple[SchedulerPendingJob, T2SFinishedItem]] = []
-            for task in tasks:
+            for task in ready_tasks:
                 job = self.get_engine_job(task.request_id)
                 if job is None:
                     continue
@@ -50,7 +77,7 @@ class EngineFinalizeStageMixin:
             if not jobs_and_items:
                 return False
             now = time.perf_counter()
-            for task in tasks:
+            for task in ready_tasks:
                 job = self.get_engine_job(task.request_id)
                 if job is not None:
                     job.finalize_wait_ms += max(0.0, (now - task.enqueued_time) * 1000.0)
@@ -69,8 +96,8 @@ class EngineFinalizeStageMixin:
             for (job, item), (sample_rate, audio_data) in zip(jobs_and_items, batch_results):
                 self.complete_engine_job(job, item, sample_rate=sample_rate, audio_data=audio_data)
         except Exception as exc:
-            self.fail_engine_jobs([task.request_id for task in tasks], str(exc))
+            self.fail_engine_jobs([task.request_id for task in ready_tasks], str(exc))
         finally:
-            self.scheduler_worker.end_finalize_execution(len(tasks))
-        self.finalize_queue_owner.mark_completed(len(tasks), notify=True)
+            self.scheduler_worker.end_finalize_execution(len(ready_tasks))
+        self.finalize_queue_owner.mark_completed(len(ready_tasks) + len(failed_tasks), notify=True)
         return True

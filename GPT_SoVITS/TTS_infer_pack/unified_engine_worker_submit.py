@@ -267,3 +267,42 @@ class WorkerSubmitLifecycleMixin:
         cpu_stages: List[PreparedCpuStage],
     ) -> List[tuple[T2SRequestState, float, float] | Exception]:
         return await self.prepare_executor.prepare_gpu_stages_profiled_async(cpu_stages)
+
+    async def prepare_gpu_audio_phases_async(
+        self,
+        cpu_stages: List[PreparedCpuStage],
+    ) -> List[Dict[str, Any] | Exception]:
+        return await self.prepare_executor.prepare_gpu_audio_phases_async(cpu_stages)
+
+    async def prepare_gpu_text_phases_async(
+        self,
+        items: List[tuple[PreparedCpuStage, Dict[str, Any]]],
+    ) -> List[Dict[str, Any] | Exception]:
+        return await self.prepare_executor.prepare_gpu_text_phases_async(items)
+
+    def build_gpu_prepare_result_from_phases(
+        self,
+        cpu_stage: PreparedCpuStage,
+        phase_one: Dict[str, Any],
+        phase_two: Dict[str, Any],
+        extra_profile: Dict[str, float] | None = None,
+    ) -> tuple[T2SRequestState, float, float]:
+        return self.prepare_executor.build_gpu_prepare_result_from_phases(
+            cpu_stage,
+            phase_one,
+            phase_two,
+            extra_profile=extra_profile,
+        )
+
+    async def prepare_ref_spec_stages_async(
+        self,
+        phase_ones: List[Dict[str, Any]],
+    ) -> List[tuple[tuple[Any, Any], Dict[str, float]] | Exception]:
+        return await self.prepare_executor.prepare_ref_spec_stages_async(phase_ones)
+
+    def apply_ref_spec_result_to_state(
+        self,
+        state: T2SRequestState,
+        ref_spec_result: tuple[tuple[Any, Any], Dict[str, float]],
+    ) -> None:
+        self.prepare_executor.apply_ref_spec_result_to_state(state, ref_spec_result)

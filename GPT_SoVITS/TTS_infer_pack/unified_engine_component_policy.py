@@ -129,7 +129,7 @@ class EnginePolicyArbiterController:
             self.state.total_ticks += 1
             if stage == "idle":
                 self.state.total_idle_ticks += 1
-            elif stage == "prepare":
+            elif stage in {"prepare", "prepare_audio", "prepare_text", "prepare_ref_spec"}:
                 self.state.total_prepare_dispatches += 1
                 self.state.decode_budget_remaining = int(self.arbiter_config.decode_burst)
             elif stage == "finalize":
@@ -282,7 +282,11 @@ class EnginePolicyArbiterController:
         request_registry = self.snapshot_request_registry()
         worker_state = self.get_worker_state()
         policy_snapshot = self.build_policy_snapshot(request_registry, worker_state)
-        prepare_waiting = int(self.snapshot_prepare_state().get("waiting_count", 0))
+        prepare_state = self.snapshot_prepare_state()
+        prepare_waiting = int(prepare_state.get("waiting_count", 0))
+        prepare_audio_waiting = int(prepare_state.get("audio_waiting_count", 0))
+        prepare_text_waiting = int(prepare_state.get("text_waiting_count", 0))
+        prepare_ref_spec_waiting = int(prepare_state.get("ref_spec_waiting_count", 0))
         finalize_waiting = int(self.snapshot_finalize_state().get("waiting_count", 0))
         decode_waiting = int(self.snapshot_dispatch_state().get("waiting_count", 0))
         decode_runtime_state = self.snapshot_decode_runtime_state()
@@ -291,6 +295,9 @@ class EnginePolicyArbiterController:
         worker_pending_jobs = int(decode_runtime_state.get("pending_jobs", 0))
         worker_running_requests = int(decode_runtime_state.get("active_request_count", 0))
         prepare_age_ms = float(self.peek_queue_age_ms("prepare"))
+        prepare_audio_age_ms = float(self.peek_queue_age_ms("prepare_audio"))
+        prepare_text_age_ms = float(self.peek_queue_age_ms("prepare_text"))
+        prepare_ref_spec_age_ms = float(self.peek_queue_age_ms("prepare_ref_spec"))
         finalize_age_ms = float(self.peek_queue_age_ms("finalize"))
         decode_runtime_pending_age_ms = float(self.peek_queue_age_ms("decode_runtime_pending"))
         decode_budget_remaining = int(self.snapshot_state().get("decode_budget_remaining", 0))
@@ -316,14 +323,31 @@ class EnginePolicyArbiterController:
             and (not worker_decode_control_enabled or not worker_decode_has_work or worker_pending_jobs <= 0)
         ):
             return "decode_dispatch", "dispatch_prepared_state", policy_snapshot, worker_state
+        if (
+            finalize_waiting > 0
+            and prepare_ref_spec_waiting > 0
+            and (decode_waiting <= 0 or not policy_allowed or decode_budget_remaining <= 0)
+        ):
+            return "prepare_ref_spec", "finalize_waiting_for_ref_spec", policy_snapshot, worker_state
         if finalize_waiting > 0 and (decode_waiting <= 0 or not policy_allowed or decode_budget_remaining <= 0):
             return "finalize", "decode_blocked_or_budget_exhausted", policy_snapshot, worker_state
         if finalize_waiting > 0 and finalize_age_ms >= float(self.arbiter_config.finalize_aging_ms):
             return "finalize", "finalize_aging", policy_snapshot, worker_state
         if prepare_waiting > 0 and (decode_waiting <= 0 or not policy_allowed or decode_budget_remaining <= 0):
-            return "prepare", "decode_blocked_or_budget_exhausted", policy_snapshot, worker_state
+            if prepare_text_waiting > 0 and (prepare_audio_waiting <= 0 or prepare_text_age_ms >= prepare_audio_age_ms):
+                return "prepare_text", "decode_blocked_or_budget_exhausted", policy_snapshot, worker_state
+            if prepare_ref_spec_waiting > 0 and prepare_audio_waiting <= 0 and prepare_text_waiting <= 0:
+                return "prepare_ref_spec", "decode_blocked_or_budget_exhausted", policy_snapshot, worker_state
+            return "prepare_audio", "decode_blocked_or_budget_exhausted", policy_snapshot, worker_state
         if prepare_waiting > 0 and prepare_age_ms >= float(self.arbiter_config.prepare_aging_ms):
-            return "prepare", "prepare_aging", policy_snapshot, worker_state
+            if prepare_text_waiting > 0 and prepare_text_age_ms >= max(prepare_audio_age_ms, prepare_age_ms - 1e-6):
+                return "prepare_text", "prepare_aging", policy_snapshot, worker_state
+            if (
+                prepare_ref_spec_waiting > 0
+                and prepare_ref_spec_age_ms >= max(prepare_audio_age_ms, prepare_text_age_ms, prepare_age_ms - 1e-6)
+            ):
+                return "prepare_ref_spec", "prepare_aging", policy_snapshot, worker_state
+            return "prepare_audio", "prepare_aging", policy_snapshot, worker_state
         if worker_decode_control_enabled and worker_decode_has_work and policy_allowed:
             return "decode_runtime", "worker_active_batch_progress_fallback", policy_snapshot, worker_state
         if decode_waiting > 0 and policy_allowed:
@@ -331,5 +355,9 @@ class EnginePolicyArbiterController:
         if finalize_waiting > 0:
             return "finalize", "finalize_fallback", policy_snapshot, worker_state
         if prepare_waiting > 0:
-            return "prepare", "prepare_fallback", policy_snapshot, worker_state
+            if prepare_text_waiting > 0 and (prepare_audio_waiting <= 0 or prepare_text_age_ms >= prepare_audio_age_ms):
+                return "prepare_text", "prepare_fallback", policy_snapshot, worker_state
+            if prepare_ref_spec_waiting > 0 and prepare_audio_waiting <= 0:
+                return "prepare_ref_spec", "prepare_fallback", policy_snapshot, worker_state
+            return "prepare_audio", "prepare_fallback", policy_snapshot, worker_state
         return "idle", "no_pending_work", policy_snapshot, worker_state

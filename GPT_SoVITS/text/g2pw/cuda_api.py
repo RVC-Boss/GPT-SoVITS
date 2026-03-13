@@ -244,6 +244,16 @@ class G2PWRuntimeWrapper:
             )
             self.batch_worker.start()
 
+    def _sync_runtime_env_overrides(self) -> None:
+        os.environ["G2PW_ENABLE_CUDA_GRAPH"] = "1" if self.enable_cuda_graph else "0"
+        os.environ["G2PW_ENABLE_PROFILE"] = "1" if self.enable_profiling else "0"
+        os.environ["G2PW_DUMP_GRAPH_CACHE_STATS"] = "1" if self.dump_graph_cache_stats else "0"
+        os.environ["G2PW_FULL_GRAPH_CACHE_LIMIT"] = str(int(self.full_graph_cache_limit))
+        os.environ["G2PW_TAIL_GRAPH_CACHE_LIMIT"] = str(int(self.tail_graph_cache_limit))
+        os.environ["G2PW_ALLOW_TENSOR_CORES"] = "1" if self.allow_tensor_cores else "0"
+        os.environ["G2PW_USE_CUBLASLT_BIAS_EPILOGUE"] = "1" if self.use_cublaslt_bias_epilogue else "0"
+        os.environ["G2PW_GEMM_PRECISION"] = {0: "fp32", 1: "fp16", 2: "bf16"}.get(int(self.gemm_precision), "fp32")
+
     def _destroy_handle(self) -> None:
         if self.handle:
             self.lib.g2pw_runtime_destroy(self.handle)
@@ -268,6 +278,7 @@ class G2PWRuntimeWrapper:
         return "" if not message else message.decode("utf-8", errors="replace")
 
     def _create_handle(self, batch_size: int, seq_len: int) -> None:
+        self._sync_runtime_env_overrides()
         new_handle = self.lib.g2pw_runtime_create(
             str(self.manifest_path).encode("utf-8"),
             str(self.weights_path).encode("utf-8"),
@@ -518,6 +529,10 @@ class G2PWRuntimeWrapper:
             return {
                 "shard_index": int(self.shard_index),
                 "enabled": bool(self.batch_enabled),
+                "enable_cuda_graph": bool(self.enable_cuda_graph),
+                "enable_profiling": bool(self.enable_profiling),
+                "full_graph_cache_limit": int(self.full_graph_cache_limit),
+                "tail_graph_cache_limit": int(self.tail_graph_cache_limit),
                 "window_ms": float(self.batch_window_s * 1000.0),
                 "max_requests": int(self.batch_max_requests),
                 "max_rows": int(self.batch_max_rows),

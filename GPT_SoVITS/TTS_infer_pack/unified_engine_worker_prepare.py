@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import time
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict, List
 
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS
 from GPT_SoVITS.TTS_infer_pack.prepare_coordinator import PrepareCoordinator, PreparedCpuStage
@@ -81,11 +81,60 @@ class WorkerPrepareExecutor:
         cpu_stages: List[PreparedCpuStage],
     ) -> List[tuple[T2SRequestState, float, float] | Exception]:
         try:
-            return list(
-                await asyncio.gather(
-                    *[self.coordinator.prepare_gpu_stage_profiled_async(cpu_stage) for cpu_stage in cpu_stages],
-                    return_exceptions=True,
-                )
+            return await self.coordinator.prepare_gpu_stages_profiled_async(cpu_stages)
+        finally:
+            self._notify_state_change()
+
+    async def prepare_gpu_audio_phases_async(
+        self,
+        cpu_stages: List[PreparedCpuStage],
+    ) -> List[Dict[str, Any] | Exception]:
+        try:
+            return await self.coordinator.prepare_gpu_audio_phases_async(cpu_stages)
+        finally:
+            self._notify_state_change()
+
+    async def prepare_gpu_text_phases_async(
+        self,
+        items: List[tuple[PreparedCpuStage, Dict[str, Any]]],
+    ) -> List[Dict[str, Any] | Exception]:
+        try:
+            return await self.coordinator.prepare_gpu_text_phases_async(items)
+        finally:
+            self._notify_state_change()
+
+    def build_gpu_prepare_result_from_phases(
+        self,
+        cpu_stage: PreparedCpuStage,
+        phase_one: Dict[str, Any],
+        phase_two: Dict[str, Any],
+        extra_profile: Dict[str, float] | None = None,
+    ) -> tuple[T2SRequestState, float, float]:
+        try:
+            return self.coordinator.build_gpu_prepare_result_from_phases(
+                cpu_stage,
+                phase_one,
+                phase_two,
+                extra_profile=extra_profile,
             )
+        finally:
+            self._notify_state_change()
+
+    async def prepare_ref_spec_stages_async(
+        self,
+        phase_ones: List[Dict[str, Any]],
+    ) -> List[tuple[tuple[Any, Any], Dict[str, float]] | Exception]:
+        try:
+            return await self.coordinator.prepare_ref_spec_stages_async(phase_ones)
+        finally:
+            self._notify_state_change()
+
+    def apply_ref_spec_result_to_state(
+        self,
+        state: T2SRequestState,
+        ref_spec_result: tuple[tuple[Any, Any], Dict[str, float]],
+    ) -> None:
+        try:
+            self.coordinator.apply_ref_spec_result_to_state(state, ref_spec_result)
         finally:
             self._notify_state_change()

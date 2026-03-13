@@ -996,21 +996,39 @@ class TTS:
         return self._extract_prompt_semantic_from_raw(raw_audio, raw_sr)
 
     def _extract_ref_spec_from_raw(self, raw_audio: torch.Tensor, raw_sr: int):
+        spec, audio, _, _, _ = self._extract_ref_spec_profile_from_raw(raw_audio, raw_sr)
+        return spec, audio, raw_audio, raw_sr
+
+    def _extract_ref_spec_profile_from_raw(self, raw_audio: torch.Tensor, raw_sr: int):
+        profile = {
+            "ref_spec_to_device_ms": 0.0,
+            "ref_spec_main_resample_ms": 0.0,
+            "ref_spec_norm_ms": 0.0,
+            "ref_spec_spectrogram_ms": 0.0,
+            "ref_spec_post_resample_ms": 0.0,
+        }
+        to_device_start = time.perf_counter()
         raw_audio_device = raw_audio.to(self.configs.device).float()
+        profile["ref_spec_to_device_ms"] = (time.perf_counter() - to_device_start) * 1000.0
 
         if raw_sr != self.configs.sampling_rate:
+            resample_start = time.perf_counter()
             audio = raw_audio_device
             if audio.shape[0] == 2:
                 audio = audio.mean(0).unsqueeze(0)
             audio = resample(audio, raw_sr, self.configs.sampling_rate, self.configs.device)
+            profile["ref_spec_main_resample_ms"] = (time.perf_counter() - resample_start) * 1000.0
         else:
             audio = raw_audio_device
             if audio.shape[0] == 2:
                 audio = audio.mean(0).unsqueeze(0)
 
+        norm_start = time.perf_counter()
         maxx = audio.abs().max()
         if maxx > 1:
             audio /= min(2, maxx)
+        profile["ref_spec_norm_ms"] = (time.perf_counter() - norm_start) * 1000.0
+        spec_start = time.perf_counter()
         spec = spectrogram_torch(
             audio,
             self.configs.filter_length,
@@ -1019,15 +1037,18 @@ class TTS:
             self.configs.win_length,
             center=False,
         )
+        profile["ref_spec_spectrogram_ms"] = (time.perf_counter() - spec_start) * 1000.0
         if self.configs.is_half:
             spec = spec.half()
         if self.is_v2pro == True:
+            post_resample_start = time.perf_counter()
             audio = resample(audio, self.configs.sampling_rate, 16000, self.configs.device)
+            profile["ref_spec_post_resample_ms"] = (time.perf_counter() - post_resample_start) * 1000.0
             if self.configs.is_half:
                 audio = audio.half()
         else:
             audio = None
-        return spec, audio, raw_audio, raw_sr
+        return spec, audio, raw_audio, raw_sr, profile
 
     def extract_ref_spec(self, ref_audio_path: str):
         raw_audio, raw_sr = self._load_ref_audio_raw(ref_audio_path)
