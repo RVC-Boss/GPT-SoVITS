@@ -52,7 +52,7 @@ function Invoke-Conda {
         [string[]]$Args
     )
 
-    $output = & conda install -y -q -c conda-forge @Args 2>&1
+    $output = & conda install -y -c conda-forge @Args 2>&1
     $exitCode = $LASTEXITCODE
 
     if ($exitCode -ne 0) {
