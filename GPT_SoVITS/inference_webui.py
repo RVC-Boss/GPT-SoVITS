@@ -1329,6 +1329,70 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         visible=False,
                     )
                 )
+
+                SaveSvEmb = gr.Checkbox(
+                    label=i18n("保存参考音频的语义向量"),
+                    interactive=True,
+                    show_label=True,
+                    value = False,
+                    visible=False if model_version not in {"v2Pro","v2ProPlus"} else True
+                )
+                SaveRefers = gr.Checkbox(
+                    label=i18n("保存参考音频的声纹特征"),
+                    interactive=True,
+                    show_label=True,
+                    value = False,
+                    visible=True
+
+                )
+                SaveSvEmbName = gr.Textbox(
+                    label=i18n("保存的语义向量文件名，默认保存在output/sv_emb_opt目录下"),
+                    value="sv_emb.voice",
+                    interactive=True,
+                    visible=True,
+                )
+                SaveRefersName = gr.Textbox(
+                    label=i18n("保存的声纹特征文件名，默认保存在output/refers_opt目录下"),
+                    value="refers.voice",
+                    interactive=True,
+                    visible=True,
+                )
+
+                InjectSvEmb = gr.Checkbox(
+                    label=i18n("注入参考音频的语义向量"),
+                    interactive=True,
+                    show_label=True,
+                    value = False,
+                    visible=False if model_version not in {"v2Pro","v2ProPlus"} else True
+                )
+                InjectRefers = gr.Checkbox(
+                    label=i18n("注入参考音频的声纹特征"),
+                    interactive=True,
+                    show_label=True,
+                    value = False,
+                    visible=True
+                )
+
+                InjectSvEmbName = gr.Textbox(
+                    label=i18n("注入的语义向量文件名，默认保存在output/sv_emb_opt目录下"),
+                    value="sv_emb.voice",
+                    interactive=True,
+                    visible=True,
+                )
+                InjectRefersName = gr.Textbox(
+                    label=i18n("注入的声纹特征文件名，默认保存在output/refers_opt目录下"),
+                    value="refers.voice",
+                    interactive=True,
+                    visible=True,
+                )
+
+                EnableAudioLoad = gr.Checkbox(
+                    label=i18n("启用音频加载。开启后会加载参考音频"),
+                    value=True,
+                    interactive=True,
+                    show_label=True,
+                    visible=True,
+                )
                 sample_steps = (
                     gr.Radio(
                         label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
@@ -1434,8 +1498,20 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 sample_steps,
                 if_sr_Checkbox,
                 pause_second_slider,
+                
+                SaveSvEmb,
+                SaveRefers,
+                SaveSvEmbName,
+                SaveRefersName,
+                InjectSvEmb,
+                InjectRefers,
+                InjectSvEmbName,
+                InjectRefersName,
+                EnableAudioLoad,
+
             ],
             [output],
+
         )
         SoVITS_dropdown.change(
             change_sovits_weights,
