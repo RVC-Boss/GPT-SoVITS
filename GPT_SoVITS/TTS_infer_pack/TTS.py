@@ -499,7 +499,7 @@ class TTS:
 
         if if_lora_v3 == True and os.path.exists(path_sovits) == False:
             info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version)
-            raise FileExistsError(info)
+            raise FileNotFoundError(info)
 
         # dict_s2 = torch.load(weights_path, map_location=self.configs.device,weights_only=False)
         dict_s2 = load_sovits_new(weights_path)
@@ -1578,16 +1578,15 @@ class TTS:
                 max_audio = np.abs(audio).max()
                 if max_audio > 1:
                     audio /= max_audio
-            audio = (audio * 32768).astype(np.int16)
+                audio = (audio * 32768).astype(np.int16)
+            else:
+                audio = audio.cpu().numpy()
+                audio = (audio * 32768).astype(np.int16)
             t2 = time.perf_counter()
             print(f"超采样用时：{t2 - t1:.3f}s")
         else:
-            # audio = audio.float() * 32768
-            # audio = audio.to(dtype=torch.int16).clamp(-32768, 32767).cpu().numpy()
-
             audio = audio.cpu().numpy()
-
-        audio = (audio * 32768).astype(np.int16)
+            audio = (audio * 32768).astype(np.int16)
 
 
         # try:
@@ -1768,7 +1767,10 @@ class TTS:
             pos += chunk_len * upsample_rate
 
         audio = self.sola_algorithm(audio_fragments, overlapped_len * upsample_rate)
-        audio = audio[overlapped_len * upsample_rate : -padding_len * upsample_rate]
+        if padding_len > 0:
+            audio = audio[overlapped_len * upsample_rate : -padding_len * upsample_rate]
+        else:
+            audio = audio[overlapped_len * upsample_rate :]
 
         audio_fragments = []
         for feat_len in feat_lens:
