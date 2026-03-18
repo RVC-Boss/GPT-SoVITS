@@ -92,7 +92,7 @@ def cut0(inp):
     if not set(inp).issubset(punctuation):
         return inp
     else:
-        return "/n"
+        return "\n"
 
 
 # 凑四句一切
