@@ -84,10 +84,10 @@ bert_path = os.environ.get("bert_path", "GPT_SoVITS/pretrained_models/chinese-ro
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
 is_share = os.environ.get("is_share", "False")
-is_share = eval(is_share)
+is_share = is_share.lower() in ("true", "1", "yes")
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+is_half = os.environ.get("is_half", "True").lower() in ("true", "1", "yes") and torch.cuda.is_available()
 # is_half=False
 punctuation = set(["!", "?", "…", ",", ".", "-", " "])
 import gradio as gr
