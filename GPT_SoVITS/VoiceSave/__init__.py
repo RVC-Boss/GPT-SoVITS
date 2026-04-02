@@ -114,6 +114,7 @@ def save_tensor(path: str,
     else:
         files = file_names
 
+    print(f"length of tensors: {len(tensors)}, length of files: {len(files)}")
     if len(tensors) != len(files):
         raise ValueError("The number of tensors and files must be the same.")
     np_arrays = []
@@ -161,3 +162,17 @@ def add_tensor(add:list[torch.Tensor],
     tensors.extend(add)
     save_tensor(path,tensors,name,MySet=MySet,file_names=file_names,**info_save)
     
+def __find_func__(zf,il):
+    f = zf.get_file_path("voice.json")
+    info = il.load_info(f)
+    if info is None:
+        return None
+    list_names = info["access_list"]
+    ret = []
+    for name in list_names:
+        try:
+            a = zf.get_file_path(name)
+            ret.append(a)
+        except FileNotFoundError:
+            continue
+    return ret
