@@ -838,6 +838,8 @@ def get_tts_wav(
     SaveOutputAsUndecoded=False,
     SaveOutputAsUndecodedName="output.voice",
     AddRandomSaltToSaveOutputAsUndecodedName=False,
+
+    ReturnWay = "yield", # "yield" or "return"
 ):
     global cache
     if ref_wav_path:
@@ -1197,10 +1199,15 @@ def get_tts_wav(
             audio_opt /= max_audio
     else:
         audio_opt = audio_opt.cpu().detach().numpy()
-    yield opt_sr, (audio_opt * 32767).astype(np.int16)
+
+    if ReturnWay == "yield":
+        yield opt_sr, (audio_opt * 32767).astype(np.int16)
+    else:
+        return opt_sr, (audio_opt * 32767).astype(np.int16)
+
 
 def close_serv():
-    if running_on == "local"
+    if running_on == "local":
         sys.exit(0)
     else:
         gr.Warning(i18n("服务器环境下该功能不可用"))
