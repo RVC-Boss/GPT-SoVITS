@@ -24,6 +24,7 @@ class CNHubert(nn.Module):
         super().__init__()
         if base_path is None:
             base_path = cnhubert_base_path
+        print(f"Loading CN-Hubert from \"{base_path}\"")
         if os.path.exists(base_path):
             ...
         else:
@@ -69,6 +70,7 @@ class CNHubert(nn.Module):
 
 
 def get_model():
+    print("cnhubert_base_path:", cnhubert_base_path)
     model = CNHubert()
     model.eval()
     return model

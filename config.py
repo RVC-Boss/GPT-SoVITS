@@ -14,7 +14,7 @@ def merge_dir_txt2(*TXT):
 config_json_location = merge_dir_txt2(current_dir,"config.json")
 with open(str(config_json_location),"r") as f:
     __info__ = f.read()
-
+__info__ = json.loads(__info__)
 i18n = I18nAuto(language=os.environ.get("language", "Auto"))
 
 

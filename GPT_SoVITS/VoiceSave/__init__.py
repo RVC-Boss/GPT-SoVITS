@@ -99,7 +99,12 @@ class ZIP_File:
         fl.delete_dir(self.temp_write)
         POOL.remove(self.name)
 
-def save_tensor(path: str, tensors: Union[torch.Tensor, list],name:str,MySet:set=set(),file_names:Union[str,list,None]=None,**info_save) -> None:
+def save_tensor(path: str,
+                 tensors: Union[torch.Tensor, list],
+                 name:str,
+                 MySet:set=set(),
+                 file_names:Union[str,list,None]=None,
+                 **info_save,) -> None:
     if isinstance(tensors, torch.Tensor):
         tensors = [tensors]
     if not file_names:
@@ -109,6 +114,7 @@ def save_tensor(path: str, tensors: Union[torch.Tensor, list],name:str,MySet:set
     else:
         files = file_names
 
+    print(f"length of tensors: {len(tensors)}, length of files: {len(files)}")
     if len(tensors) != len(files):
         raise ValueError("The number of tensors and files must be the same.")
     np_arrays = []
@@ -128,7 +134,10 @@ def save_tensor(path: str, tensors: Union[torch.Tensor, list],name:str,MySet:set
     zf.close()
     del zf
 
-def load_tensor(path: str,name:str,find_func,MySet:set=set()) -> list[torch.Tensor]:
+def load_tensor(path: str,
+               name:str,
+               find_func,
+               MySet:set=set(),) -> list[torch.Tensor]:
     zf = ZIP_File(path, name, MySet=MySet)
     zf.release()
     voice_path = find_func(zf,il)
@@ -141,3 +150,29 @@ def load_tensor(path: str,name:str,find_func,MySet:set=set()) -> list[torch.Tens
     zf.close()
     del zf
     return tensors
+
+def add_tensor(add:list[torch.Tensor],
+               path: str,
+               name:str,
+               find_func,
+               MySet:set=set(),
+               file_names:Union[str,list,None]=None,
+               **info_save,):
+    tensors = load_tensor(path,name,find_func,MySet=MySet)
+    tensors.extend(add)
+    save_tensor(path,tensors,name,MySet=MySet,file_names=file_names,**info_save)
+    
+def __find_func__(zf,il):
+    f = zf.get_file_path("voice.json")
+    info = il.load_info(f)
+    if info is None:
+        return None
+    list_names = info["access_list"]
+    ret = []
+    for name in list_names:
+        try:
+            a = zf.get_file_path(name)
+            ret.append(a)
+        except FileNotFoundError:
+            continue
+    return ret

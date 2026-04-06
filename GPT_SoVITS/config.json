@@ -1,0 +1,7 @@
+{
+    "running_on" : "local",
+    "Default":{
+        "GPT_Path": "不训练直接推v3底模！",
+        "SoVITS_Path": "不训练直接推v2ProPlus底模！"
+    }
+}
