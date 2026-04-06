@@ -432,6 +432,8 @@ class ResidualCouplingLayer(nn.Module):
         self.post.bias.data.zero_()
 
     def forward(self, x, x_mask, g=None, reverse=False):
+
+        print(f"x.shape: {x.shape}, x_mask.shape: {x_mask.shape}")
         x0, x1 = torch.split(x, [self.half_channels] * 2, 1)
         h = self.pre(x0) * x_mask
         h = self.enc(h, x_mask, g=g)
