@@ -34,6 +34,8 @@ COPY install.sh /workspace/GPT-SoVITS/
 
 RUN bash Docker/install_wrapper.sh
 
+RUN apt-get update && apt-get install -y libnppicc-12 && rm -rf /var/lib/apt/lists/*
+
 EXPOSE 9871 9872 9873 9874 9880
 
 ENV PYTHONPATH="/workspace/GPT-SoVITS"
