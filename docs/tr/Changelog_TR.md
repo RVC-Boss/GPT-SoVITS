@@ -2,8 +2,6 @@
 
 ## 202401
 
-## 202401
-
 - 2024.01.21 [PR#108](https://github.com/RVC-Boss/GPT-SoVITS/pull/108)
   - İçerik: WebUI'ya İngilizce sistem çeviri desteği eklendi.
   - Tür: Dokümantasyon
@@ -332,6 +330,8 @@
   - Tür: Optimizasyon
   - Katkıda Bulunan: RVC-Boss, GoHomeToMacDonal
   - İlgili: [PR#672](https://github.com/RVC-Boss/GPT-SoVITS/pull/672)
+- Gelecek güncellemeler, `fast_inference` dalındaki değişikliklerin tutarlılığını doğrulamaya devam edecek.
+
 - 2024.07.13 [PR#1294](https://github.com/RVC-Boss/GPT-SoVITS/pull/1294), [PR#1298](https://github.com/RVC-Boss/GPT-SoVITS/pull/1298)
   - İçerik: i18n taraması yeniden düzenlendi ve çok dilli yapılandırma dosyaları güncellendi
   - Tür: Dokümantasyon
@@ -578,3 +578,160 @@
   - İçerik: Otomatik hassasiyet algılama mantığı optimize edildi; WebUI önyüz modüllerine katlanabilir özellik eklendi
   - Tür: Yeni Özellik
   - Katkıda Bulunanlar: XXXXRT666, RVC-Boss
+- 2025.06.06 [PR#2427](https://github.com/RVC-Boss/GPT-SoVITS/pull/2427)
+  - İçerik: "X一X" kalıbı için çok sesli harf tespitini düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: wzy3650
+- 2025.06.05 [PR#2439](https://github.com/RVC-Boss/GPT-SoVITS/pull/2439)
+  - İçerik: Yapılandırma düzeltmesi; SoVITS model yüklemesini düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: wzy3650
+- 2025.06.09 [Commit#8056efe4](https://github.com/RVC-Boss/GPT-SoVITS/commit/8056efe4ab7bbc3610c72ae356a6f37518441f7d)
+  - İçerik: `ge.sum` kaynaklı olası sayısal patlamayı (sessiz çıkarıma yol açan) düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: RVC-Boss
+- 2025.06.10 [Commit#2c0436b9](https://github.com/RVC-Boss/GPT-SoVITS/commit/2c0436b9ce397424ae03476c836fb64c6e5ebcc6)
+  - İçerik: Deney adı boşlukla bittiğinde oluşan hatalı Windows yolunu düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: RVC-Boss
+- 2025.06.10 [PR#2449](https://github.com/RVC-Boss/GPT-SoVITS/pull/2449)
+  - İçerik: Dil bölütlemeyi optimize et
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: KamioRinn
+- 2025.06.11 [PR#2450](https://github.com/RVC-Boss/GPT-SoVITS/pull/2450)
+  - İçerik: v2pro için paralel çıkarım desteğindeki hatayı düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: YYuX-1145
+- 2025.06.11 [Commit#ed89a023](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed89a023378dabba9d4b6580235bb9742245816d)
+  - İçerik: v2pro için `ge` çıkarımındaki sayısal taşma sorununu düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: RVC-Boss
+- 2025.06.17 [PR#2464](https://github.com/RVC-Boss/GPT-SoVITS/pull/2464) [PR#2482](https://github.com/RVC-Boss/GPT-SoVITS/pull/2482)
+  - İçerik: `install.sh` mantığını optimize et
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: XXXXRT666
+- 2025.06.27 [PR#2489](https://github.com/RVC-Boss/GPT-SoVITS/pull/2489)
+  - İçerik: onnxruntime yükleme mantığını optimize et (GPU/CPU algılama)
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: KamioRinn
+- 2025.06.27 [PR#2488](https://github.com/RVC-Boss/GPT-SoVITS/pull/2488)
+  - İçerik: Dil bölütleme ve biçimlendirmeyi optimize et
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: KamioRinn
+
+## 202507
+
+- 2025.07.10 [Commit#426e1a2bb](https://github.com/RVC-Boss/GPT-SoVITS/commit/426e1a2bb43614af2479b877c37acfb0591e952f)
+  - İçerik: Çıkarım işlem önceliğini artır (Win11'de olası GPU kullanım sınırlamasını düzelt)
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: XianYue0125
+- 2025.07.16 [PR#2490](https://github.com/RVC-Boss/GPT-SoVITS/pull/2490)
+  - İçerik: TTS.py'nin gerçekte desteklenen sürümler olan v2Pro ve v2ProPlus'ı tanımaması sorununu düzelt ve varsayılan yapılandırmayı güncelle
+  - Tür: Düzeltme
+  - Katkıda Bulunan: jiangsier-xyz
+- 2025.07.16 [Commit#4d8ebf85](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d8ebf85233d4f1166d7cc02fdc595602975ca8f)
+  - İçerik: Paralel çıkarım modunda v2pro model tanıma sorununu düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: RVC-Boss
+- 2025.07.17 [PR#2531](https://github.com/RVC-Boss/GPT-SoVITS/pull/2531)
+  - İçerik: Whisper ASR daha uygun maliyetli distill modellerini destekler
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: XXXXRT666
+- 2025.07.18 [PR#2536](https://github.com/RVC-Boss/GPT-SoVITS/pull/2536)
+  - İçerik: `TTS_Config` kod mantığını optimize et
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: ChasonJiang
+- 2025.07.18 [PR#2537](https://github.com/RVC-Boss/GPT-SoVITS/pull/2537)
+  - İçerik: GPT kayıp (loss) hesaplama sorununu düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: ChasonJiang
+
+## 202508
+
+- 2025.08.02 [PR#2561](https://github.com/RVC-Boss/GPT-SoVITS/pull/2561)
+  - İçerik: WSL Rocm
+  - Tür: Düzeltme
+  - Katkıda Bulunan: XXXXRT666
+
+## 202509
+
+- 2025.09.10 [Commit#11aa78bd](https://github.com/RVC-Boss/GPT-SoVITS/commit/11aa78bd9bda8b53047cfcae03abf7ca94d27391)
+  - İçerik: Ortam değişkeninin dize (string) olmaması sorununu düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: RVC-Boss
+
+## 202511
+
+- 2025.11.28 [PR#2671](https://github.com/RVC-Boss/GPT-SoVITS/pull/2671) [PR#2678](https://github.com/RVC-Boss/GPT-SoVITS/pull/2678)
+  - İçerik: Akışlı çıkarım (streaming inference)
+  - Tür: Yeni Özellik
+  - Katkıda Bulunan: ChasonJiang
+- 2025.11.28 [PR#2636](https://github.com/RVC-Boss/GPT-SoVITS/pull/2636)
+  - İçerik: Matematiksel ifade metinleri için metin ön uç (frontend) mantığını optimize et
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: KamioRinn
+- 2025.11.28 [PR#2469](https://github.com/RVC-Boss/GPT-SoVITS/pull/2469)
+  - İçerik: Akışlı çıkarım (streaming inference)
+  - Tür: Yeni Özellik
+  - Katkıda Bulunan: L-jasmine
+- 2025.11.28 [PR#2577](https://github.com/RVC-Boss/GPT-SoVITS/pull/2577)
+  - İçerik: VQ dağıtılmış eğitimi destekle
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: wzy3650
+- 2025.11.28 [PR#2627](https://github.com/RVC-Boss/GPT-SoVITS/pull/2627) [PR#2679](https://github.com/RVC-Boss/GPT-SoVITS/pull/2679)
+  - İçerik: ASR model indirme mantığını optimize et
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: XXXXRT666
+- 2025.11.28 [PR#2662](https://github.com/RVC-Boss/GPT-SoVITS/pull/2662)
+  - İçerik: Varsayılan parti boyutu (batch size) hatasını düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: Spr-Aachen
+
+## 202512
+
+- 2025.12.30 [PR#2703](https://github.com/RVC-Boss/GPT-SoVITS/pull/2703) [PR#2704](https://github.com/RVC-Boss/GPT-SoVITS/pull/2704)
+  - İçerik: Örnekleme (sampling) hatasını düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: ChasonJiang
+
+## 202602
+
+- 2026.02.08 [PR#2727](https://github.com/RVC-Boss/GPT-SoVITS/pull/2727)
+  - İçerik: Kabul edilmeyen Conda koşullarının neden olduğu derleme hatasını düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: Oarora
+- 2026.02.09 [PR#2732](https://github.com/RVC-Boss/GPT-SoVITS/pull/2732)
+  - İçerik: Otomatik ortam kurulumunu optimize et
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: XXXXRT666
+
+# 202604
+
+- 2026.04.18 [PR#2763](https://github.com/RVC-Boss/GPT-SoVITS/pull/2763)
+  - İçerik: Uzun cümlelerde gereksiz hesaplama ve çıkarım yükünü azaltmak için G2PW çıkarım girdi oluşturmayı ve çok sesli harf işlemeyi optimize et
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: baicai-1145
+- 2026.04.18 [PR#2767](https://github.com/RVC-Boss/GPT-SoVITS/pull/2767)
+  - İçerik: Windows altında tek kartta GPT-SoVITS v3 için LoRA eğitim akışını iyileştir
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: 2409324124
+- 2026.04.18 [PR#2755](https://github.com/RVC-Boss/GPT-SoVITS/pull/2755)
+  - İçerik: Birden çok modüldeki çeşitli hataları düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: wishhyt
+- 2026.04.18 [PR#2758](https://github.com/RVC-Boss/GPT-SoVITS/pull/2758)
+  - İçerik: Veri kümesi işleme için hata işleme ipuçları ekle
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: mushroomcowisheggs
+- 2026.04.18 [PR#2753](https://github.com/RVC-Boss/GPT-SoVITS/pull/2753)
+  - İçerik: Paralel çıkarımdaki bazı hataları düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: wishhyt
+- 2026.04.18 [PR#2733](https://github.com/RVC-Boss/GPT-SoVITS/pull/2733)
+  - İçerik: DPO eğitiminin eksik kelime simülasyonunu desteklememe hatasını düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: Mr-Neutr0n
+- 2026.04.18 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/02425ea25680c26c700be0bc158756c69103d827)
+  - İçerik: ONNX betiğinde (Optional vb.) eksik içe aktarmaları düzelt
+  - Tür: Düzeltme
+  - Katkıda Bulunan: RVC-Boss

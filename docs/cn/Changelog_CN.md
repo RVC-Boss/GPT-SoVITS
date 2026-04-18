@@ -594,11 +594,11 @@
   - 内容: 修复实验名结尾出现空格在win中路径不正确的问题
   - 类型: 修复
   - 提交: RVC-Boss
-- 2025.06.10 [Commit#746cb536](https://github.com/RVC-Boss/GPT-SoVITS/commit/746cb536c68b1fe6ce3ca7e882235375b8a8dd89)
+- 2025.06.10 [PR#2449](https://github.com/RVC-Boss/GPT-SoVITS/pull/2449)
   - 内容: 语种分割优化
   - 类型: 优化
   - 提交: KamioRinn
-- 2025.06.11 [Commit#dd2b9253](https://github.com/RVC-Boss/GPT-SoVITS/commit/dd2b9253aabb09db32db7a3344570ed9df043351)
+- 2025.06.11 [PR#2450](https://github.com/RVC-Boss/GPT-SoVITS/pull/2450)
   - 内容: 修复并行推理对v2pro支持bug
   - 类型: 修复
   - 提交: YYuX-1145
@@ -606,114 +606,132 @@
   - 内容: v2pro对ge提取时会出现数值溢出的问题修复
   - 类型: 修复
   - 提交: RVC-Boss
-- 2025.06.11 [Commit#37f5abfc](https://github.com/RVC-Boss/GPT-SoVITS/commit/6fdc67ca83418306f11e90b9139278313ac5c3e9) [Commit#6fdc67ca](https://github.com/RVC-Boss/GPT-SoVITS/commit/37f5abfcb4a6553652235909db2e124b6f8ff3a5)
+- 2025.06.17 [PR#2464](https://github.com/RVC-Boss/GPT-SoVITS/pull/2464) [PR#2482](https://github.com/RVC-Boss/GPT-SoVITS/pull/2482)
   - 内容: install.sh逻辑优化
   - 类型: 优化
   - 提交: XXXXRT666
-- 2025.06.27 [Commit#90ebefa7](https://github.com/RVC-Boss/GPT-SoVITS/commit/90ebefa78fd544da36eebe0b2003620879c921b0)
+- 2025.06.27 [PR#2489](https://github.com/RVC-Boss/GPT-SoVITS/pull/2489)
   - 内容: onnxruntime加载逻辑优化（对gpu/cpu的判断）
   - 类型: 优化
   - 提交: KamioRinn
-- 2025.06.27 [Commit#6df61f58](https://github.com/RVC-Boss/GPT-SoVITS/commit/6df61f58e4d18d4c2ad9d1eddd6a1bd690034c23)
+- 2025.06.27 [PR#2488](https://github.com/RVC-Boss/GPT-SoVITS/pull/2488)
   - 内容: 语言分割及格式化优化
   - 类型: 优化
   - 提交: KamioRinn
 
-## after 202506
+## 202507
+
 - 2025.07.10 [Commit#426e1a2bb](https://github.com/RVC-Boss/GPT-SoVITS/commit/426e1a2bb43614af2479b877c37acfb0591e952f)
   - 内容: 提升推理进程优先级（修复win11下可能GPU利用率受限的问题）
   - 类型: 优化
   - 提交: XianYue0125
-- 2025.07.16 [Commit#e476b01f3](https://github.com/RVC-Boss/GPT-SoVITS/commit/e476b01f30312139555d45a78cbd830f557d892c)
-  - 内容: 解决 TTS.py 无法识别真正支持版本 v2Pro、v2ProPlus 的问题 (#2490)同时更新一版默认配置。
+- 2025.07.16 [PR#2490](https://github.com/RVC-Boss/GPT-SoVITS/pull/2490)
+  - 内容: 解决 TTS.py 无法识别真正支持版本 v2Pro、v2ProPlus 的问题, 同时更新一版默认配置。
   - 类型: 修复
   - 提交: jiangsier-xyz
 - 2025.07.16 [Commit#4d8ebf85](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d8ebf85233d4f1166d7cc02fdc595602975ca8f)
   - 内容: 修复并行推理模式下v2pro模型识别问题
   - 类型: 修复
-  - 提交: 
-- 2025.07.17 [Commit#cefafee3](https://github.com/RVC-Boss/GPT-SoVITS/commit/cefafee32cfc08f0f622ef460578b09485cc189e)
+  - 提交: RVC-Boss
+- 2025.07.17 [PR#2531](https://github.com/RVC-Boss/GPT-SoVITS/pull/2531)
   - 内容: whisper asr支持性价比更高的distill模型
   - 类型: 优化
   - 提交: XXXXRT666
-- 2025.07.18 [Commit#b9211657](https://github.com/RVC-Boss/GPT-SoVITS/commit/b9211657d8dfe8cd46f6b6eb9cfc55d5989e6548)
-  - 内容: 优化TTS_Config的代码逻辑 (#2536)
+- 2025.07.18 [PR#2536](https://github.com/RVC-Boss/GPT-SoVITS/pull/2536)
+  - 内容: 优化TTS_Config的代码逻辑
   - 类型: 优化
   - 提交: ChasonJiang
-- 2025.07.18 [Commit#b5a67e62](https://github.com/RVC-Boss/GPT-SoVITS/commit/b5a67e62470fb87e7cea28ecad7c7c3bf7a58afd)
-  - 内容: 修复gpt的loss计算问题 (#2537)
+- 2025.07.18 [PR#2537](https://github.com/RVC-Boss/GPT-SoVITS/pull/2537)
+  - 内容: 修复gpt的loss计算问题
   - 类型: 修复
   - 提交: ChasonJiang
-- 2025.08.02 [Commit#fdf794e3](https://github.com/RVC-Boss/GPT-SoVITS/commit/fdf794e31d1fd6f91c5cb4fbb0396094491a31ac)
-  - 内容: WSL Rocm (#2561)
+
+## 202508
+
+- 2025.08.02 [PR#2561](https://github.com/RVC-Boss/GPT-SoVITS/pull/2561)
+  - 内容: WSL Rocm
   - 类型: 修复
   - 提交: XXXXRT666
+
+## 202509
+
 - 2025.09.10 [Commit#11aa78bd](https://github.com/RVC-Boss/GPT-SoVITS/commit/11aa78bd9bda8b53047cfcae03abf7ca94d27391)
   - 内容: 修复环境变量可能不为str的问题
   - 类型: 修复
   - 提交: RVC-Boss
-- 2025.11.28 [Commit#92ab59c5](https://github.com/RVC-Boss/GPT-SoVITS/commit/92ab59c5533a5dea368ddb8dad89e14474307145) [Commit#6fb441f](https://github.com/RVC-Boss/GPT-SoVITS/commit/6fb441f65e4b0573d7f7b16d96dc1917d38eda64)
+
+## 202511
+
+- 2025.11.28 [PR#2671](https://github.com/RVC-Boss/GPT-SoVITS/pull/2671) [PR#2678](https://github.com/RVC-Boss/GPT-SoVITS/pull/2678)
   - 内容: 流式推理
   - 类型: 新功能
   - 提交: ChasonJiang
-- 2025.11.28 [Commit#e00ca921](https://github.com/RVC-Boss/GPT-SoVITS/commit/e00ca92140542e6d947b9f660e24ed757aabc793)
+- 2025.11.28 [PR#2636](https://github.com/RVC-Boss/GPT-SoVITS/pull/2636)
   - 内容: 数学计算文本前端逻辑优化
   - 类型: 优化
   - 提交: KamioRinn
-- 2025.11.28 [Commit#11aa78bd](https://github.com/RVC-Boss/GPT-SoVITS/commit/11aa78bd9bda8b53047cfcae03abf7ca94d27391)
-  - 内容: 流式推理 (#2469)
+- 2025.11.28 [PR#2469](https://github.com/RVC-Boss/GPT-SoVITS/pull/2469)
+  - 内容: 流式推理
   - 类型: 新功能
   - 提交: L-jasmine
-- 2025.11.28 [Commit#60a4a214](https://github.com/RVC-Boss/GPT-SoVITS/commit/60a4a214aff18057bb4ce76643d3b85de4bb67a4)
-  - 内容: 支持vq分布式训练 (#2577)
+- 2025.11.28 [PR#2577](https://github.com/RVC-Boss/GPT-SoVITS/pull/2577)
+  - 内容: 支持vq分布式训练
   - 类型: 优化
   - 提交: wzy3650
-- 2025.11.28 [Commit#c85c54ec](https://github.com/RVC-Boss/GPT-SoVITS/commit/c85c54eca99a2fd01d6b574584217d0ecfbd90c1) [Commit#8577992](https://github.com/RVC-Boss/GPT-SoVITS/commit/857799276c3e8adcda7d662a55b07bf00bc1f01b)
+- 2025.11.28 [PR#2627](https://github.com/RVC-Boss/GPT-SoVITS/pull/2627) [PR#2679](https://github.com/RVC-Boss/GPT-SoVITS/pull/2679)
   - 内容: ASR模型下载逻辑优化
   - 类型: 优化
   - 提交: XXXXRT666
-- 2025.11.28 [Commit#92d2d33](https://github.com/RVC-Boss/GPT-SoVITS/commit/92d2d337fd98673c126fd40727e067204e4523ae)
-  - 内容: default batch size bug修复
+- 2025.11.28 [PR#2662](https://github.com/RVC-Boss/GPT-SoVITS/pull/2662)
+  - 内容: default batch size bug 修复
   - 类型: 修复
   - 提交: Spr-Aachen
-- 2025.12.30 [Commit#9080a96](https://github.com/RVC-Boss/GPT-SoVITS/commit/9080a967d5e64f4bfb5a9ea33afc7252136b0256) [Commit#c767f0b](https://github.com/RVC-Boss/GPT-SoVITS/commit/c767f0b83b998e996a4d230d86da575a03f54a3f)
+
+## 202512
+
+- 2025.12.30 [PR#2703](https://github.com/RVC-Boss/GPT-SoVITS/pull/2703) [PR#2704](https://github.com/RVC-Boss/GPT-SoVITS/pull/2704)
   - 内容: 修复采样错误
   - 类型: 修复
   - 提交: ChasonJiang
-- 2026.02.08 [Commit#9986880](https://github.com/RVC-Boss/GPT-SoVITS/commit/9986880b3f13b3076989db17cc1a7227aa0186c9)
-  - 内容: 修复Conda 条款未同意导致的构建失败 (#2727)
+
+## 202602
+
+- 2026.02.08 [PR#2727](https://github.com/RVC-Boss/GPT-SoVITS/pull/2727)
+  - 内容: 修复 Conda 条款未同意导致的构建失败
   - 类型: 修复
   - 提交: Oarora
-- 2026.02.09 [Commit#2d9193b](https://github.com/RVC-Boss/GPT-SoVITS/commit/2d9193b0d3c0eae0c3a14d8c68a839f1bae157dc)
-  - 内容: 环境自动构建优化 (#2732)
+- 2026.02.09 [PR#2732](https://github.com/RVC-Boss/GPT-SoVITS/pull/2732)
+  - 内容: 环境自动构建优化
   - 类型: 优化
   - 提交: XXXXRT666
-- 2026.04.18 [Commit#ba8de9b](https://github.com/RVC-Boss/GPT-SoVITS/commit/ba8de9b760a4bd5b3eb827a594416e71b44f2510)
-  - 内容: 优化 G2PW 的推理输入构造与多音字处理流程，减少重复计算，降低长句场景下的推理开销 (#2763)
+
+## 202604
+
+- 2026.04.18 [PR#2763](https://github.com/RVC-Boss/GPT-SoVITS/pull/2763)
+  - 内容: 优化 G2PW 的推理输入构造与多音字处理流程，减少重复计算，降低长句场景下的推理开销
   - 类型: 优化
   - 提交: baicai-1145
-- 2026.04.18 [Commit#780383d](https://github.com/RVC-Boss/GPT-SoVITS/commit/780383d5bd0d09a4f132b5ab1e80c04c9606b48a)
-  - 内容: 改进 Windows 单卡 v3 LoRA 训练流程 (#2767)
+- 2026.04.18 [PR#2767](https://github.com/RVC-Boss/GPT-SoVITS/pull/2767)
+  - 内容: 改进 Windows 单卡 v3 LoRA 训练流程
   - 类型: 优化
   - 提交: 2409324124
-- 2026.04.18 [Commit#1419190](https://github.com/RVC-Boss/GPT-SoVITS/commit/14191901cdb7e791d8fee1ff31dffe107f9e28fb)
-  - 内容: 修复多个模块中的独立 bug (#2755)
+- 2026.04.18 [PR#2755](https://github.com/RVC-Boss/GPT-SoVITS/pull/2755)
+  - 内容: 修复多个模块中的独立 bug
   - 类型: 修复
   - 提交: wishhyt
-- 2026.04.18 [Commit#00ce973](https://github.com/RVC-Boss/GPT-SoVITS/commit/00ce973412384e92a44836f168de2a9a8827259c)
-  - 内容: 添加数据集的错误处理提示 (#2758)
+- 2026.04.18 [PR#2758](https://github.com/RVC-Boss/GPT-SoVITS/pull/2758)
+  - 内容: 添加数据集的错误处理提示
   - 类型: 优化
   - 提交: mushroomcowisheggs
-- 2026.04.18 [Commit#445d18c](https://github.com/RVC-Boss/GPT-SoVITS/commit/445d18ccce0b4ea7cb6f8c93ff688b662bc61338)
-  - 内容: 并行推理部分bug修复 (#2753)
+- 2026.04.18 [PR#2753](https://github.com/RVC-Boss/GPT-SoVITS/pull/2753)
+  - 内容: 并行推理部分bug修复
   - 类型: 修复
   - 提交: wishhyt
-- 2026.04.18 [Commit#938f05f](https://github.com/RVC-Boss/GPT-SoVITS/commit/938f05fce8bcfb2407b8311fbbc10ac4d9ffe1c0)
-  - 内容: bug修复：dpo训练不支持漏字模拟 (#2733)
+- 2026.04.18 [PR#2733](https://github.com/RVC-Boss/GPT-SoVITS/pull/2733)
+  - 内容: bug修复：DPO 训练不支持漏字模拟
   - 类型: 修复
   - 提交: Mr-Neutr0n
 - 2026.04.18 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/02425ea25680c26c700be0bc158756c69103d827)
   - 内容: 修复onnx脚本未导入Optional等的问题
   - 类型: 修复
   - 提交: RVC-Boss
-
