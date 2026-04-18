@@ -342,28 +342,22 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
 
         global_step += 1
     if epoch % hps.train.save_every_epoch == 0 and rank == 0:
-        try:
-            if hps.train.if_save_latest == 0:
-                utils.save_checkpoint(
-                    net_g,
-                    optim_g,
-                    hps.train.learning_rate,
-                    epoch,
-                    os.path.join(save_root, "G_{}.pth".format(global_step)),
-                )
-            else:
-                utils.save_checkpoint(
-                    net_g,
-                    optim_g,
-                    hps.train.learning_rate,
-                    epoch,
-                    os.path.join(save_root, "G_{}.pth".format(233333333333)),
-                )
-        except Exception as e:
-            if logger is not None:
-                logger.warning(f"skip large checkpoint save due to error: {e}")
-            else:
-                print(f"skip large checkpoint save due to error: {e}")
+        if hps.train.if_save_latest == 0:
+            utils.save_checkpoint(
+                net_g,
+                optim_g,
+                hps.train.learning_rate,
+                epoch,
+                os.path.join(save_root, "G_{}.pth".format(global_step)),
+            )
+        else:
+            utils.save_checkpoint(
+                net_g,
+                optim_g,
+                hps.train.learning_rate,
+                epoch,
+                os.path.join(save_root, "G_{}.pth".format(233333333333)),
+            )
         if rank == 0 and hps.train.if_save_every_weights == True:
             if hasattr(net_g, "module"):
                 ckpt = net_g.module.state_dict()
