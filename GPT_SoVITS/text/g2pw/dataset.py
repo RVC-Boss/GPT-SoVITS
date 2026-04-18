@@ -18,6 +18,7 @@ Credits
 
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import numpy as np
@@ -37,6 +38,8 @@ def prepare_onnx_input(
     use_mask: bool = False,
     window_size: int = None,
     max_len: int = 512,
+    char2id: Optional[Dict[str, int]] = None,
+    char_phoneme_masks: Optional[Dict[str, List[int]]] = None,
 ) -> Dict[str, np.array]:
     if window_size is not None:
         truncated_texts, truncated_query_ids = _truncate_texts(
@@ -48,33 +51,88 @@ def prepare_onnx_input(
     phoneme_masks = []
     char_ids = []
     position_ids = []
+    tokenized_cache = {}
+
+    if char2id is None:
+        char2id = {char: idx for idx, char in enumerate(chars)}
+    if use_mask:
+        if char_phoneme_masks is None:
+            char_phoneme_masks = {
+                char: [1 if i in char2phonemes[char] else 0 for i in range(len(labels))]
+                for char in char2phonemes
+            }
+    else:
+        full_phoneme_mask = [1] * len(labels)
 
     for idx in range(len(texts)):
         text = (truncated_texts if window_size else texts)[idx].lower()
         query_id = (truncated_query_ids if window_size else query_ids)[idx]
 
-        try:
-            tokens, text2token, token2text = tokenize_and_map(tokenizer=tokenizer, text=text)
-        except Exception:
-            print(f'warning: text "{text}" is invalid')
-            return {}
+        cached = tokenized_cache.get(text)
+        if cached is None:
+            try:
+                tokens, text2token, token2text = tokenize_and_map(tokenizer=tokenizer, text=text)
+            except Exception:
+                print(f'warning: text "{text}" is invalid')
+                return {}
 
-        text, query_id, tokens, text2token, token2text = _truncate(
-            max_len=max_len, text=text, query_id=query_id, tokens=tokens, text2token=text2token, token2text=token2text
-        )
+            if len(tokens) <= max_len - 2:
+                processed_tokens = ["[CLS]"] + tokens + ["[SEP]"]
+                shared_input_id = list(np.array(tokenizer.convert_tokens_to_ids(processed_tokens)))
+                shared_token_type_id = list(np.zeros((len(processed_tokens),), dtype=int))
+                shared_attention_mask = list(np.ones((len(processed_tokens),), dtype=int))
+                cached = {
+                    "is_short": True,
+                    "tokens": tokens,
+                    "text2token": text2token,
+                    "token2text": token2text,
+                    "input_id": shared_input_id,
+                    "token_type_id": shared_token_type_id,
+                    "attention_mask": shared_attention_mask,
+                }
+            else:
+                cached = {
+                    "is_short": False,
+                    "tokens": tokens,
+                    "text2token": text2token,
+                    "token2text": token2text,
+                }
+            tokenized_cache[text] = cached
 
-        processed_tokens = ["[CLS]"] + tokens + ["[SEP]"]
+        if cached["is_short"]:
+            text_for_query = text
+            query_id_for_query = query_id
+            text2token_for_query = cached["text2token"]
+            input_id = cached["input_id"]
+            token_type_id = cached["token_type_id"]
+            attention_mask = cached["attention_mask"]
+        else:
+            (
+                text_for_query,
+                query_id_for_query,
+                tokens_for_query,
+                text2token_for_query,
+                _token2text_for_query,
+            ) = _truncate(
+                max_len=max_len,
+                text=text,
+                query_id=query_id,
+                tokens=cached["tokens"],
+                text2token=cached["text2token"],
+                token2text=cached["token2text"],
+            )
+            processed_tokens = ["[CLS]"] + tokens_for_query + ["[SEP]"]
+            input_id = list(np.array(tokenizer.convert_tokens_to_ids(processed_tokens)))
+            token_type_id = list(np.zeros((len(processed_tokens),), dtype=int))
+            attention_mask = list(np.ones((len(processed_tokens),), dtype=int))
 
-        input_id = list(np.array(tokenizer.convert_tokens_to_ids(processed_tokens)))
-        token_type_id = list(np.zeros((len(processed_tokens),), dtype=int))
-        attention_mask = list(np.ones((len(processed_tokens),), dtype=int))
-
-        query_char = text[query_id]
-        phoneme_mask = (
-            [1 if i in char2phonemes[query_char] else 0 for i in range(len(labels))] if use_mask else [1] * len(labels)
-        )
-        char_id = chars.index(query_char)
-        position_id = text2token[query_id] + 1  # [CLS] token locate at first place
+        query_char = text_for_query[query_id_for_query]
+        if use_mask:
+            phoneme_mask = char_phoneme_masks[query_char]
+        else:
+            phoneme_mask = full_phoneme_mask
+        char_id = char2id[query_char]
+        position_id = text2token_for_query[query_id_for_query] + 1  # [CLS] token locate at first place
 
         input_ids.append(input_id)
         token_type_ids.append(token_type_id)
@@ -83,10 +141,15 @@ def prepare_onnx_input(
         char_ids.append(char_id)
         position_ids.append(position_id)
 
+    max_token_length = max(len(seq) for seq in input_ids)
+
+    def _pad_sequences(sequences, pad_value=0):
+        return [seq + [pad_value] * (max_token_length - len(seq)) for seq in sequences]
+
     outputs = {
-        "input_ids": np.array(input_ids).astype(np.int64),
-        "token_type_ids": np.array(token_type_ids).astype(np.int64),
-        "attention_masks": np.array(attention_masks).astype(np.int64),
+        "input_ids": np.array(_pad_sequences(input_ids, pad_value=0)).astype(np.int64),
+        "token_type_ids": np.array(_pad_sequences(token_type_ids, pad_value=0)).astype(np.int64),
+        "attention_masks": np.array(_pad_sequences(attention_masks, pad_value=0)).astype(np.int64),
         "phoneme_masks": np.array(phoneme_masks).astype(np.float32),
         "char_ids": np.array(char_ids).astype(np.int64),
         "position_ids": np.array(position_ids).astype(np.int64),
