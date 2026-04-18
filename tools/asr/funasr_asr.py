@@ -39,6 +39,7 @@ def create_model(language="zh"):
             local_dir="tools/asr/models/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
         )
         model_revision = "v2.0.4"
+        vad_model_revision = punc_model_revision = "v2.0.4"
     elif language == "yue":
         path_asr = "tools/asr/models/speech_UniASR_asr_2pass-cantonese-CHS-16k-common-vocab1468-tensorflow1-online"
         snapshot_download(
@@ -50,8 +51,6 @@ def create_model(language="zh"):
         model_revision = "master"
     else:
         raise ValueError(f"{language} is not supported")
-
-    vad_model_revision = punc_model_revision = "v2.0.4"
 
     if language in funasr_models:
         return funasr_models[language]

@@ -87,7 +87,7 @@ def sync_buffer(buffers, average=True):
     for buffer, handle in handles:
         handle.wait()
         if average:
-            buffer.data /= world_size
+            buffer.data /= world_size()
 
 
 def sync_grad(params):
