@@ -578,3 +578,160 @@
   - Content: Optimized automatic precision detection logic; added collapsible functionality to WebUI frontend modules.
   - Type: New Feature
   - Contributors: XXXXRT666, RVC-Boss
+- 2025.06.06 [PR#2427](https://github.com/RVC-Boss/GPT-SoVITS/pull/2427)
+  - Content: Fix polyphone detection for "X一X" pattern
+  - Type: Fix
+  - Contributor: wzy3650
+- 2025.06.05 [PR#2439](https://github.com/RVC-Boss/GPT-SoVITS/pull/2439)
+  - Content: Config fix; fix SoVITS model loading
+  - Type: Fix
+  - Contributor: wzy3650
+- 2025.06.09 [Commit#8056efe4](https://github.com/RVC-Boss/GPT-SoVITS/commit/8056efe4ab7bbc3610c72ae356a6f37518441f7d)
+  - Content: Fix possible numerical explosion of `ge.sum` causing silent inference
+  - Type: Fix
+  - Contributor: RVC-Boss
+- 2025.06.10 [Commit#2c0436b9](https://github.com/RVC-Boss/GPT-SoVITS/commit/2c0436b9ce397424ae03476c836fb64c6e5ebcc6)
+  - Content: Fix incorrect Windows path when experiment name ends with a space
+  - Type: Fix
+  - Contributor: RVC-Boss
+- 2025.06.10 [PR#2449](https://github.com/RVC-Boss/GPT-SoVITS/pull/2449)
+  - Content: Optimize language segmentation
+  - Type: Optimization
+  - Contributor: KamioRinn
+- 2025.06.11 [PR#2450](https://github.com/RVC-Boss/GPT-SoVITS/pull/2450)
+  - Content: Fix bug in parallel inference support for v2pro
+  - Type: Fix
+  - Contributor: YYuX-1145
+- 2025.06.11 [Commit#ed89a023](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed89a023378dabba9d4b6580235bb9742245816d)
+  - Content: Fix numerical overflow issue when extracting `ge` for v2pro
+  - Type: Fix
+  - Contributor: RVC-Boss
+- 2025.06.17 [PR#2464](https://github.com/RVC-Boss/GPT-SoVITS/pull/2464) [PR#2482](https://github.com/RVC-Boss/GPT-SoVITS/pull/2482)
+  - Content: Optimize `install.sh` logic
+  - Type: Optimization
+  - Contributor: XXXXRT666
+- 2025.06.27 [PR#2489](https://github.com/RVC-Boss/GPT-SoVITS/pull/2489)
+  - Content: Optimize onnxruntime loading logic (GPU/CPU detection)
+  - Type: Optimization
+  - Contributor: KamioRinn
+- 2025.06.27 [PR#2488](https://github.com/RVC-Boss/GPT-SoVITS/pull/2488)
+  - Content: Optimize language segmentation and formatting
+  - Type: Optimization
+  - Contributor: KamioRinn
+
+## 202507
+
+- 2025.07.10 [Commit#426e1a2bb](https://github.com/RVC-Boss/GPT-SoVITS/commit/426e1a2bb43614af2479b877c37acfb0591e952f)
+  - Content: Increase inference process priority (fix possible GPU utilization limitation on Win11)
+  - Type: Optimization
+  - Contributor: XianYue0125
+- 2025.07.16 [PR#2490](https://github.com/RVC-Boss/GPT-SoVITS/pull/2490)
+  - Content: Fix TTS.py not recognizing actually supported versions v2Pro and v2ProPlus, and update default configuration
+  - Type: Fix
+  - Contributor: jiangsier-xyz
+- 2025.07.16 [Commit#4d8ebf85](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d8ebf85233d4f1166d7cc02fdc595602975ca8f)
+  - Content: Fix v2pro model recognition issue in parallel inference mode
+  - Type: Fix
+  - Contributor: RVC-Boss
+- 2025.07.17 [PR#2531](https://github.com/RVC-Boss/GPT-SoVITS/pull/2531)
+  - Content: Whisper ASR supports more cost-effective distill models
+  - Type: Optimization
+  - Contributor: XXXXRT666
+- 2025.07.18 [PR#2536](https://github.com/RVC-Boss/GPT-SoVITS/pull/2536)
+  - Content: Optimize `TTS_Config` code logic
+  - Type: Optimization
+  - Contributor: ChasonJiang
+- 2025.07.18 [PR#2537](https://github.com/RVC-Boss/GPT-SoVITS/pull/2537)
+  - Content: Fix GPT loss calculation issue
+  - Type: Fix
+  - Contributor: ChasonJiang
+
+## 202508
+
+- 2025.08.02 [PR#2561](https://github.com/RVC-Boss/GPT-SoVITS/pull/2561)
+  - Content: WSL Rocm
+  - Type: Fix
+  - Contributor: XXXXRT666
+
+## 202509
+
+- 2025.09.10 [Commit#11aa78bd](https://github.com/RVC-Boss/GPT-SoVITS/commit/11aa78bd9bda8b53047cfcae03abf7ca94d27391)
+  - Content: Fix issue where environment variable may not be a string
+  - Type: Fix
+  - Contributor: RVC-Boss
+
+## 202511
+
+- 2025.11.28 [PR#2671](https://github.com/RVC-Boss/GPT-SoVITS/pull/2671) [PR#2678](https://github.com/RVC-Boss/GPT-SoVITS/pull/2678)
+  - Content: Streaming inference
+  - Type: New Feature
+  - Contributor: ChasonJiang
+- 2025.11.28 [PR#2636](https://github.com/RVC-Boss/GPT-SoVITS/pull/2636)
+  - Content: Optimize text frontend logic for mathematical expression text
+  - Type: Optimization
+  - Contributor: KamioRinn
+- 2025.11.28 [PR#2469](https://github.com/RVC-Boss/GPT-SoVITS/pull/2469)
+  - Content: Streaming inference
+  - Type: New Feature
+  - Contributor: L-jasmine
+- 2025.11.28 [PR#2577](https://github.com/RVC-Boss/GPT-SoVITS/pull/2577)
+  - Content: Support VQ distributed training
+  - Type: Optimization
+  - Contributor: wzy3650
+- 2025.11.28 [PR#2627](https://github.com/RVC-Boss/GPT-SoVITS/pull/2627) [PR#2679](https://github.com/RVC-Boss/GPT-SoVITS/pull/2679)
+  - Content: Optimize ASR model download logic
+  - Type: Optimization
+  - Contributor: XXXXRT666
+- 2025.11.28 [PR#2662](https://github.com/RVC-Boss/GPT-SoVITS/pull/2662)
+  - Content: Fix default batch size bug
+  - Type: Fix
+  - Contributor: Spr-Aachen
+
+## 202512
+
+- 2025.12.30 [PR#2703](https://github.com/RVC-Boss/GPT-SoVITS/pull/2703) [PR#2704](https://github.com/RVC-Boss/GPT-SoVITS/pull/2704)
+  - Content: Fix sampling error
+  - Type: Fix
+  - Contributor: ChasonJiang
+
+## 202602
+
+- 2026.02.08 [PR#2727](https://github.com/RVC-Boss/GPT-SoVITS/pull/2727)
+  - Content: Fix build failure caused by unaccepted Conda terms
+  - Type: Fix
+  - Contributor: Oarora
+- 2026.02.09 [PR#2732](https://github.com/RVC-Boss/GPT-SoVITS/pull/2732)
+  - Content: Optimize automatic environment setup
+  - Type: Optimization
+  - Contributor: XXXXRT666
+
+## 202604
+
+- 2026.04.18 [PR#2763](https://github.com/RVC-Boss/GPT-SoVITS/pull/2763)
+  - Content: Optimize G2PW inference input construction and polyphone handling to reduce redundant computation and inference overhead for long sentences
+  - Type: Optimization
+  - Contributor: baicai-1145
+- 2026.04.18 [PR#2767](https://github.com/RVC-Boss/GPT-SoVITS/pull/2767)
+  - Content: Improve the LoRA training flow for GPT-SoVITS v3 on a single card under Windows
+  - Type: Optimization
+  - Contributor: 2409324124
+- 2026.04.18 [PR#2755](https://github.com/RVC-Boss/GPT-SoVITS/pull/2755)
+  - Content: Fix miscellaneous bugs in multiple modules
+  - Type: Fix
+  - Contributor: wishhyt
+- 2026.04.18 [PR#2758](https://github.com/RVC-Boss/GPT-SoVITS/pull/2758)
+  - Content: Add error handling hints for dataset processing
+  - Type: Optimization
+  - Contributor: mushroomcowisheggs
+- 2026.04.18 [PR#2753](https://github.com/RVC-Boss/GPT-SoVITS/pull/2753)
+  - Content: Fix some bugs in parallel inference
+  - Type: Fix
+  - Contributor: wishhyt
+- 2026.04.18 [PR#2733](https://github.com/RVC-Boss/GPT-SoVITS/pull/2733)
+  - Content: Fix bug where DPO training does not support missing word simulation
+  - Type: Fix
+  - Contributor: Mr-Neutr0n
+- 2026.04.18 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/02425ea25680c26c700be0bc158756c69103d827)
+  - Content: Fix missing imports (e.g., Optional) in ONNX script
+  - Type: Fix
+  - Contributor: RVC-Boss

@@ -578,3 +578,160 @@
   - 内容: 自動精度検出ロジックを最適化し、WebUI フロントエンドモジュールに折り畳み（Collapsible）機能を追加
   - タイプ: 新機能
   - 貢献者: XXXXRT666, RVC-Boss
+- 2025.06.06 [PR#2427](https://github.com/RVC-Boss/GPT-SoVITS/pull/2427)
+  - 内容: 「X一X」パターンの多音字検出を修正
+  - タイプ: 修正
+  - 貢献者: wzy3650
+- 2025.06.05 [PR#2439](https://github.com/RVC-Boss/GPT-SoVITS/pull/2439)
+  - 内容: 設定の修正；SoVITSモデル読み込みの修正
+  - タイプ: 修正
+  - 貢献者: wzy3650
+- 2025.06.09 [Commit#8056efe4](https://github.com/RVC-Boss/GPT-SoVITS/commit/8056efe4ab7bbc3610c72ae356a6f37518441f7d)
+  - 内容: `ge.sum`の数値爆発による推論の無音化を修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2025.06.10 [Commit#2c0436b9](https://github.com/RVC-Boss/GPT-SoVITS/commit/2c0436b9ce397424ae03476c836fb64c6e5ebcc6)
+  - 内容: 実験名がスペースで終わる場合のWindowsパスの誤りを修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2025.06.10 [PR#2449](https://github.com/RVC-Boss/GPT-SoVITS/pull/2449)
+  - 内容: 言語分割の最適化
+  - タイプ: 最適化
+  - 貢献者: KamioRinn
+- 2025.06.11 [PR#2450](https://github.com/RVC-Boss/GPT-SoVITS/pull/2450)
+  - 内容: v2proの並列推論対応におけるバグを修正
+  - タイプ: 修正
+  - 貢献者: YYuX-1145
+- 2025.06.11 [Commit#ed89a023](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed89a023378dabba9d4b6580235bb9742245816d)
+  - 内容: v2proの`ge`抽出時の数値オーバーフロー問題を修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2025.06.17 [PR#2464](https://github.com/RVC-Boss/GPT-SoVITS/pull/2464) [PR#2482](https://github.com/RVC-Boss/GPT-SoVITS/pull/2482)
+  - 内容: `install.sh`のロジックを最適化
+  - タイプ: 最適化
+  - 貢献者: XXXXRT666
+- 2025.06.27 [PR#2489](https://github.com/RVC-Boss/GPT-SoVITS/pull/2489)
+  - 内容: onnxruntime読み込みロジックを最適化（GPU/CPU検出）
+  - タイプ: 最適化
+  - 貢献者: KamioRinn
+- 2025.06.27 [PR#2488](https://github.com/RVC-Boss/GPT-SoVITS/pull/2488)
+  - 内容: 言語分割と書式を最適化
+  - タイプ: 最適化
+  - 貢献者: KamioRinn
+
+## 202507
+
+- 2025.07.10 [Commit#426e1a2bb](https://github.com/RVC-Boss/GPT-SoVITS/commit/426e1a2bb43614af2479b877c37acfb0591e952f)
+  - 内容: 推論プロセスの優先度を上げる（Win11でのGPU利用制限の可能性を修正）
+  - タイプ: 最適化
+  - 貢献者: XianYue0125
+- 2025.07.16 [PR#2490](https://github.com/RVC-Boss/GPT-SoVITS/pull/2490)
+  - 内容: TTS.pyが実際にサポートされているバージョンv2Proおよびv2ProPlusを認識しない問題を修正し、デフォルト設定を更新
+  - タイプ: 修正
+  - 貢献者: jiangsier-xyz
+- 2025.07.16 [Commit#4d8ebf85](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d8ebf85233d4f1166d7cc02fdc595602975ca8f)
+  - 内容: 並列推論モードでのv2proモデル認識問題を修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+- 2025.07.17 [PR#2531](https://github.com/RVC-Boss/GPT-SoVITS/pull/2531)
+  - 内容: Whisper ASRがよりコスト効率の高い蒸留モデルをサポート
+  - タイプ: 最適化
+  - 貢献者: XXXXRT666
+- 2025.07.18 [PR#2536](https://github.com/RVC-Boss/GPT-SoVITS/pull/2536)
+  - 内容: `TTS_Config`のコードロジックを最適化
+  - タイプ: 最適化
+  - 貢献者: ChasonJiang
+- 2025.07.18 [PR#2537](https://github.com/RVC-Boss/GPT-SoVITS/pull/2537)
+  - 内容: GPT損失計算の問題を修正
+  - タイプ: 修正
+  - 貢献者: ChasonJiang
+
+## 202508
+
+- 2025.08.02 [PR#2561](https://github.com/RVC-Boss/GPT-SoVITS/pull/2561)
+  - 内容: WSL Rocm対応
+  - タイプ: 修正
+  - 貢献者: XXXXRT666
+
+## 202509
+
+- 2025.09.10 [Commit#11aa78bd](https://github.com/RVC-Boss/GPT-SoVITS/commit/11aa78bd9bda8b53047cfcae03abf7ca94d27391)
+  - 内容: 環境変数が文字列でない可能性がある問題を修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss
+
+## 202511
+
+- 2025.11.28 [PR#2671](https://github.com/RVC-Boss/GPT-SoVITS/pull/2671) [PR#2678](https://github.com/RVC-Boss/GPT-SoVITS/pull/2678)
+  - 内容: ストリーミング推論
+  - タイプ: 新機能
+  - 貢献者: ChasonJiang
+- 2025.11.28 [PR#2636](https://github.com/RVC-Boss/GPT-SoVITS/pull/2636)
+  - 内容: 数式テキストに対するテキスト前処理ロジックを最適化
+  - タイプ: 最適化
+  - 貢献者: KamioRinn
+- 2025.11.28 [PR#2469](https://github.com/RVC-Boss/GPT-SoVITS/pull/2469)
+  - 内容: ストリーミング推論
+  - タイプ: 新機能
+  - 貢献者: L-jasmine
+- 2025.11.28 [PR#2577](https://github.com/RVC-Boss/GPT-SoVITS/pull/2577)
+  - 内容: VQ分散学習をサポート
+  - タイプ: 最適化
+  - 貢献者: wzy3650
+- 2025.11.28 [PR#2627](https://github.com/RVC-Boss/GPT-SoVITS/pull/2627) [PR#2679](https://github.com/RVC-Boss/GPT-SoVITS/pull/2679)
+  - 内容: ASRモデルダウンロードロジックを最適化
+  - タイプ: 最適化
+  - 貢献者: XXXXRT666
+- 2025.11.28 [PR#2662](https://github.com/RVC-Boss/GPT-SoVITS/pull/2662)
+  - 内容: デフォルトのバッチサイズのバグを修正
+  - タイプ: 修正
+  - 貢献者: Spr-Aachen
+
+## 202512
+
+- 2025.12.30 [PR#2703](https://github.com/RVC-Boss/GPT-SoVITS/pull/2703) [PR#2704](https://github.com/RVC-Boss/GPT-SoVITS/pull/2704)
+  - 内容: サンプリングエラーを修正
+  - タイプ: 修正
+  - 貢献者: ChasonJiang
+
+## 202602
+
+- 2026.02.08 [PR#2727](https://github.com/RVC-Boss/GPT-SoVITS/pull/2727)
+  - 内容: 受け入れられなかったConda利用規約によるビルド失敗を修正
+  - タイプ: 修正
+  - 貢献者: Oarora
+- 2026.02.09 [PR#2732](https://github.com/RVC-Boss/GPT-SoVITS/pull/2732)
+  - 内容: 自動環境セットアップを最適化
+  - タイプ: 最適化
+  - 貢献者: XXXXRT666
+
+## 202604
+
+- 2026.04.18 [PR#2763](https://github.com/RVC-Boss/GPT-SoVITS/pull/2763)
+  - 内容: G2PW推論入力の構築と多音字処理を最適化し、長文における冗長な計算と推論オーバーヘッドを削減
+  - タイプ: 最適化
+  - 貢献者: baicai-1145
+- 2026.04.18 [PR#2767](https://github.com/RVC-Boss/GPT-SoVITS/pull/2767)
+  - 内容: WindowsでのシングルカードにおけるGPT-SoVITS v3のLoRAトレーニングフローを改善
+  - タイプ: 最適化
+  - 貢献者: 2409324124
+- 2026.04.18 [PR#2755](https://github.com/RVC-Boss/GPT-SoVITS/pull/2755)
+  - 内容: 複数モジュールの雑多なバグを修正
+  - タイプ: 修正
+  - 貢献者: wishhyt
+- 2026.04.18 [PR#2758](https://github.com/RVC-Boss/GPT-SoVITS/pull/2758)
+  - 内容: データセット処理時のエラーハンドリングヒントを追加
+  - タイプ: 最適化
+  - 貢献者: mushroomcowisheggs
+- 2026.04.18 [PR#2753](https://github.com/RVC-Boss/GPT-SoVITS/pull/2753)
+  - 内容: 並列推論の一部バグを修正
+  - タイプ: 修正
+  - 貢献者: wishhyt
+- 2026.04.18 [PR#2733](https://github.com/RVC-Boss/GPT-SoVITS/pull/2733)
+  - 内容: DPOトレーニングが欠落単語シミュレーションをサポートしないバグを修正
+  - タイプ: 修正
+  - 貢献者: Mr-Neutr0n
+- 2026.04.18 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/02425ea25680c26c700be0bc158756c69103d827)
+  - 内容: ONNXスクリプトでの（Optionalなどの）不足インポートを修正
+  - タイプ: 修正
+  - 貢献者: RVC-Boss

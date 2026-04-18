@@ -578,3 +578,160 @@
   - 내용: 자동 정밀도 감지 로직 최적화; WebUI 프론트엔드 모듈에 접기 기능 추가
   - 유형: 신규 기능
   - 기여자: XXXXRT666, RVC-Boss
+- 2025.06.06 [PR#2427](https://github.com/RVC-Boss/GPT-SoVITS/pull/2427)
+  - 내용: "X一X" 패턴의 다중 발음 감지 오류 수정
+  - 유형: 수정
+  - 기여자: wzy3650
+- 2025.06.05 [PR#2439](https://github.com/RVC-Boss/GPT-SoVITS/pull/2439)
+  - 내용: 설정 오류 수정; SoVITS 모델 로딩 오류 수정
+  - 유형: 수정
+  - 기여자: wzy3650
+- 2025.06.09 [Commit#8056efe4](https://github.com/RVC-Boss/GPT-SoVITS/commit/8056efe4ab7bbc3610c72ae356a6f37518441f7d)
+  - 내용: `ge.sum`의 수치 폭발 가능성으로 인한 추론 무음 현상 수정
+  - 유형: 수정
+  - 기여자: RVC-Boss
+- 2025.06.10 [Commit#2c0436b9](https://github.com/RVC-Boss/GPT-SoVITS/commit/2c0436b9ce397424ae03476c836fb64c6e5ebcc6)
+  - 내용: 실험 이름이 공백으로 끝날 때 발생하는 잘못된 Windows 경로 문제 수정
+  - 유형: 수정
+  - 기여자: RVC-Boss
+- 2025.06.10 [PR#2449](https://github.com/RVC-Boss/GPT-SoVITS/pull/2449)
+  - 내용: 언어 분할 최적화
+  - 유형: 최적화
+  - 기여자: KamioRinn
+- 2025.06.11 [PR#2450](https://github.com/RVC-Boss/GPT-SoVITS/pull/2450)
+  - 내용: v2pro 병렬 추론 지원 버그 수정
+  - 유형: 수정
+  - 기여자: YYuX-1145
+- 2025.06.11 [Commit#ed89a023](https://github.com/RVC-Boss/GPT-SoVITS/commit/ed89a023378dabba9d4b6580235bb9742245816d)
+  - 내용: v2pro의 `ge` 추출 시 수치 오버플로우 문제 수정
+  - 유형: 수정
+  - 기여자: RVC-Boss
+- 2025.06.17 [PR#2464](https://github.com/RVC-Boss/GPT-SoVITS/pull/2464) [PR#2482](https://github.com/RVC-Boss/GPT-SoVITS/pull/2482)
+  - 내용: `install.sh` 로직 최적화
+  - 유형: 최적화
+  - 기여자: XXXXRT666
+- 2025.06.27 [PR#2489](https://github.com/RVC-Boss/GPT-SoVITS/pull/2489)
+  - 내용: onnxruntime 로딩 로직 최적화 (GPU/CPU 감지)
+  - 유형: 최적화
+  - 기여자: KamioRinn
+- 2025.06.27 [PR#2488](https://github.com/RVC-Boss/GPT-SoVITS/pull/2488)
+  - 내용: 언어 분할 및 형식 최적화
+  - 유형: 최적화
+  - 기여자: KamioRinn
+
+## 202507
+
+- 2025.07.10 [Commit#426e1a2bb](https://github.com/RVC-Boss/GPT-SoVITS/commit/426e1a2bb43614af2479b877c37acfb0591e952f)
+  - 내용: 추론 프로세스 우선순위 증가 (Win11에서 GPU 활용 제한 가능성 수정)
+  - 유형: 최적화
+  - 기여자: XianYue0125
+- 2025.07.16 [PR#2490](https://github.com/RVC-Boss/GPT-SoVITS/pull/2490)
+  - 내용: TTS.py가 실제 지원되는 버전 v2Pro 및 v2ProPlus를 인식하지 못하는 문제 수정 및 기본 설정 업데이트
+  - 유형: 수정
+  - 기여자: jiangsier-xyz
+- 2025.07.16 [Commit#4d8ebf85](https://github.com/RVC-Boss/GPT-SoVITS/commit/4d8ebf85233d4f1166d7cc02fdc595602975ca8f)
+  - 내용: 병렬 추론 모드에서 v2pro 모델 인식 문제 수정
+  - 유형: 수정
+  - 기여자: RVC-Boss
+- 2025.07.17 [PR#2531](https://github.com/RVC-Boss/GPT-SoVITS/pull/2531)
+  - 내용: Whisper ASR이 더 비용 효율적인 distill 모델 지원
+  - 유형: 최적화
+  - 기여자: XXXXRT666
+- 2025.07.18 [PR#2536](https://github.com/RVC-Boss/GPT-SoVITS/pull/2536)
+  - 내용: `TTS_Config` 코드 로직 최적화
+  - 유형: 최적화
+  - 기여자: ChasonJiang
+- 2025.07.18 [PR#2537](https://github.com/RVC-Boss/GPT-SoVITS/pull/2537)
+  - 내용: GPT 손실(loss) 계산 문제 수정
+  - 유형: 수정
+  - 기여자: ChasonJiang
+
+## 202508
+
+- 2025.08.02 [PR#2561](https://github.com/RVC-Boss/GPT-SoVITS/pull/2561)
+  - 내용: WSL Rocm
+  - 유형: 수정
+  - 기여자: XXXXRT666
+
+## 202509
+
+- 2025.09.10 [Commit#11aa78bd](https://github.com/RVC-Boss/GPT-SoVITS/commit/11aa78bd9bda8b53047cfcae03abf7ca94d27391)
+  - 내용: 환경 변수가 문자열이 아닐 수 있는 문제 수정
+  - 유형: 수정
+  - 기여자: RVC-Boss
+
+## 202511
+
+- 2025.11.28 [PR#2671](https://github.com/RVC-Boss/GPT-SoVITS/pull/2671) [PR#2678](https://github.com/RVC-Boss/GPT-SoVITS/pull/2678)
+  - 내용: 스트리밍 추론
+  - 유형: 새 기능
+  - 기여자: ChasonJiang
+- 2025.11.28 [PR#2636](https://github.com/RVC-Boss/GPT-SoVITS/pull/2636)
+  - 내용: 수학 표현식 텍스트에 대한 텍스트 전처리 로직 최적화
+  - 유형: 최적화
+  - 기여자: KamioRinn
+- 2025.11.28 [PR#2469](https://github.com/RVC-Boss/GPT-SoVITS/pull/2469)
+  - 내용: 스트리밍 추론
+  - 유형: 새 기능
+  - 기여자: L-jasmine
+- 2025.11.28 [PR#2577](https://github.com/RVC-Boss/GPT-SoVITS/pull/2577)
+  - 내용: VQ 분산 학습 지원
+  - 유형: 최적화
+  - 기여자: wzy3650
+- 2025.11.28 [PR#2627](https://github.com/RVC-Boss/GPT-SoVITS/pull/2627) [PR#2679](https://github.com/RVC-Boss/GPT-SoVITS/pull/2679)
+  - 내용: ASR 모델 다운로드 로직 최적화
+  - 유형: 최적화
+  - 기여자: XXXXRT666
+- 2025.11.28 [PR#2662](https://github.com/RVC-Boss/GPT-SoVITS/pull/2662)
+  - 내용: 기본 배치 크기 버그 수정
+  - 유형: 수정
+  - 기여자: Spr-Aachen
+
+## 202512
+
+- 2025.12.30 [PR#2703](https://github.com/RVC-Boss/GPT-SoVITS/pull/2703) [PR#2704](https://github.com/RVC-Boss/GPT-SoVITS/pull/2704)
+  - 내용: 샘플링 오류 수정
+  - 유형: 수정
+  - 기여자: ChasonJiang
+
+## 202602
+
+- 2026.02.08 [PR#2727](https://github.com/RVC-Boss/GPT-SoVITS/pull/2727)
+  - 내용: Conda 약관 미동의로 인한 빌드 실패 수정
+  - 유형: 수정
+  - 기여자: Oarora
+- 2026.02.09 [PR#2732](https://github.com/RVC-Boss/GPT-SoVITS/pull/2732)
+  - 내용: 자동 환경 설정 최적화
+  - 유형: 최적화
+  - 기여자: XXXXRT666
+
+## 202604
+
+- 2026.04.18 [PR#2763](https://github.com/RVC-Boss/GPT-SoVITS/pull/2763)
+  - 내용: G2PW 추론 입력 구성 및 다중 발음 처리를 최적화하여 긴 문장에 대한 중복 계산 및 추론 오버헤드 감소
+  - 유형: 최적화
+  - 기여자: baicai-1145
+- 2026.04.18 [PR#2767](https://github.com/RVC-Boss/GPT-SoVITS/pull/2767)
+  - 내용: Windows 환경 단일 GPU에서 GPT-SoVITS v3의 LoRA 학습 흐름 개선
+  - 유형: 최적화
+  - 기여자: 2409324124
+- 2026.04.18 [PR#2755](https://github.com/RVC-Boss/GPT-SoVITS/pull/2755)
+  - 내용: 여러 모듈의 잡다한 버그 수정
+  - 유형: 수정
+  - 기여자: wishhyt
+- 2026.04.18 [PR#2758](https://github.com/RVC-Boss/GPT-SoVITS/pull/2758)
+  - 내용: 데이터셋 처리를 위한 오류 처리 힌트 추가
+  - 유형: 최적화
+  - 기여자: mushroomcowisheggs
+- 2026.04.18 [PR#2753](https://github.com/RVC-Boss/GPT-SoVITS/pull/2753)
+  - 내용: 병렬 추론의 일부 버그 수정
+  - 유형: 수정
+  - 기여자: wishhyt
+- 2026.04.18 [PR#2733](https://github.com/RVC-Boss/GPT-SoVITS/pull/2733)
+  - 내용: DPO 학습이 누락 단어 시뮬레이션을 지원하지 않는 버그 수정
+  - 유형: 수정
+  - 기여자: Mr-Neutr0n
+- 2026.04.18 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/02425ea25680c26c700be0bc158756c69103d827)
+  - 내용: ONNX 스크립트에서 Optional 등 누락된 임포트 문제 수정
+  - 유형: 수정
+  - 기여자: RVC-Boss
