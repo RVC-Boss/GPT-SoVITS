@@ -205,6 +205,8 @@ class TextEncoder(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, y, text, ge, speed=1):
+        if type(speed) == float:
+            speed = torch.FloatTensor([speed])
         y_mask = torch.ones_like(y[:1, :1, :])
 
         y = self.ssl_proj(y * y_mask) * y_mask
@@ -217,9 +219,8 @@ class TextEncoder(nn.Module):
         y = self.mrte(y, y_mask, text, text_mask, ge)
 
         y = self.encoder2(y * y_mask, y_mask)
-        if speed != 1:
-            y = F.interpolate(y, size=int(y.shape[-1] / speed) + 1, mode="linear")
-            y_mask = F.interpolate(y_mask, size=y.shape[-1], mode="nearest")
+        y = F.interpolate(y, size=(y.shape[-1] / speed).to(torch.int) + 1, mode="linear")
+        y_mask = F.interpolate(y_mask, size=y.shape[-1], mode="nearest")
 
         stats = self.proj(y) * y_mask
         m, logs = torch.split(stats, self.out_channels, dim=1)
