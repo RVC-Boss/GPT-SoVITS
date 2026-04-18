@@ -69,7 +69,8 @@ def my_save(fea, path):  #####fix issue: torch.save doesn't support chinese path
     name = os.path.basename(path)
     tmp_path = "%s.pth" % (ttime())
     torch.save(fea, tmp_path)
-    shutil.move(tmp_path, "%s/%s" % (dir, name))
+    os.makedirs(dir, exist_ok=True)
+    os.replace(tmp_path, "%s/%s" % (dir, name))
 
 
 def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path):
