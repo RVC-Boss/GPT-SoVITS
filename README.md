@@ -48,6 +48,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 请不要尬黑GPT-SoVITS推理速度慢，谢谢！
 
+CPU-Optimized Inference Version：https://github.com/baicai-1145/GPT-SoVITS-CPUFast
+
 **User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
 ## Installation
