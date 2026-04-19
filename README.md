@@ -82,6 +82,15 @@ conda activate GPTSoVits
 pwsh -F install.ps1 --Device <CU126|CU128|CPU> --Source <HF|HF-Mirror|ModelScope> [--DownloadUVR5]
 ```
 
+If install.ps1 fails, you can try again or run the following commands:
+
+```pwsh
+conda create -n GPTSoVits python=3.10
+conda activate GPTSoVits
+inst.bat
+pwsh -F inst2.ps1 --Device <CU126|CU128|CPU> --Source <HF|HF-Mirror|ModelScope> [--DownloadUVR5]
+```
+
 ### Linux
 
 ```bash

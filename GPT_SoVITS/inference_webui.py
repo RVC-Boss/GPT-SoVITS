@@ -8,6 +8,62 @@
 """
 import psutil
 import os
+import sys
+import json
+from pathlib import Path
+import uuid
+from scipy.io.wavfile import write
+
+
+
+def get_my_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
+def get_parent_dir(dir_path,depth=1):
+    parent_path = Path(dir_path)
+    for _ in range(depth):
+        parent_path = parent_path.parent
+    return parent_path
+
+def merge_dir_txt2(*TXT):
+    return Path(os.path.join(*TXT))
+
+with open(merge_dir_txt2(get_my_dir(), "config.json"), "r", encoding="utf-8") as f:
+    config_json = f.read()
+    config_json = json.loads(config_json)
+    running_on = config_json["running_on"]
+    Default = config_json["Default"]
+
+ROOT_DIR = str(get_parent_dir(get_my_dir()))
+sys.path.append(get_my_dir())
+import VoiceSave
+
+POOL:set = set() 
+def _get_unique_name(name,MySet:set=set()):
+    _id = 1
+    if name not in POOL and name not in MySet:
+        POOL.add(name)
+        return name
+    while name in POOL or name in MySet:
+        _id += 1
+        name = f'{name}_{_id}'
+    POOL.add(name)
+    return name
+
+def find_func(zf,il):
+    f = zf.get_file_path("voice.json")
+    info = il.load_info(f)
+    if info is None:
+        return None
+    list_names = info["access_list"]
+    ret = []
+    for name in list_names:
+        try:
+            a = zf.get_file_path(name)
+            ret.append(a)
+        except FileNotFoundError:
+            continue
+    return ret
 
 def set_high_priority():
     """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
@@ -70,6 +126,7 @@ with open("./weight.json", "r", encoding="utf-8") as file:
     if isinstance(sovits_path, list):
         sovits_path = sovits_path[0]
 
+
 # print(2333333)
 # print(os.environ["gpt_path"])
 # print(gpt_path)
@@ -96,7 +153,7 @@ import numpy as np
 from feature_extractor import cnhubert
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
-cnhubert.cnhubert_base_path = cnhubert_base_path
+cnhubert.cnhubert_base_path = merge_dir_txt2(ROOT_DIR, cnhubert_base_path)
 
 import random
 
@@ -130,6 +187,12 @@ language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
 
+
+if gpt_path in [None, "",]:
+    gpt_path = str(merge_dir_txt2(ROOT_DIR, name2gpt_path[i18n(Default["GPT_Path"])]))
+if sovits_path in [None, "",]:
+    sovits_path = str(merge_dir_txt2(ROOT_DIR, name2sovits_path[i18n(Default["SoVITS_Path"])]))
+
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
 
 if torch.cuda.is_available():
@@ -160,8 +223,8 @@ dict_language_v2 = {
 }
 dict_language = dict_language_v1 if version == "v1" else dict_language_v2
 
-tokenizer = AutoTokenizer.from_pretrained(bert_path)
-bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
+tokenizer = AutoTokenizer.from_pretrained(str(merge_dir_txt2(ROOT_DIR,bert_path)))
+bert_model = AutoModelForMaskedLM.from_pretrained(str(merge_dir_txt2(ROOT_DIR,bert_path)))
 if is_half == True:
     bert_model = bert_model.half().to(device)
 else:
@@ -374,6 +437,7 @@ except:
 
 
 def change_gpt_weights(gpt_path):
+    print("gpt_path:", gpt_path)
     if "！" in gpt_path or "!" in gpt_path:
         gpt_path = name2gpt_path[gpt_path]
     global hz, max_sec, t2s_model, config
@@ -765,6 +829,27 @@ def get_tts_wav(
     sample_steps=8,
     if_sr=False,
     pause_second=0.3,
+
+    SaveSvEmb=False,
+    SaveRefers=False,
+    SaveSvEmbName="sv_emb.voice",
+    SaveRefersName="refers.voice",
+
+    SaveGE=False,
+    SaveGEName="ge.voice",
+
+    InjectSvEmb=False,
+    InjectRefers=False,
+    InjectSvEmbName="sv_emb.voice",
+    InjectRefersName="refers.voice",
+
+    EnableAudioLoad=True,
+
+    SaveOutputAsUndecoded=False,
+    SaveOutputAsUndecodedName="output.voice",
+    AddRandomSaltToSaveOutputAsUndecodedName=False,
+
+    ReturnWay = "yield", # "yield" or "return"
 ):
     global cache
     if ref_wav_path:
@@ -898,20 +983,146 @@ def get_tts_wav(
                 sv_emb = []
                 if sv_cn_model == None:
                     init_sv_cn()
-            if inp_refs:
-                for path in inp_refs:
-                    try:  #####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
-                        refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
-                        refers.append(refer)
+
+            try:
+                if EnableAudioLoad:
+                    if inp_refs:
+                        for path in inp_refs:
+                            try:  #####这里加上提取sv的逻辑，要么一堆sv一堆refer，要么单个sv单个refer
+                                refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
+                                refers.append(refer)
+                                if is_v2pro:
+                                    sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
+                                #print("refer:", refer.shape)
+                            except:
+                                traceback.print_exc()
+                    if len(refers) == 0:
+                        refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
+                        refers = [refers]
                         if is_v2pro:
-                            sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
-                    except:
-                        traceback.print_exc()
-            if len(refers) == 0:
-                refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)
-                refers = [refers]
-                if is_v2pro:
-                    sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
+                            sv_emb = [sv_cn_model.compute_embedding3(audio_tensor)]
+                else:
+                    refers = []
+                    sv_emb = []
+            except:
+                traceback.print_exc()
+
+            try:
+                if SaveSvEmb and is_v2pro:
+                    names = []
+                    for i in sv_emb:
+                        names.append(_get_unique_name(str(i.shape))+".npy")
+                    sv_path = merge_dir_txt2(ROOT_DIR,"output","sv_emb_opt")
+                    if not os.path.exists(sv_path):
+                        os.makedirs(sv_path,exist_ok=True)
+                    if not os.path.exists(SaveSvEmbName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","sv_emb_opt",SaveSvEmbName))
+                    else:
+                        _pth_ = SaveSvEmbName
+                    VoiceSave.save_tensor(_pth_,sv_emb,SaveSvEmbName,file_names=names,access_list=names)
+            except:
+                traceback.print_exc()
+
+            try:                
+                if SaveRefers:
+                    names = []
+                    for i in refers:
+                        names.append(_get_unique_name(str(i.shape))+".npy")
+                    refers_path = merge_dir_txt2(ROOT_DIR,"output","refers_opt")
+                    if not os.path.exists(refers_path):
+                        os.makedirs(refers_path,exist_ok=True)
+                    if not os.path.exists(SaveRefersName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","refers_opt",SaveRefersName))
+                    else:
+                        _pth_ = SaveRefersName
+                    VoiceSave.save_tensor(_pth_,refers,SaveRefersName,file_names=names,access_list=names)
+            except:
+                traceback.print_exc()
+            
+            #print("refers数量:", len(refers))
+            #print("sv_emb数量:", len(sv_emb) if is_v2pro else "无sv_emb")
+
+            try:
+                if InjectSvEmb and is_v2pro:
+                    if not os.path.exists(InjectSvEmbName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","sv_emb_opt",InjectSvEmbName))
+                    else:
+                        _pth_ = InjectSvEmbName
+                    _sv_emb = VoiceSave.load_tensor(_pth_,InjectSvEmbName,find_func)
+                    for i in range(len(_sv_emb)):
+                        sv_emb.append(_sv_emb[i].to(device))
+            except:
+                traceback.print_exc()
+
+            try:
+                if InjectRefers:
+                    if not os.path.exists(InjectRefersName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","refers_opt",InjectRefersName))
+                    else:
+                        _pth_ = InjectRefersName
+                    _refers = VoiceSave.load_tensor(_pth_,InjectRefersName,find_func)
+                    for i in range(len(_refers)):
+                        refers.append(_refers[i].to(device))
+            except:
+                traceback.print_exc()
+
+            #print("注入后refers数量:", len(refers))
+            #print("注入后sv_emb数量:", len(sv_emb) if is_v2pro else "无sv_emb")
+
+            try:
+                ges = []
+                for i in range(len(refers)):
+                    if is_v2pro:
+                        ge_ = vq_model.ge_(refers[i],sv_emb[i])
+                    else:
+                        ge_ = vq_model.ge_(refers[i])
+                    ges.append(ge_)
+                if SaveGE:
+                    names = []
+                    for i in ges:
+                        names.append(_get_unique_name(str(i.shape))+".npy")
+                    ge_path = merge_dir_txt2(ROOT_DIR,"output","ge_opt")
+                    if not os.path.exists(ge_path):
+                        os.makedirs(ge_path,exist_ok=True)
+                    if not os.path.exists(SaveGEName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","ge_opt",SaveGEName))
+                    else:
+                        _pth_ = SaveGEName
+                    VoiceSave.save_tensor(_pth_,ges,SaveGEName,file_names=names,access_list=names)
+            except:
+                traceback.print_exc()
+            
+            if AddRandomSaltToSaveOutputAsUndecodedName:
+                ranA = uuid.uuid4()
+                ranB = uuid.uuid4()
+                SaveOutputAsUndecodedName = f"{SaveOutputAsUndecodedName}_{ranA}_{ranB}.voice"
+            try:
+                if SaveOutputAsUndecoded:
+                    if is_v2pro:
+                        z_p,mask,ge = vq_model.decode2(
+                            pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0),
+                            refers, speed=speed, sv_emb=sv_emb)
+                    else:
+                        z_p,mask,ge = vq_model.decode2(
+                            pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0),
+                            refers, speed=speed)
+                    ret = [z_p.cpu().detach(), 
+                           mask.cpu().detach(),
+                           ge.cpu().detach()]
+                    names = [f"z_p_{str(ret[0].shape)}",
+                             f"mask_{str(ret[1].shape)}",
+                             f"ge_{str(ret[2].shape)}"]
+                    undecoded_path = merge_dir_txt2(ROOT_DIR,"output","undecoded_opt")
+                    if not os.path.exists(undecoded_path):
+                        os.makedirs(undecoded_path,exist_ok=True)
+                    if not os.path.exists(SaveOutputAsUndecodedName):
+                        _pth_ = str(merge_dir_txt2(ROOT_DIR,"output","undecoded_opt",SaveOutputAsUndecodedName))
+                    else:
+                        _pth_ = SaveOutputAsUndecodedName
+                    VoiceSave.save_tensor(_pth_,ret,SaveOutputAsUndecodedName,file_names=names,access_list=names)
+            except:
+                traceback.print_exc()
+
             if is_v2pro:
                 audio = vq_model.decode(
                     pred_semantic, torch.LongTensor(phones2).to(device).unsqueeze(0), refers, speed=speed, sv_emb=sv_emb
@@ -998,8 +1209,215 @@ def get_tts_wav(
             audio_opt /= max_audio
     else:
         audio_opt = audio_opt.cpu().detach().numpy()
-    yield opt_sr, (audio_opt * 32767).astype(np.int16)
 
+    if ReturnWay == "yield":
+        yield opt_sr, (audio_opt * 32767).astype(np.int16)
+    else:
+        return opt_sr, (audio_opt * 32767).astype(np.int16)
+
+def batched_tts_wav(
+    ref_wav_path,
+    prompt_text,
+    prompt_language,
+    texts,
+    text_language,
+    how_to_cut=i18n("不切"),
+    top_k=20,
+    top_p=0.6,
+    temperature=0.6,
+    ref_free=False,
+    speed=1,
+    if_freeze=False,
+    inp_refs=None,
+    sample_steps=8,
+    if_sr=False,
+    pause_second=0.3,
+
+    SaveSvEmb=False,
+    SaveRefers=False,
+    SaveSvEmbName="sv_emb.voice",
+    SaveRefersName="refers.voice",
+
+    SaveGE=False,
+    SaveGEName="ge.voice",
+
+    InjectSvEmb=False,
+    InjectRefers=False,
+    InjectSvEmbName="sv_emb.voice",
+    InjectRefersName="refers.voice",
+
+    EnableAudioLoad=True,
+
+    SaveOutputAsUndecoded=False,
+    SaveOutputAsUndecodedName="output.voice",
+    AddRandomSaltToSaveOutputAsUndecodedName=False,
+
+    ReturnWay = "yield", # "yield" or "return"
+):
+    count = 0
+    out = []
+    SaveDir = merge_dir_txt2(ROOT_DIR,"output","tts_output",f"batch_{uuid.uuid4()}")
+    if not os.path.exists(SaveDir):
+        os.makedirs(SaveDir,exist_ok=True)
+    for text in texts:
+        if text in [None, " ", ""]:
+            gr.Warning(i18n(f"输入文本第{count}行中有空行，已跳过"))
+            continue
+        else:
+            unparsed = get_tts_wav(
+                ref_wav_path,
+                prompt_text,
+                prompt_language,
+                text,
+                text_language,
+                how_to_cut,
+                top_k,
+                top_p,
+                temperature,
+                ref_free,
+                speed,
+                if_freeze,
+                inp_refs,
+                sample_steps,
+                if_sr,
+                pause_second,
+
+                SaveSvEmb,
+                SaveRefers,
+                SaveSvEmbName,
+                SaveRefersName,
+
+                SaveGE,
+                SaveGEName,
+
+                InjectSvEmb,
+                InjectRefers,
+                InjectSvEmbName,
+                InjectRefersName,
+
+                EnableAudioLoad,
+
+                SaveOutputAsUndecoded,
+                SaveOutputAsUndecodedName,
+                AddRandomSaltToSaveOutputAsUndecodedName,
+                "yield",
+            )
+            unparsed = list(unparsed)
+            print(unparsed)
+            a = text.strip().replace(' ','_').replace('\n','_')
+            wav_path = os.path.join(SaveDir,f"tts_output_{a}_{str(uuid.uuid4())}.wav")
+            write(wav_path, unparsed[0][0], unparsed[0][1])
+            out.append(wav_path)
+        count += 1
+    if ReturnWay == "yield":
+        yield SaveDir
+    else:
+        return SaveDir
+        
+def read_tts_batch_file(file_path):
+    ret = []
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    for l in lines:
+        if l.strip() in [None, " ", ""]:
+            continue
+        else:
+            ret.append(l)
+    return ret
+
+def batch_tts(
+    ref_wav_path,
+    prompt_text,
+    prompt_language,
+    text_paths,
+    text_language,
+    how_to_cut=i18n("不切"),
+    top_k=20,
+    top_p=0.6,
+    temperature=0.6,
+    ref_free=False,
+    speed=1,
+    if_freeze=False,
+    inp_refs=None,
+    sample_steps=8,
+    if_sr=False,
+    pause_second=0.3,
+
+    SaveSvEmb=False,
+    SaveRefers=False,
+    SaveSvEmbName="sv_emb.voice",
+    SaveRefersName="refers.voice",
+
+    SaveGE=False,
+    SaveGEName="ge.voice",
+
+    InjectSvEmb=False,
+    InjectRefers=False,
+    InjectSvEmbName="sv_emb.voice",
+    InjectRefersName="refers.voice",
+
+    EnableAudioLoad=True,
+
+    SaveOutputAsUndecoded=False,
+    SaveOutputAsUndecodedName="output.voice",
+    AddRandomSaltToSaveOutputAsUndecodedName=False,
+
+    ReturnWay = "yield", # "yield" or "return"
+):
+    print(text_paths)
+    text_list = []
+    for i in text_paths:
+        text_list.extend(read_tts_batch_file(i))
+    out = batched_tts_wav(
+        ref_wav_path,
+        prompt_text,
+        prompt_language,
+        text_list,
+        text_language,
+        how_to_cut,
+        top_k,
+        top_p,
+        temperature,
+        ref_free,
+        speed,
+        if_freeze,
+        inp_refs,
+        sample_steps,
+        if_sr,
+        pause_second,
+
+        SaveSvEmb,
+        SaveRefers,
+        SaveSvEmbName,
+        SaveRefersName,
+
+        SaveGE,
+        SaveGEName,
+
+        InjectSvEmb,
+        InjectRefers,
+        InjectSvEmbName,
+        InjectRefersName,
+
+        EnableAudioLoad,
+
+        SaveOutputAsUndecoded,
+        SaveOutputAsUndecodedName,
+        AddRandomSaltToSaveOutputAsUndecodedName,
+
+        "yield"
+    )
+    out = list(out)
+
+    if ReturnWay == "yield":
+        yield out
+    else:
+        return out
+def close_serv():
+    if running_on == "local":
+        sys.exit(0)
+    else:
+        gr.Warning(i18n("服务器环境下该功能不可用"))
 
 def split(todo_text):
     todo_text = todo_text.replace("……", "。").replace("——", "，")
@@ -1178,6 +1596,112 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     )
                 )
                 prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=5, max_lines=5, scale=1)
+            
+
+                SaveSvEmb = gr.Checkbox(
+                    label=i18n("保存参考音频的语义向量"),
+                    interactive=True,
+                    show_label=True,
+                    value = False,
+                    visible=False if model_version not in {"v2Pro","v2ProPlus"} else True
+                )
+                SaveRefers = gr.Checkbox(
+                    label=i18n("保存参考音频的声纹特征"),
+                    interactive=True,
+                    show_label=True,
+                    value = False,
+                    visible=True
+
+                )
+                SaveSvEmbName = gr.Textbox(
+                    label=i18n("保存的语义向量文件名，默认保存在output/sv_emb_opt目录下"),
+                    value="sv_emb.voice",
+                    interactive=True,
+                    visible=True,
+                )
+                SaveRefersName = gr.Textbox(
+                    label=i18n("保存的声纹特征文件名，默认保存在output/refers_opt目录下"),
+                    value="refers.voice",
+                    interactive=True,
+                    visible=True,
+                )
+
+                InjectSvEmb = gr.Checkbox(
+                    label=i18n("注入参考音频的语义向量"),
+                    interactive=True,
+                    show_label=True,
+                    value = False,
+                    visible=False if model_version not in {"v2Pro","v2ProPlus"} else True
+                )
+                InjectRefers = gr.Checkbox(
+                    label=i18n("注入参考音频的声纹特征"),
+                    interactive=True,
+                    show_label=True,
+                    value = False,
+                    visible=True
+                )
+
+                InjectSvEmbName = gr.Textbox(
+                    label=i18n("注入的语义向量文件名，默认保存在output/sv_emb_opt目录下"),
+                    value="sv_emb.voice",
+                    interactive=True,
+                    visible=True,
+                )
+                InjectRefersName = gr.Textbox(
+                    label=i18n("注入的声纹特征文件名，默认保存在output/refers_opt目录下"),
+                    value="refers.voice",
+                    interactive=True,
+                    visible=True,
+                )
+
+                EnableAudioLoad = gr.Checkbox(
+                    label=i18n("启用音频加载。开启后会加载参考音频"),
+                    value=True,
+                    interactive=True,
+                    show_label=True,
+                    visible=True,
+                )
+
+                SaveGE = gr.Checkbox(
+                    label = i18n("保存GE"),
+                    value = True,
+                    interactive = True,
+                    show_label = True,
+                    visible = True,
+                )
+                     
+                SaveGEName = gr.Textbox(
+                    label = i18n("保存的GE文件名，默认保存在output/ge_opt目录下"),
+                    value = "ge.voice",
+                    interactive = True,
+                    show_label = True,
+                    visible = True,
+                )
+
+                SaveOutputAsUndecoded = gr.Checkbox(
+                    label = i18n("保存未解码的输出"),
+                    value = False,
+                    interactive = True,
+                    show_label = True,
+                    visible = True,
+                )
+
+                SaveOutputAsUndecodedName = gr.Textbox(
+                    label = i18n("保存的未解码输出文件名，默认保存在output/undecoded_opt目录下"),
+                    value = "output.voice",
+                    interactive = True,
+                    show_label = True,
+                    visible = True,
+                )
+
+                AddRandomSaltToSaveOutputAsUndecodedName = gr.Checkbox(
+                    label = i18n("给未解码输出文件名添加随机盐，防止覆盖"),
+                    value = False,
+                    interactive = True,
+                    show_label = True,
+                    visible = True,
+                )
+
             with gr.Column(scale=14):
                 prompt_language = gr.Dropdown(
                     label=i18n("参考音频的语种"),
@@ -1200,6 +1724,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         visible=False,
                     )
                 )
+
                 sample_steps = (
                     gr.Radio(
                         label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
@@ -1222,6 +1747,25 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     show_label=True,
                     visible=False if model_version != "v3" else True,
                 )
+        with gr.Row():
+            gr.Markdown(html_center(i18n("批量语音合成参数"), "h3"))
+            with gr.Column(scale=13):
+                txt_paths = gr.File(label=i18n("批量语音合成文本文件，每行一个文本"),
+                                    file_types=[".txt"],
+                                    interactive=True, 
+                                    file_count="multiple",
+                                    scale=13)
+            with gr.Column(scale=7):
+                out = gr.File(label=i18n("批量合成输出的语音文件"),
+                              file_types=[".wav"],
+                              file_count="directory",)
+                start_batch_btn = gr.Button(i18n("开始批量合成"), 
+                                        variant="primary",
+                                        size="lg",
+                                        interactive=True,
+                                        scale=25)
+                
+
         gr.Markdown(html_center(i18n("*请填写需要合成的目标文本和语种模式"), "h3"))
         with gr.Row():
             with gr.Column(scale=13):
@@ -1286,6 +1830,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             inference_button = gr.Button(value=i18n("合成语音"), variant="primary", size="lg", scale=25)
             output = gr.Audio(label=i18n("输出的语音"), scale=14)
 
+        with gr.Row():
+            close_button = gr.Button(value=i18n("关闭服务器"), variant="danger", size="lg", scale=25)
+        
+        close_button.click(close_serv)
+
         inference_button.click(
             get_tts_wav,
             [
@@ -1305,9 +1854,71 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 sample_steps,
                 if_sr_Checkbox,
                 pause_second_slider,
+
+                SaveSvEmb,
+                SaveRefers,
+                SaveSvEmbName,
+                SaveRefersName,
+                SaveGE,
+                SaveGEName,
+                InjectSvEmb,
+                InjectRefers,
+                InjectSvEmbName,
+                InjectRefersName,
+                EnableAudioLoad,
+
+                SaveOutputAsUndecoded,
+                SaveOutputAsUndecodedName,
+                AddRandomSaltToSaveOutputAsUndecodedName,
+
             ],
             [output],
+
+            api_name="get_tts_wav",
         )
+
+        start_batch_btn.click(
+            batch_tts,
+            [
+                inp_ref,
+                prompt_text,
+                prompt_language,
+                txt_paths,
+                text_language,
+                how_to_cut,
+                top_k,
+                top_p,
+                temperature,
+                ref_text_free,
+                speed,
+                if_freeze,
+                inp_refs,
+                sample_steps,
+                if_sr_Checkbox,
+                pause_second_slider,
+
+                SaveSvEmb,
+                SaveRefers,
+                SaveSvEmbName,
+                SaveRefersName,
+                SaveGE,
+                SaveGEName,
+                InjectSvEmb,
+                InjectRefers,
+                InjectSvEmbName,
+                InjectRefersName,
+                EnableAudioLoad,
+
+                SaveOutputAsUndecoded,
+                SaveOutputAsUndecodedName,
+                AddRandomSaltToSaveOutputAsUndecodedName,
+
+            ],
+            [out],
+
+            api_name="batch_tts",
+        )
+        
         SoVITS_dropdown.change(
             change_sovits_weights,
             [SoVITS_dropdown, prompt_language, text_language],

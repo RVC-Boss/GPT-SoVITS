@@ -1,11 +1,20 @@
 import os
 import re
 import sys
+import json
+from pathlib import Path
 
 import torch
 
 from tools.i18n.i18n import I18nAuto
 
+current_dir = str(Path(__file__).parent)
+def merge_dir_txt2(*TXT):
+    return Path(os.path.join(*TXT))
+config_json_location = merge_dir_txt2(current_dir,"config.json")
+with open(str(config_json_location),"r") as f:
+    __info__ = f.read()
+__info__ = json.loads(__info__)
 i18n = I18nAuto(language=os.environ.get("language", "Auto"))
 
 
@@ -159,8 +168,9 @@ def get_device_dtype_sm(idx: int) -> tuple[torch.device, torch.dtype, float, flo
     major, minor = capability
     sm_version = major + minor / 10.0
     is_16_series = bool(re.search(r"16\d{2}", name)) and sm_version == 7.5
-    if mem_gb < 4 or sm_version < 5.3:
-        return cpu, torch.float32, 0.0, 0.0
+    if not __info__["GPU_CHECK"]["DisableGPUMemCheck"]:
+        if mem_gb < 4 or sm_version < 5.3:
+            return cpu, torch.float32, 0.0, 0.0
     if sm_version == 6.1 or is_16_series == True:
         return cuda, torch.float32, sm_version, mem_gb
     if sm_version > 6.1:

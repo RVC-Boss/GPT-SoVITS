@@ -45,34 +45,6 @@ function Write-Success($msg) {
     Write-Host " $msg"
 }
 
-
-function Invoke-Conda {
-    param (
-        [Parameter(ValueFromRemainingArguments = $true)]
-        [string[]]$Args
-    )
-
-    $output = & conda install -y -c conda-forge @Args 2>&1
-    $exitCode = $LASTEXITCODE
-
-    if ($exitCode -ne 0) {
-        Write-Host "Conda Install $Args Failed" -ForegroundColor Red
-        $errorMessages = @()
-        foreach ($item in $output) {
-            if ($item -is [System.Management.Automation.ErrorRecord]) {
-                $msg = $item.Exception.Message
-                Write-Host "$msg" -ForegroundColor Red
-                $errorMessages += $msg
-            }
-            else {
-                Write-Host $item
-                $errorMessages += $item
-            }
-        }
-        throw [System.Exception]::new(($errorMessages -join "`n"))
-    }
-}
-
 function Invoke-Pip {
     param (
         [Parameter(ValueFromRemainingArguments = $true)]
@@ -135,10 +107,6 @@ function Invoke-Unzip {
 
 chcp 65001
 Set-Location $PSScriptRoot
-
-Write-Info "Installing FFmpeg & CMake..."
-Invoke-Conda  ffmpeg cmake
-Write-Success "FFmpeg & CMake Installed"
 
 $PretrainedURL  = ""
 $G2PWURL        = ""
@@ -209,15 +177,15 @@ if ($DownloadUVR5) {
 switch ($Device) {
     "CU128" {
         Write-Info "Installing PyTorch For CUDA 12.8..."
-        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cu128"
+        Invoke-Pip torch --index-url "https://download.pytorch.org/whl/cu128"
     }
     "CU126" {
         Write-Info "Installing PyTorch For CUDA 12.6..."
-        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cu126"
+        Invoke-Pip torch --index-url "https://download.pytorch.org/whl/cu126"
     }
     "CPU" {
         Write-Info "Installing PyTorch For CPU..."
-        Invoke-Pip torch torchcodec --index-url "https://download.pytorch.org/whl/cpu"
+        Invoke-Pip torch --index-url "https://download.pytorch.org/whl/cpu"
     }
 }
 Write-Success "PyTorch Installed"

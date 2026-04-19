@@ -1,0 +1,5 @@
+{
+    "GPU_CHECK":{
+        "DisableGPUMemCheck":false
+    }
+}
