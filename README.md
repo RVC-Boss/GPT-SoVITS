@@ -56,6 +56,8 @@ CPU-Optimized Inference Version：https://github.com/baicai-1145/GPT-SoVITS-CPUF
 
 For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official) to use AutoDL Cloud Docker to experience the full functionality online.
 
+You can also deploy on [Alibaba Cloud Function Compute](https://www.alibabacloud.com/en/product/function-compute) by [clicking here](https://fcnext.console.aliyun.com/applications/ai/create?template=fc-gpt-sovits).
+
 ### Tested Environments
 
 | Python Version | PyTorch Version  | Device        |
