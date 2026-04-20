@@ -16,8 +16,7 @@ warnings.filterwarnings("ignore")
 class Roformer_Loader:
     def get_config(self, config_path):
         with open(config_path, "r", encoding="utf-8") as f:
-            # use fullloader to load tag !!python/tuple, code can be improved
-            config = yaml.load(f, Loader=yaml.FullLoader)
+            config = yaml.safe_load(f)
         return config
 
     def get_default_config(self):
@@ -252,8 +251,22 @@ class Roformer_Loader:
                 path = path[:-3] + "flac"
             sf.write(path, data, sr)
         else:
+            import asyncio
+
             sf.write(path, data, sr)
-            os.system('ffmpeg -i "{}" -vn "{}" -q:a 2 -y'.format(path, path[:-3] + format))
+            out_path = path[:-3] + format
+
+            async def _convert():
+                proc = await asyncio.create_subprocess_exec(
+                    "ffmpeg", "-i", path, "-vn", out_path, "-q:a", "2", "-y"
+                )
+                await proc.wait()
+
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(_convert())
+            finally:
+                loop.close()
             try:
                 os.remove(path)
             except:
@@ -292,7 +305,7 @@ class Roformer_Loader:
 
         print("Detected model type: {}".format(self.model_type))
         model = self.get_model_from_config()
-        state_dict = torch.load(model_path, map_location="cpu")
+        state_dict = torch.load(model_path, map_location="cpu", weights_only=True)  # nosemgrep: trailofbits.python.pickles-in-pytorch.pickles-in-pytorch
         model.load_state_dict(state_dict)
 
         if is_half == False:
