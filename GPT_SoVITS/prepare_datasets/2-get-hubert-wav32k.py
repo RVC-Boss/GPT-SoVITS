@@ -16,7 +16,7 @@ opt_dir = os.environ.get("opt_dir")
 cnhubert.cnhubert_base_path = os.environ.get("cnhubert_base_dir")
 import torch
 
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+is_half = os.environ.get("is_half", "True").lower() in ("true", "1", "yes") and torch.cuda.is_available()
 
 import traceback
 import numpy as np

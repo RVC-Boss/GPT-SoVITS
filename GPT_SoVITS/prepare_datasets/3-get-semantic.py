@@ -28,7 +28,7 @@ else:
     version = "v3"
 import torch
 
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+is_half = os.environ.get("is_half", "True").lower() in ("true", "1", "yes") and torch.cuda.is_available()
 import traceback
 import sys
 

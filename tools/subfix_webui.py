@@ -420,6 +420,6 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         inbrowser=True,
         # quiet=True,
-        share=eval(args.is_share),
+        share=args.is_share.lower() in ("true", "1", "yes"),
         server_port=int(args.webui_port_subfix),
     )

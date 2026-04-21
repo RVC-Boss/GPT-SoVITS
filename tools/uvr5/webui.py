@@ -25,9 +25,9 @@ for name in os.listdir(weight_uvr5_root):
         uvr5_names.append(name.replace(".pth", "").replace(".ckpt", ""))
 
 device = sys.argv[1]
-is_half = eval(sys.argv[2])
+is_half = sys.argv[2].lower() in ("true", "1", "yes")
 webui_port_uvr5 = int(sys.argv[3])
-is_share = eval(sys.argv[4])
+is_share = sys.argv[4].lower() in ("true", "1", "yes")
 
 
 def html_left(text, label="p"):
