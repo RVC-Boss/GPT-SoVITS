@@ -176,9 +176,9 @@ import subprocess
 
 class DefaultRefer:
     def __init__(self, path, text, language):
-        self.path = args.default_refer_path
-        self.text = args.default_refer_text
-        self.language = args.default_refer_language
+        self.path = path
+        self.text = text
+        self.language = language
 
     def is_ready(self) -> bool:
         return is_full(self.path, self.text, self.language)
@@ -1082,11 +1082,11 @@ def handle_change(path, text, language):
             {"code": 400, "message": '缺少任意一项以下参数: "path", "text", "language"'}, status_code=400
         )
 
-    if path != "" or path is not None:
+    if path != "" and path is not None:
         default_refer.path = path
-    if text != "" or text is not None:
+    if text != "" and text is not None:
         default_refer.text = text
-    if language != "" or language is not None:
+    if language != "" and language is not None:
         default_refer.language = language
 
     logger.info(f"当前默认参考音频路径: {default_refer.path}")

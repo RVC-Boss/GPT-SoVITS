@@ -481,11 +481,11 @@ async def tts_get_endpoint(
 ):
     req = {
         "text": text,
-        "text_lang": text_lang.lower(),
+        "text_lang": text_lang.lower() if text_lang else "",
         "ref_audio_path": ref_audio_path,
         "aux_ref_audio_paths": aux_ref_audio_paths,
         "prompt_text": prompt_text,
-        "prompt_lang": prompt_lang.lower(),
+        "prompt_lang": prompt_lang.lower() if prompt_lang else "",
         "top_k": top_k,
         "top_p": top_p,
         "temperature": temperature,
