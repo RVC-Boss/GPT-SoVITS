@@ -89,7 +89,28 @@ def name2go(wav_name, wav_path):
     if os.path.exists(sv_cn_path):
         return
     wav_path = "%s/%s" % (wav32dir, wav_name)
-    wav32k, sr0 = torchaudio.load(wav_path)
+    
+    
+    #wav32k, sr0 = torchaudio.load(wav_path)
+    try:
+        # Attempt to load using torchaudio as originally intended by the author
+        wav32k, sr0 = torchaudio.load(wav_path)
+    except Exception as e:
+        # Fallback for environments with torchcodec/torchaudio issues (e.g., RTX 50-series/Python 3.12)
+        print(f"Warning: torchaudio load failed for {wav_path}, falling back to librosa. Error: {e}")
+        import librosa
+        import torch
+        
+        # Load and resample to 32k in one step using librosa
+        # sr=32000 ensures compatibility with the Hubert/Semantic encoder requirements
+        wav32k_np, sr0 = librosa.load(wav_path, sr=32000)
+        
+        # Convert numpy array back to torch Tensor and add the channel dimension [1, N]
+        wav32k = torch.from_numpy(wav32k_np).unsqueeze(0)
+    
+    
+    
+    
     assert sr0 == 32000
     wav32k = wav32k.to(device)
     emb = sv.compute_embedding3(wav32k).cpu()  # torch.Size([1, 20480])
