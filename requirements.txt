@@ -3,6 +3,7 @@ numpy<2.0
 scipy
 tensorboard
 librosa==0.10.2
+soundfile
 numba
 pytorch-lightning>=2.4
 gradio<5
@@ -22,6 +23,7 @@ transformers>=4.43,<=4.50
 peft<0.18.0
 chardet
 PyYAML
+python-multipart
 psutil
 jieba_fast
 jieba

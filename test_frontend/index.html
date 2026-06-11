@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPT-SoVITS API Test</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f4;
+      --panel: #ffffff;
+      --ink: #18201d;
+      --muted: #64706b;
+      --line: #d8ded9;
+      --accent: #19745f;
+      --accent-strong: #0f5f4c;
+      --warn: #a15d12;
+      --bad: #b42318;
+      --good: #18794e;
+      --shadow: 0 18px 50px rgba(31, 44, 38, 0.12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(135deg, rgba(25, 116, 95, 0.08), rgba(248, 251, 247, 0) 42%),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 20px;
+      padding: 8px 0 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 54px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      margin: 12px 0 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    .status {
+      min-width: 172px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--muted);
+      text-align: right;
+      font-size: 14px;
+    }
+
+    .status strong {
+      display: block;
+      color: var(--ink);
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.65fr);
+      gap: 22px;
+      padding-top: 24px;
+      align-items: start;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .form {
+      padding: 22px;
+    }
+
+    .result {
+      padding: 20px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      color: var(--ink);
+      font-weight: 650;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+      color: var(--ink);
+      font: inherit;
+      padding: 12px;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: rgba(25, 116, 95, 0.72);
+      box-shadow: 0 0 0 4px rgba(25, 116, 95, 0.12);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 142px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .hint {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .file-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 24px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .duration-ok {
+      color: var(--good);
+    }
+
+    .duration-warn {
+      color: var(--warn);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    button,
+    .download {
+      border: 0;
+      border-radius: 8px;
+      min-height: 44px;
+      padding: 0 16px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: transform 140ms ease, background 140ms ease, opacity 140ms ease;
+    }
+
+    button:hover,
+    .download:hover {
+      background: var(--accent-strong);
+      transform: translateY(-1px);
+    }
+
+    button:disabled,
+    .download[aria-disabled="true"] {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .ghost {
+      background: #e9efeb;
+      color: var(--ink);
+    }
+
+    .ghost:hover {
+      background: #dde7e1;
+    }
+
+    .result h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .log {
+      min-height: 126px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #101815;
+      color: #d8f3e9;
+      padding: 13px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfb;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .metric strong {
+      font-size: 15px;
+    }
+
+    .danger {
+      color: var(--bad);
+    }
+
+    @media (max-width: 860px) {
+      header,
+      .workspace,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .status {
+        text-align: left;
+      }
+
+      .result {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>GPT-SoVITS 接口测试台</h1>
+        <p class="sub">选择 3-10 秒参考音频或视频（视频会自动提取音频），填写后端接口地址和生成文本，直接调用中间层 <code>/api/tts</code>。</p>
+      </div>
+      <div class="status" id="statusBox">
+        <strong>未检测</strong>
+        后端连接状态
+      </div>
+    </header>
+
+    <div class="workspace">
+      <section class="form">
+        <form id="ttsForm">
+          <div class="grid">
+            <div class="full">
+              <label for="endpoint">后端接口地址</label>
+              <input id="endpoint" name="endpoint" type="url" value="http://127.0.0.1:9881/api/tts" required>
+              <p class="hint">如果后端端口或主机变了，在这里改完整地址。页面会把表单直接 POST 到这个地址。</p>
+            </div>
+
+            <div class="full">
+              <label for="text">需要生成的文字</label>
+              <textarea id="text" name="text" placeholder="输入要生成的文字，后端固定按标点符号切句。" required></textarea>
+            </div>
+
+            <div>
+              <label for="refAudio">主参考音频/视频</label>
+              <input id="refAudio" name="ref_audio" type="file" accept="audio/*,video/*" required>
+              <div class="file-line" id="refInfo">请选择 3-10 秒音频或视频（视频会自动提取音频）</div>
+              <div class="file-line" id="extractInfo" style="display:none;"></div>
+            </div>
+
+            <div>
+              <label for="auxAudio">辅助参考音频</label>
+              <input id="auxAudio" name="aux_ref_audio" type="file" accept="audio/*" multiple>
+              <div class="file-line" id="auxInfo">可选，可多选</div>
+            </div>
+
+            <div class="full">
+              <label for="promptText">参考音频文字</label>
+              <textarea id="promptText" name="prompt_text" placeholder="可留空。v2 支持空参考文字；v3/v4 后端会要求填写。"></textarea>
+            </div>
+
+            <div>
+              <label for="textLang">生成文字语言</label>
+              <select id="textLang" name="text_lang">
+                <option value="zh">zh</option>
+                <option value="en">en</option>
+                <option value="ja">ja</option>
+                <option value="ko">ko</option>
+                <option value="yue">yue</option>
+                <option value="auto">auto</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="promptLang">参考音频语言</label>
+              <select id="promptLang" name="prompt_lang">
+                <option value="zh">zh</option>
+                <option value="en">en</option>
+                <option value="ja">ja</option>
+                <option value="ko">ko</option>
+                <option value="yue">yue</option>
+                <option value="auto">auto</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="emotion">情绪 preset</label>
+              <select id="emotion" name="emotion">
+                <option value="neutral">neutral</option>
+                <option value="happy">happy</option>
+                <option value="calm">calm</option>
+                <option value="sad">sad</option>
+                <option value="angry">angry</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="speed">语速</label>
+              <input id="speed" name="speed" type="number" min="0.5" max="2" step="0.05" value="1">
+              <p class="hint">显式语速会覆盖情绪 preset 中的语速。</p>
+            </div>
+
+            <div>
+              <label for="seed">Seed</label>
+              <input id="seed" name="seed" type="number" value="-1">
+            </div>
+
+            <div>
+              <label for="format">返回格式</label>
+              <select id="format" name="format">
+                <option value="wav">wav</option>
+                <option value="ogg">ogg</option>
+                <option value="aac">aac</option>
+                <option value="raw">raw</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="ghost" id="healthBtn">检测后端</button>
+            <button type="submit" id="submitBtn">生成音频</button>
+            <button type="button" class="ghost" id="resetBtn">清空结果</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="result">
+        <h2>返回结果</h2>
+        <div class="meta">
+          <div class="metric"><span>耗时</span><strong id="elapsed">-</strong></div>
+          <div class="metric"><span>文件大小</span><strong id="fileSize">-</strong></div>
+        </div>
+        <div class="log" id="log">等待请求。</div>
+        <audio id="player" controls hidden></audio>
+        <div class="actions">
+          <a class="download" id="downloadLink" aria-disabled="true">下载音频</a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const form = document.querySelector("#ttsForm");
+    const endpoint = document.querySelector("#endpoint");
+    const refAudio = document.querySelector("#refAudio");
+    const auxAudio = document.querySelector("#auxAudio");
+    const refInfo = document.querySelector("#refInfo");
+    const auxInfo = document.querySelector("#auxInfo");
+    const logBox = document.querySelector("#log");
+    const player = document.querySelector("#player");
+    const downloadLink = document.querySelector("#downloadLink");
+    const submitBtn = document.querySelector("#submitBtn");
+    const resetBtn = document.querySelector("#resetBtn");
+    const healthBtn = document.querySelector("#healthBtn");
+    const statusBox = document.querySelector("#statusBox");
+    const elapsed = document.querySelector("#elapsed");
+    const fileSize = document.querySelector("#fileSize");
+    let resultUrl = null;
+
+    if (location.protocol === "http:" || location.protocol === "https:") {
+      endpoint.value = new URL("/api/tts", location.origin).toString();
+    }
+
+    function log(message, isError = false) {
+      logBox.textContent = message;
+      logBox.classList.toggle("danger", isError);
+    }
+
+    function bytesLabel(bytes) {
+      if (!bytes) return "-";
+      const units = ["B", "KB", "MB", "GB"];
+      let value = bytes;
+      let index = 0;
+      while (value >= 1024 && index < units.length - 1) {
+        value /= 1024;
+        index += 1;
+      }
+      return `${value.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+    }
+
+    function apiBaseUrl() {
+      try {
+        const url = new URL(endpoint.value.trim());
+        url.pathname = url.pathname.replace(/\/api\/tts\/?$/, "/health");
+        url.search = "";
+        url.hash = "";
+        return url.toString();
+      } catch {
+        return "";
+      }
+    }
+
+    function clearResult() {
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      resultUrl = null;
+      player.hidden = true;
+      player.removeAttribute("src");
+      downloadLink.removeAttribute("href");
+      downloadLink.setAttribute("aria-disabled", "true");
+      elapsed.textContent = "-";
+      fileSize.textContent = "-";
+      log("等待请求。");
+    }
+
+    let extractedAudioBlob = null;
+
+    function isVideoFile(file) {
+      return file && file.type && file.type.startsWith("video/");
+    }
+
+    async function extractAudioFromVideo(file) {
+      const extractInfo = document.querySelector("#extractInfo");
+      extractInfo.style.display = "block";
+      extractInfo.textContent = "正在从视频中提取音频...";
+      extractInfo.className = "file-line";
+
+      try {
+        const video = document.createElement("video");
+        video.preload = "auto";
+        const videoUrl = URL.createObjectURL(file);
+        video.src = videoUrl;
+
+        await new Promise((resolve, reject) => {
+          video.onloadeddata = resolve;
+          video.onerror = () => reject(new Error("无法加载视频文件"));
+        });
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const response = await fetch(videoUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        const wavBlob = audioBufferToWav(audioBuffer);
+        URL.revokeObjectURL(videoUrl);
+        audioCtx.close();
+
+        extractedAudioBlob = wavBlob;
+        const duration = audioBuffer.duration;
+        const ok = Number.isFinite(duration) && duration >= 3 && duration <= 10;
+        extractInfo.textContent = `已提取音频 · ${duration.toFixed(2)}s · ${bytesLabel(wavBlob.size)}${ok ? " ✓" : " ⚠ 建议裁剪到 3-10 秒"}`;
+        extractInfo.className = `file-line ${ok ? "duration-ok" : "duration-warn"}`;
+        return true;
+      } catch (err) {
+        extractInfo.textContent = `提取失败：${err.message}`;
+        extractInfo.className = "file-line duration-warn";
+        extractedAudioBlob = null;
+        return false;
+      }
+    }
+
+    function audioBufferToWav(buffer) {
+      const numChannels = buffer.numberOfChannels;
+      const sampleRate = buffer.sampleRate;
+      const format = 1;
+      const bitDepth = 16;
+      const bytesPerSample = bitDepth / 8;
+      const blockAlign = numChannels * bytesPerSample;
+      const dataLength = buffer.length * blockAlign;
+      const headerLength = 44;
+      const totalLength = headerLength + dataLength;
+      const arrayBuffer = new ArrayBuffer(totalLength);
+      const view = new DataView(arrayBuffer);
+
+      function writeString(offset, str) {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      }
+
+      writeString(0, "RIFF");
+      view.setUint32(4, totalLength - 8, true);
+      writeString(8, "WAVE");
+      writeString(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, format, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * blockAlign, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, bitDepth, true);
+      writeString(36, "data");
+      view.setUint32(40, dataLength, true);
+
+      const channels = [];
+      for (let ch = 0; ch < numChannels; ch++) channels.push(buffer.getChannelData(ch));
+
+      let offset = 44;
+      for (let i = 0; i < buffer.length; i++) {
+        for (let ch = 0; ch < numChannels; ch++) {
+          const sample = Math.max(-1, Math.min(1, channels[ch][i]));
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+          offset += 2;
+        }
+      }
+
+      return new Blob([arrayBuffer], { type: "audio/wav" });
+    }
+
+    function inspectDuration(file, target) {
+      extractedAudioBlob = null;
+      const extractInfo = document.querySelector("#extractInfo");
+      extractInfo.style.display = "none";
+
+      if (!file) {
+        target.textContent = "请选择 3-10 秒音频或视频";
+        target.className = "file-line";
+        return;
+      }
+
+      if (isVideoFile(file)) {
+        target.textContent = `${file.name} · ${bytesLabel(file.size)} · 视频文件`;
+        target.className = "file-line";
+        extractAudioFromVideo(file);
+        return;
+      }
+
+      const url = URL.createObjectURL(file);
+      const audio = new Audio();
+      audio.preload = "metadata";
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(url);
+        const duration = audio.duration;
+        const ok = Number.isFinite(duration) && duration >= 3 && duration <= 10;
+        target.textContent = `${file.name} · ${duration.toFixed(2)}s · ${bytesLabel(file.size)}`;
+        target.className = `file-line ${ok ? "duration-ok" : "duration-warn"}`;
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        target.textContent = `${file.name} · 无法读取时长 · ${bytesLabel(file.size)}`;
+        target.className = "file-line duration-warn";
+      };
+      audio.src = url;
+    }
+
+    refAudio.addEventListener("change", () => {
+      inspectDuration(refAudio.files[0], refInfo);
+    });
+
+    auxAudio.addEventListener("change", () => {
+      const count = auxAudio.files.length;
+      auxInfo.textContent = count ? `已选择 ${count} 个辅助音频` : "可选，可多选";
+    });
+
+    healthBtn.addEventListener("click", async () => {
+      const healthUrl = apiBaseUrl();
+      if (!healthUrl) {
+        log("后端地址格式不正确。", true);
+        return;
+      }
+      statusBox.innerHTML = "<strong>检测中</strong>正在请求 /health";
+      try {
+        const response = await fetch(healthUrl);
+        const data = await response.json();
+        if (!response.ok) throw new Error(JSON.stringify(data));
+        statusBox.innerHTML = `<strong>可连接</strong>${data.version || "unknown"} · ${data.status || "ok"}`;
+        log(JSON.stringify(data, null, 2));
+      } catch (error) {
+        statusBox.innerHTML = "<strong>连接失败</strong>检查后端是否启动";
+        log(`检测失败：${error.message}`, true);
+      }
+    });
+
+    resetBtn.addEventListener("click", clearResult);
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearResult();
+
+      const file = refAudio.files[0];
+      if (!file) {
+        log("请先选择主参考音频或视频。", true);
+        return;
+      }
+
+      if (isVideoFile(file) && !extractedAudioBlob) {
+        log("视频音频提取尚未完成，请稍候再试。", true);
+        return;
+      }
+
+      const started = performance.now();
+      const data = new FormData();
+      data.append("text", document.querySelector("#text").value.trim());
+
+      if (extractedAudioBlob) {
+        data.append("ref_audio", extractedAudioBlob, "extracted_audio.wav");
+      } else {
+        data.append("ref_audio", file);
+      }
+
+      for (const aux of auxAudio.files) data.append("aux_ref_audio", aux);
+      data.append("prompt_text", document.querySelector("#promptText").value);
+      data.append("text_lang", document.querySelector("#textLang").value);
+      data.append("prompt_lang", document.querySelector("#promptLang").value);
+      data.append("format", document.querySelector("#format").value);
+      data.append("emotion", document.querySelector("#emotion").value);
+      data.append("speed", document.querySelector("#speed").value);
+      data.append("seed", document.querySelector("#seed").value);
+
+      submitBtn.disabled = true;
+      log("正在请求后端，请等待模型生成。");
+
+      try {
+        const response = await fetch(endpoint.value.trim(), { method: "POST", body: data });
+        const contentType = response.headers.get("content-type") || "";
+        if (!response.ok) {
+          const detail = contentType.includes("application/json") ? await response.json() : await response.text();
+          throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail, null, 2));
+        }
+
+        const blob = await response.blob();
+        resultUrl = URL.createObjectURL(blob);
+        player.src = resultUrl;
+        player.hidden = false;
+        downloadLink.href = resultUrl;
+        downloadLink.download = `gpt-sovits-${Date.now()}.${document.querySelector("#format").value}`;
+        downloadLink.setAttribute("aria-disabled", "false");
+
+        elapsed.textContent = `${((performance.now() - started) / 1000).toFixed(2)}s`;
+        fileSize.textContent = bytesLabel(blob.size);
+        log(`生成成功。\nContent-Type: ${contentType || "unknown"}\nSize: ${bytesLabel(blob.size)}`);
+      } catch (error) {
+        log(`生成失败：\n${error.message}`, true);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

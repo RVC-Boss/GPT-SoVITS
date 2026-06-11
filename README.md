@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
 A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
@@ -24,6 +24,24 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 **English** | [**中文简体**](./docs/cn/README.md) | [**日本語**](./docs/ja/README.md) | [**한국어**](./docs/ko/README.md) | [**Türkçe**](./docs/tr/README.md)
 
 </div>
+
+---
+
+## 简化接口 / 测试前端
+
+本工作区新增了一个用于 MVP 调用的中间层接口和测试前端：
+
+- 快速启动：[docs/simple_api_quickstart.md](./docs/simple_api_quickstart.md)
+- 完整教程：[docs/simple_api.md](./docs/simple_api.md)
+- 后端入口：simple_api.py
+- 测试前端：启动后访问 http://127.0.0.1:9881/test/
+
+启动命令：
+
+`powershell
+cd D:\tts\GPT-SoVITS
+.\go-simple-api.ps1
+`
 
 ---
 
@@ -478,3 +496,4 @@ Thankful to @Naozumi520 for providing the Cantonese training set and for the gui
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
   <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
 </a>
+
