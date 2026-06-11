@@ -28,10 +28,10 @@ class DummyFastAPI:
     def mount(self, path, app, name=None):
         self.routes.append(types.SimpleNamespace(path=path, endpoint=app, name=name))
 
-    def get(self, path):
+    def get(self, path, **kwargs):
         return self._route(path)
 
-    def post(self, path):
+    def post(self, path, **kwargs):
         return self._route(path)
 
     def on_event(self, event):

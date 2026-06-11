@@ -151,8 +151,26 @@ infer_lock = threading.Lock()
 
 APP = FastAPI(
     title="GPT-SoVITS Simple API",
-    description="Profile-based API layer that hides GPT-SoVITS request details.",
-    version="1.0.0",
+    description=(
+        "简化接口层，封装 GPT-SoVITS 推理引擎。\n\n"
+        "## 核心流程\n"
+        "1. 上传 3-10 秒参考音频（或视频，前端自动提取音频）\n"
+        "2. 填写需要生成的文字\n"
+        "3. 调用 `/api/tts` 获取生成的音频\n\n"
+        "## 其他接口\n"
+        "- `/speak` — 基于 voice profile 的调用方式\n"
+        "- `/v1/tts` — OpenAI 兼容格式\n"
+        "- `/admin/*` — 管理接口（热加载配置、切换模型）"
+    ),
+    version="1.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_tags=[
+        {"name": "MVP", "description": "核心 TTS 接口，上传参考音频直接生成"},
+        {"name": "Profile", "description": "基于 voice profile 的调用方式"},
+        {"name": "Admin", "description": "管理接口：热加载配置、切换模型权重"},
+        {"name": "System", "description": "健康检查与信息查询"},
+    ],
 )
 APP.add_middleware(
     CORSMiddleware,
@@ -584,33 +602,51 @@ def startup() -> None:
     tts_pipeline = TTS(tts_config)
 
 
-@APP.get("/")
+@APP.get("/", tags=["System"])
 def index() -> Dict[str, Any]:
     return {
         "name": "GPT-SoVITS Simple API",
-        "endpoints": [
-            "/health",
-            "/voices",
-            "/api/tts",
-            "/speak",
-            "/speak/base64",
-            "/admin/weights",
-            "/admin/reload-config",
-        ],
+        "version": "1.1.0",
+        "docs": "/docs",
+        "endpoints": {
+            "system": ["/health", "/voices"],
+            "mvp": ["/api/tts"],
+            "profile": ["/speak", "/speak/base64", "/v1/tts"],
+            "admin": ["/admin/reload-config", "/admin/weights"],
+        },
     }
 
 
-@APP.get("/health")
+@APP.get("/health", tags=["System"], summary="健康检查")
 def health() -> Dict[str, Any]:
-    return {
+    import os
+
+    result: Dict[str, Any] = {
         "status": "ok" if tts_pipeline is not None else "starting",
         "tts_config": tts_config_path,
         "version": getattr(tts_config, "version", None),
         "languages": getattr(tts_config, "languages", []),
+        "pid": os.getpid(),
     }
+    try:
+        import psutil
+        result["memory_mb"] = round(psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024, 1)
+    except Exception:
+        pass
+    try:
+        import torch
+        if torch.cuda.is_available():
+            result["gpu"] = {
+                "name": torch.cuda.get_device_name(0),
+                "memory_used_mb": round(torch.cuda.memory_allocated(0) / 1024 / 1024, 1),
+                "memory_total_mb": round(torch.cuda.get_device_properties(0).total_mem / 1024 / 1024, 1),
+            }
+    except Exception:
+        pass
+    return result
 
 
-@APP.get("/voices")
+@APP.get("/voices", tags=["System"], summary="列出可用 voice profiles")
 def list_voices() -> Dict[str, Any]:
     voices = simple_config.get("voices", {}) or {}
     return {
@@ -619,7 +655,17 @@ def list_voices() -> Dict[str, Any]:
     }
 
 
-@APP.post("/api/tts")
+@APP.post(
+    "/api/tts",
+    tags=["MVP"],
+    summary="核心 TTS 接口",
+    description=(
+        "上传参考音频和需要生成的文字，返回生成的音频。\n\n"
+        "**主参考音频要求**：3-10 秒，支持 wav/flac/ogg/mp3/m4a/aac 格式。\n\n"
+        "**文字切句**：固定使用 `cut5`（按标点符号切句）。\n\n"
+        "**情绪预设**：neutral / happy / calm / sad / angry，本质是映射到采样和语速参数。"
+    ),
+)
 async def mvp_tts(
     text: str = Form(...),
     ref_audio: UploadFile = File(...),
@@ -666,7 +712,7 @@ async def mvp_tts(
         shutil.rmtree(request_dir, ignore_errors=True)
 
 
-@APP.get("/speak")
+@APP.get("/speak", tags=["Profile"], summary="GET 方式调用 voice profile TTS")
 def speak_get(
     text: str,
     voice: Optional[str] = None,
@@ -686,17 +732,17 @@ def speak_get(
     return synthesize_response({k: v for k, v in payload.items() if v is not None})
 
 
-@APP.post("/speak")
+@APP.post("/speak", tags=["Profile"], summary="POST 方式调用 voice profile TTS")
 def speak_post(request: SpeakRequest) -> Response:
     return synthesize_response(request_to_dict(request))
 
 
-@APP.post("/v1/tts")
+@APP.post("/v1/tts", tags=["Profile"], summary="OpenAI 兼容格式 TTS")
 def openai_style_tts(request: SpeakRequest) -> Response:
     return synthesize_response(request_to_dict(request))
 
 
-@APP.post("/speak/base64")
+@APP.post("/speak/base64", tags=["Profile"], summary="返回 Base64 编码的音频")
 def speak_base64(request: SpeakRequest) -> Dict[str, Any]:
     audio_bytes, media_type = synthesize_once(request_to_dict(request))
     return {
@@ -705,14 +751,14 @@ def speak_base64(request: SpeakRequest) -> Dict[str, Any]:
     }
 
 
-@APP.post("/admin/reload-config")
+@APP.post("/admin/reload-config", tags=["Admin"], summary="热加载 simple_api.yaml 配置")
 def reload_config() -> Dict[str, Any]:
     global simple_config
     simple_config = load_yaml_config(args.config)
     return {"message": "success", "default_voice": get_default_voice_name()}
 
 
-@APP.post("/admin/weights")
+@APP.post("/admin/weights", tags=["Admin"], summary="运行时切换 GPT-SoVITS 模型权重")
 def set_weights(request: WeightsRequest) -> Dict[str, Any]:
     if tts_pipeline is None:
         raise HTTPException(status_code=503, detail="TTS pipeline is not ready")

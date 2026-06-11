@@ -282,6 +282,81 @@
       color: var(--bad);
     }
 
+    .waveform-wrap {
+      display: none;
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+      padding: 12px;
+    }
+
+    .waveform-wrap.visible {
+      display: block;
+    }
+
+    .waveform-wrap h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 650;
+      color: var(--ink);
+    }
+
+    #waveform {
+      border-radius: 4px;
+      overflow: hidden;
+      background: #e9efeb;
+      min-height: 50px;
+    }
+
+    .trim-controls {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .trim-controls.visible {
+      display: flex;
+    }
+
+    .trim-controls label {
+      margin-bottom: 0;
+      font-size: 12px;
+    }
+
+    .trim-controls input[type="number"] {
+      width: 80px;
+      padding: 6px 8px;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .trim-time-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .trim-time-group span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .trim-separator {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 0 2px;
+    }
+
+    .btn-export-trim {
+      margin-left: auto;
+      font-size: 12px;
+      min-height: 32px;
+      padding: 0 12px;
+    }
+
     @media (max-width: 860px) {
       header,
       .workspace,
@@ -304,7 +379,7 @@
     <header>
       <div>
         <h1>GPT-SoVITS 接口测试台</h1>
-        <p class="sub">选择 3-10 秒参考音频或视频（视频会自动提取音频），填写后端接口地址和生成文本，直接调用中间层 <code>/api/tts</code>。</p>
+        <p class="sub">选择 3-10 秒参考音频或视频（视频会自动提取音频），在波形图上拖拽选取裁剪区域，填写后端接口地址和生成文本，直接调用中间层 <code>/api/tts</code>。</p>
       </div>
       <div class="status" id="statusBox">
         <strong>未检测</strong>
@@ -332,6 +407,22 @@
               <input id="refAudio" name="ref_audio" type="file" accept="audio/*,video/*" required>
               <div class="file-line" id="refInfo">请选择 3-10 秒音频或视频（视频会自动提取音频）</div>
               <div class="file-line" id="extractInfo" style="display:none;"></div>
+              <div class="waveform-wrap" id="waveformWrap">
+                <h3>波形预览 & 裁剪</h3>
+                <div id="waveform"></div>
+                <div class="trim-controls" id="trimControls">
+                  <div class="trim-time-group">
+                    <label for="trimStart">起始</label>
+                    <input id="trimStart" type="number" min="0" step="0.01" value="0">
+                  </div>
+                  <span class="trim-separator">—</span>
+                  <div class="trim-time-group">
+                    <label for="trimEnd">结束</label>
+                    <input id="trimEnd" type="number" min="0" step="0.01" value="0">
+                  </div>
+                  <button type="button" class="ghost btn-export-trim" id="exportTrimBtn">导出裁剪音频</button>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -425,6 +516,8 @@
     </div>
   </main>
 
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
   <script>
     const form = document.querySelector("#ttsForm");
     const endpoint = document.querySelector("#endpoint");
@@ -441,6 +534,12 @@
     const statusBox = document.querySelector("#statusBox");
     const elapsed = document.querySelector("#elapsed");
     const fileSize = document.querySelector("#fileSize");
+    const waveformWrap = document.querySelector("#waveformWrap");
+    const waveformEl = document.querySelector("#waveform");
+    const trimControls = document.querySelector("#trimControls");
+    const trimStartInput = document.querySelector("#trimStart");
+    const trimEndInput = document.querySelector("#trimEnd");
+    const exportTrimBtn = document.querySelector("#exportTrimBtn");
     let resultUrl = null;
 
     if (location.protocol === "http:" || location.protocol === "https:") {
@@ -489,49 +588,12 @@
     }
 
     let extractedAudioBlob = null;
+    let wavesurfer = null;
+    let wsRegions = null;
+    let currentAudioDuration = 0;
 
     function isVideoFile(file) {
       return file && file.type && file.type.startsWith("video/");
-    }
-
-    async function extractAudioFromVideo(file) {
-      const extractInfo = document.querySelector("#extractInfo");
-      extractInfo.style.display = "block";
-      extractInfo.textContent = "正在从视频中提取音频...";
-      extractInfo.className = "file-line";
-
-      try {
-        const video = document.createElement("video");
-        video.preload = "auto";
-        const videoUrl = URL.createObjectURL(file);
-        video.src = videoUrl;
-
-        await new Promise((resolve, reject) => {
-          video.onloadeddata = resolve;
-          video.onerror = () => reject(new Error("无法加载视频文件"));
-        });
-
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const response = await fetch(videoUrl);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-        const wavBlob = audioBufferToWav(audioBuffer);
-        URL.revokeObjectURL(videoUrl);
-        audioCtx.close();
-
-        extractedAudioBlob = wavBlob;
-        const duration = audioBuffer.duration;
-        const ok = Number.isFinite(duration) && duration >= 3 && duration <= 10;
-        extractInfo.textContent = `已提取音频 · ${duration.toFixed(2)}s · ${bytesLabel(wavBlob.size)}${ok ? " ✓" : " ⚠ 建议裁剪到 3-10 秒"}`;
-        extractInfo.className = `file-line ${ok ? "duration-ok" : "duration-warn"}`;
-        return true;
-      } catch (err) {
-        extractInfo.textContent = `提取失败：${err.message}`;
-        extractInfo.className = "file-line duration-warn";
-        extractedAudioBlob = null;
-        return false;
-      }
     }
 
     function audioBufferToWav(buffer) {
@@ -580,6 +642,196 @@
       return new Blob([arrayBuffer], { type: "audio/wav" });
     }
 
+    async function trimAudioBuffer(audioBuffer, startTime, endTime) {
+      const offlineCtx = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        Math.ceil((endTime - startTime) * audioBuffer.sampleRate),
+        audioBuffer.sampleRate
+      );
+      const source = offlineCtx.createBufferSource();
+      source.buffer = audioBuffer;
+
+      const startSample = Math.floor(startTime * audioBuffer.sampleRate);
+      const endSample = Math.floor(endTime * audioBuffer.sampleRate);
+      const length = endSample - startSample;
+
+      const trimmedBuffer = offlineCtx.createBuffer(
+        audioBuffer.numberOfChannels,
+        length,
+        audioBuffer.sampleRate
+      );
+
+      for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
+        const sourceData = audioBuffer.getChannelData(ch);
+        const destData = trimmedBuffer.getChannelData(ch);
+        for (let i = 0; i < length; i++) {
+          destData[i] = sourceData[startSample + i] || 0;
+        }
+      }
+
+      source.buffer = trimmedBuffer;
+      source.connect(offlineCtx.destination);
+      source.start(0);
+
+      return await offlineCtx.startRendering();
+    }
+
+    async function exportTrimmedAudio() {
+      const sourceBlob = extractedAudioBlob || refAudio.files[0];
+      if (!sourceBlob) return;
+
+      const start = parseFloat(trimStartInput.value) || 0;
+      const end = parseFloat(trimEndInput.value) || currentAudioDuration;
+      if (end <= start) {
+        log("裁剪结束时间必须大于起始时间。", true);
+        return;
+      }
+
+      exportTrimBtn.disabled = true;
+      exportTrimBtn.textContent = "处理中...";
+
+      try {
+        const arrayBuffer = await sourceBlob.arrayBuffer();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        audioCtx.close();
+
+        const trimmedBuffer = await trimAudioBuffer(audioBuffer, start, end);
+        const wavBlob = audioBufferToWav(trimmedBuffer);
+        const url = URL.createObjectURL(wavBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `trimmed_${start.toFixed(2)}-${end.toFixed(2)}s.wav`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        log(`导出失败：${err.message}`, true);
+      } finally {
+        exportTrimBtn.disabled = false;
+        exportTrimBtn.textContent = "导出裁剪音频";
+      }
+    }
+
+    exportTrimBtn.addEventListener("click", exportTrimmedAudio);
+
+    function initWaveform(arrayBuffer) {
+      if (wavesurfer) {
+        wavesurfer.destroy();
+        wavesurfer = null;
+        wsRegions = null;
+      }
+
+      waveformWrap.classList.add("visible");
+      waveformEl.innerHTML = "";
+
+      wavesurfer = WaveSurfer.create({
+        container: waveformEl,
+        waveColor: "#b8d4c8",
+        progressColor: "#19745f",
+        cursorColor: "#0f5f4c",
+        height: 60,
+        responsive: true,
+        barWidth: 2,
+        barGap: 1,
+        barRadius: 2,
+      });
+
+      wsRegions = wavesurfer.registerPlugin(WaveSurfer.Regions.create());
+
+      const blob = new Blob([arrayBuffer], { type: "audio/wav" });
+      wavesurfer.loadBlob(blob);
+
+      wavesurfer.on("ready", () => {
+        currentAudioDuration = wavesurfer.getDuration();
+        trimEndInput.max = currentAudioDuration;
+        trimStartInput.max = currentAudioDuration;
+
+        const regionEnd = Math.min(10, currentAudioDuration);
+        trimStartInput.value = 0;
+        trimEndInput.value = regionEnd.toFixed(2);
+
+        wsRegions.addRegion({
+          start: 0,
+          end: regionEnd,
+          color: "rgba(25, 116, 95, 0.18)",
+          drag: true,
+          resize: true,
+        });
+
+        trimControls.classList.add("visible");
+      });
+
+      wsRegions.on("region-updated", (region) => {
+        trimStartInput.value = region.start.toFixed(2);
+        trimEndInput.value = region.end.toFixed(2);
+      });
+    }
+
+    trimStartInput.addEventListener("change", () => {
+      if (!wsRegions) return;
+      const regions = wsRegions.getRegions();
+      if (regions.length === 0) return;
+      const r = regions[0];
+      const s = parseFloat(trimStartInput.value) || 0;
+      const e = parseFloat(trimEndInput.value) || currentAudioDuration;
+      r.setOptions({ start: Math.min(s, e), end: e });
+    });
+
+    trimEndInput.addEventListener("change", () => {
+      if (!wsRegions) return;
+      const regions = wsRegions.getRegions();
+      if (regions.length === 0) return;
+      const r = regions[0];
+      const s = parseFloat(trimStartInput.value) || 0;
+      const e = parseFloat(trimEndInput.value) || currentAudioDuration;
+      r.setOptions({ start: s, end: Math.max(s, e) });
+    });
+
+    async function extractAudioFromVideo(file) {
+      const extractInfo = document.querySelector("#extractInfo");
+      extractInfo.style.display = "block";
+      extractInfo.textContent = "正在从视频中提取音频...";
+      extractInfo.className = "file-line";
+
+      try {
+        const video = document.createElement("video");
+        video.preload = "auto";
+        const videoUrl = URL.createObjectURL(file);
+        video.src = videoUrl;
+
+        await new Promise((resolve, reject) => {
+          video.onloadeddata = resolve;
+          video.onerror = () => reject(new Error("无法加载视频文件"));
+        });
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const response = await fetch(videoUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        const wavBlob = audioBufferToWav(audioBuffer);
+        URL.revokeObjectURL(videoUrl);
+        audioCtx.close();
+
+        extractedAudioBlob = wavBlob;
+        const duration = audioBuffer.duration;
+        const ok = Number.isFinite(duration) && duration >= 3 && duration <= 10;
+        extractInfo.textContent = `已提取音频 · ${duration.toFixed(2)}s · ${bytesLabel(wavBlob.size)}${ok ? " ✓" : " ⚠ 建议裁剪到 3-10 秒"}`;
+        extractInfo.className = `file-line ${ok ? "duration-ok" : "duration-warn"}`;
+
+        const wavArrayBuffer = await wavBlob.arrayBuffer();
+        initWaveform(wavArrayBuffer);
+
+        return true;
+      } catch (err) {
+        extractInfo.textContent = `提取失败：${err.message}`;
+        extractInfo.className = "file-line duration-warn";
+        extractedAudioBlob = null;
+        waveformWrap.classList.remove("visible");
+        return false;
+      }
+    }
+
     function inspectDuration(file, target) {
       extractedAudioBlob = null;
       const extractInfo = document.querySelector("#extractInfo");
@@ -588,6 +840,8 @@
       if (!file) {
         target.textContent = "请选择 3-10 秒音频或视频";
         target.className = "file-line";
+        waveformWrap.classList.remove("visible");
+        if (wavesurfer) { wavesurfer.destroy(); wavesurfer = null; wsRegions = null; }
         return;
       }
 
@@ -607,11 +861,14 @@
         const ok = Number.isFinite(duration) && duration >= 3 && duration <= 10;
         target.textContent = `${file.name} · ${duration.toFixed(2)}s · ${bytesLabel(file.size)}`;
         target.className = `file-line ${ok ? "duration-ok" : "duration-warn"}`;
+
+        file.arrayBuffer().then((buf) => initWaveform(buf));
       };
       audio.onerror = () => {
         URL.revokeObjectURL(url);
         target.textContent = `${file.name} · 无法读取时长 · ${bytesLabel(file.size)}`;
         target.className = "file-line duration-warn";
+        waveformWrap.classList.remove("visible");
       };
       audio.src = url;
     }
@@ -644,7 +901,12 @@
       }
     });
 
-    resetBtn.addEventListener("click", clearResult);
+    resetBtn.addEventListener("click", () => {
+      clearResult();
+      waveformWrap.classList.remove("visible");
+      trimControls.classList.remove("visible");
+      if (wavesurfer) { wavesurfer.destroy(); wavesurfer = null; wsRegions = null; }
+    });
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -665,10 +927,41 @@
       const data = new FormData();
       data.append("text", document.querySelector("#text").value.trim());
 
-      if (extractedAudioBlob) {
-        data.append("ref_audio", extractedAudioBlob, "extracted_audio.wav");
+      const useTrimmed = waveformWrap.classList.contains("visible") && wsRegions;
+      if (useTrimmed) {
+        const regions = wsRegions.getRegions();
+        if (regions.length > 0) {
+          const region = regions[0];
+          const trimStartTime = region.start;
+          const trimEndTime = region.end;
+
+          if (trimEndTime - trimStartTime < currentAudioDuration - 0.01) {
+            try {
+              const sourceBlob = extractedAudioBlob || file;
+              const arrayBuffer = await sourceBlob.arrayBuffer();
+              const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+              const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+              audioCtx.close();
+
+              const trimmedBuffer = await trimAudioBuffer(audioBuffer, trimStartTime, trimEndTime);
+              const trimmedBlob = audioBufferToWav(trimmedBuffer);
+              data.append("ref_audio", trimmedBlob, "trimmed_audio.wav");
+            } catch (err) {
+              log(`裁剪失败，使用原始音频：${err.message}`, true);
+              data.append("ref_audio", extractedAudioBlob || file);
+            }
+          } else {
+            data.append("ref_audio", extractedAudioBlob || file);
+          }
+        } else {
+          data.append("ref_audio", extractedAudioBlob || file);
+        }
       } else {
-        data.append("ref_audio", file);
+        if (extractedAudioBlob) {
+          data.append("ref_audio", extractedAudioBlob, "extracted_audio.wav");
+        } else {
+          data.append("ref_audio", file);
+        }
       }
 
       for (const aux of auxAudio.files) data.append("aux_ref_audio", aux);

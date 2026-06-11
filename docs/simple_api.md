@@ -1,116 +1,128 @@
-# GPT-SoVITS 简化接口教程
+# GPT-SoVITS 简化接口文档
 
-本项目原本已经有 `api_v2.py`，但调用时需要传很多 GPT-SoVITS 参数。新增的 `simple_api.py` 是一个中间层，目标是让前端或业务方用更简单的方式调用。
+本项目新增 `simple_api.py` 作为中间层，封装 GPT-SoVITS 推理引擎，提供更简洁的调用方式。
 
-当前 MVP 推荐使用：
+## 快速开始
 
-```http
-POST /api/tts
+```bash
+# 安装依赖
+python -m pip install -r requirements.txt
+
+# 启动
+python simple_api.py -c simple_api.yaml
+
+# 访问
+Swagger UI:  http://127.0.0.1:9881/docs
+ReDoc:       http://127.0.0.1:9881/redoc
+测试前端:     http://127.0.0.1:9881/test/
+```
+
+## 接口总览
+
+| 方法 | 路径 | 说明 | 标签 |
+|------|------|------|------|
+| GET | `/health` | 健康检查（含 GPU 信息） | System |
+| GET | `/voices` | 列出 voice profiles | System |
+| **POST** | **`/api/tts`** | **核心 TTS 接口（MVP）** | **MVP** |
+| GET | `/speak` | voice profile TTS (GET) | Profile |
+| POST | `/speak` | voice profile TTS (POST) | Profile |
+| POST | `/v1/tts` | OpenAI 兼容格式 TTS | Profile |
+| POST | `/speak/base64` | 返回 Base64 音频 | Profile |
+| POST | `/admin/reload-config` | 热加载配置 | Admin |
+| POST | `/admin/weights` | 切换模型权重 | Admin |
+
+---
+
+## 1. POST /api/tts — 核心 TTS 接口
+
+**推荐使用此接口**。上传参考音频和文字，直接返回生成的音频。
+
+### 请求格式
+
+```
 Content-Type: multipart/form-data
 ```
 
-适合你的流程：
+### 字段说明
 
-1. 前端从视频中提取音频（或直接上传已裁剪的 3-10 秒音频）。
-2. 用户人工裁剪主参考音频到 3-10 秒。
-3. 前端把主参考音频、要生成的文字、可选辅助音频提交给后端。
-4. 后端调用 GPT-SoVITS 生成音频并返回。
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `text` | string | **是** | — | 需要生成的文字 |
+| `ref_audio` | file | **是** | — | 主参考音频，3-10 秒（支持 wav/flac/ogg/mp3/m4a/aac） |
+| `aux_ref_audio` | file[] | 否 | — | 辅助参考音频，可上传多个 |
+| `prompt_text` | string | 否 | `""` | 主参考音频对应文字（v2 可留空；v3/v4 必填） |
+| `text_lang` | string | 否 | `zh` | 生成文字语言：zh/en/ja/ko/yue/auto |
+| `prompt_lang` | string | 否 | `zh` | 参考音频语言：zh/en/ja/ko/yue/auto |
+| `format` | string | 否 | `wav` | 返回格式：wav/ogg/aac/raw |
+| `emotion` | string | 否 | `neutral` | 情绪预设：neutral/happy/calm/sad/angry |
+| `speed` | float | 否 | — | 语速（0.5-2.0），覆盖情绪预设中的语速 |
+| `seed` | int | 否 | `-1` | 随机种子，-1 为随机 |
 
-## 1. 安装依赖
+### 情绪预设参数映射
 
-在 GPT-SoVITS 使用的 Python 环境里运行：
+| 情绪 | temperature | top_p | top_k | speed_factor | repetition_penalty |
+|------|-------------|-------|-------|--------------|-------------------|
+| neutral | — | — | — | — | — |
+| happy | 1.1 | 0.95 | — | — | — |
+| calm | 0.8 | 0.85 | — | 0.92 | — |
+| sad | 0.75 | 0.85 | — | 0.9 | — |
+| angry | 1.2 | — | 20 | — | 1.25 |
+
+> 显式传入 `speed` 会覆盖情绪预设中的 `speed_factor`。
+
+### curl 示例
+
+**基础调用：**
+
+```powershell
+curl.exe -X POST http://127.0.0.1:9881/api/tts `
+  -F "text=你好，欢迎使用这个声音。" `
+  -F "ref_audio=@D:\audio\ref.wav" `
+  --output output.wav
+```
+
+**带辅助参考音频和情绪：**
+
+```powershell
+curl.exe -X POST http://127.0.0.1:9881/api/tts `
+  -F "text=你好，欢迎使用这个声音。" `
+  -F "ref_audio=@D:\audio\ref.wav" `
+  -F "aux_ref_audio=@D:\audio\aux1.wav" `
+  -F "emotion=happy" `
+  -F "speed=1.1" `
+  --output output.wav
+```
+
+**Linux/macOS：**
 
 ```bash
-python -m pip install -r requirements.txt
+curl -X POST http://127.0.0.1:9881/api/tts \
+  -F "text=你好，欢迎使用这个声音。" \
+  -F "ref_audio=@/path/to/ref.wav" \
+  -F "emotion=calm" \
+  --output output.wav
 ```
 
-本中间层额外需要：
+### 返回
 
-- `python-multipart`：用于接收前端上传的音频文件。
-- `soundfile`：用于读取音频信息和校验参考音频时长。
+- 成功：音频二进制流（Content-Type: `audio/wav` 等）
+- 失败：JSON 错误信息
 
-这两个依赖已经写入 `requirements.txt`。
-
-## 2. 检查配置
-
-配置文件：
-
-```text
-simple_api.yaml
+```json
+{"message": "tts failed", "exception": "..."}
 ```
 
-常用配置：
+### 常见错误
 
-```yaml
-server:
-  host: 127.0.0.1
-  port: 9881
-  tts_config: GPT_SoVITS/configs/tts_infer.yaml
+| HTTP 状态码 | 原因 |
+|------------|------|
+| 400 | text 为空 / ref_audio 缺失 / 音频时长不在 3-10 秒 / 不支持的 format / v3/v4 时 prompt_text 为空 |
+| 404 | voice profile 不存在（仅 /speak 接口） |
+| 503 | TTS pipeline 未就绪（模型未加载） |
 
-upload:
-  dir: runtime/uploads
-  min_ref_seconds: 3
-  max_ref_seconds: 10
-  max_upload_mb: 80
-```
+---
 
-说明：
-
-- `server.host`：后端监听地址。
-- `server.port`：后端端口。
-- `server.tts_config`：GPT-SoVITS 推理配置文件。
-- `upload.dir`：临时上传目录。
-- `upload.min_ref_seconds`：主参考音频最短秒数。
-- `upload.max_ref_seconds`：主参考音频最长秒数。
-- `upload.max_upload_mb`：单个上传音频最大体积。
-
-当前默认后端地址：
-
-```text
-http://127.0.0.1:9881
-```
-
-## 3. 启动后端
-
-进入项目目录：
-
-```powershell
-cd D:\tts\GPT-SoVITS
-```
-
-方式一：
-
-```powershell
-python simple_api.py -c simple_api.yaml
-```
-
-方式二，Windows PowerShell：
-
-```powershell
-.\go-simple-api.ps1
-```
-
-方式三，Windows 批处理：
-
-```bat
-go-simple-api.bat
-```
-
-启动成功后，后端会监听：
-
-```text
-http://127.0.0.1:9881
-```
-
-## 4. 健康检查
-
-后端启动后，可以访问：
-
-```text
-http://127.0.0.1:9881/health
-```
-
-或者命令行测试：
+## 2. GET /health — 健康检查
 
 ```bash
 curl http://127.0.0.1:9881/health
@@ -123,198 +135,268 @@ curl http://127.0.0.1:9881/health
   "status": "ok",
   "tts_config": "GPT_SoVITS/configs/tts_infer.yaml",
   "version": "v2",
-  "languages": ["auto", "auto_yue", "en", "zh"]
+  "languages": ["auto", "en", "zh"],
+  "pid": 12345,
+  "memory_mb": 2048.5,
+  "gpu": {
+    "name": "NVIDIA GeForce RTX 3080",
+    "memory_used_mb": 4096.2,
+    "memory_total_mb": 10240.0
+  }
 }
 ```
 
-## 5. 打开测试前端
+---
 
-后端启动后，推荐直接打开：
-
-```text
-http://127.0.0.1:9881/test/
-```
-
-这个页面已经挂载在后端服务里，不需要额外启动前端服务。
-
-也可以直接打开本地文件：
-
-```text
-test_frontend/index.html
-```
-
-Windows 下也可以运行：
-
-```powershell
-.\open-test-frontend.ps1
-```
-
-测试前端里有一个“后端接口地址”输入框。
-
-默认值：
-
-```text
-http://127.0.0.1:9881/api/tts
-```
-
-如果你修改了 `server.host` 或 `server.port`，记得同步修改页面里的接口地址。
-
-## 6. MVP 接口
-
-接口地址：
-
-```http
-POST /api/tts
-```
-
-请求类型：
-
-```http
-multipart/form-data
-```
-
-字段说明：
-
-```text
-text           必填。需要生成的文字。
-ref_audio      必填。主参考音频（支持上传视频，前端会自动提取音频），要求 3-10 秒。
-aux_ref_audio  可选。辅助参考音频，可以上传多个。
-prompt_text    可选。主参考音频对应文字，可以留空。
-text_lang      可选。生成文字语言，默认 zh。
-prompt_lang    可选。参考音频语言，默认 zh。即使 prompt_text 为空，也需要传给 GPT-SoVITS 内部。
-format         可选。返回格式，默认 wav。
-emotion        可选。情绪 preset：neutral、happy、calm、sad、angry。
-speed          可选。语速，对应 GPT-SoVITS 的 speed_factor。
-seed           可选。随机种子，默认 -1。
-```
-
-## 7. curl 调用示例
-
-PowerShell 示例：
-
-```powershell
-curl.exe -X POST http://127.0.0.1:9881/api/tts `
-  -F "text=你好，欢迎使用这个声音。" `
-  -F "ref_audio=@D:\audio\ref.wav" `
-  -F "prompt_text=" `
-  -F "text_lang=zh" `
-  -F "prompt_lang=zh" `
-  -F "emotion=neutral" `
-  --output output.wav
-```
-
-如果有辅助参考音频：
-
-```powershell
-curl.exe -X POST http://127.0.0.1:9881/api/tts `
-  -F "text=你好，欢迎使用这个声音。" `
-  -F "ref_audio=@D:\audio\ref.wav" `
-  -F "aux_ref_audio=@D:\audio\aux1.wav" `
-  -F "aux_ref_audio=@D:\audio\aux2.wav" `
-  -F "prompt_text=" `
-  -F "text_lang=zh" `
-  -F "prompt_lang=zh" `
-  --output output.wav
-```
-
-## 8. 重要规则
-
-- 主参考音频必须是 3-10 秒。
-- `aux_ref_audio` 是可选项。
-- `prompt_text` 可以为空，但当前主要针对 GPT-SoVITS v2。
-- 如果切到 GPT-SoVITS v3/v4，空 `prompt_text` 会被中间层直接返回 400。
-- 生成文字固定使用 `cut5`，也就是按照标点符号切句。
-- `emotion` 目前是轻量 preset，本质是映射到采样和语速参数；更稳定的情绪控制仍然依赖带情绪的参考音频。
-
-## 9. 测试前端使用步骤
-
-1. 启动后端。
-2. 打开 `http://127.0.0.1:9881/test/`。
-3. 检查“后端接口地址”是否为：
-
-```text
-http://127.0.0.1:9881/api/tts
-```
-
-4. 填写“需要生成的文字”。
-5. 上传主参考音频。
-6. 可选上传辅助参考音频。
-7. 可选填写参考音频文字。
-8. 选择语言、情绪、语速。
-9. 点击“生成音频”。
-10. 页面右侧会显示返回结果，可以在线播放和下载。
-
-## 10. 其他接口
-
-除了 MVP 上传接口，还保留了 profile 调用接口：
-
-```http
-GET /voices
-GET /speak?text=hello&voice=default
-POST /speak
-POST /speak/base64
-POST /v1/tts
-POST /admin/reload-config
-POST /admin/weights
-```
-
-这些接口适合后续做固定音色 profile，不是当前 MVP 的主流程。
-
-## 11. Base64 返回示例
+## 3. GET /voices — 列出 voice profiles
 
 ```bash
-curl -X POST http://127.0.0.1:9881/speak/base64 ^
-  -H "Content-Type: application/json" ^
-  -d "{\"text\":\"hello\",\"voice\":\"default\"}"
+curl http://127.0.0.1:9881/voices
 ```
 
-返回格式：
+返回示例：
+
+```json
+{
+  "default_voice": "default",
+  "voices": [
+    {
+      "name": "default",
+      "description": "Replace this profile with your reference voice.",
+      "text_lang": "zh",
+      "prompt_lang": "zh",
+      "ref_audio_path": "reference.wav",
+      "ready": true
+    }
+  ]
+}
+```
+
+---
+
+## 4. POST /speak — voice profile TTS
+
+基于 `simple_api.yaml` 中配置的 voice profile 调用 TTS。
+
+### 请求体（JSON）
+
+```json
+{
+  "text": "hello world",
+  "voice": "default",
+  "text_lang": "zh",
+  "format": "wav",
+  "speed": 1.0
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `text` | string | **是** | 需要生成的文字 |
+| `voice` | string | 否 | voice profile 名称，不传则使用 default |
+| `text_lang` | string | 否 | 生成文字语言 |
+| `format` | string | 否 | 返回格式 |
+| `stream` | bool | 否 | 是否流式返回 |
+| `speed` | float | 否 | 语速 |
+
+### curl 示例
+
+```bash
+curl -X POST http://127.0.0.1:9881/speak \
+  -H "Content-Type: application/json" \
+  -d '{"text":"你好世界","voice":"default"}' \
+  --output output.wav
+```
+
+---
+
+## 5. GET /speak — voice profile TTS (GET)
+
+与 POST /speak 相同，但通过 URL 参数传递。
+
+```
+GET /speak?text=hello&voice=default&format=wav
+```
+
+---
+
+## 6. POST /speak/base64 — 返回 Base64 音频
+
+返回 Base64 编码的音频，适合 Web 前端直接使用。
+
+```bash
+curl -X POST http://127.0.0.1:9881/speak/base64 \
+  -H "Content-Type: application/json" \
+  -d '{"text":"hello","voice":"default"}'
+```
+
+返回：
 
 ```json
 {
   "media_type": "audio/wav",
-  "audio_base64": "..."
+  "audio_base64": "UklGRi..."
 }
 ```
 
-## 12. 添加固定音色 profile
+---
 
-如果后续要做固定音色，可以编辑 `simple_api.yaml`：
+## 7. POST /v1/tts — OpenAI 兼容格式
 
-```yaml
-voices:
-  default:
-    ref_audio_path: reference.wav
-    prompt_text: exact transcript
-    prompt_lang: zh
-    text_lang: zh
+请求格式与 POST /speak 相同，路径兼容 OpenAI TTS API 风格。
 
-  narrator:
-    ref_audio_path: voices/narrator.wav
-    prompt_text: exact transcript of narrator.wav
-    prompt_lang: zh
-    text_lang: zh
-```
+---
 
-编辑后调用：
+## 8. POST /admin/reload-config — 热加载配置
+
+重新加载 `simple_api.yaml`，无需重启服务。
 
 ```bash
 curl -X POST http://127.0.0.1:9881/admin/reload-config
 ```
 
-## 13. 契约测试
+返回：`{"message": "success", "default_voice": "default"}`
 
-这个测试使用 mock，不会加载 GPT-SoVITS 模型：
+---
+
+## 9. POST /admin/weights — 切换模型权重
+
+运行时切换 GPT-SoVITS 模型权重文件。
 
 ```bash
-python -m unittest tests.test_simple_api_contract
+curl -X POST http://127.0.0.1:9881/admin/weights \
+  -H "Content-Type: application/json" \
+  -d '{"gpt_weights_path":"path/to/gpt.pt","sovits_weights_path":"path/to/sovits.pt"}'
 ```
 
-用于确认：
+---
 
-- `/api/tts` 路由存在。
-- 上传接口能构造正确参数。
-- 主参考音频 3-10 秒校验正常。
-- 空 `prompt_text` 在 v2 可用。
-- v3/v4 空 `prompt_text` 会返回 400。
-- 临时上传目录会被清理。
+## 配置文件
+
+`simple_api.yaml`：
+
+```yaml
+server:
+  host: 127.0.0.1
+  port: 9881
+  tts_config: GPT_SoVITS/configs/tts_infer.yaml
+
+cors_allow_origins:
+  - "*"
+
+upload:
+  dir: runtime/uploads
+  min_ref_seconds: 3
+  max_ref_seconds: 10
+  max_upload_mb: 80
+
+defaults:
+  text_lang: zh
+  prompt_lang: zh
+  media_type: wav
+  text_split_method: cut5
+  batch_size: 1
+  speed_factor: 1.0
+  seed: -1
+
+emotion_presets:
+  neutral: {}
+  happy:
+    temperature: 1.1
+    top_p: 0.95
+  calm:
+    temperature: 0.8
+    top_p: 0.85
+    speed_factor: 0.92
+  sad:
+    temperature: 0.75
+    top_p: 0.85
+    speed_factor: 0.9
+  angry:
+    temperature: 1.2
+    top_k: 20
+    repetition_penalty: 1.25
+
+voices:
+  default:
+    description: Replace this profile with your reference voice.
+    ref_audio_path: reference.wav
+    prompt_text: Replace this with the exact text spoken in reference.wav.
+    prompt_lang: zh
+    text_lang: zh
+```
+
+### 配置说明
+
+| 配置项 | 说明 |
+|--------|------|
+| `server.host` | 监听地址 |
+| `server.port` | 监听端口 |
+| `server.tts_config` | GPT-SoVITS 推理配置文件路径 |
+| `upload.dir` | 临时上传目录 |
+| `upload.min_ref_seconds` | 主参考音频最短秒数 |
+| `upload.max_ref_seconds` | 主参考音频最长秒数 |
+| `upload.max_upload_mb` | 单个上传文件最大体积 (MB) |
+| `defaults.*` | 所有接口的默认参数 |
+| `emotion_presets.*` | 情绪预设参数映射 |
+| `voices.*` | 固定音色 profile |
+
+---
+
+## 添加自定义音色
+
+编辑 `simple_api.yaml`，在 `voices` 下添加：
+
+```yaml
+voices:
+  narrator:
+    description: "男声旁白"
+    ref_audio_path: voices/narrator.wav
+    prompt_text: "旁白参考音频的逐字稿"
+    prompt_lang: zh
+    text_lang: zh
+```
+
+然后热加载：
+
+```bash
+curl -X POST http://127.0.0.1:9881/admin/reload-config
+```
+
+---
+
+## 测试
+
+### 契约测试（无需 GPU）
+
+```bash
+python -m unittest tests.test_simple_api_contract -v
+```
+
+覆盖：
+
+- `/api/tts` 路由注册
+- 上传接口参数构造
+- 主参考音频 3-10 秒校验
+- v2 空 prompt_text 允许 / v3/v4 空 prompt_text 拒绝
+- 临时上传目录清理
+- 情绪预设应用与 speed 覆盖
+
+### 前端测试
+
+1. 启动后端
+2. 访问 `http://127.0.0.1:9881/test/`
+3. 上传音频或视频（视频会自动提取音频）
+4. 使用波形裁剪工具选择 3-10 秒片段
+5. 填写文字，选择情绪和语速
+6. 点击生成
+
+---
+
+## 启动脚本
+
+| 脚本 | 平台 | 说明 |
+|------|------|------|
+| `go-simple-api.ps1` | Windows PowerShell | 自动检测 runtime\python.exe |
+| `go-simple-api.bat` | Windows CMD | 同上 |
+| `open-test-frontend.ps1` | Windows PowerShell | 直接打开测试前端 HTML |
