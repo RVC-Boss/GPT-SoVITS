@@ -22,51 +22,55 @@ def only_asr(input_file, language):
 
 
 def create_model(language="zh"):
+    if language in funasr_models:
+        return funasr_models[language]
+
     if language == "zh":
         path_vad = "tools/asr/models/speech_fsmn_vad_zh-cn-16k-common-pytorch"
         path_punc = "tools/asr/models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch"
         path_asr = "tools/asr/models/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
-        snapshot_download(
-            "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch",
-            local_dir="tools/asr/models/speech_fsmn_vad_zh-cn-16k-common-pytorch",
-        )
-        snapshot_download(
-            "iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch",
-            local_dir="tools/asr/models/punc_ct-transformer_zh-cn-common-vocab272727-pytorch",
-        )
-        snapshot_download(
-            "iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
-            local_dir="tools/asr/models/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
-        )
+        if not os.path.isdir(path_vad):
+            snapshot_download(
+                "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch",
+                local_dir=path_vad,
+            )
+        if not os.path.isdir(path_punc):
+            snapshot_download(
+                "iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch",
+                local_dir=path_punc,
+            )
+        if not os.path.isdir(path_asr):
+            snapshot_download(
+                "iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
+                local_dir=path_asr,
+            )
         model_revision = "v2.0.4"
         vad_model_revision = punc_model_revision = "v2.0.4"
     elif language == "yue":
         path_asr = "tools/asr/models/speech_UniASR_asr_2pass-cantonese-CHS-16k-common-vocab1468-tensorflow1-online"
-        snapshot_download(
-            "iic/speech_UniASR_asr_2pass-cantonese-CHS-16k-common-vocab1468-tensorflow1-online",
-            local_dir="tools/asr/models/speech_UniASR_asr_2pass-cantonese-CHS-16k-common-vocab1468-tensorflow1-online",
-        )
+        if not os.path.isdir(path_asr):
+            snapshot_download(
+                "iic/speech_UniASR_asr_2pass-cantonese-CHS-16k-common-vocab1468-tensorflow1-online",
+                local_dir=path_asr,
+            )
         path_vad = path_punc = None
         vad_model_revision = punc_model_revision = ""
         model_revision = "master"
     else:
         raise ValueError(f"{language} is not supported")
 
-    if language in funasr_models:
-        return funasr_models[language]
-    else:
-        model = AutoModel(
-            model=path_asr,
-            model_revision=model_revision,
-            vad_model=path_vad,
-            vad_model_revision=vad_model_revision,
-            punc_model=path_punc,
-            punc_model_revision=punc_model_revision,
-        )
-        print(f"FunASR 模型加载完成: {language.upper()}")
+    model = AutoModel(
+        model=path_asr,
+        model_revision=model_revision,
+        vad_model=path_vad,
+        vad_model_revision=vad_model_revision,
+        punc_model=path_punc,
+        punc_model_revision=punc_model_revision,
+    )
+    print(f"FunASR 模型加载完成: {language.upper()}")
 
-        funasr_models[language] = model
-        return model
+    funasr_models[language] = model
+    return model
 
 
 def execute_asr(input_folder, output_folder, model_size, language):
