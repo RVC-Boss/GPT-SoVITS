@@ -1270,43 +1270,61 @@ def _read_name2text_for_webui(logs_dir: Path) -> dict[str, dict[str, str]]:
 
 
 def _read_emotion_map_for_webui(model_name: str) -> dict[str, str]:
-    """读取 ASR 标注 .list 中的 emotion 列，返回 {audio_name|stem: emotion}。
+    """读取训练数据的 emotion，返回 {audio_name|stem: emotion}。
 
-    扫描 output/asr_opt/<model_name>/ 下所有 *.list（4/5/6 列均兼容）。
-    无 emotion 列或文件不存在时返回空 dict。
+    兼容新旧两种 emotion 数据源:
+    1. 旧: ASR 标注 .list 第5列 (output/asr_opt/<model_name>/*.list)
+    2. 新: logs/<model_name>/audio_metadata.json (推理WebUI回写的元数据)
+    合并两者, audio_metadata.json 优先(推理时回写的更新)。
     """
     from tools.list_metadata import parse_list_line
+    from config import exp_root
 
     emotion_map: dict[str, str] = {}
+
+    def _add(name: str, emotion: str):
+        if name and emotion:
+            emotion_map[name] = emotion
+            emotion_map[Path(name).stem] = emotion
+
+    # 源1: .list (旧, ASR 标注)
     list_dir = Path("output") / "asr_opt" / model_name
-    if not list_dir.exists():
-        return emotion_map
-    for list_path in sorted(list_dir.glob("*.list")):
+    if list_dir.exists():
+        for list_path in sorted(list_dir.glob("*.list")):
+            try:
+                for line in list_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                    item = parse_list_line(line)
+                    if item is None or not item.emotion:
+                        continue
+                    _add(os.path.basename(item.wav_path.strip("\"'")), item.emotion)
+            except Exception:
+                continue
+
+    # 源2: audio_metadata.json (新, 推理WebUI回写; 优先级高, 覆盖源1)
+    meta_path = Path(exp_root) / model_name / "audio_metadata.json"
+    if meta_path.exists():
         try:
-            for line in list_path.read_text(encoding="utf-8", errors="ignore").splitlines():
-                item = parse_list_line(line)
-                if item is None or not item.emotion:
-                    continue
-                name = os.path.basename(item.wav_path.strip("\"'"))
-                if not name:
-                    continue
-                emotion_map[name] = item.emotion
-                emotion_map[Path(name).stem] = item.emotion
+            import json
+            meta = json.loads(meta_path.read_text(encoding="utf-8", errors="ignore"))
+            for name, info in meta.items():
+                if isinstance(info, dict) and info.get("emotion"):
+                    _add(name, info["emotion"])
         except Exception:
-            continue
+            pass
+
     return emotion_map
 
 
 def on_model_name_change(model_name: str):
-    """模型名变化时：加载训练样本列表 + 自动匹配最佳 GPT/SoVITS 权重。
+    """模型名变化时：加载训练样本 + 自动匹配权重 + 自动引用首样本为参考。
 
-    返回: [样本下拉框, GPT下拉框, SoVITS下拉框]
-    样本下拉框 value 设为首个样本, 会级联触发 on_ref_sample_change 自动引用为参考音频。
-    GPT/SoVITS 自动选中 epoch 最接近推荐值(8/15)的权重, 用户仍可手动改。
+    返回: [样本下拉, GPT下拉, SoVITS下拉, 参考音频, 参考文本, 情绪/括注]
+    一次性联动全部字段, 不依赖 ref_sample_dropdown.change 的级联触发
+    (app.load 设置 dropdown value 后 Gradio 不一定触发 .change)。
     """
     model_name = _coerce_single(model_name)
     if not model_name:
-        return gr.Dropdown(choices=[], value=""), gr.Dropdown(), gr.Dropdown()
+        return gr.Dropdown(choices=[], value=""), gr.Dropdown(choices=[], value=""), gr.Dropdown(choices=[], value=""), None, "", ""
     from config import exp_root
 
     # 1. 加载训练样本
@@ -1327,10 +1345,14 @@ def on_model_name_change(model_name: str):
                     label += f" | 【{emotion}】"
                 samples.append((label, str(f)))
     choices = [s[0] for s in samples]
-    value = samples[0][0] if samples else ""
     # 2. 自动匹配 GPT/SoVITS 权重（epoch 最接近 8/15）
     gpt_dd, sovits_dd = auto_match_weights_for_model(model_name)
-    return gr.Dropdown(choices=choices, value=value), gpt_dd, sovits_dd
+    # 3. 自动引用首样本为参考音频+文本+情绪(避免依赖级联触发)
+    if samples:
+        first_audio, first_text, first_emotion = on_ref_sample_change(samples[0][0], model_name)
+    else:
+        first_audio, first_text, first_emotion = None, "", ""
+    return gr.Dropdown(choices=choices, value=choices[0] if choices else ""), gpt_dd, sovits_dd, first_audio, first_text, first_emotion
 
 
 def on_ref_sample_change(sample_label: str, model_name: str):
@@ -1504,61 +1526,59 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 # v3/v4 不支持该模式: 代码层直接隐藏, 避免用户误操作报错
                 visible=model_version not in v3v4set,
             )
-        with gr.Row(equal_height=True):
-            with gr.Column(scale=10):
-                inp_ref = gr.Audio(label=i18n("请上传参考音频（推荐3~10秒）"), type="filepath")
+        with gr.Row():
+            inp_ref = gr.Audio(label=i18n("请上传参考音频（推荐3~10秒）"), type="filepath", scale=10)
             with gr.Column(scale=10):
                 prompt_language = gr.Dropdown(
                     label=i18n("参考音频的语种"),
                     choices=list(dict_language.keys()),
                     value=i18n("中文"),
                 )
-                prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=4, max_lines=4, scale=1)
+                prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=3, max_lines=3)
                 ref_emotion_text = gr.Textbox(
                     label=i18n("情绪/括注（来自训练样本，无数据留空）"),
                     value="",
                     interactive=False,
-                    scale=1,
                 )
-            with gr.Column(scale=8):
-                inp_refs = (
-                    gr.File(
-                        label=i18n(
-                            "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"
-                        ),
-                        file_count="multiple",
-                    )
-                    if model_version not in v3v4set
-                    else gr.File(
-                        label=i18n(
-                            "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"
-                        ),
-                        file_count="multiple",
-                        visible=False,
-                    )
-                )
-                sample_steps = (
-                    gr.Radio(
-                        label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
-                        value=32 if model_version == "v3" else 8,
-                        choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
-                        visible=True,
-                    )
-                    if model_version in v3v4set
-                    else gr.Radio(
-                        label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
-                        choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
-                        visible=False,
-                        value=32 if model_version == "v3" else 8,
-                    )
-                )
-                if_sr_Checkbox = gr.Checkbox(
-                    label=i18n("v3输出如果觉得闷可以试试开超分"),
-                    value=False,
-                    interactive=True,
-                    show_label=True,
-                    visible=False if model_version != "v3" else True,
-                )
+        # 多参考文件 + v3采样参数: 独立行(满宽), 不参与主行高度对齐
+        inp_refs = (
+            gr.File(
+                label=i18n(
+                    "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"
+                ),
+                file_count="multiple",
+            )
+            if model_version not in v3v4set
+            else gr.File(
+                label=i18n(
+                    "可选项：通过拖拽多个文件上传多个参考音频（建议同性），平均融合他们的音色。如不填写此项，音色由左侧单个参考音频控制。如是微调模型，建议参考音频全部在微调训练集音色内，底模不用管。"
+                ),
+                file_count="multiple",
+                visible=False,
+            )
+        )
+        sample_steps = (
+            gr.Radio(
+                label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
+                value=32 if model_version == "v3" else 8,
+                choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
+                visible=True,
+            )
+            if model_version in v3v4set
+            else gr.Radio(
+                label=i18n("采样步数,如果觉得电,提高试试,如果觉得慢,降低试试"),
+                choices=[4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
+                visible=False,
+                value=32 if model_version == "v3" else 8,
+            )
+        )
+        if_sr_Checkbox = gr.Checkbox(
+            label=i18n("v3输出如果觉得闷可以试试开超分"),
+            value=False,
+            interactive=True,
+            show_label=True,
+            visible=False if model_version != "v3" else True,
+        )
         gr.Markdown(html_center(i18n("*请填写需要合成的目标文本和语种模式"), "h3"))
         with gr.Row():
             with gr.Column(scale=13):
@@ -1682,7 +1702,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         model_name_dropdown.change(
             fn=on_model_name_change,
             inputs=[model_name_dropdown],
-            outputs=[ref_sample_dropdown, GPT_dropdown, SoVITS_dropdown],
+            outputs=[ref_sample_dropdown, GPT_dropdown, SoVITS_dropdown, inp_ref, prompt_text, ref_emotion_text],
         )
         ref_sample_dropdown.change(
             fn=on_ref_sample_change,

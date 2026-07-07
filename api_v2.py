@@ -638,31 +638,47 @@ def _read_name2text(logs_dir: Path) -> dict[str, dict[str, str]]:
 
 
 def _read_emotion_map(model_name: str) -> dict[str, str]:
-    """读取 ASR 标注 .list 中的 emotion 列，返回 {audio_name|stem: emotion}。
+    """读取训练数据的 emotion，返回 {audio_name|stem: emotion}。
 
-    扫描 output/asr_opt/<model_name>/ 下所有 *.list（兼容 4/5/6 列）。
-    兼容 proplus-hc-dev 分支训练数据：emotion 为第 5 列，缺省为空串。
-    无 .list 或无 emotion 列时返回空 dict。
+    兼容新旧两种 emotion 数据源:
+    1. 旧: ASR 标注 .list 第5列 (output/asr_opt/<model_name>/*.list)
+    2. 新: logs/<model_name>/audio_metadata.json (推理WebUI回写的元数据)
+    合并两者, audio_metadata.json 优先(推理时回写的更新)。
     """
+    import json
     from tools.list_metadata import parse_list_line
 
     emotion_map: dict[str, str] = {}
+
+    def _add(name: str, emotion: str):
+        if name and emotion:
+            emotion_map[name] = emotion
+            emotion_map[Path(name).stem] = emotion
+
+    # 源1: .list (旧, ASR 标注)
     list_dir = Path("output") / "asr_opt" / model_name
-    if not list_dir.exists():
-        return emotion_map
-    for list_path in sorted(list_dir.glob("*.list")):
+    if list_dir.exists():
+        for list_path in sorted(list_dir.glob("*.list")):
+            try:
+                for line in list_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                    item = parse_list_line(line)
+                    if item is None or not item.emotion:
+                        continue
+                    _add(os.path.basename(item.wav_path.strip("\"'")), item.emotion)
+            except Exception:
+                continue
+
+    # 源2: audio_metadata.json (新, 推理WebUI回写; 优先级高, 覆盖源1)
+    meta_path = Path(exp_root) / model_name / "audio_metadata.json"
+    if meta_path.exists():
         try:
-            for line in list_path.read_text(encoding="utf-8", errors="ignore").splitlines():
-                item = parse_list_line(line)
-                if item is None or not item.emotion:
-                    continue
-                name = os.path.basename(item.wav_path.strip("\"'"))
-                if not name:
-                    continue
-                emotion_map[name] = item.emotion
-                emotion_map[Path(name).stem] = item.emotion
+            meta = json.loads(meta_path.read_text(encoding="utf-8", errors="ignore"))
+            for name, info in meta.items():
+                if isinstance(info, dict) and info.get("emotion"):
+                    _add(name, info["emotion"])
         except Exception:
-            continue
+            pass
+
     return emotion_map
 
 
