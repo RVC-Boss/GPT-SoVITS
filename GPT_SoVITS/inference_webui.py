@@ -309,7 +309,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
                 "choices": [4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
             },
             {"__type__": "update", "visible": visible_inp_refs},
-            {"__type__": "update", "value": False, "interactive": True if model_version not in v3v4set else False},
+            {"__type__": "update", "value": False, "interactive": True if model_version not in v3v4set else False, "visible": model_version not in v3v4set},
             {"__type__": "update", "visible": True if model_version == "v3" else False},
             {"__type__": "update", "value": i18n("模型加载中，请等待"), "interactive": False},
         )
@@ -391,7 +391,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             "choices": [4, 8, 16, 32, 64, 128] if model_version == "v3" else [4, 8, 16, 32],
         },
         {"__type__": "update", "visible": visible_inp_refs},
-        {"__type__": "update", "value": False, "interactive": True if model_version not in v3v4set else False},
+        {"__type__": "update", "value": False, "interactive": True if model_version not in v3v4set else False, "visible": model_version not in v3v4set},
         {"__type__": "update", "visible": True if model_version == "v3" else False},
         {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
     )
@@ -1475,31 +1475,28 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
     with gr.Group():
         gr.Markdown(html_center(i18n("*请上传并填写参考信息"), "h3"))
-        # 训练样本下拉: 入口与输出聚合 — 选中即自动引用为参考音频+文本+情绪
-        ref_sample_dropdown = gr.Dropdown(
-            label=i18n("训练样本音频（选中即自动引用为参考音频）"),
-            choices=[],
-            value="",
-            interactive=True,
-        )
+        # 训练样本下拉 + 无参考文本开关: 入口与输出聚合
+        # ref_text_free 与样本下拉功能局部互斥(勾选后参考文本无效), 故同区呈现
+        with gr.Row():
+            ref_sample_dropdown = gr.Dropdown(
+                label=i18n("训练样本音频（选中即自动引用为参考音频）"),
+                choices=[],
+                value="",
+                interactive=True,
+                scale=20,
+            )
+            ref_text_free = gr.Checkbox(
+                label=i18n("无参考文本模式（勾选后忽略参考文本，仅用参考音频音色）"),
+                value=False,
+                interactive=True if model_version not in v3v4set else False,
+                show_label=True,
+                scale=8,
+                # v3/v4 不支持该模式: 代码层直接隐藏, 避免用户误操作报错
+                visible=model_version not in v3v4set,
+            )
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传参考音频（推荐3~10秒）"), type="filepath", scale=13)
             with gr.Column(scale=13):
-                ref_text_free = gr.Checkbox(
-                    label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。")
-                    + i18n("v3暂不支持该模式，使用了会报错。"),
-                    value=False,
-                    interactive=True if model_version not in v3v4set else False,
-                    show_label=True,
-                    scale=1,
-                )
-                gr.Markdown(
-                    html_left(
-                        i18n("使用无参考文本模式时建议使用微调的GPT")
-                        + "<br>"
-                        + i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。")
-                    )
-                )
                 prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=5, max_lines=5, scale=1)
                 ref_emotion_text = gr.Textbox(
                     label=i18n("情绪/括注（来自训练样本，无数据留空）"),
