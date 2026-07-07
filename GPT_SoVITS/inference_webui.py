@@ -1223,6 +1223,25 @@ def scan_model_names() -> list[str]:
     )
 
 
+def refresh_model_dropdown():
+    """刷新模型下拉框：返回 gr.Dropdown 更新（choices=全部模型名, value=首个）。
+
+    供 app.load 和「刷新模型列表」按钮使用。
+    注意：必须返回 gr.Dropdown(...) 而非裸 list——裸 list 会被 Gradio 当作
+    dropdown 的 value（多选），导致级联的 on_model_name_change 收到 list 而非 str。
+    """
+    names = scan_model_names()
+    return gr.Dropdown(choices=names, value=names[0] if names else "")
+
+
+def _coerce_single(value):
+    """把可能被 Gradio 包装成 list/tuple 的单值还原为 str。"""
+    if isinstance(value, (list, tuple)):
+        return str(value[0]) if value else ""
+    return str(value) if value is not None else ""
+
+
+
 def _read_name2text_for_webui(logs_dir: Path) -> dict[str, dict[str, str]]:
     """读取 2-name2text.txt（WebUI 版，与 api_v2.py 的 _read_name2text 逻辑一致）。
 
@@ -1275,6 +1294,7 @@ def _read_emotion_map_for_webui(model_name: str) -> dict[str, str]:
 
 def on_model_name_change(model_name: str):
     """模型名变化时，加载该模型的训练样本列表到下拉框与预览播放器。"""
+    model_name = _coerce_single(model_name)
     if not model_name:
         return gr.Dropdown(choices=[], value=""), gr.Audio(value=None)
     from config import exp_root
@@ -1303,6 +1323,8 @@ def on_model_name_change(model_name: str):
 
 def on_ref_sample_change(sample_label: str, model_name: str):
     """训练样本选择变化时，更新预览播放器与情绪/括注文本框。"""
+    sample_label = _coerce_single(sample_label)
+    model_name = _coerce_single(model_name)
     if not sample_label or not model_name:
         return gr.Audio(value=None), ""
     from config import exp_root
@@ -1316,6 +1338,8 @@ def on_ref_sample_change(sample_label: str, model_name: str):
 
 def on_apply_sample(sample_label: str, model_name: str):
     """应用选中样本：写入参考音频路径、参考文本、情绪/括注。"""
+    sample_label = _coerce_single(sample_label)
+    model_name = _coerce_single(model_name)
     if not sample_label or not model_name:
         return None, "", gr.Dropdown(), ""
     from config import exp_root
@@ -1364,6 +1388,7 @@ def on_auto_select_weights(model_name: str):
     GPT_dropdown.change / SoVITS_dropdown.change 在 value 变化时自动触发。
     （change_sovits_weights 是生成器，手动消费会丢失对其它组件的更新，故不直接调用。）
     """
+    model_name = _coerce_single(model_name)
     if not model_name:
         return gr.Dropdown(), gr.Dropdown()
     weights = _scan_model_weights_for_webui()
@@ -1617,7 +1642,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
 
         # ===== 新增事件绑定：训练角色选择 / 样本浏览 =====
         refresh_models_btn.click(
-            fn=scan_model_names,
+            fn=refresh_model_dropdown,
             inputs=[],
             outputs=[model_name_dropdown],
         )
@@ -1642,7 +1667,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             outputs=[GPT_dropdown, SoVITS_dropdown],
         )
         # 页面加载时自动扫描模型列表
-        app.load(fn=scan_model_names, inputs=[], outputs=[model_name_dropdown])
+        app.load(fn=refresh_model_dropdown, inputs=[], outputs=[model_name_dropdown])
 
 
         # gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
