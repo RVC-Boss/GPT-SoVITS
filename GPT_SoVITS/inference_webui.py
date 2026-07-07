@@ -1446,6 +1446,16 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
     )
     with gr.Group():
         gr.Markdown(html_center(i18n("模型切换"), "h3"))
+        # 模型名(实验名) 是 GPT/SoVITS 的上游选择: 选角色 -> 自动匹配权重
+        with gr.Row():
+            model_name_dropdown = gr.Dropdown(
+                label=i18n("模型名（训练实验名）"),
+                choices=[],
+                value="",
+                interactive=True,
+                scale=21,
+            )
+            refresh_models_btn = gr.Button(i18n("刷新模型列表"), variant="primary", scale=7)
         with gr.Row():
             GPT_dropdown = gr.Dropdown(
                 label=i18n("GPT模型列表"),
@@ -1463,18 +1473,9 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             )
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
-    # ===== 新增：训练角色选择区域（独立 Group，按操作流程纵向排列） =====
+    # ===== 训练样本选择（选中即自动引用为参考音频） =====
     with gr.Group():
-        gr.Markdown(html_center(i18n("训练角色选择（从训练数据中快速选择）"), "h3"))
-        with gr.Row():
-            model_name_dropdown = gr.Dropdown(
-                label=i18n("模型名（训练实验名）"),
-                choices=[],
-                value="",
-                interactive=True,
-                scale=21,
-            )
-            refresh_models_btn = gr.Button(i18n("刷新模型列表"), variant="primary", scale=7)
+        gr.Markdown(html_center(i18n("训练样本选择"), "h3"))
         ref_sample_dropdown = gr.Dropdown(
             label=i18n("训练样本音频（选中即自动引用为参考音频）"),
             choices=[],
