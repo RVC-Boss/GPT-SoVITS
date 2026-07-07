@@ -11,6 +11,11 @@ from __future__ import annotations
 import psutil
 import os
 
+# 确保仓库根在 sys.path, 使 from tools.xxx 可用 (兼容直接运行此脚本或经 webui.py 启动)
+_now_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _now_dir not in __import__('sys').path:
+    __import__('sys').path.insert(0, _now_dir)
+
 def set_high_priority():
     """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
     if os.name != "nt":
