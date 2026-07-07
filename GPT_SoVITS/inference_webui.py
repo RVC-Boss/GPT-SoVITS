@@ -1293,12 +1293,17 @@ def _read_emotion_map_for_webui(model_name: str) -> dict[str, str]:
 
 
 def on_model_name_change(model_name: str):
-    """模型名变化时，加载该模型的训练样本列表到下拉框与预览播放器。"""
+    """模型名变化时：加载训练样本列表 + 自动匹配最佳 GPT/SoVITS 权重。
+
+    返回: [样本下拉框, 样本预览, GPT下拉框, SoVITS下拉框]
+    GPT/SoVITS 自动选中 epoch 最接近推荐值(8/15)的权重, 用户仍可手动改。
+    """
     model_name = _coerce_single(model_name)
     if not model_name:
-        return gr.Dropdown(choices=[], value=""), gr.Audio(value=None)
+        return gr.Dropdown(choices=[], value=""), gr.Audio(value=None), gr.Dropdown(), gr.Dropdown()
     from config import exp_root
 
+    # 1. 加载训练样本
     logs_dir = Path(exp_root) / model_name
     wav_dir = logs_dir / "5-wav32k"
     samples: list[tuple[str, str]] = []
@@ -1318,7 +1323,9 @@ def on_model_name_change(model_name: str):
     choices = [s[0] for s in samples]
     value = samples[0][0] if samples else ""
     audio = samples[0][1] if samples else None
-    return gr.Dropdown(choices=choices, value=value), gr.Audio(value=audio)
+    # 2. 自动匹配 GPT/SoVITS 权重（epoch 最接近 8/15）
+    gpt_dd, sovits_dd = auto_match_weights_for_model(model_name)
+    return gr.Dropdown(choices=choices, value=value), gr.Audio(value=audio), gpt_dd, sovits_dd
 
 
 def on_ref_sample_change(sample_label: str, model_name: str):
@@ -1381,21 +1388,59 @@ def _scan_model_weights_for_webui() -> dict[str, dict[str, list[str]]]:
     return grouped
 
 
-def on_auto_select_weights(model_name: str):
-    """根据模型名自动匹配并选择最佳 GPT/SoVITS 权重。
+def _extract_epoch_from_weight(weight_path: str, kind: str) -> int | None:
+    """从权重文件名提取 epoch 数字。
 
-    仅返回 Dropdown 的 value；真正的权重切换由已绑定的
-    GPT_dropdown.change / SoVITS_dropdown.change 在 value 变化时自动触发。
-    （change_sovits_weights 是生成器，手动消费会丢失对其它组件的更新，故不直接调用。）
+    kind='gpt':    '<exp>-e10.ckpt'    -> 10
+    kind='sovits': '<exp>_e12_s180.pth' -> 12
     """
-    model_name = _coerce_single(model_name)
+    name = Path(weight_path).name
+    pattern = r"-e(\d+)" if kind == "gpt" else r"_e(\d+)_s\d+"
+    m = re.search(pattern, name, flags=re.IGNORECASE)
+    return int(m.group(1)) if m else None
+
+
+def _pick_weight_by_epoch(weights: list[str], target_epoch: int) -> str | None:
+    """从权重列表中选 epoch 最接近 target_epoch 的（平手取较小 epoch）。
+
+    匹配训练 WebUI 的推荐: GPT 目标 8 (total_epoch 默认 8), SoVITS 目标 15
+    (total_epoch 默认 15)。无法提取 epoch 时退化为列表第一个。
+    """
+    if not weights:
+        return None
+    best = None
+    best_diff = None
+    for w in weights:
+        # kind 由文件扩展名推断
+        kind = "gpt" if w.endswith(".ckpt") else "sovits"
+        ep = _extract_epoch_from_weight(w, kind)
+        if ep is None:
+            continue
+        diff = abs(ep - target_epoch)
+        if best_diff is None or diff < best_diff or (diff == best_diff and ep < (best_ep or 0)):
+            best = w
+            best_diff = diff
+            best_ep = ep
+    return best or weights[0]
+
+
+# GPT/SoVITS 自动匹配权重的目标 epoch（对应训练 WebUI 的默认 total_epoch）
+_GPT_TARGET_EPOCH = 8
+_SOVITS_TARGET_EPOCH = 15
+
+
+def auto_match_weights_for_model(model_name: str):
+    """选中模型名时自动匹配最佳 GPT/SoVITS 权重（按目标 epoch 最近匹配）。
+
+    返回 (gpt_dropdown_update, sovits_dropdown_update)；真正的权重切换由已绑定的
+    GPT_dropdown.change / SoVITS_dropdown.change 在 value 变化时自动触发。
+    """
     if not model_name:
         return gr.Dropdown(), gr.Dropdown()
     weights = _scan_model_weights_for_webui()
     model_weights = weights.get(model_name, {"gpt": [], "sovits": []})
-    # 选择最高 epoch 的权重（按字符串排序后取末尾）
-    gpt_best = sorted(model_weights["gpt"])[-1] if model_weights["gpt"] else None
-    sovits_best = sorted(model_weights["sovits"])[-1] if model_weights["sovits"] else None
+    gpt_best = _pick_weight_by_epoch(model_weights["gpt"], _GPT_TARGET_EPOCH)
+    sovits_best = _pick_weight_by_epoch(model_weights["sovits"], _SOVITS_TARGET_EPOCH)
     return gr.Dropdown(value=gpt_best), gr.Dropdown(value=sovits_best)
 
 
@@ -1424,8 +1469,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 interactive=True,
                 scale=14,
             )
-            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=7)
-            auto_select_weights_btn = gr.Button(i18n("自动匹配权重"), variant="secondary", scale=7)
+            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
     # ===== 新增：训练角色选择区域（独立 Group，按操作流程纵向排列） =====
     with gr.Group():
@@ -1650,7 +1694,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         model_name_dropdown.change(
             fn=on_model_name_change,
             inputs=[model_name_dropdown],
-            outputs=[ref_sample_dropdown, ref_sample_player],
+            outputs=[ref_sample_dropdown, ref_sample_player, GPT_dropdown, SoVITS_dropdown],
         )
         ref_sample_dropdown.change(
             fn=on_ref_sample_change,
@@ -1661,11 +1705,6 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             fn=on_apply_sample,
             inputs=[ref_sample_dropdown, model_name_dropdown],
             outputs=[inp_ref, prompt_text, ref_sample_dropdown, ref_emotion_text],
-        )
-        auto_select_weights_btn.click(
-            fn=on_auto_select_weights,
-            inputs=[model_name_dropdown],
-            outputs=[GPT_dropdown, SoVITS_dropdown],
         )
         # 页面加载时自动扫描模型列表
         app.load(fn=refresh_model_dropdown, inputs=[], outputs=[model_name_dropdown])
