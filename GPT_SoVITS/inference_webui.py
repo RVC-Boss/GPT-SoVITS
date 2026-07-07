@@ -1295,12 +1295,13 @@ def _read_emotion_map_for_webui(model_name: str) -> dict[str, str]:
 def on_model_name_change(model_name: str):
     """模型名变化时：加载训练样本列表 + 自动匹配最佳 GPT/SoVITS 权重。
 
-    返回: [样本下拉框, 样本预览, GPT下拉框, SoVITS下拉框]
+    返回: [样本下拉框, GPT下拉框, SoVITS下拉框]
+    样本下拉框 value 设为首个样本, 会级联触发 on_ref_sample_change 自动引用为参考音频。
     GPT/SoVITS 自动选中 epoch 最接近推荐值(8/15)的权重, 用户仍可手动改。
     """
     model_name = _coerce_single(model_name)
     if not model_name:
-        return gr.Dropdown(choices=[], value=""), gr.Audio(value=None), gr.Dropdown(), gr.Dropdown()
+        return gr.Dropdown(choices=[], value=""), gr.Dropdown(), gr.Dropdown()
     from config import exp_root
 
     # 1. 加载训练样本
@@ -1322,33 +1323,24 @@ def on_model_name_change(model_name: str):
                 samples.append((label, str(f)))
     choices = [s[0] for s in samples]
     value = samples[0][0] if samples else ""
-    audio = samples[0][1] if samples else None
     # 2. 自动匹配 GPT/SoVITS 权重（epoch 最接近 8/15）
     gpt_dd, sovits_dd = auto_match_weights_for_model(model_name)
-    return gr.Dropdown(choices=choices, value=value), gr.Audio(value=audio), gpt_dd, sovits_dd
+    return gr.Dropdown(choices=choices, value=value), gpt_dd, sovits_dd
 
 
 def on_ref_sample_change(sample_label: str, model_name: str):
-    """训练样本选择变化时，更新预览播放器与情绪/括注文本框。"""
+    """训练样本选择变化时，直接引用为参考音频 + 填充参考文本 + 情绪/括注。
+
+    切换「训练样本音频」下拉框即自动联动, 无需额外按钮。
+    用户手动清空参考音频/文本/情绪则视为自定义输入, 不被本函数干扰
+    （Gradio change 仅在 dropdown 变化时触发, 手动改文本框不会重置）。
+
+    返回: [参考音频(inp_ref), 参考文本(prompt_text), 情绪/括注(ref_emotion_text)]
+    """
     sample_label = _coerce_single(sample_label)
     model_name = _coerce_single(model_name)
     if not sample_label or not model_name:
-        return gr.Audio(value=None), ""
-    from config import exp_root
-
-    wav_name = sample_label.split(" | ")[0]
-    audio_path = Path(exp_root) / model_name / "5-wav32k" / wav_name
-    emotion_map = _read_emotion_map_for_webui(model_name)
-    emotion = emotion_map.get(wav_name, "") or emotion_map.get(Path(wav_name).stem, "")
-    return gr.Audio(value=str(audio_path) if audio_path.exists() else None), emotion
-
-
-def on_apply_sample(sample_label: str, model_name: str):
-    """应用选中样本：写入参考音频路径、参考文本、情绪/括注。"""
-    sample_label = _coerce_single(sample_label)
-    model_name = _coerce_single(model_name)
-    if not sample_label or not model_name:
-        return None, "", gr.Dropdown(), ""
+        return None, "", ""
     from config import exp_root
 
     wav_name = sample_label.split(" | ")[0]
@@ -1359,7 +1351,7 @@ def on_apply_sample(sample_label: str, model_name: str):
     text = name2text.get(wav_name, {}).get("text", "") or name2text.get(Path(wav_name).stem, {}).get("text", "")
     emotion = emotion_map.get(wav_name, "") or emotion_map.get(Path(wav_name).stem, "")
     audio_out = str(audio_path) if audio_path.exists() else None
-    return audio_out, text, gr.Dropdown(), emotion
+    return audio_out, text, emotion
 
 
 def _scan_model_weights_for_webui() -> dict[str, dict[str, list[str]]]:
@@ -1483,22 +1475,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 scale=21,
             )
             refresh_models_btn = gr.Button(i18n("刷新模型列表"), variant="primary", scale=7)
-        with gr.Row():
-            ref_sample_dropdown = gr.Dropdown(
-                label=i18n("训练样本音频"),
-                choices=[],
-                value="",
-                interactive=True,
-                scale=21,
-            )
-            apply_sample_btn = gr.Button(
-                i18n("应用选中样本到参考音频和文本"),
-                variant="primary",
-                scale=7,
-            )
-        ref_sample_player = gr.Audio(
-            label=i18n("样本预览"),
-            type="filepath",
+        ref_sample_dropdown = gr.Dropdown(
+            label=i18n("训练样本音频（选中即自动引用为参考音频）"),
+            choices=[],
+            value="",
+            interactive=True,
         )
     with gr.Group():
         gr.Markdown(html_center(i18n("*请上传并填写参考信息"), "h3"))
@@ -1694,17 +1675,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         model_name_dropdown.change(
             fn=on_model_name_change,
             inputs=[model_name_dropdown],
-            outputs=[ref_sample_dropdown, ref_sample_player, GPT_dropdown, SoVITS_dropdown],
+            outputs=[ref_sample_dropdown, GPT_dropdown, SoVITS_dropdown],
         )
         ref_sample_dropdown.change(
             fn=on_ref_sample_change,
             inputs=[ref_sample_dropdown, model_name_dropdown],
-            outputs=[ref_sample_player, ref_emotion_text],
-        )
-        apply_sample_btn.click(
-            fn=on_apply_sample,
-            inputs=[ref_sample_dropdown, model_name_dropdown],
-            outputs=[inp_ref, prompt_text, ref_sample_dropdown, ref_emotion_text],
+            outputs=[inp_ref, prompt_text, ref_emotion_text],
         )
         # 页面加载时自动扫描模型列表
         app.load(fn=refresh_model_dropdown, inputs=[], outputs=[model_name_dropdown])
