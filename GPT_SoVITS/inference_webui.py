@@ -1424,38 +1424,39 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 interactive=True,
                 scale=14,
             )
-            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
+            refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=7)
+            auto_select_weights_btn = gr.Button(i18n("自动匹配权重"), variant="secondary", scale=7)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
-        # ===== 新增：训练角色选择区域 =====
-        with gr.Group():
-            gr.Markdown(html_center(i18n("训练角色选择（从训练数据中快速选择）"), "h3"))
-            with gr.Row():
-                model_name_dropdown = gr.Dropdown(
-                    label=i18n("模型名（训练实验名）"),
-                    choices=[],
-                    value="",
-                    interactive=True,
-                    scale=14,
-                )
-                refresh_models_btn = gr.Button(i18n("刷新模型列表"), variant="primary", scale=7)
-                auto_select_weights_btn = gr.Button(i18n("自动匹配权重"), variant="secondary", scale=7)
-            with gr.Row():
-                ref_sample_dropdown = gr.Dropdown(
-                    label=i18n("训练样本音频"),
-                    choices=[],
-                    value="",
-                    interactive=True,
-                    scale=14,
-                )
-                ref_sample_player = gr.Audio(
-                    label=i18n("样本预览"),
-                    type="filepath",
-                    scale=14,
-                )
+    # ===== 新增：训练角色选择区域（独立 Group，按操作流程纵向排列） =====
+    with gr.Group():
+        gr.Markdown(html_center(i18n("训练角色选择（从训练数据中快速选择）"), "h3"))
+        with gr.Row():
+            model_name_dropdown = gr.Dropdown(
+                label=i18n("模型名（训练实验名）"),
+                choices=[],
+                value="",
+                interactive=True,
+                scale=21,
+            )
+            refresh_models_btn = gr.Button(i18n("刷新模型列表"), variant="primary", scale=7)
+        with gr.Row():
+            ref_sample_dropdown = gr.Dropdown(
+                label=i18n("训练样本音频"),
+                choices=[],
+                value="",
+                interactive=True,
+                scale=21,
+            )
             apply_sample_btn = gr.Button(
                 i18n("应用选中样本到参考音频和文本"),
                 variant="primary",
+                scale=7,
             )
+        ref_sample_player = gr.Audio(
+            label=i18n("样本预览"),
+            type="filepath",
+        )
+    with gr.Group():
         gr.Markdown(html_center(i18n("*请上传并填写参考信息"), "h3"))
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传参考音频（推荐3~10秒）"), type="filepath", scale=13)
