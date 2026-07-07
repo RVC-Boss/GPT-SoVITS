@@ -1429,16 +1429,21 @@ _SOVITS_TARGET_EPOCH = 15
 def auto_match_weights_for_model(model_name: str):
     """选中模型名时自动匹配最佳 GPT/SoVITS 权重（按目标 epoch 最近匹配）。
 
-    返回 (gpt_dropdown_update, sovits_dropdown_update)；真正的权重切换由已绑定的
-    GPT_dropdown.change / SoVITS_dropdown.change 在 value 变化时自动触发。
+    返回 (gpt_dropdown_update, sovits_dropdown_update):
+    - choices 只含该模型对应的权重(过滤掉其它角色)
+    - value 自动选中 epoch 最接近 8/15 的权重
+    真正的权重切换由已绑定的 GPT_dropdown.change / SoVITS_dropdown.change
+    在 value 变化时自动触发。
     """
     if not model_name:
-        return gr.Dropdown(), gr.Dropdown()
+        return gr.Dropdown(choices=[], value=""), gr.Dropdown(choices=[], value="")
     weights = _scan_model_weights_for_webui()
     model_weights = weights.get(model_name, {"gpt": [], "sovits": []})
-    gpt_best = _pick_weight_by_epoch(model_weights["gpt"], _GPT_TARGET_EPOCH)
-    sovits_best = _pick_weight_by_epoch(model_weights["sovits"], _SOVITS_TARGET_EPOCH)
-    return gr.Dropdown(value=gpt_best), gr.Dropdown(value=sovits_best)
+    gpt_list = sorted(model_weights["gpt"])
+    sovits_list = sorted(model_weights["sovits"])
+    gpt_best = _pick_weight_by_epoch(gpt_list, _GPT_TARGET_EPOCH)
+    sovits_best = _pick_weight_by_epoch(sovits_list, _SOVITS_TARGET_EPOCH)
+    return gr.Dropdown(choices=gpt_list, value=gpt_best), gr.Dropdown(choices=sovits_list, value=sovits_best)
 
 
 with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css) as app:
@@ -1499,22 +1504,23 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 # v3/v4 不支持该模式: 代码层直接隐藏, 避免用户误操作报错
                 visible=model_version not in v3v4set,
             )
-        with gr.Row():
-            inp_ref = gr.Audio(label=i18n("请上传参考音频（推荐3~10秒）"), type="filepath", scale=13)
-            with gr.Column(scale=13):
-                prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=5, max_lines=5, scale=1)
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=10):
+                inp_ref = gr.Audio(label=i18n("请上传参考音频（推荐3~10秒）"), type="filepath")
+            with gr.Column(scale=10):
+                prompt_language = gr.Dropdown(
+                    label=i18n("参考音频的语种"),
+                    choices=list(dict_language.keys()),
+                    value=i18n("中文"),
+                )
+                prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=4, max_lines=4, scale=1)
                 ref_emotion_text = gr.Textbox(
                     label=i18n("情绪/括注（来自训练样本，无数据留空）"),
                     value="",
                     interactive=False,
                     scale=1,
                 )
-            with gr.Column(scale=14):
-                prompt_language = gr.Dropdown(
-                    label=i18n("参考音频的语种"),
-                    choices=list(dict_language.keys()),
-                    value=i18n("中文"),
-                )
+            with gr.Column(scale=8):
                 inp_refs = (
                     gr.File(
                         label=i18n(
