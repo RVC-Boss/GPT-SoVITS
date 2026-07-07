@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 # WebAPI文档
 
@@ -102,8 +104,10 @@ RESP:
 """
 
 import os
+import re
 import sys
 import traceback
+from pathlib import Path
 from typing import Generator, Union
 
 now_dir = os.getcwd()
@@ -112,11 +116,12 @@ sys.path.append("%s/GPT_SoVITS" % (now_dir))
 
 import argparse
 import subprocess
+import uuid
 import wave
 import signal
 import numpy as np
 import soundfile as sf
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
 from io import BytesIO
@@ -124,6 +129,7 @@ from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from pydantic import BaseModel
+from config import GPT_weight_root, SoVITS_weight_root, exp_root
 import threading
 
 # print(sys.path)
@@ -563,6 +569,193 @@ async def set_sovits_weights(weights_path: str = None):
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "change sovits weight failed", "Exception": str(e)})
     return JSONResponse(status_code=200, content={"message": "success"})
+
+
+# ===================== 训练角色 / 训练样本 / 状态 辅助函数 =====================
+def _extract_exp_name_from_gpt_weight(filename: str) -> str:
+    """从 GPT 权重文件名提取 exp_name。
+    例: '光头TTS-华-e10.ckpt' -> '光头TTS-华'
+    """
+    stem = Path(filename).stem
+    return re.split(r"-e\d+", stem, flags=re.IGNORECASE)[0]
+
+
+def _extract_exp_name_from_sovits_weight(filename: str) -> str:
+    """从 SoVITS 权重文件名提取 exp_name。
+    例: '光头TTS-华_e4_s72.pth' -> '光头TTS-华'
+    """
+    stem = Path(filename).stem
+    return re.split(r"_e\d+_s\d+", stem, flags=re.IGNORECASE)[0]
+
+
+def _scan_model_weights() -> dict[str, dict[str, list[str]]]:
+    """扫描所有权重目录，按 exp_name 分组。
+    返回: {"光头TTS-华": {"gpt": [...], "sovits": [...]}}
+    """
+    grouped: dict[str, dict[str, list[str]]] = {}
+    for root in GPT_weight_root:
+        root_path = Path(root)
+        if not root_path.exists():
+            continue
+        for f in root_path.iterdir():
+            if f.is_file() and f.suffix == ".ckpt":
+                name = _extract_exp_name_from_gpt_weight(f.name)
+                grouped.setdefault(name, {"gpt": [], "sovits": []})
+                grouped[name]["gpt"].append(f"{root}/{f.name}")
+    for root in SoVITS_weight_root:
+        root_path = Path(root)
+        if not root_path.exists():
+            continue
+        for f in root_path.iterdir():
+            if f.is_file() and f.suffix == ".pth":
+                name = _extract_exp_name_from_sovits_weight(f.name)
+                grouped.setdefault(name, {"gpt": [], "sovits": []})
+                grouped[name]["sovits"].append(f"{root}/{f.name}")
+    return grouped
+
+
+def _read_name2text(logs_dir: Path) -> dict[str, dict[str, str]]:
+    """读取 2-name2text.txt，返回 {wav_name: {"text": ..., "lang": ...}}。
+
+    每行 Tab 分隔 4 字段: wav_name\tphones\tword2ph\tnorm_text。
+    同时以 wav_name 和其 stem（去扩展名）建立索引，便于按文件名或 stem 查询。
+    """
+    path = logs_dir / "2-name2text.txt"
+    if not path.exists():
+        return {}
+    output: dict[str, dict[str, str]] = {}
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        parts = line.split("\t")
+        if len(parts) < 4:
+            continue
+        wav_name = parts[0].strip()
+        text = parts[3].strip()
+        if wav_name and text:
+            entry = {"text": text, "lang": "zh"}
+            output[wav_name] = entry
+            output[Path(wav_name).stem] = entry
+    return output
+
+
+def _safe_logs_subpath(model_name: str, *parts: str) -> Path | None:
+    """解析 logs/<model_name>/<parts...> 路径并做目录穿越校验。
+
+    若解析后的绝对路径不在 exp_root 之内，返回 None（拒绝），否则返回绝对路径。
+    """
+    root_abs = Path(exp_root).resolve()
+    target = (root_abs / model_name, *parts)
+    target_abs = Path(*[str(p) for p in target]).resolve()
+    try:
+        target_abs.relative_to(root_abs)
+    except ValueError:
+        return None
+    return target_abs
+
+
+@APP.get("/models")
+async def list_models():
+    """列出所有训练角色（logs 目录名）及其匹配的权重。
+
+    从 logs/ 目录扫描子目录名作为模型名，再从 GPT/SoVITS 权重目录中
+    匹配同名权重文件。支持 GPT_weights、GPT_weights_v2 等 6 个版本目录。
+    """
+    weights = _scan_model_weights()
+    logs_root = Path(exp_root)
+    models: list[dict] = []
+    if logs_root.exists():
+        for d in logs_root.iterdir():
+            if not d.is_dir():
+                continue
+            name = d.name
+            name2text = _read_name2text(d)
+            has_training_data = (d / "2-name2text.txt").exists()
+            # name2text 同时以 wav_name 和 stem 建索引（2 个键），样本数按 wav_name 计：即原始行数
+            sample_count = len(name2text) // 2 if name2text else 0
+            w = weights.get(name, {"gpt": [], "sovits": []})
+            models.append({
+                "name": name,
+                "gpt_weights": sorted(w["gpt"]),
+                "sovits_weights": sorted(w["sovits"]),
+                "has_training_data": has_training_data,
+                "sample_count": sample_count,
+            })
+    # 补上 logs 中没有但有权重的模型
+    existing_names = {m["name"] for m in models}
+    for name, w in weights.items():
+        if name in existing_names:
+            continue
+        models.append({
+            "name": name,
+            "gpt_weights": sorted(w["gpt"]),
+            "sovits_weights": sorted(w["sovits"]),
+            "has_training_data": (Path(exp_root) / name).exists(),
+            "sample_count": 0,
+        })
+    models.sort(key=lambda m: m["name"])
+    return {"models": models}
+
+
+@APP.get("/models/{model_name}/samples")
+async def list_model_samples(model_name: str):
+    """列出指定角色的训练样本（音频文件 + 参考文本）。
+
+    读取 logs/<model_name>/2-name2text.txt 解析标注，
+    扫描 logs/<model_name>/5-wav32k/ 获取音频文件列表。
+    """
+    logs_abs = _safe_logs_subpath(model_name)
+    if logs_abs is None or not logs_abs.exists():
+        return JSONResponse(status_code=404, content={"message": f"model '{model_name}' not found"})
+    name2text = _read_name2text(logs_abs)
+    wav_dir = logs_abs / "5-wav32k"
+    samples: list[dict] = []
+    if wav_dir.exists():
+        for f in sorted(wav_dir.iterdir()):
+            if not f.is_file():
+                continue
+            if f.suffix.lower() not in (".wav", ".mp3", ".flac"):
+                continue
+            entry = name2text.get(f.name) or name2text.get(f.stem)
+            if entry is None:
+                continue  # 与 name2text 取交集，只返回有标注的样本
+            rel = os.path.relpath(f, now_dir)
+            samples.append({
+                "audio_name": f.name,
+                "audio_path": rel.replace(os.sep, "/"),
+                "text": entry["text"],
+                "lang": entry["lang"],
+            })
+    return {"model_name": model_name, "samples": samples, "total": len(samples)}
+
+
+@APP.get("/status")
+async def service_status():
+    """返回当前服务状态：加载的权重、版本、设备。"""
+    return {
+        "version": tts_config.version,
+        "device": str(tts_config.device),
+        "gpt_weights": tts_config.t2s_weights_path,
+        "sovits_weights": tts_config.vits_weights_path,
+        "languages": list(tts_config.languages),
+    }
+
+
+@APP.post("/upload_ref")
+async def upload_reference_audio(file: UploadFile = File(...)):
+    """上传参考音频文件，返回服务端本地路径供 /tts 使用。
+
+    同机部署不需要此端点（直接传本地路径即可）。
+    """
+    upload_dir = Path("uploaded_audio")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    raw_name = os.path.basename(file.filename or "")
+    # 文件名白名单清洗：仅保留字母数字、中文、._- 与扩展名前的点
+    safe_name = re.sub(r"[^\w.\u4e00-\u9fff\-]", "_", raw_name) or "ref.wav"
+    save_name = f"{uuid.uuid4().hex[:16]}_{safe_name}"
+    save_path = upload_dir / save_name
+    content = await file.read()
+    save_path.write_bytes(content)
+    rel = os.path.relpath(save_path, now_dir)
+    return {"path": rel.replace(os.sep, "/")}
 
 
 if __name__ == "__main__":

@@ -41,3 +41,6 @@ pydantic<=2.10.6
 ctranslate2>=4.0,<5
 av>=11
 tqdm
+
+# FastAPI file upload support for /upload_ref endpoint
+python-multipart

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 按中英混合识别
 按日英混合识别
@@ -27,6 +29,7 @@ import re
 import sys
 import traceback
 import warnings
+from pathlib import Path
 
 import torch
 import torchaudio
@@ -851,9 +854,9 @@ def get_tts_wav(
     if not ref_free:
         with torch.no_grad():
             wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-            if wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000:
-                gr.Warning(i18n("参考音频在3~10秒范围外，请更换！"))
-                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
+            ref_duration = wav16k.shape[0] / 16000
+            if ref_duration < 3 or ref_duration > 10:
+                gr.Warning(i18n(f"参考音频时长 {ref_duration:.1f} 秒，超出推荐的 3~10 秒范围，可能影响合成质量"))
             wav16k = torch.from_numpy(wav16k)
             if is_half == True:
                 wav16k = wav16k.half().to(device)
@@ -1202,6 +1205,136 @@ def html_left(text, label="p"):
                 </div>"""
 
 
+# ===================== 训练角色选择 / 训练样本浏览 辅助函数 =====================
+def scan_model_names() -> list[str]:
+    """扫描 logs/ 目录获取所有训练角色名（含 2-name2text.txt 的子目录）。"""
+    from config import exp_root
+    import os
+
+    root = Path(exp_root)
+    if not root.exists():
+        return []
+    return sorted(
+        [
+            d.name
+            for d in root.iterdir()
+            if d.is_dir() and (d / "2-name2text.txt").exists()
+        ]
+    )
+
+
+def _read_name2text_for_webui(logs_dir: Path) -> dict[str, dict[str, str]]:
+    """读取 2-name2text.txt（WebUI 版，与 api_v2.py 的 _read_name2text 逻辑一致）。
+
+    返回 {wav_name: {"text": ..., "lang": ...}}，同时以 stem 建索引。
+    """
+    path = logs_dir / "2-name2text.txt"
+    if not path.exists():
+        return {}
+    output: dict[str, dict[str, str]] = {}
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        parts = line.split("\t")
+        if len(parts) < 4:
+            continue
+        wav_name = parts[0].strip()
+        text = parts[3].strip()
+        if wav_name and text:
+            entry = {"text": text, "lang": "zh"}
+            output[wav_name] = entry
+            output[Path(wav_name).stem] = entry
+    return output
+
+
+def on_model_name_change(model_name: str):
+    """模型名变化时，加载该模型的训练样本列表到下拉框与预览播放器。"""
+    if not model_name:
+        return gr.Dropdown(choices=[], value=""), gr.Audio(value=None)
+    from config import exp_root
+
+    logs_dir = Path(exp_root) / model_name
+    wav_dir = logs_dir / "5-wav32k"
+    samples: list[tuple[str, str]] = []
+    if wav_dir.exists():
+        name2text = _read_name2text_for_webui(logs_dir)
+        for f in sorted(wav_dir.iterdir()):
+            if f.is_file() and f.suffix.lower() in (".wav", ".mp3", ".flac"):
+                text = name2text.get(f.name, {}).get("text", "") or name2text.get(f.stem, {}).get("text", "")
+                label = f"{f.name}" + (f" | {text[:30]}" if text else "")
+                samples.append((label, str(f)))
+    choices = [s[0] for s in samples]
+    value = samples[0][0] if samples else ""
+    audio = samples[0][1] if samples else None
+    return gr.Dropdown(choices=choices, value=value), gr.Audio(value=audio)
+
+
+def on_ref_sample_change(sample_label: str, model_name: str):
+    """训练样本选择变化时，更新预览播放器。"""
+    if not sample_label or not model_name:
+        return gr.Audio(value=None)
+    from config import exp_root
+
+    wav_name = sample_label.split(" | ")[0]
+    audio_path = Path(exp_root) / model_name / "5-wav32k" / wav_name
+    return gr.Audio(value=str(audio_path) if audio_path.exists() else None)
+
+
+def on_apply_sample(sample_label: str, model_name: str):
+    """应用选中样本：写入参考音频路径和参考文本。"""
+    if not sample_label or not model_name:
+        return None, "", gr.Dropdown()
+    from config import exp_root
+
+    wav_name = sample_label.split(" | ")[0]
+    audio_path = Path(exp_root) / model_name / "5-wav32k" / wav_name
+    logs_dir = Path(exp_root) / model_name
+    name2text = _read_name2text_for_webui(logs_dir)
+    text = name2text.get(wav_name, {}).get("text", "") or name2text.get(Path(wav_name).stem, {}).get("text", "")
+    return (str(audio_path) if audio_path.exists() else None), text, gr.Dropdown()
+
+
+def _scan_model_weights_for_webui() -> dict[str, dict[str, list[str]]]:
+    """扫描权重目录（WebUI 版），按 exp_name 分组。"""
+    from config import GPT_weight_root, SoVITS_weight_root
+
+    grouped: dict[str, dict[str, list[str]]] = {}
+    for root in GPT_weight_root:
+        root_path = Path(root)
+        if not root_path.exists():
+            continue
+        for f in root_path.iterdir():
+            if f.is_file() and f.suffix == ".ckpt":
+                name = re.split(r"-e\d+", f.stem, flags=re.IGNORECASE)[0]
+                grouped.setdefault(name, {"gpt": [], "sovits": []})
+                grouped[name]["gpt"].append(f"{root}/{f.name}")
+    for root in SoVITS_weight_root:
+        root_path = Path(root)
+        if not root_path.exists():
+            continue
+        for f in root_path.iterdir():
+            if f.is_file() and f.suffix == ".pth":
+                name = re.split(r"_e\d+_s\d+", f.stem, flags=re.IGNORECASE)[0]
+                grouped.setdefault(name, {"gpt": [], "sovits": []})
+                grouped[name]["sovits"].append(f"{root}/{f.name}")
+    return grouped
+
+
+def on_auto_select_weights(model_name: str):
+    """根据模型名自动匹配并选择最佳 GPT/SoVITS 权重。
+
+    仅返回 Dropdown 的 value；真正的权重切换由已绑定的
+    GPT_dropdown.change / SoVITS_dropdown.change 在 value 变化时自动触发。
+    （change_sovits_weights 是生成器，手动消费会丢失对其它组件的更新，故不直接调用。）
+    """
+    if not model_name:
+        return gr.Dropdown(), gr.Dropdown()
+    weights = _scan_model_weights_for_webui()
+    model_weights = weights.get(model_name, {"gpt": [], "sovits": []})
+    # 选择最高 epoch 的权重（按字符串排序后取末尾）
+    gpt_best = sorted(model_weights["gpt"])[-1] if model_weights["gpt"] else None
+    sovits_best = sorted(model_weights["sovits"])[-1] if model_weights["sovits"] else None
+    return gr.Dropdown(value=gpt_best), gr.Dropdown(value=sovits_best)
+
+
 with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css) as app:
     gr.HTML(
         top_html.format(
@@ -1229,9 +1362,39 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             )
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
+        # ===== 新增：训练角色选择区域 =====
+        with gr.Group():
+            gr.Markdown(html_center(i18n("训练角色选择（从训练数据中快速选择）"), "h3"))
+            with gr.Row():
+                model_name_dropdown = gr.Dropdown(
+                    label=i18n("模型名（训练实验名）"),
+                    choices=[],
+                    value="",
+                    interactive=True,
+                    scale=14,
+                )
+                refresh_models_btn = gr.Button(i18n("刷新模型列表"), variant="primary", scale=7)
+                auto_select_weights_btn = gr.Button(i18n("自动匹配权重"), variant="secondary", scale=7)
+            with gr.Row():
+                ref_sample_dropdown = gr.Dropdown(
+                    label=i18n("训练样本音频"),
+                    choices=[],
+                    value="",
+                    interactive=True,
+                    scale=14,
+                )
+                ref_sample_player = gr.Audio(
+                    label=i18n("样本预览"),
+                    type="filepath",
+                    scale=14,
+                )
+            apply_sample_btn = gr.Button(
+                i18n("应用选中样本到参考音频和文本"),
+                variant="primary",
+            )
         gr.Markdown(html_center(i18n("*请上传并填写参考信息"), "h3"))
         with gr.Row():
-            inp_ref = gr.Audio(label=i18n("请上传3~10秒内参考音频，超过会报错！"), type="filepath", scale=13)
+            inp_ref = gr.Audio(label=i18n("请上传参考音频（推荐3~10秒）"), type="filepath", scale=13)
             with gr.Column(scale=13):
                 ref_text_free = gr.Checkbox(
                     label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。")
@@ -1406,6 +1569,36 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             ],
         )
         GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
+
+        # ===== 新增事件绑定：训练角色选择 / 样本浏览 =====
+        refresh_models_btn.click(
+            fn=scan_model_names,
+            inputs=[],
+            outputs=[model_name_dropdown],
+        )
+        model_name_dropdown.change(
+            fn=on_model_name_change,
+            inputs=[model_name_dropdown],
+            outputs=[ref_sample_dropdown, ref_sample_player],
+        )
+        ref_sample_dropdown.change(
+            fn=on_ref_sample_change,
+            inputs=[ref_sample_dropdown, model_name_dropdown],
+            outputs=[ref_sample_player],
+        )
+        apply_sample_btn.click(
+            fn=on_apply_sample,
+            inputs=[ref_sample_dropdown, model_name_dropdown],
+            outputs=[inp_ref, prompt_text, ref_sample_dropdown],
+        )
+        auto_select_weights_btn.click(
+            fn=on_auto_select_weights,
+            inputs=[model_name_dropdown],
+            outputs=[GPT_dropdown, SoVITS_dropdown],
+        )
+        # 页面加载时自动扫描模型列表
+        app.load(fn=scan_model_names, inputs=[], outputs=[model_name_dropdown])
+
 
         # gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
         # with gr.Row():

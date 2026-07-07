@@ -813,8 +813,9 @@ class TTS:
         )
         with torch.no_grad():
             wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-            if wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000:
-                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
+            ref_duration = wav16k.shape[0] / 16000
+            if ref_duration < 3 or ref_duration > 10:
+                print(f"[Warning] Reference audio duration {ref_duration:.1f}s is outside the recommended 3~10s range, proceeding anyway")
             wav16k = torch.from_numpy(wav16k)
             zero_wav_torch = torch.from_numpy(zero_wav)
             wav16k = wav16k.to(self.configs.device)
