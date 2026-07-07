@@ -1473,17 +1473,15 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             )
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary", scale=14)
             refresh_button.click(fn=change_choices, inputs=[], outputs=[SoVITS_dropdown, GPT_dropdown])
-    # ===== 训练样本选择（选中即自动引用为参考音频） =====
     with gr.Group():
-        gr.Markdown(html_center(i18n("训练样本选择"), "h3"))
+        gr.Markdown(html_center(i18n("*请上传并填写参考信息"), "h3"))
+        # 训练样本下拉: 入口与输出聚合 — 选中即自动引用为参考音频+文本+情绪
         ref_sample_dropdown = gr.Dropdown(
             label=i18n("训练样本音频（选中即自动引用为参考音频）"),
             choices=[],
             value="",
             interactive=True,
         )
-    with gr.Group():
-        gr.Markdown(html_center(i18n("*请上传并填写参考信息"), "h3"))
         with gr.Row():
             inp_ref = gr.Audio(label=i18n("请上传参考音频（推荐3~10秒）"), type="filepath", scale=13)
             with gr.Column(scale=13):
