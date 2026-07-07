@@ -20,6 +20,7 @@ import os.path
 from text.cleaner import clean_text
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 from tools.my_utils import clean_path
+from tools.list_metadata import parse_list_line
 
 # inp_text=sys.argv[1]
 # inp_wav_dir=sys.argv[2]
@@ -126,7 +127,12 @@ if os.path.exists(txt_path) == False:
     }
     for line in lines[int(i_part) :: int(all_parts)]:
         try:
-            wav_name, spk_name, language, text = line.split("|")
+            # 兼容 4/5/6 列 .list：parse_list_line 只取训练所需前 4 列，
+            # 额外的 emotion/remark 列（proplus-hc-dev 分支）被静默忽略，不影响训练。
+            item = parse_list_line(line)
+            if item is None:
+                raise ValueError("list 行列数不足，需至少 4 列：wav_path|speaker_name|language|text")
+            wav_name, language, text = item.wav_path, item.language, item.text
             # todo.append([name,text,"zh"])
             if language in language_v1_to_language_v2.keys():
                 todo.append([wav_name, text, language_v1_to_language_v2.get(language, language)])

@@ -637,6 +637,36 @@ def _read_name2text(logs_dir: Path) -> dict[str, dict[str, str]]:
     return output
 
 
+def _read_emotion_map(model_name: str) -> dict[str, str]:
+    """读取 ASR 标注 .list 中的 emotion 列，返回 {audio_name|stem: emotion}。
+
+    扫描 output/asr_opt/<model_name>/ 下所有 *.list（兼容 4/5/6 列）。
+    兼容 proplus-hc-dev 分支训练数据：emotion 为第 5 列，缺省为空串。
+    无 .list 或无 emotion 列时返回空 dict。
+    """
+    from tools.list_metadata import parse_list_line
+
+    emotion_map: dict[str, str] = {}
+    list_dir = Path("output") / "asr_opt" / model_name
+    if not list_dir.exists():
+        return emotion_map
+    for list_path in sorted(list_dir.glob("*.list")):
+        try:
+            for line in list_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                item = parse_list_line(line)
+                if item is None or not item.emotion:
+                    continue
+                name = os.path.basename(item.wav_path.strip("\"'"))
+                if not name:
+                    continue
+                emotion_map[name] = item.emotion
+                emotion_map[Path(name).stem] = item.emotion
+        except Exception:
+            continue
+    return emotion_map
+
+
+
 def _safe_logs_subpath(model_name: str, *parts: str) -> Path | None:
     """解析 logs/<model_name>/<parts...> 路径并做目录穿越校验。
 
@@ -706,6 +736,7 @@ async def list_model_samples(model_name: str):
     if logs_abs is None or not logs_abs.exists():
         return JSONResponse(status_code=404, content={"message": f"model '{model_name}' not found"})
     name2text = _read_name2text(logs_abs)
+    emotion_map = _read_emotion_map(model_name)
     wav_dir = logs_abs / "5-wav32k"
     samples: list[dict] = []
     if wav_dir.exists():
@@ -718,11 +749,13 @@ async def list_model_samples(model_name: str):
             if entry is None:
                 continue  # 与 name2text 取交集，只返回有标注的样本
             rel = os.path.relpath(f, now_dir)
+            emotion = emotion_map.get(f.name, "") or emotion_map.get(f.stem, "")
             samples.append({
                 "audio_name": f.name,
                 "audio_path": rel.replace(os.sep, "/"),
                 "text": entry["text"],
                 "lang": entry["lang"],
+                "emotion": emotion,
             })
     return {"model_name": model_name, "samples": samples, "total": len(samples)}
 

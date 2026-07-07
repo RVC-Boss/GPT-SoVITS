@@ -1245,6 +1245,34 @@ def _read_name2text_for_webui(logs_dir: Path) -> dict[str, dict[str, str]]:
     return output
 
 
+def _read_emotion_map_for_webui(model_name: str) -> dict[str, str]:
+    """读取 ASR 标注 .list 中的 emotion 列，返回 {audio_name|stem: emotion}。
+
+    扫描 output/asr_opt/<model_name>/ 下所有 *.list（4/5/6 列均兼容）。
+    无 emotion 列或文件不存在时返回空 dict。
+    """
+    from tools.list_metadata import parse_list_line
+
+    emotion_map: dict[str, str] = {}
+    list_dir = Path("output") / "asr_opt" / model_name
+    if not list_dir.exists():
+        return emotion_map
+    for list_path in sorted(list_dir.glob("*.list")):
+        try:
+            for line in list_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                item = parse_list_line(line)
+                if item is None or not item.emotion:
+                    continue
+                name = os.path.basename(item.wav_path.strip("\"'"))
+                if not name:
+                    continue
+                emotion_map[name] = item.emotion
+                emotion_map[Path(name).stem] = item.emotion
+        except Exception:
+            continue
+    return emotion_map
+
+
 def on_model_name_change(model_name: str):
     """模型名变化时，加载该模型的训练样本列表到下拉框与预览播放器。"""
     if not model_name:
@@ -1256,10 +1284,16 @@ def on_model_name_change(model_name: str):
     samples: list[tuple[str, str]] = []
     if wav_dir.exists():
         name2text = _read_name2text_for_webui(logs_dir)
+        emotion_map = _read_emotion_map_for_webui(model_name)
         for f in sorted(wav_dir.iterdir()):
             if f.is_file() and f.suffix.lower() in (".wav", ".mp3", ".flac"):
                 text = name2text.get(f.name, {}).get("text", "") or name2text.get(f.stem, {}).get("text", "")
-                label = f"{f.name}" + (f" | {text[:30]}" if text else "")
+                emotion = emotion_map.get(f.name, "") or emotion_map.get(f.stem, "")
+                label = f"{f.name}"
+                if text:
+                    label += f" | {text[:30]}"
+                if emotion:
+                    label += f" | 【{emotion}】"
                 samples.append((label, str(f)))
     choices = [s[0] for s in samples]
     value = samples[0][0] if samples else ""
@@ -1268,28 +1302,33 @@ def on_model_name_change(model_name: str):
 
 
 def on_ref_sample_change(sample_label: str, model_name: str):
-    """训练样本选择变化时，更新预览播放器。"""
+    """训练样本选择变化时，更新预览播放器与情绪/括注文本框。"""
     if not sample_label or not model_name:
-        return gr.Audio(value=None)
+        return gr.Audio(value=None), ""
     from config import exp_root
 
     wav_name = sample_label.split(" | ")[0]
     audio_path = Path(exp_root) / model_name / "5-wav32k" / wav_name
-    return gr.Audio(value=str(audio_path) if audio_path.exists() else None)
+    emotion_map = _read_emotion_map_for_webui(model_name)
+    emotion = emotion_map.get(wav_name, "") or emotion_map.get(Path(wav_name).stem, "")
+    return gr.Audio(value=str(audio_path) if audio_path.exists() else None), emotion
 
 
 def on_apply_sample(sample_label: str, model_name: str):
-    """应用选中样本：写入参考音频路径和参考文本。"""
+    """应用选中样本：写入参考音频路径、参考文本、情绪/括注。"""
     if not sample_label or not model_name:
-        return None, "", gr.Dropdown()
+        return None, "", gr.Dropdown(), ""
     from config import exp_root
 
     wav_name = sample_label.split(" | ")[0]
     audio_path = Path(exp_root) / model_name / "5-wav32k" / wav_name
     logs_dir = Path(exp_root) / model_name
     name2text = _read_name2text_for_webui(logs_dir)
+    emotion_map = _read_emotion_map_for_webui(model_name)
     text = name2text.get(wav_name, {}).get("text", "") or name2text.get(Path(wav_name).stem, {}).get("text", "")
-    return (str(audio_path) if audio_path.exists() else None), text, gr.Dropdown()
+    emotion = emotion_map.get(wav_name, "") or emotion_map.get(Path(wav_name).stem, "")
+    audio_out = str(audio_path) if audio_path.exists() else None
+    return audio_out, text, gr.Dropdown(), emotion
 
 
 def _scan_model_weights_for_webui() -> dict[str, dict[str, list[str]]]:
@@ -1412,6 +1451,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     )
                 )
                 prompt_text = gr.Textbox(label=i18n("参考音频的文本"), value="", lines=5, max_lines=5, scale=1)
+                ref_emotion_text = gr.Textbox(
+                    label=i18n("情绪/括注（来自训练样本，无数据留空）"),
+                    value="",
+                    interactive=False,
+                    scale=1,
+                )
             with gr.Column(scale=14):
                 prompt_language = gr.Dropdown(
                     label=i18n("参考音频的语种"),
@@ -1584,12 +1629,12 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         ref_sample_dropdown.change(
             fn=on_ref_sample_change,
             inputs=[ref_sample_dropdown, model_name_dropdown],
-            outputs=[ref_sample_player],
+            outputs=[ref_sample_player, ref_emotion_text],
         )
         apply_sample_btn.click(
             fn=on_apply_sample,
             inputs=[ref_sample_dropdown, model_name_dropdown],
-            outputs=[inp_ref, prompt_text, ref_sample_dropdown],
+            outputs=[inp_ref, prompt_text, ref_sample_dropdown, ref_emotion_text],
         )
         auto_select_weights_btn.click(
             fn=on_auto_select_weights,

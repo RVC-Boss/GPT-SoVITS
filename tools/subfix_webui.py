@@ -32,6 +32,7 @@ g_batch = 10
 g_text_list = []
 g_audio_list = []
 g_checkbox_list = []
+g_emotion_list = []
 g_data_json = []
 
 
@@ -43,7 +44,13 @@ def reload_data(index, batch):
     datas = g_data_json[index : index + batch]
     output = []
     for d in datas:
-        output.append({g_json_key_text: d[g_json_key_text], g_json_key_path: d[g_json_key_path]})
+        output.append(
+            {
+                g_json_key_text: d[g_json_key_text],
+                g_json_key_path: d[g_json_key_path],
+                "emotion": d.get("emotion", ""),
+            }
+        )
     return output
 
 
@@ -52,26 +59,26 @@ def b_change_index(index, batch):
     g_index, g_batch = index, batch
     datas = reload_data(index, batch)
     output = []
+    # 文本框组
     for i, _ in enumerate(datas):
         output.append(
-            # gr.Textbox(
-            #     label=f"Text {i+index}",
-            #     value=_[g_json_key_text]#text
-            # )
             {"__type__": "update", "label": f"Text {i + index}", "value": _[g_json_key_text]}
         )
     for _ in range(g_batch - len(datas)):
+        output.append({"__type__": "update", "label": "Text", "value": ""})
+    # 情绪/括注框组（与文本框一一对应）
+    for i, _ in enumerate(datas):
         output.append(
-            # gr.Textbox(
-            #     label=f"Text",
-            #     value=""
-            # )
-            {"__type__": "update", "label": "Text", "value": ""}
+            {"__type__": "update", "label": f"情绪/括注 {i + index}", "value": _.get("emotion", "")}
         )
+    for _ in range(g_batch - len(datas)):
+        output.append({"__type__": "update", "label": "情绪/括注", "value": ""})
+    # 音频组
     for _ in datas:
         output.append(_[g_json_key_path])
     for _ in range(g_batch - len(datas)):
         output.append(None)
+    # 复选框组
     for _ in range(g_batch):
         output.append(False)
     return output
@@ -93,14 +100,24 @@ def b_previous_index(index, batch):
         return 0, *b_change_index(0, batch)
 
 
-def b_submit_change(*text_list):
+def b_submit_change(*args):
+    # 输入约定：[text×batch] + [emotion×batch]（由事件绑定顺序拼成）
     global g_data_json
+    half = g_batch
+    text_list = args[:half]
+    emotion_list = args[half:]
     change = False
     for i, new_text in enumerate(text_list):
         if g_index + i <= g_max_json_index:
             new_text = new_text.strip() + " "
             if g_data_json[g_index + i][g_json_key_text] != new_text:
                 g_data_json[g_index + i][g_json_key_text] = new_text
+                change = True
+    for i, new_emotion in enumerate(emotion_list):
+        if g_index + i <= g_max_json_index:
+            new_emotion = (new_emotion or "").strip()
+            if g_data_json[g_index + i].get("emotion", "") != new_emotion:
+                g_data_json[g_index + i]["emotion"] = new_emotion
                 change = True
     if change:
         b_save_file()
@@ -226,13 +243,25 @@ def b_save_json():
 
 
 def b_save_list():
+    from tools.list_metadata import format_list_line, ListLine
+
     with open(g_load_file, "w", encoding="utf-8") as file:
         for data in g_data_json:
-            wav_path = data["wav_path"]
-            speaker_name = data["speaker_name"]
-            language = data["language"]
-            text = data["text"]
-            file.write(f"{wav_path}|{speaker_name}|{language}|{text}".strip() + "\n")
+            # 写出 6 列以保留 emotion/remark（proplus-hc-dev 互操作）；
+            # 主分支训练侧（1-get-text.py）只消费前 4 列，多余列不影响训练。
+            file.write(
+                format_list_line(
+                    ListLine(
+                        wav_path=data.get("wav_path", ""),
+                        speaker_name=data.get("speaker_name", ""),
+                        language=data.get("language", ""),
+                        text=data.get("text", ""),
+                        emotion=data.get("emotion", ""),
+                        remark=data.get("remark", ""),
+                    )
+                ).strip()
+                + "\n"
+            )
 
 
 def b_load_json():
@@ -245,17 +274,25 @@ def b_load_json():
 
 def b_load_list():
     global g_data_json, g_max_json_index
+    from tools.list_metadata import parse_list_line
+
     with open(g_load_file, "r", encoding="utf-8") as source:
         data_list = source.readlines()
         for _ in data_list:
-            data = _.split("|")
-            if len(data) == 4:
-                wav_path, speaker_name, language, text = data
-                g_data_json.append(
-                    {"wav_path": wav_path, "speaker_name": speaker_name, "language": language, "text": text.strip()}
-                )
-            else:
-                print("error line:", data)
+            item = parse_list_line(_)
+            if item is None:
+                print("error line:", _)
+                continue
+            g_data_json.append(
+                {
+                    "wav_path": item.wav_path,
+                    "speaker_name": item.speaker_name,
+                    "language": item.language,
+                    "text": item.text,
+                    "emotion": item.emotion,
+                    "remark": item.remark,
+                }
+            )
         g_max_json_index = len(g_data_json) - 1
 
 
@@ -338,9 +375,16 @@ if __name__ == "__main__":
                         text = gr.Textbox(label="Text", visible=True, scale=5)
                         audio_output = gr.Audio(label="Output Audio", visible=True, scale=5)
                         audio_check = gr.Checkbox(label="Yes", show_label=True, info="Choose Audio", scale=1)
+                        emotion = gr.Textbox(
+                            label="情绪/括注",
+                            visible=True,
+                            scale=3,
+                            placeholder="可选：台词对应的表演情绪或括注",
+                        )
                         g_text_list.append(text)
                         g_audio_list.append(audio_output)
                         g_checkbox_list.append(audio_check)
+                        g_emotion_list.append(emotion)
 
         with gr.Row():
             batchsize_slider = gr.Slider(
@@ -356,15 +400,16 @@ if __name__ == "__main__":
                 index_slider,
                 batchsize_slider,
             ],
-            outputs=[*g_text_list, *g_audio_list, *g_checkbox_list],
+            outputs=[*g_text_list, *g_emotion_list, *g_audio_list, *g_checkbox_list],
         )
 
         btn_submit_change.click(
             b_submit_change,
             inputs=[
                 *g_text_list,
+                *g_emotion_list,
             ],
-            outputs=[index_slider, *g_text_list, *g_audio_list, *g_checkbox_list],
+            outputs=[index_slider, *g_text_list, *g_emotion_list, *g_audio_list, *g_checkbox_list],
         )
 
         btn_previous_index.click(
@@ -373,7 +418,7 @@ if __name__ == "__main__":
                 index_slider,
                 batchsize_slider,
             ],
-            outputs=[index_slider, *g_text_list, *g_audio_list, *g_checkbox_list],
+            outputs=[index_slider, *g_text_list, *g_emotion_list, *g_audio_list, *g_checkbox_list],
         )
 
         btn_next_index.click(
@@ -382,25 +427,25 @@ if __name__ == "__main__":
                 index_slider,
                 batchsize_slider,
             ],
-            outputs=[index_slider, *g_text_list, *g_audio_list, *g_checkbox_list],
+            outputs=[index_slider, *g_text_list, *g_emotion_list, *g_audio_list, *g_checkbox_list],
         )
 
         btn_delete_audio.click(
             b_delete_audio,
             inputs=[*g_checkbox_list],
-            outputs=[index_slider, *g_text_list, *g_audio_list, *g_checkbox_list],
+            outputs=[index_slider, *g_text_list, *g_emotion_list, *g_audio_list, *g_checkbox_list],
         )
 
         btn_merge_audio.click(
             b_merge_audio,
             inputs=[interval_slider, *g_checkbox_list],
-            outputs=[index_slider, *g_text_list, *g_audio_list, *g_checkbox_list],
+            outputs=[index_slider, *g_text_list, *g_emotion_list, *g_audio_list, *g_checkbox_list],
         )
 
         btn_audio_split.click(
             b_audio_split,
             inputs=[splitpoint_slider, *g_checkbox_list],
-            outputs=[index_slider, *g_text_list, *g_audio_list, *g_checkbox_list],
+            outputs=[index_slider, *g_text_list, *g_emotion_list, *g_audio_list, *g_checkbox_list],
         )
 
         btn_invert_selection.click(b_invert_selection, inputs=[*g_checkbox_list], outputs=[*g_checkbox_list])
@@ -413,7 +458,7 @@ if __name__ == "__main__":
                 index_slider,
                 batchsize_slider,
             ],
-            outputs=[*g_text_list, *g_audio_list, *g_checkbox_list],
+            outputs=[*g_text_list, *g_emotion_list, *g_audio_list, *g_checkbox_list],
         )
 
     demo.launch(
