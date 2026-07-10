@@ -35,7 +35,7 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 3. **Cross-lingual Support:** Inference in languages different from the training dataset, currently supporting English, Japanese, Korean, Cantonese and Chinese.
 
-4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, Chinese ASR, and text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
+4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, multilingual ASR with [Fun-ASR-Nano](https://github.com/FunAudioLLM/Fun-ASR), [SenseVoice](https://github.com/FunAudioLLM/SenseVoice), and classic [FunASR](https://github.com/modelscope/FunASR), plus text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
 
 **Check out our [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw) here!**
 
@@ -208,7 +208,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
    - The suggestion is to **directly specify the model type** in the model name and configuration file name, such as `mel_mand_roformer`, `bs_roformer`. If not specified, the features will be compared from the configuration file to determine which type of model it is. For example, the model `bs_roformer_ep_368_sdr_12.9628.ckpt` and its corresponding configuration file `bs_roformer_ep_368_sdr_12.9628.yaml` are a pair, `kim_mel_band_roformer.ckpt` and `kim_mel_band_roformer.yaml` are also a pair.
 
-4. For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/asr/models`.
+4. FunASR models are downloaded automatically on first use. The WebUI offers [Fun-ASR-Nano](https://github.com/FunAudioLLM/Fun-ASR) for multilingual and dialect ASR, [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) for fast transcription, and classic Paraformer/UniASR through [FunASR](https://github.com/modelscope/FunASR) for Chinese and Cantonese. To preinstall the classic Chinese models for offline use, download the [ASR model](https://modelscope.cn/models/iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [VAD model](https://modelscope.cn/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [punctuation model](https://modelscope.cn/models/iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) into `tools/asr/models`.
 
 5. For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint.
 
@@ -413,13 +413,13 @@ python audio_slicer.py \
     --hop_size <step_size_for_computing_volume_curve>
 ```
 
-This is how dataset ASR processing is done using the command line(Only Chinese)
+Run dataset ASR with FunASR from the command line. Fun-ASR-Nano is the default for Chinese, English, Japanese, Korean, and automatic language detection; Cantonese keeps the classic FunASR backend.
 
 ```bash
-python tools/asr/funasr_asr.py -i <input> -o <output>
+python tools/asr/funasr_asr.py -i <input> -o <output> -l zh
 ```
 
-ASR processing is performed through Faster_Whisper(ASR marking except Chinese)
+Faster Whisper is also available as an ASR backend.
 
 (No progress bars, GPU performance may cause time delays)
 
@@ -468,7 +468,9 @@ Special thanks to the following projects and contributors:
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
-- [FunASR](https://github.com/alibaba-damo-academy/FunASR)
+- [FunASR](https://github.com/modelscope/FunASR)
+- [Fun-ASR](https://github.com/FunAudioLLM/Fun-ASR)
+- [SenseVoice](https://github.com/FunAudioLLM/SenseVoice)
 - [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
 Thankful to @Naozumi520 for providing the Cantonese training set and for the guidance on Cantonese-related knowledge.
