@@ -1,0 +1,18 @@
+{
+  "name": "نُطق — لوحة المفاتيح الصوتية بالذكاء الاصطناعي",
+  "short_name": "نُطق",
+  "description": "تكلّم بشكل طبيعي، ونُطق يكتب نصاً مصقولاً جاهزاً للإرسال. يدعم أكثر من 100 لغة.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF6E9",
+  "theme_color": "#FAF6E9",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,31 @@
+name: Deploy Nutq to GitHub Pages
+
+on:
+  push:
+    branches: [main, claude/mobile-desktop-app-y1g2sm]
+    paths: ["nutq/**", ".github/workflows/deploy-nutq.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: nutq
+      - id: deployment
+        uses: actions/deploy-pages@v4

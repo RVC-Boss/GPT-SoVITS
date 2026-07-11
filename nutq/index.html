@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>نُطق — لوحة المفاتيح الصوتية بالذكاء الاصطناعي</title>
+<meta name="description" content="تكلّم بشكل طبيعي، ونُطق يكتب نصاً مصقولاً جاهزاً للإرسال. إملاء صوتي بالذكاء الاصطناعي يدعم أكثر من 100 لغة.">
+<meta name="theme-color" content="#FAF6E9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111014" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="نُطق">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3"  y="9"  width="2.6" height="6"  rx="1.3"/>
+      <rect x="8"  y="5"  width="2.6" height="14" rx="1.3"/>
+      <rect x="13" y="8"  width="2.6" height="8"  rx="1.3"/>
+      <rect x="18" y="10" width="2.6" height="4"  rx="1.3"/>
+    </svg>
+    <span class="brand-name" data-i18n="appName">نُطق</span>
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" id="btnHistory" aria-label="السجل" title="السجل">
+      <svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 1 1-7.7 10.1.9.9 0 0 1 1.74-.46A6.2 6.2 0 1 0 5.8 12H8l-3.2 3.6L1.6 12h2.4A8 8 0 0 1 12 4Zm0 3.6c.5 0 .9.4.9.9v3.1l2.6 1.5a.9.9 0 0 1-.9 1.56l-3-1.74a.9.9 0 0 1-.5-.82V8.5c0-.5.4-.9.9-.9Z"/></svg>
+    </button>
+    <button class="icon-btn" id="btnSettings" aria-label="الإعدادات" title="الإعدادات">
+      <svg viewBox="0 0 24 24"><path d="M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6Zm0 1.8a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm-1.1-7h2.2c.5 0 .9.35 1 .84l.32 1.6c.55.22 1.07.52 1.54.88l1.55-.53a1 1 0 0 1 1.2.45l1.1 1.9a1 1 0 0 1-.2 1.27l-1.23 1.07a6.9 6.9 0 0 1 0 1.78l1.23 1.07a1 1 0 0 1 .2 1.27l-1.1 1.9a1 1 0 0 1-1.2.45l-1.55-.53c-.47.36-.99.66-1.54.88l-.32 1.6a1 1 0 0 1-1 .84h-2.2a1 1 0 0 1-1-.84l-.32-1.6a6.9 6.9 0 0 1-1.54-.88l-1.55.53a1 1 0 0 1-1.2-.45l-1.1-1.9a1 1 0 0 1 .2-1.27l1.23-1.07a6.9 6.9 0 0 1 0-1.78L4.29 9.41a1 1 0 0 1-.2-1.27l1.1-1.9a1 1 0 0 1 1.2-.45l1.55.53c.47-.36.99-.66 1.54-.88l.32-1.6a1 1 0 0 1 1-.84Z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="app">
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <h1 class="hero-title" data-i18n="heroTitle">إملاء صوتي<br>بلا أخطاء</h1>
+    <p class="hero-sub" data-i18n="heroSub">تكلّم بشكل طبيعي، ونُطق يحوّل كلامك إلى نص مصقول جاهز للإرسال — في أي تطبيق وبأكثر من 100 لغة.</p>
+  </section>
+
+  <!-- Mode chips -->
+  <section class="modes" id="modes" role="tablist" aria-label="نمط الكتابة">
+    <button class="chip active" data-mode="message" data-i18n="modeMessage">رسالة</button>
+    <button class="chip" data-mode="email"   data-i18n="modeEmail">بريد إلكتروني</button>
+    <button class="chip" data-mode="notes"   data-i18n="modeNotes">ملاحظات</button>
+    <button class="chip" data-mode="formal"  data-i18n="modeFormal">رسمي</button>
+    <button class="chip" data-mode="raw"     data-i18n="modeRaw">نص خام</button>
+  </section>
+
+  <!-- Language pill -->
+  <button class="lang-pill" id="btnLang">
+    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 1.8c-.9 0-2 1.5-2.6 4.2h5.2C14 5.3 12.9 3.8 12 3.8Zm-4.4 4.2c.3-1.5.8-2.8 1.4-3.7A8.2 8.2 0 0 0 4.9 8h2.7Zm8.8 0h2.7a8.2 8.2 0 0 0-4.1-3.7c.6.9 1.1 2.2 1.4 3.7ZM4.1 13.2h3.1a22 22 0 0 1 0-3.4H4.1a8.3 8.3 0 0 0 0 3.4Zm4.9 0h6a20 20 0 0 0 0-3.4H9a20 20 0 0 0 0 3.4Zm7.8 0h3.1a8.3 8.3 0 0 0 0-3.4h-3.1a22 22 0 0 1 0 3.4ZM7.6 15h-2.7a8.2 8.2 0 0 0 4.1 3.7c-.6-.9-1.1-2.2-1.4-3.7Zm4.4 5.2c.9 0 2-1.5 2.6-4.2H9.4c.6 2.7 1.7 4.2 2.6 4.2Zm4.4-5.2c-.3 1.5-.8 2.8-1.4 3.7A8.2 8.2 0 0 0 19.1 15h-2.7Z"/></svg>
+    <span id="langLabel">اكتشاف تلقائي</span>
+  </button>
+
+  <!-- Transcript card -->
+  <section class="card transcript-card" id="transcriptCard" hidden>
+    <div class="card-head">
+      <span class="card-title" data-i18n="rawTranscript">النص المسموع</span>
+      <span class="live-dot" id="liveDot" hidden></span>
+    </div>
+    <div class="transcript" id="transcript" contenteditable="true" data-i18n-placeholder="transcriptPh"></div>
+  </section>
+
+  <!-- Polished result card -->
+  <section class="card result-card" id="resultCard" hidden>
+    <div class="card-head">
+      <span class="card-title" data-i18n="polished">✨ النص المصقول</span>
+      <span class="badge" id="resultMode"></span>
+    </div>
+    <div class="result" id="result" contenteditable="true"></div>
+    <div class="card-actions">
+      <button class="btn primary" id="btnCopy">
+        <svg viewBox="0 0 24 24"><path d="M8 7V4.8C8 3.8 8.8 3 9.8 3h9.4c1 0 1.8.8 1.8 1.8v9.4c0 1-.8 1.8-1.8 1.8H17v2.2c0 1-.8 1.8-1.8 1.8H5.8c-1 0-1.8-.8-1.8-1.8V8.8C4 7.8 4.8 7 5.8 7H8Zm1.8 0h5.4c1 0 1.8.8 1.8 1.8v5.4h2.2V4.8H9.8V7ZM5.8 8.8v9.4h9.4V8.8H5.8Z"/></svg>
+        <span data-i18n="copy">نسخ</span>
+      </button>
+      <button class="btn" id="btnShare">
+        <svg viewBox="0 0 24 24"><path d="M17 8.6a3.3 3.3 0 1 0-3.1-4.4L8.3 7a3.3 3.3 0 1 0 0 5l5.6 2.8a3.3 3.3 0 1 0 .8-1.6l-5.6-2.8a3.3 3.3 0 0 0 0-1.8l5.6-2.8c.6.7 1.5 1 2.3 1Z"/></svg>
+        <span data-i18n="share">مشاركة</span>
+      </button>
+      <button class="btn" id="btnRepolish">
+        <svg viewBox="0 0 24 24"><path d="M12 5V2L7.5 6 12 10V7a5 5 0 1 1-4.9 6.1H5.2A6.8 6.8 0 1 0 12 5Z"/></svg>
+        <span data-i18n="repolish">إعادة الصقل</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="status" id="status"></div>
+
+  <!-- Features (shown when idle & empty) -->
+  <section class="features" id="features">
+    <div class="feature"><span class="f-ico">⌨️</span><div><b data-i18n="f1t">يعمل مع كل التطبيقات</b><p data-i18n="f1d">أملِ النص ثم انسخه إلى واتساب، البريد، أو أي تطبيق آخر.</p></div></div>
+    <div class="feature"><span class="f-ico">✨</span><div><b data-i18n="f2t">صقل بالذكاء الاصطناعي</b><p data-i18n="f2d">بلا كلمات حشو ولا أخطاء — نص بأسلوبك، جاهز للإرسال.</p></div></div>
+    <div class="feature"><span class="f-ico">🌍</span><div><b data-i18n="f3t">أكثر من 100 لغة</b><p data-i18n="f3d">العربية، الإنجليزية، الفرنسية وغيرها — مع اكتشاف تلقائي.</p></div></div>
+    <div class="feature"><span class="f-ico">📖</span><div><b data-i18n="f4t">قاموسك الشخصي</b><p data-i18n="f4d">أضف أسماءً ومصطلحات خاصة ليتعلم نُطق أسلوبك.</p></div></div>
+  </section>
+</main>
+
+<!-- Mic dock -->
+<div class="mic-dock">
+  <div class="waveform" id="waveform" hidden>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div class="timer" id="timer" hidden>00:00</div>
+  <button class="mic-btn" id="btnMic" aria-label="ابدأ الإملاء">
+    <span class="mic-ring r1"></span><span class="mic-ring r2"></span>
+    <svg viewBox="0 0 24 24" class="mic-ico">
+      <path d="M12 2a3.5 3.5 0 0 1 3.5 3.5v6a3.5 3.5 0 1 1-7 0v-6A3.5 3.5 0 0 1 12 2Z"/>
+      <path d="M5.5 11.5a.9.9 0 0 1 1.8 0 4.7 4.7 0 1 0 9.4 0 .9.9 0 0 1 1.8 0 6.5 6.5 0 0 1-5.6 6.44V20h2.2a.9.9 0 1 1 0 1.8H8.9a.9.9 0 1 1 0-1.8h2.2v-2.06a6.5 6.5 0 0 1-5.6-6.44Z"/>
+    </svg>
+    <svg viewBox="0 0 24 24" class="stop-ico" hidden><rect x="6" y="6" width="12" height="12" rx="3"/></svg>
+  </button>
+  <div class="mic-hint" id="micHint" data-i18n="tapToTalk">اضغط وتكلّم</div>
+</div>
+
+<!-- ===== Language sheet ===== -->
+<div class="sheet-backdrop" id="langSheet" hidden>
+  <div class="sheet" role="dialog" aria-label="اختيار اللغة">
+    <div class="sheet-grab"></div>
+    <input class="search" id="langSearch" type="search" data-i18n-placeholder="searchLang">
+    <div class="lang-list" id="langList"></div>
+  </div>
+</div>
+
+<!-- ===== History sheet ===== -->
+<div class="sheet-backdrop" id="historySheet" hidden>
+  <div class="sheet" role="dialog" aria-label="السجل">
+    <div class="sheet-grab"></div>
+    <div class="sheet-title-row">
+      <h2 data-i18n="history">السجل</h2>
+      <button class="btn danger small" id="btnClearHistory" data-i18n="clearAll">مسح الكل</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<!-- ===== Settings sheet ===== -->
+<div class="sheet-backdrop" id="settingsSheet" hidden>
+  <div class="sheet" role="dialog" aria-label="الإعدادات">
+    <div class="sheet-grab"></div>
+    <h2 data-i18n="settings">الإعدادات</h2>
+
+    <label class="field">
+      <span data-i18n="uiLang">لغة الواجهة</span>
+      <select id="setUiLang">
+        <option value="ar">العربية</option>
+        <option value="en">English</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span data-i18n="engine">محرك التعرّف على الصوت</span>
+      <select id="setEngine">
+        <option value="auto" data-i18n="engineAuto">تلقائي (الأفضل المتاح)</option>
+        <option value="webspeech" data-i18n="engineWeb">المتصفح (مجاني، فوري)</option>
+        <option value="whisper" data-i18n="engineWhisper">Whisper عبر API (أدق)</option>
+      </select>
+    </label>
+
+    <div class="field-group">
+      <div class="fg-title" data-i18n="aiSection">إعدادات الذكاء الاصطناعي (للصقل و Whisper)</div>
+      <label class="field">
+        <span data-i18n="apiKey">مفتاح API</span>
+        <input id="setApiKey" type="password" placeholder="sk-..." autocomplete="off">
+      </label>
+      <label class="field">
+        <span data-i18n="baseUrl">عنوان الخدمة (Base URL)</span>
+        <input id="setBaseUrl" type="url" placeholder="https://api.openai.com/v1">
+      </label>
+      <label class="field">
+        <span data-i18n="model">نموذج الصقل</span>
+        <input id="setModel" type="text" placeholder="gpt-4o-mini">
+      </label>
+      <label class="field">
+        <span data-i18n="whisperModel">نموذج التفريغ الصوتي</span>
+        <input id="setWhisperModel" type="text" placeholder="whisper-1">
+      </label>
+      <p class="hint" data-i18n="apiHint">يدعم أي خدمة متوافقة مع OpenAI: ‏OpenAI، ‏Groq (مجاني)، ‏OpenRouter وغيرها. المفتاح يُحفظ على جهازك فقط.</p>
+    </div>
+
+    <label class="field">
+      <span data-i18n="dictionary">القاموس الشخصي (أسماء ومصطلحات، افصل بينها بفواصل)</span>
+      <textarea id="setDictionary" rows="3" data-i18n-placeholder="dictPh"></textarea>
+    </label>
+
+    <label class="field row">
+      <span data-i18n="autoPolish">صقل تلقائي بعد التوقف</span>
+      <input id="setAutoPolish" type="checkbox" checked>
+    </label>
+
+    <label class="field">
+      <span data-i18n="theme">المظهر</span>
+      <select id="setTheme">
+        <option value="auto" data-i18n="themeAuto">تلقائي</option>
+        <option value="light" data-i18n="themeLight">فاتح</option>
+        <option value="dark" data-i18n="themeDark">داكن</option>
+      </select>
+    </label>
+
+    <button class="btn primary wide" id="btnSaveSettings" data-i18n="save">حفظ</button>
+    <p class="hint center" id="verInfo"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
