@@ -2,6 +2,7 @@ from torch.nn.functional import *
 from torch.nn.functional import (
     _canonical_mask,
 )
+from typing import Tuple, Optional
 
 
 def multi_head_attention_forward_patched(
@@ -48,14 +49,21 @@ def multi_head_attention_forward_patched(
     proj_qkv = proj_qkv.unflatten(-1, (3, query.size(-1))).unsqueeze(0).transpose(0, -2).squeeze(-2).contiguous()
     q, k, v = proj_qkv[0], proj_qkv[1], proj_qkv[2]
 
-    if cache["first_infer"] == 1:
-        cache["k"][cache["stage"]] = k
-        cache["v"][cache["stage"]] = v
-    else:
-        cache["k"][cache["stage"]] = torch.cat([cache["k"][cache["stage"]][:-1], k], 0)
-        cache["v"][cache["stage"]] = torch.cat([cache["v"][cache["stage"]][:-1], v], 0)
-        k = cache["k"][cache["stage"]]
-        v = cache["v"][cache["stage"]]
+    # 使用动态形状推断来统一处理kv cache首步和后续步骤形状差异
+    # # k,v : [N, 1, 512] at first time, [1, 1, 512] afterwards
+    # # cache_k, cache_v : [N, 1, 512] for one head, N size increasement is prepared outside
+    # cache["k"][:, cache["stage"]:cache["stage"]+1, :]
+    # cache["v"][:, cache["stage"]:cache["stage"]+1, :]
+    # Magic to get an index of either -1 or -N according to if first_infer_mask is set
+    minus_one = torch.tensor([-1]).to(k.device).to(torch.int64)
+    multipled = minus_one * cache["first_infer"] * (cache['x_seq_len'] + cache['y_seq_len'])
+    index_offset = torch.min(minus_one, multipled)
+    # 首次时 index 为 -N，后续index 为 -1
+    cache["k"][index_offset:, cache["stage"]:cache["stage"]+1, :] = k
+    cache["v"][index_offset:, cache["stage"]:cache["stage"]+1, :] = v
+    k = cache["k"][:, cache["stage"]:cache["stage"]+1, :]
+    v = cache["v"][:, cache["stage"]:cache["stage"]+1, :]
+
     cache["stage"] = (cache["stage"] + 1) % cache["all_stage"]
 
     attn_mask = _canonical_mask(

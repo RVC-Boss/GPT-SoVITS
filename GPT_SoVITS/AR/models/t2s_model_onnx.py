@@ -7,6 +7,7 @@ from torchmetrics.classification import MulticlassAccuracy
 
 from AR.modules.embedding_onnx import SinePositionalEmbedding, TokenEmbedding
 from AR.modules.transformer_onnx import LayerNorm, TransformerEncoder, TransformerEncoderLayer
+from tqdm import tqdm
 
 default_config = {
     "embedding_dim": 512,
@@ -27,45 +28,45 @@ def logits_to_probs(
     logits,
     previous_tokens=None,
     temperature: float = 1.0,
-    top_k=None,
-    top_p=None,
+    top_k=15,
+    top_p=1.0,
     repetition_penalty: float = 1.0,
 ):
     previous_tokens = previous_tokens.squeeze()
-    if previous_tokens is not None and repetition_penalty != 1.0:
-        previous_tokens = previous_tokens.long()
-        score = torch.gather(logits, dim=0, index=previous_tokens)
-        score = torch.where(
-            score < 0,
-            score * repetition_penalty,
-            score / repetition_penalty,
-        )
-        logits.scatter_(dim=0, index=previous_tokens, src=score)
+    # if previous_tokens is not None and repetition_penalty != 1.0: # Always captured by onnx
+    previous_tokens = previous_tokens.long()
+    score = torch.gather(logits, dim=0, index=previous_tokens)
+    score = torch.where(
+        score < 0,
+        score * repetition_penalty,
+        score / repetition_penalty,
+    )
+    logits.scatter_(dim=0, index=previous_tokens, src=score)
 
-    if top_p is not None and top_p < 1.0:
-        sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-        cum_probs = torch.cumsum(
-            torch.nn.functional.softmax(
-                sorted_logits,
-                dim=-1,
-            ),
+    # if top_p is not None and top_p < 1.0: #To be captured by onnx
+    sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+    cum_probs = torch.cumsum(
+        torch.nn.functional.softmax(
+            sorted_logits,
             dim=-1,
-        )
-        sorted_indices_to_remove = cum_probs > top_p
-        sorted_indices_to_remove[0] = False  # keep at least one option
-        indices_to_remove = sorted_indices_to_remove.scatter(
-            dim=0,
-            index=sorted_indices,
-            src=sorted_indices_to_remove,
-        )
-        logits = logits.masked_fill(indices_to_remove, -float("Inf"))
+        ),
+        dim=-1,
+    )
+    sorted_indices_to_remove = cum_probs > top_p
+    sorted_indices_to_remove[0] = False  # keep at least one option
+    indices_to_remove = sorted_indices_to_remove.scatter(
+        dim=0,
+        index=sorted_indices,
+        src=sorted_indices_to_remove,
+    )
+    logits = logits.masked_fill(indices_to_remove, -float("Inf"))
 
-    logits = logits / max(temperature, 1e-5)
+    logits = logits / torch.max(temperature, torch.tensor(1e-5, device=logits.device, dtype=torch.float))
 
-    if top_k is not None:
-        v, _ = torch.topk(logits, top_k)
-        pivot = v.select(-1, -1).unsqueeze(-1)
-        logits = torch.where(logits < pivot, inf_tensor_value, logits)
+    # if top_k is not None: # To be captured by onnx
+    v, _ = torch.topk(logits, top_k)
+    pivot = v.select(-1, -1).unsqueeze(-1)
+    logits = torch.where(logits < pivot, inf_tensor_value, logits)
 
     probs = torch.nn.functional.softmax(logits, dim=-1)
     return probs
@@ -104,88 +105,6 @@ class OnnxEncoder(nn.Module):
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
         return self.ar_text_position(x)
 
-
-class T2SFirstStageDecoder(nn.Module):
-    def __init__(
-        self,
-        ar_audio_embedding,
-        ar_audio_position,
-        h,
-        ar_predict_layer,
-        loss_fct,
-        ar_accuracy_metric,
-        top_k,
-        early_stop_num,
-        num_layers,
-    ):
-        super().__init__()
-        self.ar_audio_embedding = ar_audio_embedding
-        self.ar_audio_position = ar_audio_position
-        self.h = h
-        self.ar_predict_layer = ar_predict_layer
-        self.loss_fct = loss_fct
-        self.ar_accuracy_metric = ar_accuracy_metric
-        self.top_k = top_k
-        self.early_stop_num = early_stop_num
-        self.num_layers = num_layers
-
-    def forward(self, x, prompt):
-        y = prompt
-        x_example = x[:, :, 0] * 0.0
-        # N, 1, 512
-        cache = {
-            "all_stage": self.num_layers,
-            "k": None,
-            "v": None,
-            "y_emb": None,
-            "first_infer": 1,
-            "stage": 0,
-        }
-
-        y_emb = self.ar_audio_embedding(y)
-
-        cache["y_emb"] = y_emb
-        y_pos = self.ar_audio_position(y_emb)
-
-        xy_pos = torch.concat([x, y_pos], dim=1)
-
-        y_example = y_pos[:, :, 0] * 0.0
-        x_attn_mask = torch.matmul(x_example.transpose(0, 1), x_example).bool()
-        y_attn_mask = torch.ones_like(torch.matmul(y_example.transpose(0, 1), y_example), dtype=torch.int64)
-        y_attn_mask = torch.cumsum(y_attn_mask, dim=1) - torch.cumsum(
-            torch.ones_like(
-                y_example.transpose(0, 1),
-                dtype=torch.int64,
-            ),
-            dim=0,
-        )
-        y_attn_mask = y_attn_mask > 0
-
-        x_y_pad = torch.matmul(x_example.transpose(0, 1), y_example).bool()
-        y_x_pad = torch.matmul(y_example.transpose(0, 1), x_example).bool()
-        x_attn_mask_pad = torch.cat([x_attn_mask, torch.ones_like(x_y_pad)], dim=1)
-        y_attn_mask = torch.cat([y_x_pad, y_attn_mask], dim=1)
-        xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0)
-        cache["k"] = (
-            torch.matmul(x_attn_mask_pad[0].float().unsqueeze(-1), torch.zeros((1, 512)))
-            .unsqueeze(1)
-            .repeat(self.num_layers, 1, 1, 1)
-        )
-        cache["v"] = (
-            torch.matmul(x_attn_mask_pad[0].float().unsqueeze(-1), torch.zeros((1, 512)))
-            .unsqueeze(1)
-            .repeat(self.num_layers, 1, 1, 1)
-        )
-
-        xy_dec = self.h(xy_pos, mask=xy_attn_mask, cache=cache)
-        logits = self.ar_predict_layer(xy_dec[:, -1])
-        samples = sample(logits[0], y, top_k=self.top_k, top_p=1.0, repetition_penalty=1.35)[0].unsqueeze(0)
-
-        y = torch.concat([y, samples], dim=1)
-
-        return y, cache["k"], cache["v"], cache["y_emb"], x_example
-
-
 class T2SStageDecoder(nn.Module):
     def __init__(
         self,
@@ -195,7 +114,6 @@ class T2SStageDecoder(nn.Module):
         ar_predict_layer,
         loss_fct,
         ar_accuracy_metric,
-        top_k,
         early_stop_num,
         num_layers,
     ):
@@ -206,40 +124,80 @@ class T2SStageDecoder(nn.Module):
         self.ar_predict_layer = ar_predict_layer
         self.loss_fct = loss_fct
         self.ar_accuracy_metric = ar_accuracy_metric
-        self.top_k = top_k
         self.early_stop_num = early_stop_num
         self.num_layers = num_layers
 
-    def forward(self, y, k, v, y_emb, x_example):
+    def forward(self, x, y, k, v, y_emb, top_k = None, top_p = None, repetition_penalty = None, temperature = None, first_infer = None, x_seq_len = None, y_seq_len = None):
+        if top_k is None:
+            top_k = torch.LongTensor([15]).to(device=y.device)
+        if top_p is None:
+            top_p = torch.FloatTensor([1.0]).to(device=y.device)
+        if repetition_penalty is None:
+            repetition_penalty = torch.FloatTensor([1.0]).to(device=y.device)
+        if temperature is None:
+            temperature = torch.FloatTensor([1.0]).to(device=y.device)
+        minus_one = torch.tensor([-1]).to(y.device).to(torch.int64)
+
         cache = {
             "all_stage": self.num_layers,
-            "k": torch.nn.functional.pad(k, (0, 0, 0, 0, 0, 1)),
-            "v": torch.nn.functional.pad(v, (0, 0, 0, 0, 0, 1)),
+            "k": k,
+            "v": v,
             "y_emb": y_emb,
-            "first_infer": 0,
+            "first_infer": first_infer,
             "stage": 0,
+            "x_seq_len": x_seq_len,
+            "y_seq_len": y_seq_len,
         }
 
+        # 运行时判断对最后一个y还是整个y做embedding，以正确应对首次和后续
+        multipled = minus_one * first_infer * y_seq_len
+        index_offset = torch.min(minus_one, multipled)
+        y_to_emb = y[:, index_offset:]
+        # 对y输入进行embedding
         y_emb = torch.cat(
             [
                 cache["y_emb"],
-                self.ar_audio_embedding(y[:, -1:]),
+                self.ar_audio_embedding(y_to_emb),
             ],
             1,
         )
         cache["y_emb"] = y_emb
         y_pos = self.ar_audio_position(y_emb)
+        # 与x输入拼接做attention准备
+        xy_pos = torch.concat([x, y_pos], dim=1)
 
-        xy_pos = y_pos[:, -1:]
+        # 运行时判断对最后一个xy_pos还是整个xy_pos做self attention
+        multipled = minus_one * first_infer * (x_seq_len + y_seq_len) # xy_pos = 1 or x_seq_len + y_seq_len
+        index_offset = torch.min(minus_one, multipled)
+        xy_pos = xy_pos[:, index_offset:]
 
-        y_example = y_pos[:, :, 0] * 0.0
+        # 构造xy的attention mask
+        x_attn_mask = torch.zeros((x_seq_len, x_seq_len)).bool()
+        y_attn_mask = torch.ones((y_seq_len, y_seq_len)).to(torch.int64)
+        y_attn_mask = torch.cumsum(y_attn_mask, dim=1) - torch.cumsum(
+            torch.ones(
+                (y_seq_len, 1),
+                dtype=torch.int64,
+            ),
+            dim=0,
+        )
+        y_attn_mask = y_attn_mask > 0
 
-        xy_attn_mask = torch.cat([x_example, y_example], dim=1)
-        xy_attn_mask = torch.zeros_like(xy_attn_mask, dtype=torch.bool)
+        x_y_pad = torch.ones((x_seq_len, y_seq_len)).to(torch.bool)
+        y_x_pad = torch.zeros((y_seq_len, x_seq_len)).to(torch.bool)
+
+        x_attn_mask_pad = torch.cat([x_attn_mask, x_y_pad], dim=1)
+        y_attn_mask = torch.cat([y_x_pad, y_attn_mask], dim=1)
+        xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0)
+
+        # 运行时判断attension mask使用最后一个还是整个
+        multipled = minus_one * first_infer * (x_seq_len + y_seq_len)
+        index_offset = torch.min(minus_one, multipled)
+        xy_attn_mask = xy_attn_mask[index_offset:, :]
 
         xy_dec = self.h(xy_pos, mask=xy_attn_mask, cache=cache)
         logits = self.ar_predict_layer(xy_dec[:, -1])
-        samples = sample(logits[0], y, top_k=self.top_k, top_p=1.0, repetition_penalty=1.35)[0].unsqueeze(0)
+        samples = sample(logits[0], y, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0].unsqueeze(0)
 
         y = torch.concat([y, samples], dim=1)
 
@@ -291,17 +249,6 @@ class Text2SemanticDecoder(nn.Module):
 
     def init_onnx(self):
         self.onnx_encoder = OnnxEncoder(self.ar_text_embedding, self.bert_proj, self.ar_text_position)
-        self.first_stage_decoder = T2SFirstStageDecoder(
-            self.ar_audio_embedding,
-            self.ar_audio_position,
-            self.h,
-            self.ar_predict_layer,
-            self.loss_fct,
-            self.ar_accuracy_metric,
-            self.top_k,
-            self.early_stop_num,
-            self.num_layers,
-        )
         self.stage_decoder = T2SStageDecoder(
             self.ar_audio_embedding,
             self.ar_audio_position,
@@ -309,33 +256,56 @@ class Text2SemanticDecoder(nn.Module):
             self.ar_predict_layer,
             self.loss_fct,
             self.ar_accuracy_metric,
-            self.top_k,
             self.early_stop_num,
             self.num_layers,
         )
 
-    def forward(self, x, prompts, bert_feature):
+    def forward(self, x, prompts, bert_feature, top_k = None):
+        # torch.manual_seed(42)
+        # torch.use_deterministic_algorithms(True)
+        if top_k is None:
+            top_k = self.top_k
         early_stop_num = self.early_stop_num
         prefix_len = prompts.shape[1]
 
         x = self.onnx_encoder(x, bert_feature)
-        y, k, v, y_emb, stage, x_example = self.first_stage_decoder(x, prompts)
+
+        x_seq_len = x.shape[1]
+        y_seq_len = prompts.shape[1]
+
+        init_k = torch.zeros(((x_seq_len + y_seq_len), self.num_layers, 512), dtype=torch.float)
+        init_v = torch.zeros(((x_seq_len + y_seq_len), self.num_layers, 512), dtype=torch.float)
+
+        empty_tensor = torch.empty((1,0,512)).to(torch.float)
+
+        y, k, v, y_emb, logits, samples = self.stage_decoder(x, prompts, init_k, init_v,
+                                                empty_tensor, top_k=top_k, 
+                                                first_infer=torch.LongTensor([1]), 
+                                                x_seq_len=x_seq_len, y_seq_len=y_seq_len)
 
         stop = False
-        for idx in range(1, 1500):
-            enco = self.stage_decoder(y, k, v, y_emb, stage, x_example)
-            y, k, v, y_emb, stage, logits, samples = enco
+        for idx in tqdm(range(1, 1500)):
+            k = torch.nn.functional.pad(k, (0, 0, 0, 0, 0, 1))
+            v = torch.nn.functional.pad(v, (0, 0, 0, 0, 0, 1))
+            y_seq_len = y.shape[1]
+            enco = self.stage_decoder(empty_tensor, y, k, v, y_emb, top_k=top_k,
+                                       first_infer=torch.LongTensor([0]), x_seq_len=x_seq_len, y_seq_len=y_seq_len)
+            y, k, v, y_emb, logits, samples = enco
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
                 stop = True
             if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
                 stop = True
             if stop:
+                y = y[:,:-1]
                 break
-        y[0, -1] = 0
+        # torch.use_deterministic_algorithms(False)
         return y, idx
 
-    def infer(self, x, prompts, bert_feature):
-        top_k = self.top_k
+    def infer(self, x, prompts, bert_feature, top_k=None):
+        # torch.manual_seed(42)
+        # torch.use_deterministic_algorithms(True)
+        if top_k is None:
+            top_k = self.top_k
         early_stop_num = self.early_stop_num
 
         x = self.onnx_encoder(x, bert_feature)
@@ -356,11 +326,14 @@ class Text2SemanticDecoder(nn.Module):
             "first_infer": 1,
             "stage": 0,
         }
-        for idx in range(1500):
+        for idx in tqdm(range(1500)):
             if cache["first_infer"] == 1:
                 y_emb = self.ar_audio_embedding(y)
             else:
                 y_emb = torch.cat([cache["y_emb"], self.ar_audio_embedding(y[:, -1:])], 1)
+                for i in range(len(cache["k"])):
+                    cache["k"][i] = torch.nn.functional.pad(cache["k"][i], (0, 0, 0, 0, 0, 1))
+                    cache["v"][i] = torch.nn.functional.pad(cache["v"][i], (0, 0, 0, 0, 0, 1))
             cache["y_emb"] = y_emb
             y_pos = self.ar_audio_position(y_emb)
             if cache["first_infer"] == 1:
@@ -380,15 +353,14 @@ class Text2SemanticDecoder(nn.Module):
                 xy_attn_mask = torch.zeros((1, x_len + y_len), dtype=torch.bool)
             xy_dec = self.h(xy_pos, mask=xy_attn_mask, cache=cache)
             logits = self.ar_predict_layer(xy_dec[:, -1])
-            samples = sample(logits[0], y, top_k=top_k, top_p=1.0, repetition_penalty=1.35)[0].unsqueeze(0)
+            samples = sample(logits[0], y, top_k=top_k, top_p=1.0, repetition_penalty=1.35, temperature=torch.Tensor([1.0]))[0].unsqueeze(0)
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
                 stop = True
             if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
                 stop = True
             if stop:
-                if prompts.shape[1] == y.shape[1]:
-                    y = torch.concat([y, torch.zeros_like(samples)], dim=1)
                 break
             y = torch.concat([y, samples], dim=1)
             cache["first_infer"] = 0
+        # torch.use_deterministic_algorithms(False)
         return y, idx
