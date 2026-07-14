@@ -1,11 +1,10 @@
---no-binary=opencc
 numpy<2.0
 scipy
 tensorboard
 librosa==0.10.2
 numba
 pytorch-lightning>=2.4
-gradio<5
+gradio==4.44.1
 ffmpeg-python
 onnxruntime; platform_machine == "aarch64" or platform_machine == "arm64"
 onnxruntime-gpu; platform_machine == "x86_64" or platform_machine == "AMD64"
@@ -34,7 +33,8 @@ g2pk2
 ko_pron
 opencc
 python_mecab_ko; sys_platform != 'win32'
-fastapi[standard]>=0.115.2
+fastapi[standard]==0.124.0
+starlette==0.49.3
 x_transformers
 torchmetrics<=1.5
 pydantic<=2.10.6
