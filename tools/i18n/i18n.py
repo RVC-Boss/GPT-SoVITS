@@ -1,6 +1,7 @@
 import json
 import locale
 import os
+import sys
 
 I18N_JSON_DIR: os.PathLike = os.path.join(os.path.dirname(os.path.relpath(__file__)), "locale")
 
@@ -17,6 +18,14 @@ def scan_language_list():
         if name.endswith(".json"):
             language_list.append(name.split(".")[0])
     return language_list
+
+
+def resolve_language(language="Auto", argv=None):
+    if argv is None:
+        argv = sys.argv
+    if argv and argv[-1] in scan_language_list():
+        return argv[-1]
+    return language
 
 
 class I18nAuto:

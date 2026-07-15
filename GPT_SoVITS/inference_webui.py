@@ -124,10 +124,9 @@ from text import cleaned_text_to_sequence
 from text.cleaner import clean_text
 
 from tools.assets import css, js, top_html
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from tools.i18n.i18n import I18nAuto, resolve_language
 
-language = os.environ.get("language", "Auto")
-language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
+language = resolve_language(os.environ.get("language", "Auto"))
 i18n = I18nAuto(language=language)
 
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
