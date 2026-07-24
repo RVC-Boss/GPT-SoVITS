@@ -163,10 +163,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p", "--precision", type=str, default="float16", choices=["float16", "float32"], help="fp16 or fp32"
     )  # 还没接入
+    parser.add_argument(
+        "-b",
+        "--backend",
+        type=str,
+        default="fun-asr-nano",
+        choices=["fun-asr-nano", "sensevoice", "paraformer"],
+        help="FunASR backend to use.",
+    )
     cmd = parser.parse_args()
     execute_asr(
         input_folder=cmd.input_folder,
         output_folder=cmd.output_folder,
         model_size=cmd.model_size,
         language=cmd.language,
+        backend=cmd.backend,
     )
