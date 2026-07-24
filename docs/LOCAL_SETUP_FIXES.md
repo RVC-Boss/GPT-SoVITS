@@ -7,7 +7,7 @@
 
 | 文件 | 作用 |
 |------|------|
-| `setup_uv.sh` | 用 uv 创建 venv、装依赖、布局模型 |
+| `setup_uv.sh` | 用 uv 创建 venv、安装依赖并下载模型 |
 | `scripts/setup_sitecustomize.py` | 写入 sitecustomize，预加载 CUDA12 NPP |
 | `scripts/link_npp_for_torchcodec.py` | 把 NPP `.so.12` 链到 torchcodec 目录 |
 | `requirements.txt` | 已固化兼容版本与额外依赖 |
@@ -16,7 +16,7 @@
 
 ```bash
 cd /path/to/GPT-SoVITS   # 本仓库 root
-bash setup_uv.sh --device CU128
+bash setup_uv.sh --device CU128 --source HF-Mirror --download-uvr5
 source .venv/bin/activate
 python webui.py zh_CN
 ```
@@ -164,7 +164,7 @@ w, sr = torchaudio.load("some.wav")  # should succeed
 
 ---
 
-## 3. 模型文件布局（安装/摆放，非代码）
+## 3. 模型下载与安装
 
 README 约定的路径：
 
@@ -175,18 +175,24 @@ README 约定的路径：
 | UVR5 人声分离 | `tools/uvr5/uvr5_weights/` |
 | FunASR / Faster-Whisper | `tools/asr/models/` |
 
-本机实际做法：
+`setup_uv.sh` 会从指定的模型源下载缺失文件并解压到正确目录：
 
-1. **G2PW**：解压根目录 `G2PWModel.zip` → `GPT_SoVITS/text/`
-2. **UVR5**：解压根目录 `uvr5_weights.zip` → `tools/uvr5/`
-3. **ASR**：把 `aaa/` 下 FunASR + faster-whisper 拷到 `tools/asr/models/`  
-   （注意 docker 下载出来可能是 root 权限，需 `chown`）
-4. **pretrained_models**：
-   - 旁边 `../GPT-SoVITS/pretrained_models.zip` 当时 **损坏**（缺 EOCD）
-   - 从正在跑的 Docker 镜像内路径  
-     `/workspace/models/pretrained_models/`  
-     `docker cp` 到本地 `GPT_SoVITS/pretrained_models/`
-   - `setup_uv.sh` 会按：容器 → 旁目录 → zip 的顺序尝试
+```bash
+# 国内网络建议使用默认的 Hugging Face 镜像
+bash setup_uv.sh --device CU128 --source HF-Mirror --download-uvr5
+
+# 也可以使用 Hugging Face 或 ModelScope
+bash setup_uv.sh --device CU128 --source HF
+bash setup_uv.sh --device CU128 --source ModelScope
+
+# 已装好 Python 依赖时，只下载模型
+bash setup_uv.sh --models-only --source HF-Mirror --download-uvr5
+```
+
+- 预训练底模和 G2PW 会默认安装。
+- UVR5 是可选功能，传入 `--download-uvr5` 才会下载。
+- Paraformer、SenseVoice、Fun-ASR-Nano 和 Faster-Whisper 等 ASR 模型会在 WebUI 首次使用对应功能时自动下载，无需手工复制；其中经典 Paraformer 和 Faster-Whisper 会放到 `tools/asr/models/`。
+- 重复执行脚本会跳过已经安装的模型。
 
 校验清单：
 
@@ -223,8 +229,8 @@ tools/asr/models/faster-whisper-large-v3/model.bin
 | 选达摩却仍加载 Nano | 更新后的 `config.py`/`funasr_asr.py`/`webui.py`，重启 webui |
 | `2-get-sv` / `torchaudio.load` 缺 `libnppicc.so.12` | 装 `nvidia-npp-cu12` + 跑两个 scripts hook |
 | `torchaudio` 与 `torch` CUDA 不一致 | 用同一 index 重装 `torchaudio`（`--reinstall`） |
-| pretrained zip 解压失败 | 检查 zip 完整性；或从官方 Docker 镜像/HF 重新下 |
-| ASR 模型目录几乎空、权限 denied | `aaa/` 是 root 文件时 `sudo chown -R $USER aaa` 再拷 |
+| 模型下载或解压失败 | 切换 `--source HF-Mirror|HF|ModelScope` 后重试，并确认磁盘空间充足 |
+| ASR 模型目录为空 | 正常现象；在 WebUI 首次运行对应 ASR 后会自动下载 |
 
 ---
 
@@ -259,7 +265,7 @@ uv run webui.py zh_CN
 | install.sh | 本方案 |
 |------------|--------|
 | conda env + pip | uv venv + uv pip |
-| 自动 wget 模型 zip | `setup_uv.sh` 优先用本地 zip/`aaa`/docker |
+| 自动 wget 模型 zip | `setup_uv.sh` 支持 HF、HF-Mirror、ModelScope，缺失时直接下载 |
 | conda ffmpeg | 系统 ffmpeg |
 | 无 fastapi 上界 | 显式 pin 兼容 Gradio 4 |
 | 无 npp-cu12 | 显式安装 + hook |

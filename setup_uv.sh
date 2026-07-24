@@ -4,8 +4,9 @@
 #   bash setup_uv.sh                  # CU128 default
 #   bash setup_uv.sh --device CU126
 #   bash setup_uv.sh --device CPU
+#   bash setup_uv.sh --source HF-Mirror --download-uvr5
 #   bash setup_uv.sh --skip-models    # deps only
-#   bash setup_uv.sh --models-only    # install/layout models only
+#   bash setup_uv.sh --models-only    # download/install models only
 #   bash setup_uv.sh --force-venv     # recreate .venv
 set -euo pipefail
 
@@ -13,8 +14,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 DEVICE="CU128"
+SOURCE="HF-Mirror"
 SKIP_MODELS=false
 MODELS_ONLY=false
+DOWNLOAD_UVR5=false
 FORCE_VENV=false
 PYTHON_VERSION="3.10"
 VENV_DIR="${VENV_DIR:-.venv}"
@@ -35,10 +38,12 @@ Usage: bash setup_uv.sh [OPTIONS]
 
 Options:
   --device CU126|CU128|CPU   PyTorch device wheel (default: CU128)
+  --source SOURCE            HF|HF-Mirror|ModelScope (default: HF-Mirror)
   --python 3.10|3.11         Python version for venv (default: 3.10)
   --venv PATH                Venv directory (default: .venv)
-  --skip-models              Skip model install/layout
-  --models-only              Only layout models, skip venv/deps
+  --skip-models              Skip model download/install
+  --models-only              Only download/install models, skip venv/deps
+  --download-uvr5            Also download optional UVR5 weights
   --force-venv               Remove and recreate venv
   -h, --help                 Show help
 
@@ -52,10 +57,12 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --device) DEVICE="${2^^}"; shift 2 ;;
+    --source) SOURCE="$2"; shift 2 ;;
     --python) PYTHON_VERSION="$2"; shift 2 ;;
     --venv) VENV_DIR="$2"; shift 2 ;;
     --skip-models) SKIP_MODELS=true; shift ;;
     --models-only) MODELS_ONLY=true; shift ;;
+    --download-uvr5) DOWNLOAD_UVR5=true; shift ;;
     --force-venv) FORCE_VENV=true; shift ;;
     -h|--help) print_help; exit 0 ;;
     *) err "Unknown arg: $1"; print_help; exit 1 ;;
@@ -67,87 +74,85 @@ case "$DEVICE" in
   *) err "Invalid --device $DEVICE (use CU126|CU128|CPU)"; exit 1 ;;
 esac
 
+case "$SOURCE" in
+  HF|HF-Mirror|ModelScope) ;;
+  *) err "Invalid --source $SOURCE (use HF|HF-Mirror|ModelScope)"; exit 1 ;;
+esac
+
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || { err "Missing command: $1"; exit 1; }
 }
 
-# ---------- models layout ----------
-layout_models() {
-  info "Layout pretrained / ASR / UVR5 / G2PW models"
-
-  # Pretrained: copy from sibling docker tree or unzip local zip if present
-  if [[ ! -d GPT_SoVITS/pretrained_models/sv ]]; then
-    if [[ -d ../GPT-SoVITS/GPT_SoVITS/pretrained_models/sv ]]; then
-      info "Copying pretrained_models from ../GPT-SoVITS"
-      mkdir -p GPT_SoVITS/pretrained_models
-      # handle broken docker symlink cases by copying real files if available
-      if command -v docker >/dev/null 2>&1; then
-        CID="$(docker ps --filter ancestor=xxxxrt666/gpt-sovits:latest-cu128 --format '{{.ID}}' | head -1 || true)"
-        if [[ -n "${CID:-}" ]]; then
-          info "docker cp pretrained from container $CID"
-          docker cp "$CID:/workspace/models/pretrained_models/." GPT_SoVITS/pretrained_models/ || true
-        fi
-      fi
-      if [[ ! -d GPT_SoVITS/pretrained_models/sv ]]; then
-        cp -a ../GPT-SoVITS/GPT_SoVITS/pretrained_models/. GPT_SoVITS/pretrained_models/ 2>/dev/null || true
-      fi
-    fi
-    if [[ ! -d GPT_SoVITS/pretrained_models/sv && -f pretrained_models.zip ]]; then
-      info "Unzipping pretrained_models.zip"
-      unzip -q -o pretrained_models.zip -d GPT_SoVITS || warn "pretrained_models.zip may be corrupt"
-    fi
-    if [[ ! -d GPT_SoVITS/pretrained_models/sv && -f ../GPT-SoVITS/pretrained_models.zip ]]; then
-      info "Trying ../GPT-SoVITS/pretrained_models.zip"
-      unzip -q -o ../GPT-SoVITS/pretrained_models.zip -d GPT_SoVITS || warn "zip may be corrupt"
-    fi
+download_file() {
+  local url="$1" output="$2"
+  if command -v wget >/dev/null 2>&1; then
+    wget --tries=5 --timeout=40 --show-progress -O "$output" "$url"
+  elif command -v curl >/dev/null 2>&1; then
+    curl -fL --retry 5 --connect-timeout 40 -o "$output" "$url"
   else
-    ok "pretrained_models already present"
+    err "wget or curl is required to download models"
+    return 1
+  fi
+}
+
+download_and_extract_zip() {
+  local label="$1" url="$2" destination="$3" archive
+  archive="$(mktemp "/tmp/gpt-sovits-${label}.XXXXXX.zip")"
+  info "Downloading $label from $SOURCE"
+  if download_file "$url" "$archive" && unzip -q -o "$archive" -d "$destination"; then
+    rm -f "$archive"
+    ok "$label installed"
+  else
+    rm -f "$archive"
+    err "Failed to download or extract $label"
+    return 1
+  fi
+}
+
+# ---------- model download/install ----------
+install_models() {
+  local base_url pretrained_url g2pw_url uvr5_url
+  need_cmd unzip
+  case "$SOURCE" in
+    HF)
+      base_url="https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
+      ;;
+    HF-Mirror)
+      base_url="https://hf-mirror.com/XXXXRT/GPT-SoVITS-Pretrained/resolve/main"
+      ;;
+    ModelScope)
+      base_url="https://www.modelscope.cn/models/XXXXRT/GPT-SoVITS-Pretrained/resolve/master"
+      ;;
+  esac
+  pretrained_url="$base_url/pretrained_models.zip"
+  g2pw_url="$base_url/G2PWModel.zip"
+  uvr5_url="$base_url/uvr5_weights.zip"
+
+  mkdir -p GPT_SoVITS/pretrained_models GPT_SoVITS/text tools/uvr5/uvr5_weights tools/asr/models
+
+  if [[ ! -d GPT_SoVITS/pretrained_models/sv ]]; then
+    download_and_extract_zip "pretrained-models" "$pretrained_url" GPT_SoVITS
+  else
+    ok "Pretrained models already present"
   fi
 
-  # G2PW
   if [[ ! -d GPT_SoVITS/text/G2PWModel ]]; then
-    if [[ -f G2PWModel.zip ]]; then
-      info "Unzipping G2PWModel.zip"
-      unzip -q -o G2PWModel.zip -d GPT_SoVITS/text
-    else
-      warn "G2PWModel.zip missing — Chinese polyphone quality may drop"
-    fi
+    download_and_extract_zip "g2pw" "$g2pw_url" GPT_SoVITS/text
   else
     ok "G2PWModel already present"
   fi
 
-  # UVR5
-  if ! find tools/uvr5/uvr5_weights -mindepth 1 ! -name '.gitignore' 2>/dev/null | grep -q .; then
-    if [[ -f uvr5_weights.zip ]]; then
-      info "Unzipping uvr5_weights.zip"
-      unzip -q -o uvr5_weights.zip -d tools/uvr5
+  if [[ "$DOWNLOAD_UVR5" == true ]]; then
+    if ! find tools/uvr5/uvr5_weights -mindepth 1 ! -name '.gitignore' 2>/dev/null | grep -q .; then
+      download_and_extract_zip "uvr5" "$uvr5_url" tools/uvr5
     else
-      warn "uvr5_weights.zip missing — skip UVR5"
+      ok "UVR5 weights already present"
     fi
   else
-    ok "uvr5_weights already present"
+    info "Skipping optional UVR5 weights (use --download-uvr5 to install)"
   fi
 
-  # ASR models from aaa/ (or leave existing tools/asr/models)
-  mkdir -p tools/asr/models
-  if [[ -d aaa ]]; then
-    for name in \
-      faster-whisper-large-v3 \
-      punc_ct-transformer_zh-cn-common-vocab272727-pytorch \
-      speech_fsmn_vad_zh-cn-16k-common-pytorch \
-      speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch
-    do
-      if [[ -d "aaa/$name" ]]; then
-        if [[ ! -e "tools/asr/models/$name/model.pt" && ! -e "tools/asr/models/$name/model.bin" ]]; then
-          info "Installing ASR model: $name"
-          rm -rf "tools/asr/models/$name"
-          cp -a "aaa/$name" "tools/asr/models/$name"
-        else
-          ok "ASR model exists: $name"
-        fi
-      fi
-    done
-  fi
+  info "ASR models are downloaded automatically on first use"
 
   # quick summary
   echo
@@ -295,7 +300,7 @@ PY
 
 # ---------- main ----------
 if [[ "$MODELS_ONLY" == true ]]; then
-  layout_models
+  install_models
   ok "Models-only done"
   exit 0
 fi
@@ -303,7 +308,7 @@ fi
 setup_venv
 
 if [[ "$SKIP_MODELS" != true ]]; then
-  layout_models
+  install_models
 fi
 
 echo
