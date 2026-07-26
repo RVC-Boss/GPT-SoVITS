@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import subprocess
 import sys
 import textwrap
@@ -9,7 +10,6 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
-from packaging.requirements import Requirement
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -62,25 +62,13 @@ def test_yue_honors_the_selected_multilingual_backend(
     assert calls[-1]["model"] == expected_model
 
 
-def test_nvidia_npp_requirement_does_not_break_macos() -> None:
-    requirement_line = next(
-        line.strip()
-        for line in (REPO_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
-        if line.strip().startswith("nvidia-npp-cu12")
-    )
-    requirement = Requirement(requirement_line)
+def test_nvidia_npp_is_not_a_device_agnostic_requirement() -> None:
+    requirements = (REPO_ROOT / "requirements.txt").read_text(encoding="utf-8")
 
-    assert requirement.marker is not None
-    assert not requirement.marker.evaluate(
-        {
-            "sys_platform": "darwin",
-            "platform_machine": "arm64",
-            "python_version": "3.11",
-        }
-    )
+    assert "nvidia-npp-cu12" not in requirements
 
 
-def test_cpu_uv_setup_does_not_install_cuda_npp(tmp_path: Path) -> None:
+def _run_fake_uv_setup(tmp_path: Path, device: str):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     uv_log = tmp_path / "uv.log"
@@ -116,7 +104,7 @@ def test_cpu_uv_setup_does_not_install_cuda_npp(tmp_path: Path) -> None:
             "bash",
             str(REPO_ROOT / "setup_uv.sh"),
             "--device",
-            "CPU",
+            device,
             "--skip-models",
             "--venv",
             str(tmp_path / "venv"),
@@ -128,5 +116,46 @@ def test_cpu_uv_setup_does_not_install_cuda_npp(tmp_path: Path) -> None:
         text=True,
     )
 
+    return result, uv_log, tmp_path / "venv"
+
+
+def test_cpu_uv_setup_does_not_install_or_configure_cuda_npp(tmp_path: Path) -> None:
+    result, uv_log, venv = _run_fake_uv_setup(tmp_path, "CPU")
+
     assert result.returncode == 0, result.stderr
     assert "nvidia-npp-cu12" not in uv_log.read_text(encoding="utf-8")
+    assert "nvidia/npp/lib" not in (venv / "bin" / "activate").read_text(encoding="utf-8")
+
+
+def test_cuda_uv_setup_installs_and_configures_npp(tmp_path: Path) -> None:
+    result, uv_log, venv = _run_fake_uv_setup(tmp_path, "CU128")
+
+    assert result.returncode == 0, result.stderr
+    assert "pip install nvidia-npp-cu12" in uv_log.read_text(encoding="utf-8")
+    assert "nvidia/npp/lib" in (venv / "bin" / "activate").read_text(encoding="utf-8")
+
+
+def test_setup_completion_only_references_existing_docs(tmp_path: Path) -> None:
+    result, _, _ = _run_fake_uv_setup(tmp_path, "CPU")
+
+    assert result.returncode == 0, result.stderr
+    doc_paths = re.findall(r"See (docs/\S+) for details", result.stdout)
+    assert all((REPO_ROOT / path).is_file() for path in doc_paths)
+
+
+def test_setup_sitecustomize_preserves_existing_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    site_packages = tmp_path / "site-packages"
+    site_packages.mkdir()
+    target = site_packages / "sitecustomize.py"
+    target.write_text("# user-owned\n", encoding="utf-8")
+
+    module_path = REPO_ROOT / "scripts" / "setup_sitecustomize.py"
+    spec = importlib.util.spec_from_file_location("setup_sitecustomize_under_test", module_path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module.site, "getsitepackages", lambda: [str(site_packages)])
+    monkeypatch.setattr(module.sys, "prefix", str(tmp_path / "unused-prefix"))
+
+    assert module.main() == 0
+    assert target.read_text(encoding="utf-8") == "# user-owned\n"

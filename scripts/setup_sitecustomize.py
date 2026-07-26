@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Write sitecustomize.py that preloads CUDA12 NPP for torchcodec/torchaudio."""
+
 from __future__ import annotations
 
 import site
@@ -77,6 +78,10 @@ def main() -> int:
         if "site-packages" not in sp.parts:
             continue
         target = sp / "sitecustomize.py"
+        if target.exists():
+            print(f"[SKIP] preserving existing {target}")
+            written = True
+            break
         target.write_text(SITECUSTOMIZE, encoding="utf-8")
         print(f"[OK] wrote {target}")
         written = True
