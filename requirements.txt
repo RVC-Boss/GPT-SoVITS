@@ -46,4 +46,4 @@ av>=11
 tqdm
 # torchaudio 2.11+ loads audio via torchcodec, which needs CUDA12 NPP libs.
 # System CUDA 13 only ships libnpp*.so.13; install the cu12 package for .so.12.
-nvidia-npp-cu12
+nvidia-npp-cu12; sys_platform == 'linux'

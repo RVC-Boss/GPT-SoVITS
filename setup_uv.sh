@@ -213,12 +213,14 @@ setup_venv() {
   info "Pinning fastapi/starlette compatible with Gradio 4.x"
   uv pip install "fastapi[standard]>=0.115.2,<0.116" "starlette>=0.37.2,<0.39"
 
-  info "Installing/ensuring nvidia-npp-cu12 for torchcodec"
-  uv pip install nvidia-npp-cu12 || warn "nvidia-npp-cu12 install failed (network?); audio load may break"
+  if [[ "$DEVICE" != "CPU" ]]; then
+    info "Installing/ensuring nvidia-npp-cu12 for torchcodec"
+    uv pip install nvidia-npp-cu12 || warn "nvidia-npp-cu12 install failed (network?); audio load may break"
 
-  info "Post-install hooks (sitecustomize + NPP symlinks)"
-  python scripts/setup_sitecustomize.py || true
-  python scripts/link_npp_for_torchcodec.py || true
+    info "Post-install hooks (sitecustomize + NPP symlinks)"
+    python scripts/setup_sitecustomize.py || true
+    python scripts/link_npp_for_torchcodec.py || true
+  fi
 
   # Ensure activate exports LD_LIBRARY_PATH for NPP
   local activate_file="$VENV_DIR/bin/activate"
