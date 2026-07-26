@@ -53,7 +53,7 @@ def create_model(language="zh", **kwargs):
     backend = kwargs.get("backend", "fun-asr-nano")
 
     # For non-classic backends, route to multilingual models regardless of language
-    if backend in ("fun-asr-nano", "sensevoice") and language != "yue":
+    if backend in ("fun-asr-nano", "sensevoice"):
         import torch
         device = "cuda" if torch.cuda.is_available() else "cpu"
         cache_key = f"{language}_{backend}"
