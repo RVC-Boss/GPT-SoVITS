@@ -18,7 +18,7 @@ g2p_en
 torchaudio
 modelscope
 sentencepiece
-transformers>=4.43,<=4.50
+transformers>=4.51,<4.53
 peft<0.18.0
 chardet
 PyYAML
@@ -34,10 +34,16 @@ g2pk2
 ko_pron
 opencc
 python_mecab_ko; sys_platform != 'win32'
-fastapi[standard]>=0.115.2
+# Gradio 4.x needs the old TemplateResponse API (name-first).
+# fastapi>=0.116 / starlette>=0.39 break WebUI page rendering.
+fastapi[standard]>=0.115.2,<0.116
+starlette>=0.37.2,<0.39
 x_transformers
 torchmetrics<=1.5
 pydantic<=2.10.6
 ctranslate2>=4.0,<5
 av>=11
 tqdm
+# torchaudio 2.11+ loads audio via torchcodec, which needs CUDA12 NPP libs.
+# System CUDA 13 only ships libnpp*.so.13; install the cu12 package for .so.12.
+nvidia-npp-cu12; sys_platform == 'linux'

@@ -380,6 +380,8 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_
         cmd += f" -s {asr_model_size}"
         cmd += f" -l {asr_lang}"
         cmd += f" -p {asr_precision}"
+        if "backend" in asr_dict[asr_model]:
+            cmd += f' -b {asr_dict[asr_model]["backend"]}'
         output_file_name = os.path.basename(asr_inp_dir)
         output_folder = asr_opt_dir or "output/asr_opt"
         output_file_path = os.path.abspath(f"{output_folder}/{output_file_name}.list")
@@ -1411,7 +1413,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                                 label=i18n("ASR 模型"),
                                 choices=list(asr_dict.keys()),
                                 interactive=True,
-                                value="达摩 ASR (中文)",
+                                value="达摩 ASR (中文经典)",
                             )
                             asr_size = gr.Dropdown(
                                 label=i18n("ASR 模型尺寸"), choices=["large"], interactive=True, value="large"
