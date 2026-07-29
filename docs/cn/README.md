@@ -48,6 +48,9 @@
 
 中国地区的用户可[点击此处](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official)使用 AutoDL 云端镜像进行体验.
 
+还可以通过通过阿里云 [Serverless 应用中心](https://fcnext.console.aliyun.com/applications/ai/create?template=fc-gpt-sovits) ，
+  [![Deploy with Severless Devs](https://img.alicdn.com/imgextra/i1/O1CN01w5RFbX1v45s8TIXPz_!!6000000006118-55-tps-95-28.svg)](https://fcnext.console.aliyun.com/applications/ai/create?template=fc-gpt-sovits) 到云端进行体验。
+
 ### 测试通过的环境
 
 | Python Version | PyTorch Version  | Device        |
