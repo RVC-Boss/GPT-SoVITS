@@ -202,6 +202,14 @@ for root in SoVITS_weight_root + GPT_weight_root:
     os.makedirs(root, exist_ok=True)
 SoVITS_names, GPT_names = get_weights_names()
 
+def get_exp_name_choices():
+    """返回 output 目录下的子目录名，作为「实验/模型名」下拉框的选项。"""
+    output_dir = os.path.join(now_dir, "output")
+    if not os.path.isdir(output_dir):
+        return []
+    return sorted(name for name in os.listdir(output_dir) if os.path.isdir(os.path.join(output_dir, name)))
+
+
 p_label = None
 p_uvr5 = None
 p_asr = None
@@ -1523,9 +1531,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             with gr.Accordion(i18n("微调模型信息")):
                 with gr.Row():
                     with gr.Row(equal_height=True):
-                        exp_name = gr.Textbox(
+                        exp_name = gr.Dropdown(
                             label=i18n("*实验/模型名"),
+                            choices=get_exp_name_choices(),
                             value="xxx",
+                            allow_custom_value=True,
                             interactive=True,
                             scale=3,
                         )
@@ -1574,21 +1584,20 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 with gr.Accordion(label=i18n("输出logs/实验名目录下应有23456开头的文件和文件夹")):
                     with gr.Row():
                         with gr.Row():
-                            inp_text = gr.Textbox(
+                            inp_text = create_path_input(
+                                i18n=i18n,
                                 label=i18n("*文本标注文件"),
                                 value=r"D:\RVC1006\GPT-SoVITS\raw\xxx.list",
-                                interactive=True,
-                                scale=10,
+                                mode="file",
                             )
                         with gr.Row():
-                            inp_wav_dir = gr.Textbox(
+                            inp_wav_dir = create_path_input(
+                                i18n=i18n,
                                 label=i18n("*训练集音频文件目录"),
-                                # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
-                                interactive=True,
                                 placeholder=i18n(
                                     "填切割后音频所在目录！读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名（不是全路径）。如果留空则使用.list文件里的绝对全路径。"
                                 ),
-                                scale=10,
+                                mode="folder",
                             )
 
                 with gr.Accordion(label="1Aa-" + process_name_1a):
@@ -1682,7 +1691,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             open_asr_button.click(
                 open_asr,
                 [asr_inp_dir.textbox, asr_opt_dir.textbox, asr_model, asr_size, asr_lang, asr_precision],
-                [asr_info, open_asr_button, close_asr_button, path_list.textbox, inp_text, inp_wav_dir],
+                [asr_info, open_asr_button, close_asr_button, path_list.textbox, inp_text.textbox, inp_wav_dir.textbox],
             )
             close_asr_button.click(close_asr, [], [asr_info, open_asr_button, close_asr_button])
             asr_inp_dir.textbox.change(sync_asr_opt_dir, [asr_inp_dir.textbox], [asr_opt_dir.textbox])
@@ -1701,31 +1710,31 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     alpha,
                     n_process,
                 ],
-                [slicer_info, open_slicer_button, close_slicer_button, asr_inp_dir.textbox, denoise_input_dir, inp_wav_dir],
+                [slicer_info, open_slicer_button, close_slicer_button, asr_inp_dir.textbox, denoise_input_dir, inp_wav_dir.textbox],
             )
             close_slicer_button.click(close_slice, [], [slicer_info, open_slicer_button, close_slicer_button])
             open_denoise_button.click(
                 open_denoise,
                 [denoise_input_dir, denoise_output_dir],
-                [denoise_info, open_denoise_button, close_denoise_button, asr_inp_dir.textbox, inp_wav_dir],
+                [denoise_info, open_denoise_button, close_denoise_button, asr_inp_dir.textbox, inp_wav_dir.textbox],
             )
             close_denoise_button.click(close_denoise, [], [denoise_info, open_denoise_button, close_denoise_button])
 
             button1a_open.click(
                 open1a,
-                [inp_text, inp_wav_dir, exp_name, gpu_numbers1a, bert_pretrained_dir],
+                [inp_text.textbox, inp_wav_dir.textbox, exp_name, gpu_numbers1a, bert_pretrained_dir],
                 [info1a, button1a_open, button1a_close],
             )
             button1a_close.click(close1a, [], [info1a, button1a_open, button1a_close])
             button1b_open.click(
                 open1b,
-                [version_checkbox, inp_text, inp_wav_dir, exp_name, gpu_numbers1Ba, cnhubert_base_dir],
+                [version_checkbox, inp_text.textbox, inp_wav_dir.textbox, exp_name, gpu_numbers1Ba, cnhubert_base_dir],
                 [info1b, button1b_open, button1b_close],
             )
             button1b_close.click(close1b, [], [info1b, button1b_open, button1b_close])
             button1c_open.click(
                 open1c,
-                [version_checkbox, inp_text, inp_wav_dir, exp_name, gpu_numbers1c, pretrained_s2G],
+                [version_checkbox, inp_text.textbox, inp_wav_dir.textbox, exp_name, gpu_numbers1c, pretrained_s2G],
                 [info1c, button1c_open, button1c_close],
             )
             button1c_close.click(close1c, [], [info1c, button1c_open, button1c_close])
@@ -1733,8 +1742,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 open1abc,
                 [
                     version_checkbox,
-                    inp_text,
-                    inp_wav_dir,
+                    inp_text.textbox,
+                    inp_wav_dir.textbox,
                     exp_name,
                     gpu_numbers1a,
                     gpu_numbers1Ba,
