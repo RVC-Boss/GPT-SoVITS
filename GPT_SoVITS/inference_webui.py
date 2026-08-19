@@ -815,7 +815,8 @@ def get_tts_wav(
     else:
         gr.Warning(i18n("请填入推理文本"))
     t = []
-    if prompt_text is None or len(prompt_text) == 0:
+    prompt_text_is_empty = prompt_text is None or len(prompt_text) == 0
+    if prompt_text_is_empty:
         ref_free = True
     if model_version in v3v4set:
         ref_free = False  # s2v3暂不支持ref_free
@@ -830,6 +831,10 @@ def get_tts_wav(
     text_language = dict_language[text_language]
 
     if not ref_free:
+        if prompt_text_is_empty:
+            err = i18n("请填入参考文本")
+            gr.Warning(err)
+            raise OSError(err)
         prompt_text = prompt_text.strip("\n")
         if prompt_text[-1] not in splits:
             prompt_text += "。" if prompt_language != "en" else "."

@@ -62,6 +62,7 @@ from subprocess import Popen
 
 from tools.assets import css, js, top_html
 from tools.i18n.i18n import I18nAuto, scan_language_list
+from GPT_SoVITS.web_components import create_path_input
 
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else "Auto"
 os.environ["language"] = language
@@ -200,6 +201,14 @@ from config import (
 for root in SoVITS_weight_root + GPT_weight_root:
     os.makedirs(root, exist_ok=True)
 SoVITS_names, GPT_names = get_weights_names()
+
+def get_exp_name_choices():
+    """返回 output 目录下的子目录名，作为「实验/模型名」下拉框的选项。"""
+    output_dir = os.path.join(now_dir, "output")
+    if not os.path.isdir(output_dir):
+        return []
+    return sorted(name for name in os.listdir(output_dir) if os.path.isdir(os.path.join(output_dir, name)))
+
 
 p_label = None
 p_uvr5 = None
@@ -367,6 +376,15 @@ from tools.asr.config import asr_dict
 
 process_name_asr = i18n("语音识别")
 
+default_asr_opt_dir = "output/asr_opt"
+
+
+def sync_asr_opt_dir(asr_inp_dir_value):
+    """ASR 输入文件夹变化时，自动把输出文件夹设为输入目录的父目录下的 asr_opt。"""
+    if not asr_inp_dir_value:
+        return {"__type__": "update"}
+    return {"__type__": "update", "value": os.path.join(os.path.dirname(my_utils.clean_path(asr_inp_dir_value)), "asr_opt")}
+
 
 def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_precision):
     global p_asr
@@ -381,7 +399,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_
         cmd += f" -l {asr_lang}"
         cmd += f" -p {asr_precision}"
         output_file_name = os.path.basename(asr_inp_dir)
-        output_folder = asr_opt_dir or "output/asr_opt"
+        output_folder = asr_opt_dir or default_asr_opt_dir
         output_file_path = os.path.abspath(f"{output_folder}/{output_file_name}.list")
         yield (
             process_info(process_name_asr, "opened"),
@@ -552,10 +570,12 @@ def open1Ba(
         print(cmd)
         p_train_SoVITS = Popen(cmd, shell=True)
         p_train_SoVITS.wait()
+        train_returncode = p_train_SoVITS.returncode
         p_train_SoVITS = None
         SoVITS_dropdown_update, GPT_dropdown_update = change_choices()
+        result = "finish" if train_returncode == 0 else "failed"
         yield (
-            process_info(process_name_sovits, "finish"),
+            process_info(process_name_sovits, result),
             {"__type__": "update", "visible": True},
             {"__type__": "update", "visible": False},
             SoVITS_dropdown_update,
@@ -644,10 +664,12 @@ def open1Bb(
         print(cmd)
         p_train_GPT = Popen(cmd, shell=True)
         p_train_GPT.wait()
+        train_returncode = p_train_GPT.returncode
         p_train_GPT = None
         SoVITS_dropdown_update, GPT_dropdown_update = change_choices()
+        result = "finish" if train_returncode == 0 else "failed"
         yield (
-            process_info(process_name_gpt, "finish"),
+            process_info(process_name_gpt, result),
             {"__type__": "update", "visible": True},
             {"__type__": "update", "visible": False},
             SoVITS_dropdown_update,
@@ -678,6 +700,22 @@ def close1Bb():
 ps_slice = []
 process_name_slice = i18n("语音切分")
 
+
+def sync_slice_opt_dir(slice_inp_dir_value):
+    """切分输入路径变化时，自动把输出根目录设为 output/父文件夹/文件名(去后缀) 或 output/文件夹名。"""
+    if not slice_inp_dir_value:
+        return {"__type__": "update"}
+
+    cleaned_path = my_utils.clean_path(slice_inp_dir_value)
+    if os.path.isdir(cleaned_path):
+        folder_name = os.path.basename(cleaned_path.rstrip("\\/"))
+
+    elif os.path.isfile(cleaned_path):
+        folder_name = os.path.splitext(os.path.basename(cleaned_path))[0]
+    else:
+        return {"__type__": "update"}
+
+    return {"__type__": "update", "value": "/".join(["output", folder_name, "slicer_opt"])}
 
 def open_slice(inp, opt_root, threshold, min_length, min_interval, hop_size, max_sil_kept, _max, alpha, n_parts):
     global ps_slice
@@ -1329,9 +1367,16 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 with gr.Row():
                     with gr.Column(scale=3):
                         with gr.Row():
-                            slice_inp_path = gr.Textbox(label=i18n("音频自动切分输入路径，可文件可文件夹"), value="")
-                            slice_opt_root = gr.Textbox(
-                                label=i18n("切分后的子音频的输出根目录"), value="output/slicer_opt"
+                            slice_inp_picker = create_path_input(
+                                i18n=i18n,
+                                label=i18n("音频自动切分输入路径，可文件可文件夹"),
+                                value="",
+                            )
+                            slice_opt_root = create_path_input(
+                                i18n=i18n,
+                                label=i18n("切分后的子音频的输出根目录"),
+                                value="output/slicer_opt",
+                                mode="folder",
                             )
                         with gr.Row():
                             threshold = gr.Textbox(
@@ -1400,11 +1445,17 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 with gr.Row():
                     with gr.Column(scale=3):
                         with gr.Row():
-                            asr_inp_dir = gr.Textbox(
-                                label=i18n("输入文件夹路径"), value="D:\\GPT-SoVITS\\raw\\xxx", interactive=True
+                            asr_inp_dir = create_path_input(
+                                i18n=i18n,
+                                label=i18n("输入文件夹路径"),
+                                value="D:\\GPT-SoVITS\\raw\\xxx",
+                                mode="folder",
                             )
-                            asr_opt_dir = gr.Textbox(
-                                label=i18n("输出文件夹路径"), value="output/asr_opt", interactive=True
+                            asr_opt_dir = create_path_input(
+                                i18n=i18n,
+                                label=i18n("输出文件夹路径"),
+                                value=default_asr_opt_dir,
+                                mode="folder",
                             )
                         with gr.Row():
                             asr_model = gr.Dropdown(
@@ -1457,10 +1508,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 with gr.Row():
                     with gr.Column(scale=3):
                         with gr.Row():
-                            path_list = gr.Textbox(
+                            path_list = create_path_input(
+                                i18n=i18n,
                                 label=i18n("标注文件路径 (含文件后缀 *.list)"),
                                 value="D:\\RVC1006\\GPT-SoVITS\\raw\\xxx.list",
-                                interactive=True,
+                                mode="file",
                             )
                             label_info = gr.Textbox(label=process_info(process_name_subfix, "info"))
                     open_label = gr.Button(
@@ -1470,8 +1522,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         value=process_info(process_name_subfix, "close"), variant="primary", visible=False
                     )
 
-                open_label.click(change_label, [path_list], [label_info, open_label, close_label])
-                close_label.click(change_label, [path_list], [label_info, open_label, close_label])
+                open_label.click(change_label, [path_list.textbox], [label_info, open_label, close_label])
+                close_label.click(change_label, [path_list.textbox], [label_info, open_label, close_label])
                 open_uvr5.click(change_uvr5, [], [uvr5_info, open_uvr5, close_uvr5])
                 close_uvr5.click(change_uvr5, [], [uvr5_info, open_uvr5, close_uvr5])
 
@@ -1479,9 +1531,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             with gr.Accordion(i18n("微调模型信息")):
                 with gr.Row():
                     with gr.Row(equal_height=True):
-                        exp_name = gr.Textbox(
+                        exp_name = gr.Dropdown(
                             label=i18n("*实验/模型名"),
+                            choices=get_exp_name_choices(),
                             value="xxx",
+                            allow_custom_value=True,
                             interactive=True,
                             scale=3,
                         )
@@ -1530,21 +1584,20 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 with gr.Accordion(label=i18n("输出logs/实验名目录下应有23456开头的文件和文件夹")):
                     with gr.Row():
                         with gr.Row():
-                            inp_text = gr.Textbox(
+                            inp_text = create_path_input(
+                                i18n=i18n,
                                 label=i18n("*文本标注文件"),
                                 value=r"D:\RVC1006\GPT-SoVITS\raw\xxx.list",
-                                interactive=True,
-                                scale=10,
+                                mode="file",
                             )
                         with gr.Row():
-                            inp_wav_dir = gr.Textbox(
+                            inp_wav_dir = create_path_input(
+                                i18n=i18n,
                                 label=i18n("*训练集音频文件目录"),
-                                # value=r"D:\RVC1006\GPT-SoVITS\raw\xxx",
-                                interactive=True,
                                 placeholder=i18n(
                                     "填切割后音频所在目录！读取的音频文件完整路径=该目录-拼接-list文件里波形对应的文件名（不是全路径）。如果留空则使用.list文件里的绝对全路径。"
                                 ),
-                                scale=10,
+                                mode="folder",
                             )
 
                 with gr.Accordion(label="1Aa-" + process_name_1a):
@@ -1637,15 +1690,17 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             pretrained_s2G.change(sync, [pretrained_s2G], [pretrained_s2G_])
             open_asr_button.click(
                 open_asr,
-                [asr_inp_dir, asr_opt_dir, asr_model, asr_size, asr_lang, asr_precision],
-                [asr_info, open_asr_button, close_asr_button, path_list, inp_text, inp_wav_dir],
+                [asr_inp_dir.textbox, asr_opt_dir.textbox, asr_model, asr_size, asr_lang, asr_precision],
+                [asr_info, open_asr_button, close_asr_button, path_list.textbox, inp_text.textbox, inp_wav_dir.textbox],
             )
             close_asr_button.click(close_asr, [], [asr_info, open_asr_button, close_asr_button])
+            asr_inp_dir.textbox.change(sync_asr_opt_dir, [asr_inp_dir.textbox], [asr_opt_dir.textbox])
+            slice_inp_picker.textbox.change(sync_slice_opt_dir, [slice_inp_picker.textbox], [slice_opt_root.textbox])
             open_slicer_button.click(
                 open_slice,
                 [
-                    slice_inp_path,
-                    slice_opt_root,
+                    slice_inp_picker.textbox,
+                    slice_opt_root.textbox,
                     threshold,
                     min_length,
                     min_interval,
@@ -1655,31 +1710,31 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     alpha,
                     n_process,
                 ],
-                [slicer_info, open_slicer_button, close_slicer_button, asr_inp_dir, denoise_input_dir, inp_wav_dir],
+                [slicer_info, open_slicer_button, close_slicer_button, asr_inp_dir.textbox, denoise_input_dir, inp_wav_dir.textbox],
             )
             close_slicer_button.click(close_slice, [], [slicer_info, open_slicer_button, close_slicer_button])
             open_denoise_button.click(
                 open_denoise,
                 [denoise_input_dir, denoise_output_dir],
-                [denoise_info, open_denoise_button, close_denoise_button, asr_inp_dir, inp_wav_dir],
+                [denoise_info, open_denoise_button, close_denoise_button, asr_inp_dir.textbox, inp_wav_dir.textbox],
             )
             close_denoise_button.click(close_denoise, [], [denoise_info, open_denoise_button, close_denoise_button])
 
             button1a_open.click(
                 open1a,
-                [inp_text, inp_wav_dir, exp_name, gpu_numbers1a, bert_pretrained_dir],
+                [inp_text.textbox, inp_wav_dir.textbox, exp_name, gpu_numbers1a, bert_pretrained_dir],
                 [info1a, button1a_open, button1a_close],
             )
             button1a_close.click(close1a, [], [info1a, button1a_open, button1a_close])
             button1b_open.click(
                 open1b,
-                [version_checkbox, inp_text, inp_wav_dir, exp_name, gpu_numbers1Ba, cnhubert_base_dir],
+                [version_checkbox, inp_text.textbox, inp_wav_dir.textbox, exp_name, gpu_numbers1Ba, cnhubert_base_dir],
                 [info1b, button1b_open, button1b_close],
             )
             button1b_close.click(close1b, [], [info1b, button1b_open, button1b_close])
             button1c_open.click(
                 open1c,
-                [version_checkbox, inp_text, inp_wav_dir, exp_name, gpu_numbers1c, pretrained_s2G],
+                [version_checkbox, inp_text.textbox, inp_wav_dir.textbox, exp_name, gpu_numbers1c, pretrained_s2G],
                 [info1c, button1c_open, button1c_close],
             )
             button1c_close.click(close1c, [], [info1c, button1c_open, button1c_close])
@@ -1687,8 +1742,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 open1abc,
                 [
                     version_checkbox,
-                    inp_text,
-                    inp_wav_dir,
+                    inp_text.textbox,
+                    inp_wav_dir.textbox,
                     exp_name,
                     gpu_numbers1a,
                     gpu_numbers1Ba,
