@@ -7,7 +7,7 @@ from text.g2pw import G2PWPinyin
 
 g2pw = G2PWPinyin(
     model_dir="GPT_SoVITS/text/G2PWModel",
-    model_source="GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
+    model_source=os.environ.get("bert_pretrained_dir") or os.environ.get("bert_path") or "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
     v_to_u=False,
     neutral_tone_with_five=True,
 )
