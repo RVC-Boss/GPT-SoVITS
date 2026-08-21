@@ -176,6 +176,58 @@ To run a specific service with Docker Compose, use:
 docker compose run --service-ports <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GPT-SoVITS-CU128>
 ```
 
+#### Running with AMD ROCm (Docker)
+
+GPT-SoVITS supports AMD GPUs via ROCm. Tested on RDNA4 (Radeon AI PRO R9700 / gfx1201) with ROCm 7.2.3.
+
+**Requirements:**
+- AMD GPU with ROCm support (RDNA3 / RDNA4)
+- ROCm drivers installed on the host
+- Docker with GPU passthrough (`/dev/kfd` and `/dev/dri`)
+
+**Quick start:**
+
+```bash
+docker compose -f docker-compose-rocm.yaml run --service-ports GPT-SoVITS-ROCm
+```
+
+**Or build and run manually:**
+
+```bash
+docker build -f Dockerfile.rocm -t gpt-sovits:rocm .
+docker run -it --rm \
+  --device=/dev/kfd --device=/dev/dri \
+  --group-add video --group-add render \
+  -e ROCBLAS_USE_HIPBLASLT=0 \
+  -e is_half=true \
+  --shm-size=16g \
+  -p 9880:9880 -p 9874:9874 \
+  gpt-sovits:rocm
+```
+
+Then inside the container:
+
+```bash
+python webui.py
+```
+
+**Notes:**
+- `ROCBLAS_USE_HIPBLASLT=0` is required for RDNA4 (gfx1201) stability
+- RDNA3 (gfx1100/gfx1101) users may not need this env var
+- The first inference run will be slower due to MIOpen kernel auto-tuning; subsequent runs are faster
+- `onnxruntime-gpu` is replaced with [`onnxruntime_migraphx`](https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.3/) which provides `ROCMExecutionProvider` and `MIGraphXExecutionProvider` for GPU-accelerated ONNX inference
+
+**Tested environment:**
+
+| Component | Version |
+|-----------|---------|
+| GPU | AMD Radeon AI PRO R9700 (gfx1201 / RDNA4, 32GB) |
+| ROCm | 7.2.3 |
+| PyTorch | 2.9.1+rocm7.2.3 |
+| Python | 3.12 |
+| Model | GPT-SoVITS v2 pretrained |
+| Inference | ✅ Passed (fp16) |
+
 #### Building the Docker Image Locally
 
 If you want to build the image yourself, use:
