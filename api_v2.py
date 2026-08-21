@@ -27,23 +27,20 @@ POST:
     "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
     "prompt_text": "",            # str.(optional) prompt text for the reference audio
     "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
-    "top_k": 15,                  # int. top k sampling
+    "top_k": 5,                   # int. top k sampling
     "top_p": 1,                   # float. top p sampling
     "temperature": 1,             # float. temperature for sampling
-    "text_split_method": "cut5",  # str. text split method, see text_segmentation_method.py for details.
+    "text_split_method": "cut0",  # str. text split method, see text_segmentation_method.py for details.
     "batch_size": 1,              # int. batch size for inference
     "batch_threshold": 0.75,      # float. threshold for batch splitting.
     "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
     "speed_factor":1.0,           # float. control the speed of the synthesized audio.
-    "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
+    "streaming_mode": False,      # bool. whether to return a streaming response.
     "seed": -1,                   # int. random seed for reproducibility.
     "parallel_infer": True,       # bool. whether to use parallel inference.
     "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
     "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-    "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
-    "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
-    "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-    "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+    "super_sampling": False       # bool. whether to use super-sampling for audio when using VITS model V3.
 }
 ```
 
@@ -104,7 +101,7 @@ RESP:
 import os
 import sys
 import traceback
-from typing import Generator, Union
+from typing import Generator
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -124,7 +121,6 @@ from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from pydantic import BaseModel
-import threading
 
 # print(sys.path)
 i18n = I18nAuto()
@@ -158,7 +154,7 @@ class TTS_Request(BaseModel):
     aux_ref_audio_paths: list = None
     prompt_lang: str = None
     prompt_text: str = ""
-    top_k: int = 15
+    top_k: int = 5
     top_p: float = 1
     temperature: float = 1
     text_split_method: str = "cut5"
@@ -169,58 +165,17 @@ class TTS_Request(BaseModel):
     fragment_interval: float = 0.3
     seed: int = -1
     media_type: str = "wav"
-    streaming_mode: Union[bool, int] = False
+    streaming_mode: bool = False
     parallel_infer: bool = True
     repetition_penalty: float = 1.35
     sample_steps: int = 32
     super_sampling: bool = False
-    overlap_length: int = 2
-    min_chunk_length: int = 16
 
 
+### modify from https://github.com/RVC-Boss/GPT-SoVITS/pull/894/files
 def pack_ogg(io_buffer: BytesIO, data: np.ndarray, rate: int):
-    # Author: AkagawaTsurunaki
-    # Issue:
-    #   Stack overflow probabilistically occurs
-    #   when the function `sf_writef_short` of `libsndfile_64bit.dll` is called
-    #   using the Python library `soundfile`
-    # Note:
-    #   This is an issue related to `libsndfile`, not this project itself.
-    #   It happens when you generate a large audio tensor (about 499804 frames in my PC)
-    #   and try to convert it to an ogg file.
-    # Related:
-    #   https://github.com/RVC-Boss/GPT-SoVITS/issues/1199
-    #   https://github.com/libsndfile/libsndfile/issues/1023
-    #   https://github.com/bastibe/python-soundfile/issues/396
-    # Suggestion:
-    #   Or split the whole audio data into smaller audio segment to avoid stack overflow?
-
-    def handle_pack_ogg():
-        with sf.SoundFile(io_buffer, mode="w", samplerate=rate, channels=1, format="ogg") as audio_file:
-            audio_file.write(data)
-
-
-
-    # See: https://docs.python.org/3/library/threading.html
-    # The stack size of this thread is at least 32768
-    # If stack overflow error still occurs, just modify the `stack_size`.
-    # stack_size = n * 4096, where n should be a positive integer.
-    # Here we chose n = 4096.
-    stack_size = 4096 * 4096
-    try:
-        threading.stack_size(stack_size)
-        pack_ogg_thread = threading.Thread(target=handle_pack_ogg)
-        pack_ogg_thread.start()
-        pack_ogg_thread.join()
-    except RuntimeError as e:
-        # If changing the thread stack size is unsupported, a RuntimeError is raised.
-        print("RuntimeError: {}".format(e))
-        print("Changing the thread stack size is unsupported.")
-    except ValueError as e:
-        # If the specified stack size is invalid, a ValueError is raised and the stack size is unmodified.
-        print("ValueError: {}".format(e))
-        print("The specified stack size is invalid.")
-
+    with sf.SoundFile(io_buffer, mode="w", samplerate=rate, channels=1, format="ogg") as audio_file:
+        audio_file.write(data)
     return io_buffer
 
 
@@ -331,8 +286,8 @@ def check_params(req: dict):
         )
     if media_type not in ["wav", "raw", "ogg", "aac"]:
         return JSONResponse(status_code=400, content={"message": f"media_type: {media_type} is not supported"})
-    # elif media_type == "ogg" and not streaming_mode:
-    #     return JSONResponse(status_code=400, content={"message": "ogg format is not supported in non-streaming mode"})
+    elif media_type == "ogg" and not streaming_mode:
+        return JSONResponse(status_code=400, content={"message": "ogg format is not supported in non-streaming mode"})
 
     if text_split_method not in cut_method_names:
         return JSONResponse(
@@ -352,26 +307,25 @@ async def tts_handle(req: dict):
                 "text": "",                   # str.(required) text to be synthesized
                 "text_lang: "",               # str.(required) language of the text to be synthesized
                 "ref_audio_path": "",         # str.(required) reference audio path
-                "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
+                "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker synthesis
                 "prompt_text": "",            # str.(optional) prompt text for the reference audio
                 "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
-                "top_k": 15,                  # int. top k sampling
+                "top_k": 5,                   # int. top k sampling
                 "top_p": 1,                   # float. top p sampling
                 "temperature": 1,             # float. temperature for sampling
                 "text_split_method": "cut5",  # str. text split method, see text_segmentation_method.py for details.
                 "batch_size": 1,              # int. batch size for inference
                 "batch_threshold": 0.75,      # float. threshold for batch splitting.
-                "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
+                "split_bucket: True,          # bool. whether to split the batch into multiple buckets.
                 "speed_factor":1.0,           # float. control the speed of the synthesized audio.
                 "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
                 "seed": -1,                   # int. random seed for reproducibility.
-                "parallel_infer": True,       # bool. whether to use parallel inference.
-                "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
+                "media_type": "wav",          # str. media type of the output audio, support "wav", "raw", "ogg", "aac".
+                "streaming_mode": False,      # bool. whether to return a streaming response.
+                "parallel_infer": True,       # bool.(optional) whether to use parallel inference.
+                "repetition_penalty": 1.35    # float.(optional) repetition penalty for T2S model.
                 "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-                "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
-                "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
-                "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-                "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+                "super_sampling": False,       # bool. whether to use super-sampling for audio when using VITS model V3.
             }
     returns:
         StreamingResponse: audio stream response.
@@ -384,35 +338,9 @@ async def tts_handle(req: dict):
     check_res = check_params(req)
     if check_res is not None:
         return check_res
-    
-    if streaming_mode == 0:
-        streaming_mode = False
-        return_fragment = False
-        fixed_length_chunk = False
-    elif streaming_mode == 1:
-        streaming_mode = False
-        return_fragment = True
-        fixed_length_chunk = False
-    elif streaming_mode == 2:
-        streaming_mode = True
-        return_fragment = False
-        fixed_length_chunk = False
-    elif streaming_mode == 3:
-        streaming_mode = True
-        return_fragment = False
-        fixed_length_chunk = True
 
-    else:
-        return JSONResponse(status_code=400, content={"message": f"the value of streaming_mode must be 0, 1, 2, 3(int) or true/false(bool)"})
-
-    req["streaming_mode"] = streaming_mode
-    req["return_fragment"] = return_fragment
-    req["fixed_length_chunk"] = fixed_length_chunk
-
-    print(f"{streaming_mode} {return_fragment} {fixed_length_chunk}")
-
-    streaming_mode = streaming_mode or return_fragment
-
+    if streaming_mode or return_fragment:
+        req["return_fragment"] = True
 
     try:
         tts_generator = tts_pipeline.run(req)
@@ -460,10 +388,10 @@ async def tts_get_endpoint(
     aux_ref_audio_paths: list = None,
     prompt_lang: str = None,
     prompt_text: str = "",
-    top_k: int = 15,
+    top_k: int = 5,
     top_p: float = 1,
     temperature: float = 1,
-    text_split_method: str = "cut5",
+    text_split_method: str = "cut0",
     batch_size: int = 1,
     batch_threshold: float = 0.75,
     split_bucket: bool = True,
@@ -471,13 +399,11 @@ async def tts_get_endpoint(
     fragment_interval: float = 0.3,
     seed: int = -1,
     media_type: str = "wav",
+    streaming_mode: bool = False,
     parallel_infer: bool = True,
     repetition_penalty: float = 1.35,
     sample_steps: int = 32,
     super_sampling: bool = False,
-    streaming_mode: Union[bool, int] = False,
-    overlap_length: int = 2,
-    min_chunk_length: int = 16,
 ):
     req = {
         "text": text,
@@ -502,8 +428,6 @@ async def tts_get_endpoint(
         "repetition_penalty": float(repetition_penalty),
         "sample_steps": int(sample_steps),
         "super_sampling": super_sampling,
-        "overlap_length": int(overlap_length),
-        "min_chunk_length": int(min_chunk_length),
     }
     return await tts_handle(req)
 
@@ -563,6 +487,42 @@ async def set_sovits_weights(weights_path: str = None):
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "change sovits weight failed", "Exception": str(e)})
     return JSONResponse(status_code=200, content={"message": "success"})
+
+
+@APP.get("/tts_meta")
+async def get_tts_meta():
+    """
+    获取最后一次 TTS 推理的字幕/时间轴元数据
+    
+    返回:
+        {
+            "segments": [
+                {
+                    "idx": 0,
+                    "text": "文本内容",
+                    "samples": 12345,
+                    "start": 0,
+                    "end": 12345,
+                    "start_time": 0.0,
+                    "end_time": 0.385
+                },
+                ...
+            ],
+            "sr": 32000,
+            "fragment_interval": 0.3,
+            "original_text": "原始完整文本"
+        }
+    """
+    try:
+        meta_data = {
+            "segments": tts_pipeline.last_segments,
+            "sr": tts_pipeline.last_sr,
+            "fragment_interval": tts_pipeline.last_fragment_interval,
+            "original_text": tts_pipeline.last_original_text
+        }
+        return JSONResponse(status_code=200, content=meta_data)
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"message": "get tts meta failed", "Exception": str(e)})
 
 
 if __name__ == "__main__":
