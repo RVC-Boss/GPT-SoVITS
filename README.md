@@ -27,6 +27,44 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 ---
 
+## 简化接口 / 测试前端
+
+本工作区新增了一个用于 MVP 调用的中间层接口和测试前端：
+
+| 页面 | 地址 | 说明 |
+|------|------|------|
+| 测试前端 | http://127.0.0.1:9881/test/ | 带波形裁剪、视频转音频的测试 UI |
+| Swagger UI | http://127.0.0.1:9881/docs | 交互式 API 文档 |
+| ReDoc | http://127.0.0.1:9881/redoc | 可读式 API 文档 |
+
+文档：
+
+- 快速启动：[docs/simple_api_quickstart.md](./docs/simple_api_quickstart.md)
+- 完整教程：[docs/simple_api.md](./docs/simple_api.md)
+
+核心功能：
+
+- `/api/tts` — 上传参考音频/视频 + 文字，直接返回生成的音频
+- 前端支持视频上传，自动提取音频
+- 前端波形裁剪工具，可选择 3-10 秒片段
+- 5 种情绪预设（neutral/happy/calm/sad/angry）
+- 7 个契约测试，无需 GPU 即可运行
+
+启动命令：
+
+```
+cd D:\tts\GPT-SoVITS
+.\go-simple-api.ps1
+```
+
+运行测试：
+
+```
+python -m unittest tests.test_simple_api_contract -v
+```
+
+---
+
 ## Features:
 
 1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
@@ -480,3 +518,4 @@ Thankful to @Naozumi520 for providing the Cantonese training set and for the gui
 <a href="https://github.com/RVC-Boss/GPT-SoVITS/graphs/contributors" target="_blank">
   <img src="https://contrib.rocks/image?repo=RVC-Boss/GPT-SoVITS" />
 </a>
+
