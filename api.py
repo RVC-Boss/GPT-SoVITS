@@ -156,7 +156,7 @@ import torch
 import torchaudio
 import librosa
 import soundfile as sf
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Request, Query, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -269,7 +269,7 @@ def init_hifigan():
     state_dict_g = torch.load(
         "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
         map_location="cpu",
-        weights_only=False,
+        weights_only=True,
     )
     print("loading vocoder", hifigan_model.load_state_dict(state_dict_g))
     if is_half == True:
@@ -1209,6 +1209,7 @@ parser.add_argument("-sm", "--stream_mode", type=str, default="close", help="流
 parser.add_argument("-mt", "--media_type", type=str, default="wav", help="音频编码格式, wav / ogg / aac")
 parser.add_argument("-st", "--sub_type", type=str, default="int16", help="音频数据类型, int16 / int32")
 parser.add_argument("-cp", "--cut_punc", type=str, default="", help="文本切分符号设定, 符号范围,.;?!、，。？！；：…")
+parser.add_argument("-ak", "--api_key", type=str, default="", help="API key for authentication. If set, requests to sensitive endpoints must include 'Authorization: Bearer <key>'")
 # 切割常用分句符为 `python ./api.py -cp ".?!。？！"`
 parser.add_argument("-hb", "--hubert_path", type=str, default=g_config.cnhubert_path, help="覆盖config.cnhubert_path")
 parser.add_argument("-b", "--bert_path", type=str, default=g_config.bert_path, help="覆盖config.bert_path")
@@ -1297,8 +1298,16 @@ change_gpt_sovits_weights(gpt_path=gpt_path, sovits_path=sovits_path)
 app = FastAPI()
 
 
+def verify_api_key(authorization: str = Header(default="")):
+    api_key = args.api_key
+    if api_key:
+        expected = f"Bearer {api_key}"
+        if authorization != expected:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+
 @app.post("/set_model")
-async def set_model(request: Request):
+async def set_model(request: Request, _: None = Depends(verify_api_key)):
     json_post_raw = await request.json()
     return change_gpt_sovits_weights(
         gpt_path=json_post_raw.get("gpt_model_path"), sovits_path=json_post_raw.get("sovits_model_path")
@@ -1309,18 +1318,19 @@ async def set_model(request: Request):
 async def set_model(
     gpt_model_path: str = None,
     sovits_model_path: str = None,
+    _: None = Depends(verify_api_key),
 ):
     return change_gpt_sovits_weights(gpt_path=gpt_model_path, sovits_path=sovits_model_path)
 
 
 @app.post("/control")
-async def control(request: Request):
+async def control(request: Request, _: None = Depends(verify_api_key)):
     json_post_raw = await request.json()
     return handle_control(json_post_raw.get("command"))
 
 
 @app.get("/control")
-async def control(command: str = None):
+async def control(command: str = None, _: None = Depends(verify_api_key)):
     return handle_control(command)
 
 
