@@ -332,8 +332,22 @@ if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
         run_pip_quiet torch torchcodec --index-url "https://download.pytorch.org/whl/cu126"
     fi
 elif [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
-    echo -e "${INFO}Installing PyTorch For ROCm 6.2..."
-    run_pip_quiet torch torchcodec --index-url "https://download.pytorch.org/whl/rocm6.2"
+    PYTHON_TAG=$(python -c 'import sys; print(f"cp{sys.version_info.major}{sys.version_info.minor}")')
+    case "$PYTHON_TAG" in
+    cp310 | cp311 | cp312 | cp313) ;;
+    *)
+        echo -e "${ERROR}ROCm 7.2 wheels require Python 3.10-3.13 (detected: $PYTHON_TAG)"
+        exit 1
+        ;;
+    esac
+
+    echo -e "${INFO}Installing PyTorch 2.8 For ROCm 7.2..."
+    ROCM_WHEEL_ROOT="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2"
+    run_pip_quiet \
+        "$ROCM_WHEEL_ROOT/torch-2.8.0%2Brocm7.2.0.lw.gitbf943426-${PYTHON_TAG}-${PYTHON_TAG}-linux_x86_64.whl" \
+        "$ROCM_WHEEL_ROOT/torchaudio-2.8.0%2Brocm7.2.0.git6e1c7fe9-${PYTHON_TAG}-${PYTHON_TAG}-linux_x86_64.whl" \
+        "$ROCM_WHEEL_ROOT/torchvision-0.23.0%2Brocm7.2.0.git824e8c87-${PYTHON_TAG}-${PYTHON_TAG}-linux_x86_64.whl" \
+        "$ROCM_WHEEL_ROOT/triton-3.4.0%2Brocm7.2.0.git0cace8d2-${PYTHON_TAG}-${PYTHON_TAG}-linux_x86_64.whl"
 elif [ "$USE_CPU" = true ] && [ "$WORKFLOW" = false ]; then
     echo -e "${INFO}Installing PyTorch For CPU..."
     run_pip_quiet torch torchcodec --index-url "https://download.pytorch.org/whl/cpu"
@@ -349,7 +363,15 @@ hash -r
 
 run_pip_quiet -r extra-req.txt --no-deps
 
-run_pip_quiet -r requirements.txt
+if [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
+    ROCM_REQUIREMENTS=$(mktemp)
+    grep -vE '^(torchaudio|onnxruntime-gpu)([<>=;[:space:]]|$)' requirements.txt >"$ROCM_REQUIREMENTS"
+    run_pip_quiet -r "$ROCM_REQUIREMENTS"
+    rm -f "$ROCM_REQUIREMENTS"
+    run_pip_quiet onnxruntime-migraphx==1.23.2 -f "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.1/"
+else
+    run_pip_quiet -r requirements.txt
+fi
 
 echo -e "${SUCCESS}Python Dependencies Installed"
 
