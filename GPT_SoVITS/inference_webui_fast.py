@@ -6,20 +6,7 @@
 全部按英文识别
 全部按日文识别
 """
-import psutil
-import os
 
-def set_high_priority():
-    """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
-    if os.name != "nt":
-        return # 仅 Windows 有效
-    p = psutil.Process(os.getpid())
-    try:
-        p.nice(psutil.HIGH_PRIORITY_CLASS)
-        print("已将进程优先级设为 High")
-    except psutil.AccessDenied:
-        print("权限不足，无法修改优先级（请用管理员运行）")
-set_high_priority()
 import json
 import logging
 import os
@@ -60,7 +47,6 @@ import gradio as gr
 from TTS_infer_pack.text_segmentation_method import get_method
 from TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
 
-from tools.assets import css, js, top_html
 from tools.i18n.i18n import I18nAuto, scan_language_list
 
 language = os.environ.get("language", "Auto")
@@ -112,28 +98,66 @@ cut_method = {
     i18n("按标点符号切"): "cut5",
 }
 
-from config import change_choices, get_weights_names, name2gpt_path, name2sovits_path
+# 推理参数预设系统
+INFERENCE_PRESETS = {
+    i18n("快速合成"): {
+        "batch_size": 1,
+        "sample_steps": 8,
+        "top_k": 5,
+        "top_p": 1,
+        "temperature": 1,
+        "repetition_penalty": 1.35,
+        "parallel_infer": True,
+        "split_bucket": True,
+    },
+    i18n("高质量"): {
+        "batch_size": 1,
+        "sample_steps": 64,
+        "top_k": 15,
+        "top_p": 0.8,
+        "temperature": 0.8,
+        "repetition_penalty": 1.35,
+        "parallel_infer": False,
+        "split_bucket": False,
+    },
+    i18n("平衡"): {
+        "batch_size": 20,
+        "sample_steps": 32,
+        "top_k": 5,
+        "top_p": 1,
+        "temperature": 1,
+        "repetition_penalty": 1.35,
+        "parallel_infer": True,
+        "split_bucket": True,
+    },
+    i18n("自定义"): None,  # 不应用任何预设
+}
 
-SoVITS_names, GPT_names = get_weights_names()
-from config import pretrained_sovits_name
-
-path_sovits_v3 = pretrained_sovits_name["v3"]
-path_sovits_v4 = pretrained_sovits_name["v4"]
-is_exist_s2gv3 = os.path.exists(path_sovits_v3)
-is_exist_s2gv4 = os.path.exists(path_sovits_v4)
+def apply_preset(preset_name):
+    """Apply inference preset and return updated parameter values"""
+    if preset_name == i18n("自定义") or preset_name not in INFERENCE_PRESETS:
+        # Return current values without changes
+        return [gr.update() for _ in range(8)]
+    
+    preset = INFERENCE_PRESETS[preset_name]
+    return [
+        gr.update(value=preset["batch_size"]),
+        gr.update(value=preset["sample_steps"]),
+        gr.update(value=preset["top_k"]),
+        gr.update(value=preset["top_p"]),
+        gr.update(value=preset["temperature"]),
+        gr.update(value=preset["repetition_penalty"]),
+        gr.update(value=preset["parallel_infer"]),
+        gr.update(value=preset["split_bucket"]),
+    ]
 
 tts_config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
 tts_config.device = device
 tts_config.is_half = is_half
-# tts_config.version = version
-tts_config.update_version(version)
+tts_config.version = version
 if gpt_path is not None:
-    if "！" in gpt_path or "!" in gpt_path:
-        gpt_path = name2gpt_path[gpt_path]
     tts_config.t2s_weights_path = gpt_path
 if sovits_path is not None:
-    if "！" in sovits_path or "!" in sovits_path:
-        sovits_path = name2sovits_path[sovits_path]
     tts_config.vits_weights_path = sovits_path
 if cnhubert_base_path is not None:
     tts_config.cnhuhbert_base_path = cnhubert_base_path
@@ -209,6 +233,40 @@ def custom_sort_key(s):
     return parts
 
 
+def change_choices():
+    SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
+    return {"choices": sorted(SoVITS_names, key=custom_sort_key), "__type__": "update"}, {
+        "choices": sorted(GPT_names, key=custom_sort_key),
+        "__type__": "update",
+    }
+
+
+path_sovits_v3 = "GPT_SoVITS/pretrained_models/s2Gv3.pth"
+path_sovits_v4 = "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth"
+is_exist_s2gv3 = os.path.exists(path_sovits_v3)
+is_exist_s2gv4 = os.path.exists(path_sovits_v4)
+pretrained_sovits_name = [
+    "GPT_SoVITS/pretrained_models/s2G488k.pth",
+    "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
+    "GPT_SoVITS/pretrained_models/s2Gv3.pth",
+    "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
+]
+pretrained_gpt_name = [
+    "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
+    "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
+    "GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "GPT_SoVITS/pretrained_models/s1v3.ckpt",
+]
+
+
+_ = [[], []]
+for i in range(4):
+    if os.path.exists(pretrained_gpt_name[i]):
+        _[0].append(pretrained_gpt_name[i])
+    if os.path.exists(pretrained_sovits_name[i]):
+        _[-1].append(pretrained_sovits_name[i])
+pretrained_gpt_name, pretrained_sovits_name = _
+
 if os.path.exists("./weight.json"):
     pass
 else:
@@ -218,12 +276,36 @@ else:
 with open("./weight.json", "r", encoding="utf-8") as file:
     weight_data = file.read()
     weight_data = json.loads(weight_data)
-    gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, GPT_names[-1]))
-    sovits_path = os.environ.get("sovits_path", weight_data.get("SoVITS", {}).get(version, SoVITS_names[0]))
+    gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, pretrained_gpt_name))
+    sovits_path = os.environ.get("sovits_path", weight_data.get("SoVITS", {}).get(version, pretrained_sovits_name))
     if isinstance(gpt_path, list):
         gpt_path = gpt_path[0]
     if isinstance(sovits_path, list):
         sovits_path = sovits_path[0]
+
+
+SoVITS_weight_root = ["SoVITS_weights", "SoVITS_weights_v2", "SoVITS_weights_v3", "SoVITS_weights_v4"]
+GPT_weight_root = ["GPT_weights", "GPT_weights_v2", "GPT_weights_v3", "GPT_weights_v4"]
+for path in SoVITS_weight_root + GPT_weight_root:
+    os.makedirs(path, exist_ok=True)
+
+
+def get_weights_names(GPT_weight_root, SoVITS_weight_root):
+    SoVITS_names = [i for i in pretrained_sovits_name]
+    for path in SoVITS_weight_root:
+        for name in os.listdir(path):
+            if name.endswith(".pth"):
+                SoVITS_names.append("%s/%s" % (path, name))
+    GPT_names = [i for i in pretrained_gpt_name]
+    for path in GPT_weight_root:
+        for name in os.listdir(path):
+            if name.endswith(".ckpt"):
+                GPT_names.append("%s/%s" % (path, name))
+    return SoVITS_names, GPT_names
+
+
+SoVITS_names, GPT_names = get_weights_names(GPT_weight_root, SoVITS_weight_root)
+
 
 from process_ckpt import get_sovits_version_from_path_fast
 
@@ -231,15 +313,13 @@ v3v4set = {"v3", "v4"}
 
 
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
-    if "！" in sovits_path or "!" in sovits_path:
-        sovits_path = name2sovits_path[sovits_path]
     global version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if if_lora_v3 == True and is_exist == False:
-        info = path_sovits + "SoVITS %s" % model_version + i18n("底模缺失，无法加载相应 LoRA 权重")
+        info = path_sovits + i18n("SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version)
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
@@ -297,19 +377,11 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         f.write(json.dumps(data))
 
 
-def change_gpt_weights(gpt_path):
-    if "！" in gpt_path or "!" in gpt_path:
-        gpt_path = name2gpt_path[gpt_path]
-    tts_pipeline.init_t2s_weights(gpt_path)
-
-
-with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css) as app:
-    gr.HTML(
-        top_html.format(
-            i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
-            + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
-        ),
-        elem_classes="markdown",
+with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False) as app:
+    gr.Markdown(
+        value=i18n("本软件以MIT协议开源, 作者不对软件具备任何控制力, 使用软件者、传播软件导出的声音者自负全责.")
+        + "<br>"
+        + i18n("如不认可该条款, 则不能使用或引用软件包内任何代码和文件. 详见根目录LICENSE.")
     )
 
     with gr.Column():
@@ -369,6 +441,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
     with gr.Group():
         gr.Markdown(value=i18n("推理设置"))
         with gr.Row():
+            preset_dropdown = gr.Dropdown(
+                label=i18n("参数预设"),
+                choices=list(INFERENCE_PRESETS.keys()),
+                value=i18n("平衡"),
+                interactive=True,
+                info=i18n("选择预设可快速配置推理参数")
+            )
+        with gr.Row():
             with gr.Column():
                 with gr.Row():
                     batch_size = gr.Slider(
@@ -382,10 +462,10 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         minimum=0.01, maximum=1, step=0.01, label=i18n("分段间隔(秒)"), value=0.3, interactive=True
                     )
                     speed_factor = gr.Slider(
-                        minimum=0.6, maximum=1.65, step=0.05, label="语速", value=1.0, interactive=True
+                        minimum=0.6, maximum=1.65, step=0.05, label=i18n("语速"), value=1.0, interactive=True
                     )
                 with gr.Row():
-                    top_k = gr.Slider(minimum=1, maximum=100, step=1, label=i18n("top_k"), value=15, interactive=True)
+                    top_k = gr.Slider(minimum=1, maximum=100, step=1, label=i18n("top_k"), value=5, interactive=True)
                     top_p = gr.Slider(minimum=0, maximum=1, step=0.05, label=i18n("top_p"), value=1, interactive=True)
                 with gr.Row():
                     temperature = gr.Slider(
@@ -477,7 +557,14 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 inference_button,
             ],
         )  #
-        GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
+        GPT_dropdown.change(tts_pipeline.init_t2s_weights, [GPT_dropdown], [])
+        
+        # 预设选择事件绑定
+        preset_dropdown.change(
+            apply_preset,
+            [preset_dropdown],
+            [batch_size, sample_steps, top_k, top_p, temperature, repetition_penalty, parallel_infer, split_bucket]
+        )
 
     with gr.Group():
         gr.Markdown(
