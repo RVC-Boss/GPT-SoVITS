@@ -84,6 +84,7 @@ class my_model_ckpt(ModelCheckpoint):
 
 def main(args):
     config = load_yaml_config(args.config_file)
+    gpu_count = torch.cuda.device_count()
 
     output_dir = Path(config["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -117,8 +118,10 @@ def main(args):
         devices=-1 if torch.cuda.is_available() else 1,
         benchmark=False,
         fast_dev_run=False,
+        # Avoid unnecessary DDP/NCCL synchronization on a single GPU. It can
+        # hang indefinitely with ROCm under WSL; multi-GPU training still uses DDP.
         strategy=DDPStrategy(process_group_backend="nccl" if platform.system() != "Windows" else "gloo")
-        if torch.cuda.is_available()
+        if gpu_count > 1
         else "auto",
         precision=config["train"]["precision"],
         logger=logger,
