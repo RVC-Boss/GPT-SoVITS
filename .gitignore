@@ -193,3 +193,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Local model export artifacts
+onnx_exports/
+*.onnx

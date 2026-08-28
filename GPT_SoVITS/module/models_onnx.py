@@ -876,7 +876,7 @@ class SynthesizerTrn(nn.Module):
             self.ge_to512 = nn.Linear(gin_channels, 512)
             self.prelu = nn.PReLU(num_parameters=gin_channels)
 
-    def forward(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None):
+    def forward(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, noise=None):
         refer_mask = torch.ones_like(refer[:1, :1, :])
         if self.version == "v1":
             ge = self.ref_enc(refer * refer_mask, refer_mask)
@@ -898,7 +898,11 @@ class SynthesizerTrn(nn.Module):
         else:
             x, m_p, logs_p, y_mask = self.enc_p(quantized, text, ge, speed)
 
-        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+        # ONNX export supplies noise explicitly so the graph contains no random operator.
+        # Keep the fallback for existing eager callers of this ONNX-specific model.
+        if noise is None:
+            noise = torch.randn_like(m_p)
+        z_p = m_p + noise * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
 

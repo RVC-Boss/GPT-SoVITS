@@ -71,16 +71,21 @@ def logits_to_probs(
     return probs
 
 
-def multinomial_sample_one_no_sync(
-    probs_sort,
-):  # Does multinomial sampling without a cuda synchronization
-    q = torch.randn_like(probs_sort)
+def multinomial_sample_one_no_sync(probs_sort, sampling_random=None):
+    if sampling_random is None:
+        # Preserve historical eager behavior in this ONNX-specific module only;
+        # it is not equivalent to production sampling. Split exports pass this input.
+        q = torch.randn_like(probs_sort)
+    else:
+        # sampling_random is uniform in (0, 1); -log(U) is exponential noise.
+        q = -torch.log(torch.clamp(sampling_random, min=1e-6, max=1 - 1e-6))
     return torch.argmax(probs_sort / q, dim=-1, keepdim=True).to(dtype=torch.int)
 
 
 def sample(
     logits,
     previous_tokens,
+    sampling_random=None,
     **sampling_kwargs,
 ):
     probs = logits_to_probs(
@@ -88,7 +93,7 @@ def sample(
         previous_tokens=previous_tokens,
         **sampling_kwargs,
     )
-    idx_next = multinomial_sample_one_no_sync(probs)
+    idx_next = multinomial_sample_one_no_sync(probs, sampling_random)
     return idx_next, probs
 
 
@@ -129,7 +134,7 @@ class T2SFirstStageDecoder(nn.Module):
         self.early_stop_num = early_stop_num
         self.num_layers = num_layers
 
-    def forward(self, x, prompt):
+    def forward(self, x, prompt, sampling_random=None):
         y = prompt
         x_example = x[:, :, 0] * 0.0
         # N, 1, 512
@@ -179,7 +184,14 @@ class T2SFirstStageDecoder(nn.Module):
 
         xy_dec = self.h(xy_pos, mask=xy_attn_mask, cache=cache)
         logits = self.ar_predict_layer(xy_dec[:, -1])
-        samples = sample(logits[0], y, top_k=self.top_k, top_p=1.0, repetition_penalty=1.35)[0].unsqueeze(0)
+        samples = sample(
+            logits[0],
+            y,
+            sampling_random,
+            top_k=self.top_k,
+            top_p=1.0,
+            repetition_penalty=1.35,
+        )[0].unsqueeze(0)
 
         y = torch.concat([y, samples], dim=1)
 
@@ -210,7 +222,7 @@ class T2SStageDecoder(nn.Module):
         self.early_stop_num = early_stop_num
         self.num_layers = num_layers
 
-    def forward(self, y, k, v, y_emb, x_example):
+    def forward(self, y, k, v, y_emb, x_example, sampling_random=None):
         cache = {
             "all_stage": self.num_layers,
             "k": torch.nn.functional.pad(k, (0, 0, 0, 0, 0, 1)),
@@ -239,7 +251,14 @@ class T2SStageDecoder(nn.Module):
 
         xy_dec = self.h(xy_pos, mask=xy_attn_mask, cache=cache)
         logits = self.ar_predict_layer(xy_dec[:, -1])
-        samples = sample(logits[0], y, top_k=self.top_k, top_p=1.0, repetition_penalty=1.35)[0].unsqueeze(0)
+        samples = sample(
+            logits[0],
+            y,
+            sampling_random,
+            top_k=self.top_k,
+            top_p=1.0,
+            repetition_penalty=1.35,
+        )[0].unsqueeze(0)
 
         y = torch.concat([y, samples], dim=1)
 
@@ -319,12 +338,12 @@ class Text2SemanticDecoder(nn.Module):
         prefix_len = prompts.shape[1]
 
         x = self.onnx_encoder(x, bert_feature)
-        y, k, v, y_emb, stage, x_example = self.first_stage_decoder(x, prompts)
+        y, k, v, y_emb, x_example = self.first_stage_decoder(x, prompts)
 
         stop = False
         for idx in range(1, 1500):
-            enco = self.stage_decoder(y, k, v, y_emb, stage, x_example)
-            y, k, v, y_emb, stage, logits, samples = enco
+            enco = self.stage_decoder(y, k, v, y_emb, x_example)
+            y, k, v, y_emb, logits, samples = enco
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
                 stop = True
             if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
