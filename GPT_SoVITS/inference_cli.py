@@ -28,7 +28,10 @@ def synthesize(
 
     # Change model weights
     change_gpt_weights(gpt_path=GPT_model_path)
-    change_sovits_weights(sovits_path=SoVITS_model_path)
+    # change_sovits_weights is a generator function (it yields UI update dicts):
+    # iterate it so the SoVITS weights actually load.
+    for _ in change_sovits_weights(sovits_path=SoVITS_model_path):
+        pass
 
     # Synthesize audio
     synthesis_result = get_tts_wav(
