@@ -272,6 +272,14 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
+    # Neutral defaults so the post-load yield below stays well-formed for callers
+    # that pass no UI language args (CLI / GUI); the webui always overwrites them.
+    prompt_text_update = {"__type__": "update"}
+    prompt_language_update = {"__type__": "update"}
+    text_update = {"__type__": "update"}
+    text_language_update = {"__type__": "update"}
+    visible_sample_steps = False
+    visible_inp_refs = False
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
             prompt_text_update, prompt_language_update = (
