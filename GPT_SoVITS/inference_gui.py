@@ -285,7 +285,10 @@ class GPTSoVITSGUI(QMainWindow):
             change_gpt_weights(gpt_path=GPT_model_path)
             self.GPT_Path = GPT_model_path
         if SoVITS_model_path != self.SoVITS_Path:
-            change_sovits_weights(sovits_path=SoVITS_model_path)
+            # change_sovits_weights is a generator function (it yields UI update dicts):
+            # iterate it so the SoVITS weights actually load.
+            for _ in change_sovits_weights(sovits_path=SoVITS_model_path):
+                pass
             self.SoVITS_Path = SoVITS_model_path
 
         synthesis_result = get_tts_wav(
