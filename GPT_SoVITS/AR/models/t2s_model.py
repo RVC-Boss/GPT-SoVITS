@@ -220,6 +220,61 @@ class T2SBlock:
         )
         return x, k_cache, v_cache
 
+    def decode_next_token_static(
+        self,
+        x: torch.Tensor,
+        k_cache: torch.Tensor,
+        v_cache: torch.Tensor,
+        kv_len: int,
+        attn_mask: Optional[torch.Tensor] = None,
+        torch_sdpa: bool = True,
+    ):
+        # Same as decode_next_token(), but k_cache/v_cache are pre-allocated buffers
+        # (see Text2SemanticDecoder.infer_panel_batch_infer / infer_panel_naive) sized
+        # for the full 1500-step decode instead of growing by one torch.cat() per step.
+        # kv_len is how much of the buffer is written so far; each step writes one slot
+        # in place. This avoids a reallocation + copy of the whole cache on every token,
+        # which is where most of decode's wall time and peak memory go, especially on
+        # backends without CUDA's caching allocator (e.g. MPS).
+        q, k, v = F.linear(x, self.qkv_w, self.qkv_b).chunk(3, dim=-1)
+
+        k_cache.narrow(1, kv_len, 1).copy_(k)
+        v_cache.narrow(1, kv_len, 1).copy_(v)
+        new_len = kv_len + 1
+
+        batch_size = q.shape[0]
+        q_len = q.shape[1]
+
+        q = q.view(batch_size, q_len, self.num_heads, -1).transpose(1, 2)
+        k = k_cache.narrow(1, 0, new_len).view(batch_size, new_len, self.num_heads, -1).transpose(1, 2)
+        v = v_cache.narrow(1, 0, new_len).view(batch_size, new_len, self.num_heads, -1).transpose(1, 2)
+
+        if torch_sdpa:
+            attn = F.scaled_dot_product_attention(q, k, v, (~attn_mask) if attn_mask is not None else None)
+        else:
+            attn = scaled_dot_product_attention(q, k, v, attn_mask)
+
+        attn = attn.transpose(1, 2).reshape(batch_size, q_len, -1)
+        attn = F.linear(attn, self.out_w, self.out_b)
+
+        x = x + attn
+        x = F.layer_norm(
+            x,
+            [self.hidden_dim],
+            self.norm_w1,
+            self.norm_b1,
+            self.norm_eps1,
+        )
+        x = x + self.mlp.forward(x)
+        x = F.layer_norm(
+            x,
+            [self.hidden_dim],
+            self.norm_w2,
+            self.norm_b2,
+            self.norm_eps2,
+        )
+        return x, k_cache, v_cache
+
 
 @torch.jit.script
 class T2STransformer:
@@ -253,6 +308,21 @@ class T2STransformer:
         for i in range(self.num_blocks):
             x, k_cache[i], v_cache[i] = self.blocks[i].decode_next_token(
                 x, k_cache[i], v_cache[i], attn_mask, torch_sdpa
+            )
+        return x, k_cache, v_cache
+
+    def decode_next_token_static(
+        self,
+        x: torch.Tensor,
+        k_cache: List[torch.Tensor],
+        v_cache: List[torch.Tensor],
+        kv_len: int,
+        attn_mask: Optional[torch.Tensor] = None,
+        torch_sdpa: bool = True,
+    ):
+        for i in range(self.num_blocks):
+            x, k_cache[i], v_cache[i] = self.blocks[i].decode_next_token_static(
+                x, k_cache[i], v_cache[i], kv_len, attn_mask, torch_sdpa
             )
         return x, k_cache, v_cache
 
@@ -698,20 +768,52 @@ class Text2SemanticDecoder(nn.Module):
         y_list = [None] * y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
         idx_list = [None] * y.shape[0]
+        kv_len = 0  # length written into the static k/v buffers; used once idx > 0
+        # attn_mask's only job during decode is to mask the prompt's left padding
+        # (causality is already guaranteed by kv_len only exposing what's been
+        # written so far, see decode_next_token_static). That padding region is
+        # fixed for the whole decode and newly generated tokens are never padding,
+        # so when this batch has no left padding to begin with (batch_size==1, or
+        # an equal-length batch) we can pass None to SDPA for every decode step and
+        # skip the per-step F.pad + negate entirely. Batches with real left padding
+        # (bsz>1, unequal lengths) keep the original masked path unchanged.
+        decode_has_padding = bool(attn_mask[:, :, -1, :].any())
         for idx in tqdm(range(1500)):
             if idx == 0:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, attn_mask, None)
+                # process_prompt() returns k/v caches exactly src_len long. Copy them
+                # into buffers pre-allocated for the full 1500-step decode so later
+                # steps write in place instead of torch.cat-ing a new tensor every
+                # token (see decode_next_token_static for why that matters).
+                max_T = k_cache[0].shape[1] + 1500 + 1
+                kv_len = k_cache[0].shape[1]  # = src_len
+                for i in range(len(k_cache)):
+                    kb = torch.zeros(
+                        k_cache[i].shape[0], max_T, k_cache[i].shape[2],
+                        dtype=k_cache[i].dtype, device=k_cache[i].device,
+                    )
+                    vb = torch.zeros_like(kb)
+                    kb.narrow(1, 0, kv_len).copy_(k_cache[i])
+                    vb.narrow(1, 0, kv_len).copy_(v_cache[i])
+                    k_cache[i], v_cache[i] = kb, vb
             else:
-                xy_dec, k_cache, v_cache = self.t2s_transformer.decode_next_token(xy_pos, k_cache, v_cache, attn_mask)
+                mask_arg = attn_mask if decode_has_padding else None
+                xy_dec, k_cache, v_cache = self.t2s_transformer.decode_next_token_static(
+                    xy_pos, k_cache, v_cache, kv_len, mask_arg
+                )
+                kv_len += 1
             logits = self.ar_predict_layer(xy_dec[:, -1])
 
-            if idx == 0:
-                attn_mask = F.pad(attn_mask[:, :, -1].unsqueeze(-2), (0, 1), value=False)
-            else:
-                attn_mask = F.pad(attn_mask, (0, 1), value=False)
+            if decode_has_padding:
+                if idx == 0:
+                    attn_mask = F.pad(attn_mask[:, :, -1].unsqueeze(-2), (0, 1), value=False)
+                else:
+                    attn_mask = F.pad(attn_mask, (0, 1), value=False)
+            elif idx == 0:
+                attn_mask = None  # subsequent steps take the decode_has_padding=False branch above
 
             if idx < 11:  ###至少预测出10个token不然不给停止（0.4s）
-                logits = logits[:, :-1] 
+                logits = logits[:, :-1]
 
             samples = sample(
                 logits, y, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature
@@ -740,8 +842,15 @@ class Text2SemanticDecoder(nn.Module):
             if reserved_idx_of_batch_for_y is not None:
                 # index = torch.LongTensor(batch_idx_map).to(y.device)
                 y = torch.index_select(y, dim=0, index=reserved_idx_of_batch_for_y)
-                attn_mask = torch.index_select(attn_mask, dim=0, index=reserved_idx_of_batch_for_y)
+                if attn_mask is not None:  # stays None whenever decode_has_padding is False
+                    attn_mask = torch.index_select(attn_mask, dim=0, index=reserved_idx_of_batch_for_y)
                 if k_cache is not None:
+                    # k_cache/v_cache are now the static buffers (including their unwritten
+                    # zero tail), so this copies the full max_T length rather than just the
+                    # portion in use. Left as-is: this only runs on the rare step where some
+                    # sequence in the batch hits EOS (at most bsz-1 times, and immediately
+                    # followed by a break when batch_size==1), so it's not worth the extra
+                    # bookkeeping an index-remapping scheme would need.
                     for i in range(len(k_cache)):
                         k_cache[i] = torch.index_select(k_cache[i], dim=0, index=reserved_idx_of_batch_for_y)
                         v_cache[i] = torch.index_select(v_cache[i], dim=0, index=reserved_idx_of_batch_for_y)
@@ -886,12 +995,31 @@ class Text2SemanticDecoder(nn.Module):
 
         token_counter = 0
         curr_ptr = prefix_len
+        kv_len = 0  # length written into the static k/v buffers; used once idx > 0
         for idx in tqdm(range(1500)):
             token_counter+=1
             if xy_attn_mask is not None:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask, None)
+                # Same static-buffer approach as infer_panel_batch_infer above:
+                # process_prompt() returns k/v caches exactly src_len long, copy them
+                # into buffers pre-allocated for the full 1500-step decode so later
+                # steps write in place instead of growing the cache with torch.cat
+                # every token. This path always has batch_size 1 and no padding, so
+                # unlike infer_panel_batch_infer there's no padding case to handle.
+                max_T = k_cache[0].shape[1] + 1500 + 1
+                kv_len = k_cache[0].shape[1]  # = src_len
+                for i in range(len(k_cache)):
+                    kb = torch.zeros(
+                        k_cache[i].shape[0], max_T, k_cache[i].shape[2],
+                        dtype=k_cache[i].dtype, device=k_cache[i].device,
+                    )
+                    vb = torch.zeros_like(kb)
+                    kb.narrow(1, 0, kv_len).copy_(k_cache[i])
+                    vb.narrow(1, 0, kv_len).copy_(v_cache[i])
+                    k_cache[i], v_cache[i] = kb, vb
             else:
-                xy_dec, k_cache, v_cache = self.t2s_transformer.decode_next_token(xy_pos, k_cache, v_cache)
+                xy_dec, k_cache, v_cache = self.t2s_transformer.decode_next_token_static(xy_pos, k_cache, v_cache, kv_len)
+                kv_len += 1
 
             logits = self.ar_predict_layer(xy_dec[:, -1])
 
