@@ -86,7 +86,10 @@ def _expand_time(m):
     """
     hours, minutes = map(int, m.group(1, 2))
     period = "a.m." if hours < 12 else "p.m."
-    if hours > 12:
+    # 00:00 is midnight. On a 12-hour clock that hour is twelve, not zero.
+    if hours == 0:
+        hours = 12
+    elif hours > 12:
         hours -= 12
 
     hour_word = _inflect.number_to_words(hours)
