@@ -362,6 +362,8 @@ python webui.py
 
 2. 更新新版 vocoder, 大幅降低高频镜像混叠伪影.
 
+3. 支持 `cuda_graph` 和 `flash_attention` 推理加速, 感谢 [@XXXXRT666](https://github.com/XXXXRT666) 的贡献.
+
 从 V2Pro 更新到 V5：
 
 1. 从 [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5) 克隆最新代码.

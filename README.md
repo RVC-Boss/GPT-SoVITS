@@ -376,6 +376,8 @@ New Features:
 
 2. An updated vocoder significantly reduces high-frequency spectral mirroring and aliasing artifacts.
 
+3. Support for `cuda_graph` and `flash_attention` inference acceleration. Thanks to [@XXXXRT666](https://github.com/XXXXRT666) for the contribution.
+
 Upgrading from V2Pro to V5:
 
 1. Clone the latest code from [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5).

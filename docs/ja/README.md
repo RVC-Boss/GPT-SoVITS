@@ -348,6 +348,8 @@ V1/V2/V3/V4 環境から V2Pro への移行方法:
 
 2. 新しい vocoder により、高周波のスペクトルミラーリングおよびエイリアシングのアーティファクトを大幅に低減します.
 
+3. `cuda_graph` と `flash_attention` による推論の高速化をサポートします. [@XXXXRT666](https://github.com/XXXXRT666) の貢献に感謝します.
+
 V2Pro から V5 へのアップデート方法:
 
 1. [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5) から最新のコードをクローンします.

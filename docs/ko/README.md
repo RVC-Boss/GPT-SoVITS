@@ -354,6 +354,8 @@ V1/V2/V3/V4 환경에서 V2Pro로 전환 방법:
 
 2. 새로운 vocoder로 고주파 스펙트럼 미러링 및 앨리어싱 아티팩트를 크게 줄입니다.
 
+3. `cuda_graph`와 `flash_attention`을 통한 추론 가속을 지원합니다. 기여해 주신 [@XXXXRT666](https://github.com/XXXXRT666)님께 감사드립니다.
+
 V2Pro에서 V5로 업데이트하는 방법:
 
 1. [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5)에서 최신 코드를 클론하세요.

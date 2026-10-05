@@ -355,6 +355,8 @@ Yeni Özellikler:
 
 2. Yeni vocoder, yüksek frekanslı spektral aynalama ve aliasing artefaktlarını önemli ölçüde azaltır.
 
+3. `cuda_graph` ve `flash_attention` ile çıkarım hızlandırma desteği eklendi. Katkısı için [@XXXXRT666](https://github.com/XXXXRT666)'ya teşekkür ederiz.
+
 V2Pro'dan V5'e geçiş:
 
 1. [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5) üzerinden en son kodları klonlayın.
