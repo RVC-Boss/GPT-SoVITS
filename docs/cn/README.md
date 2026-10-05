@@ -354,6 +354,20 @@ python webui.py
 
 3. 从 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) 下载 V2Pro 预训练模型 (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, 和 `sv/pretrained_eres2netv2w24s4ep4.ckpt`), 并放入 `GPT_SoVITS/pretrained_models` 目录.
 
+## V5 更新说明
+
+新特性：
+
+1. 大幅提升无需 SoVITS 微调训练时的音色相似度.
+
+2. 更新新版 vocoder, 大幅降低高频镜像混叠伪影.
+
+从 V2Pro 更新到 V5：
+
+1. 从 [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5) 克隆最新代码.
+
+2. 从 [Hugging Face](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v5-pretrained) 下载 V5 预训练模型, 并放入 `GPT_SoVITS/pretrained_models` 目录, 保留 `gsv-v5-pretrained` 子目录结构, 即模型目录为 `GPT_SoVITS/pretrained_models/gsv-v5-pretrained`.
+
 ## 待办事项清单
 
 - [x] **高优先级:**

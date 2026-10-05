@@ -347,6 +347,20 @@ V1/V2/V3/V4 ortamından V2Pro'ya geçiş:
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden V2Pro ön eğitilmiş modelleri indirin (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, ve `sv/pretrained_eres2netv2w24s4ep4.ckpt`) ve bunları `GPT_SoVITS/pretrained_models` dizinine koyun.
 
+## V5 Sürüm Notları
+
+Yeni Özellikler:
+
+1. SoVITS ince ayar eğitimi olmadan ses benzerliği önemli ölçüde iyileştirildi.
+
+2. Yeni vocoder, yüksek frekanslı spektral aynalama ve aliasing artefaktlarını önemli ölçüde azaltır.
+
+V2Pro'dan V5'e geçiş:
+
+1. [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5) üzerinden en son kodları klonlayın.
+
+2. V5 ön eğitilmiş modellerini [Hugging Face](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v5-pretrained) üzerinden indirin ve `gsv-v5-pretrained` alt dizin yapısını koruyarak `GPT_SoVITS/pretrained_models` dizinine koyun. Model dizini `GPT_SoVITS/pretrained_models/gsv-v5-pretrained` olmalıdır.
+
 ## Yapılacaklar Listesi
 
 - [x] **Yüksek Öncelikli:**
