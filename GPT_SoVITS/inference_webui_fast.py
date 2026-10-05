@@ -6,6 +6,10 @@
 全部按英文识别
 全部按日文识别
 """
+from tools.portable_runtime import activate as activate_portable_runtime
+
+activate_portable_runtime(change_cwd=True)
+
 import psutil
 import os
 
@@ -60,6 +64,7 @@ import gradio as gr
 from TTS_infer_pack.text_segmentation_method import get_method
 from TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
 
+from tools.acceleration import cuda_graph_available, flash_attention_available
 from tools.assets import css, js, top_html
 from tools.i18n.i18n import I18nAuto, scan_language_list
 
@@ -76,6 +81,10 @@ if torch.cuda.is_available():
 #     device = "mps"
 else:
     device = "cpu"
+
+accel_dtype = torch.float16 if is_half else torch.float32
+graph_available = cuda_graph_available(device)
+flash_attn_supported = flash_attention_available(device, accel_dtype)
 
 # is_half = False
 # device = "cpu"
@@ -165,7 +174,8 @@ def inference(
     fragment_interval,
     seed,
     keep_random,
-    parallel_infer,
+    use_cuda_graph,
+    use_flash_attention,
     repetition_penalty,
     sample_steps,
     super_sampling,
@@ -189,7 +199,9 @@ def inference(
         "return_fragment": False,
         "fragment_interval": fragment_interval,
         "seed": actual_seed,
-        "parallel_infer": parallel_infer,
+        "parallel_infer": True,
+        "use_cuda_graph": use_cuda_graph,
+        "use_flash_attention": use_flash_attention,
         "repetition_penalty": repetition_penalty,
         "sample_steps": int(sample_steps),
         "super_sampling": super_sampling,
@@ -416,7 +428,13 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     )
 
                 with gr.Row():
-                    parallel_infer = gr.Checkbox(label=i18n("并行推理"), value=True, interactive=True, show_label=True)
+                    use_cuda_graph = gr.Checkbox(
+                        label="CUDA Graph", value=graph_available, visible=graph_available, interactive=graph_available
+                    )
+                    use_flash_attention = gr.Checkbox(
+                        label="flash_attn加速", value=flash_attn_supported, visible=flash_attn_supported,
+                        interactive=flash_attn_supported
+                    )
                     split_bucket = gr.Checkbox(
                         label=i18n("数据分桶(并行推理时会降低一点计算量)"),
                         value=True,
@@ -453,7 +471,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 fragment_interval,
                 seed,
                 keep_random,
-                parallel_infer,
+                use_cuda_graph,
+                use_flash_attention,
                 repetition_penalty,
                 sample_steps,
                 super_sampling,

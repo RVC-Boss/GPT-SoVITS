@@ -6,6 +6,10 @@
 全部按英文识别
 全部按日文识别
 """
+from tools.portable_runtime import activate as activate_portable_runtime
+
+activate_portable_runtime(change_cwd=True)
+
 import psutil
 import os
 
@@ -100,6 +104,7 @@ cnhubert.cnhubert_base_path = cnhubert_base_path
 
 import random
 
+from tools.acceleration import create_acceleration, cuda_graph_available, flash_attention_available
 from GPT_SoVITS.module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
 
 
@@ -137,37 +142,10 @@ if torch.cuda.is_available():
 else:
     device = "cpu"
 
+accel_dtype = torch.float16 if is_half else torch.float32
+graph_available = cuda_graph_available(device)
+flash_attn_supported = flash_attention_available(device, accel_dtype)
 
-def check_cuda_graph_support():
-    if device != "cuda":
-        return False
-    try:
-        major, _ = torch.cuda.get_device_capability()
-        if major < 7:
-            print("CUDA Graph: GPU compute capability < 7.0, disabled")
-            return False
-        a = torch.randn(2, 2, device="cuda")
-        g = torch.cuda.CUDAGraph()
-        s = torch.cuda.Stream()
-        s.wait_stream(torch.cuda.current_stream())
-        with torch.cuda.stream(s):
-            b = a * 2
-        torch.cuda.current_stream().wait_stream(s)
-        out = torch.empty_like(b)
-        with torch.cuda.graph(g):
-            out.copy_(a * 2)
-        g.replay()
-        torch.cuda.synchronize()
-        del a, b, out, g, s
-        torch.cuda.empty_cache()
-        print("CUDA Graph: support check passed, auto-enabled")
-        return True
-    except Exception as e:
-        print(f"CUDA Graph: support check failed ({e}), disabled")
-        return False
-
-
-cuda_graph_supported = check_cuda_graph_support()
 
 dict_language_v1 = {
     i18n("中文"): "all_zh",  # 全部按中文识别
@@ -256,12 +234,16 @@ else:
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 
 v3v4set = {"v3", "v4"}
+t2s_model_cudagraph = None
+gpt_path_global = None
 
 
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
     if "！" in sovits_path or "!" in sovits_path:
         sovits_path = name2sovits_path[sovits_path]
     global vq_model, hps, version, model_version, dict_language, if_lora_v3, t2s_model_cudagraph
+    if t2s_model_cudagraph is not None:
+        t2s_model_cudagraph.close()
     t2s_model_cudagraph = None
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     print(sovits_path, version, model_version, if_lora_v3)
@@ -406,14 +388,12 @@ except:
     pass
 
 
-t2s_model_cudagraph = None
-gpt_path_global = None
-
-
 def change_gpt_weights(gpt_path):
     if "！" in gpt_path or "!" in gpt_path:
         gpt_path = name2gpt_path[gpt_path]
     global hz, max_sec, t2s_model, config, t2s_model_cudagraph, gpt_path_global
+    if t2s_model_cudagraph is not None:
+        t2s_model_cudagraph.close()
     t2s_model_cudagraph = None
     gpt_path_global = gpt_path
     hz = 50
@@ -482,6 +462,7 @@ def init_bigvgan():
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
         "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+        use_cuda_kernel=False,
     )
     # remove weight norm in the model and set to eval mode
     bigvgan_model.remove_weight_norm()
@@ -803,9 +784,10 @@ def get_tts_wav(
     sample_steps=8,
     if_sr=False,
     pause_second=0.3,
-    use_cuda_graph=False,
+    use_cuda_graph=True,
+    use_flash_attention=True,
 ):
-    global cache
+    global cache, t2s_model_cudagraph
     if ref_wav_path:
         pass
     else:
@@ -888,6 +870,7 @@ def get_tts_wav(
     if not ref_free:
         phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language, version)
 
+    prepared_texts = []
     for i_text, text in enumerate(texts):
         # 解决输入目标文本的空行导致报错的问题
         if len(text.strip()) == 0:
@@ -899,65 +882,64 @@ def get_tts_wav(
         print(i18n("前端处理后的文本(每句):"), norm_text2)
         if not ref_free:
             bert = torch.cat([bert1, bert2], 1)
-            all_phoneme_ids = torch.LongTensor(phones1 + phones2).to(device).unsqueeze(0)
+            all_phoneme_ids = torch.LongTensor(phones1 + phones2).to(device)
         else:
             bert = bert2
-            all_phoneme_ids = torch.LongTensor(phones2).to(device).unsqueeze(0)
+            all_phoneme_ids = torch.LongTensor(phones2).to(device)
+        prepared_texts.append((i_text, phones2, all_phoneme_ids, bert.to(device)))
 
-        bert = bert.to(device).unsqueeze(0)
-        all_phoneme_len = torch.tensor([all_phoneme_ids.shape[-1]]).to(device)
-
-        t2 = ttime()
-        # cache_key="%s-%s-%s-%s-%s-%s-%s-%s"%(ref_wav_path,prompt_text,prompt_language,text,text_language,top_k,top_p,temperature)
-        # print(cache.keys(),if_freeze)
-        if i_text in cache and if_freeze == True:
-            pred_semantic = cache[i_text]
-        else:
-            if use_cuda_graph and device == "cuda":
-                global t2s_model_cudagraph
-                if t2s_model_cudagraph is None:
-                    from AR.models.t2s_model_cudagraph import CUDAGraphRunner
-                    t2s_model_cudagraph = CUDAGraphRunner(
-                        CUDAGraphRunner.load_decoder(gpt_path_global),
-                        torch.device(device),
-                        torch.float16 if is_half else torch.float32,
-                    )
-                from AR.models.structs_cudagraph import T2SRequest
-                with torch.no_grad():
-                    t2s_request = T2SRequest(
-                        [all_phoneme_ids.squeeze(0)],
-                        all_phoneme_len,
-                        all_phoneme_ids.new_zeros((1, 0)) if ref_free else prompt,
-                        [bert.squeeze(0)],
-                        valid_length=1,
+    t2 = ttime()
+    pending_texts = [entry for entry in prepared_texts if not (if_freeze and entry[0] in cache)]
+    if pending_texts:
+        if t2s_model_cudagraph is None:
+            t2s_model_cudagraph = create_acceleration(
+                gpt_path_global,
+                device=torch.device(device),
+                dtype=torch.float16 if is_half else torch.float32,
+                max_batch_size=1,
+                use_cuda_graph=use_cuda_graph,
+                use_flash_attention=use_flash_attention,
+            )
+        use_accel = t2s_model_cudagraph is not None and t2s_model_cudagraph.prepare(
+            use_cuda_graph, use_flash_attention
+        )
+        with torch.no_grad():
+            if use_accel:
+                for i_text, _, phones, bert in pending_texts:
+                    tokens, token_lengths = t2s_model_cudagraph.infer_batch(
+                        x=[phones],
+                        x_lens=torch.tensor([phones.shape[-1]], dtype=torch.long, device=device),
+                        prompts=None if ref_free else prompt,
+                        bert_feature=[bert],
+                        parallel_infer=False,
+                        use_cuda_graph=use_cuda_graph,
+                        use_flash_attention=use_flash_attention,
                         top_k=top_k,
                         top_p=top_p,
                         temperature=temperature,
                         early_stop_num=hz * max_sec,
-                        use_cuda_graph=True,
+                        repetition_penalty=1.35,
                     )
-                    t2s_result = t2s_model_cudagraph.generate(t2s_request)
-                    if t2s_result.exception is not None:
-                        print(t2s_result.exception)
-                        print(t2s_result.traceback)
-                        raise RuntimeError("CUDA Graph T2S inference failed")
-                    pred_semantic = t2s_result.result[0].unsqueeze(0).unsqueeze(0)
-                    cache[i_text] = pred_semantic
+                    cache[i_text] = tokens[0][:token_lengths[0]].reshape(1, 1, -1).clone()
             else:
-                with torch.no_grad():
+                for i_text, _, phones, bert in pending_texts:
                     pred_semantic, idx = t2s_model.model.infer_panel(
-                        all_phoneme_ids,
-                        all_phoneme_len,
+                        phones.unsqueeze(0),
+                        torch.tensor([phones.shape[-1]], dtype=torch.long, device=device),
                         None if ref_free else prompt,
-                        bert,
-                        # prompt_phone_len=ph_offset,
+                        bert.unsqueeze(0),
                         top_k=top_k,
                         top_p=top_p,
                         temperature=temperature,
                         early_stop_num=hz * max_sec,
+                        repetition_penalty=1.35,
                     )
-                    pred_semantic = pred_semantic[:, -idx:].unsqueeze(0)
-                    cache[i_text] = pred_semantic
+                    cache[i_text] = pred_semantic[:, -idx:].unsqueeze(0)
+    t3 = ttime()
+    t.extend([t2 - t1, t3 - t2, 0])
+
+    for i_text, phones2, _, _ in prepared_texts:
+        pred_semantic = cache[i_text]
         t3 = ttime()
         is_v2pro = model_version in {"v2Pro", "v2ProPlus"}
         # print(23333,is_v2pro,model_version)
@@ -1050,8 +1032,7 @@ def get_tts_wav(
         audio_opt.append(audio)
         audio_opt.append(zero_wav_torch)  # zero_wav
         t4 = ttime()
-        t.extend([t2 - t1, t3 - t2, t4 - t3])
-        t1 = ttime()
+        t.extend([0, 0, t4 - t3])
     print("%.3f\t%.3f\t%.3f\t%.3f" % (t[0], sum(t[1::3]), sum(t[2::3]), sum(t[3::3])))
     audio_opt = torch.cat(audio_opt, 0)  # np.concatenate
     if model_version in {"v1", "v2", "v2Pro", "v2ProPlus"}:
@@ -1356,11 +1337,19 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             inference_button = gr.Button(value=i18n("合成语音"), variant="primary", size="lg", scale=25)
             use_cuda_graph_checkbox = gr.Checkbox(
                 label="CUDA Graph " + i18n("加速"),
-                value=cuda_graph_supported,
-                interactive=True if torch.cuda.is_available() else False,
+                value=graph_available,
+                interactive=graph_available,
                 show_label=True,
                 scale=5,
-                visible=False,
+                visible=graph_available,
+            )
+            flash_attn_checkbox = gr.Checkbox(
+                label="flash_attn加速",
+                value=flash_attn_supported,
+                interactive=flash_attn_supported,
+                show_label=True,
+                scale=5,
+                visible=flash_attn_supported,
             )
             output = gr.Audio(label=i18n("输出的语音"), scale=14)
 
@@ -1384,6 +1373,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 if_sr_Checkbox,
                 pause_second_slider,
                 use_cuda_graph_checkbox,
+                flash_attn_checkbox,
             ],
             [output],
         )

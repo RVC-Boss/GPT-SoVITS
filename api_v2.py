@@ -101,6 +101,10 @@ RESP:
 
 """
 
+from tools.portable_runtime import FFMPEG_EXE, activate as activate_portable_runtime
+
+activate_portable_runtime(change_cwd=True)
+
 import os
 import sys
 import traceback
@@ -171,6 +175,7 @@ class TTS_Request(BaseModel):
     media_type: str = "wav"
     streaming_mode: Union[bool, int] = False
     parallel_infer: bool = True
+    use_cuda_graph: bool = True
     repetition_penalty: float = 1.35
     sample_steps: int = 32
     super_sampling: bool = False
@@ -238,7 +243,7 @@ def pack_wav(io_buffer: BytesIO, data: np.ndarray, rate: int):
 def pack_aac(io_buffer: BytesIO, data: np.ndarray, rate: int):
     process = subprocess.Popen(
         [
-            "ffmpeg",
+            str(FFMPEG_EXE),
             "-f",
             "s16le",  # 输入16位有符号小端整数PCM
             "-ar",
@@ -296,7 +301,7 @@ def wave_header_chunk(frame_input=b"", channels=1, sample_width=2, sample_rate=3
 
 def handle_control(command: str):
     if command == "restart":
-        os.execl(sys.executable, sys.executable, *argv)
+        os.execl(sys.executable, sys.executable, "-I", *argv)
     elif command == "exit":
         os.kill(os.getpid(), signal.SIGTERM)
         exit(0)
@@ -472,6 +477,7 @@ async def tts_get_endpoint(
     seed: int = -1,
     media_type: str = "wav",
     parallel_infer: bool = True,
+    use_cuda_graph: bool = True,
     repetition_penalty: float = 1.35,
     sample_steps: int = 32,
     super_sampling: bool = False,
@@ -499,6 +505,7 @@ async def tts_get_endpoint(
         "media_type": media_type,
         "streaming_mode": streaming_mode,
         "parallel_infer": parallel_infer,
+        "use_cuda_graph": use_cuda_graph,
         "repetition_penalty": float(repetition_penalty),
         "sample_steps": int(sample_steps),
         "super_sampling": super_sampling,

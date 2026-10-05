@@ -16,6 +16,11 @@ import os
 from typing import List, Tuple, Union
 
 import ffmpeg
+from tools.acceleration import create_acceleration
+from tools.portable_runtime import FFMPEG_EXE, prepare_transformers_flash_attention
+
+prepare_transformers_flash_attention()
+
 import librosa
 import numpy as np
 import torch
@@ -105,7 +110,7 @@ def speed_change(input_audio: np.ndarray, speed: float, sr: int):
 
     # 输出流到管道
     out, _ = output_stream.output("pipe:", format="s16le", acodec="pcm_s16le").run(
-        input=raw_audio, capture_stdout=True, capture_stderr=True
+        cmd=str(FFMPEG_EXE), input=raw_audio, capture_stdout=True, capture_stderr=True
     )
 
     # 将管道输出解码为 NumPy 数组
@@ -426,6 +431,7 @@ class TTS:
             self.configs: TTS_Config = TTS_Config(configs)
 
         self.t2s_model: Text2SemanticLightningModule = None
+        self.t2s_accel = None
         self.vits_model: Union[SynthesizerTrn, SynthesizerTrnV3] = None
         self.bert_tokenizer: AutoTokenizer = None
         self.bert_model: AutoModelForMaskedLM = None
@@ -592,6 +598,9 @@ class TTS:
 
 
     def init_t2s_weights(self, weights_path: str):
+        if self.t2s_accel is not None:
+            self.t2s_accel.close()
+            self.t2s_accel = None
         print(f"Loading Text2Semantic weights from {weights_path}")
         self.configs.t2s_weights_path = weights_path
         self.configs.save_configs()
@@ -623,6 +632,7 @@ class TTS:
 
             self.vocoder = BigVGAN.from_pretrained(
                 "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+                use_cuda_kernel=False,
             )
             # remove weight norm in the model and set to eval mode
             self.vocoder.remove_weight_norm()
@@ -698,6 +708,9 @@ class TTS:
             print("Half precision is not supported on CPU.")
             return
 
+        if self.t2s_accel is not None:
+            self.t2s_accel.close()
+            self.t2s_accel = None
         self.configs.is_half = enable
         self.precision = torch.float16 if enable else torch.float32
         if save:
@@ -731,6 +744,9 @@ class TTS:
         Args:
             device: torch.device, the device to use for all models.
         """
+        if self.t2s_accel is not None:
+            self.t2s_accel.close()
+            self.t2s_accel = None
         self.configs.device = device
         if save:
             self.configs.save_configs()
@@ -1052,6 +1068,8 @@ class TTS:
         seed = -1 if seed in ["", None] else seed
         actual_seed = set_seed(seed)
         parallel_infer = inputs.get("parallel_infer", True)
+        use_cuda_graph = inputs.get("use_cuda_graph", True)
+        use_flash_attention = inputs.get("use_flash_attention", True)
         repetition_penalty = inputs.get("repetition_penalty", 1.35)
         sample_steps = inputs.get("sample_steps", 32)
         super_sampling = inputs.get("super_sampling", False)
@@ -1061,27 +1079,23 @@ class TTS:
         fixed_length_chunk = inputs.get("fixed_length_chunk", False)
         chunk_split_thershold = 0.0 # 该值代表语义token与mute token的余弦相似度阈值，若大于该阈值，则视为可切分点。
 
-        if parallel_infer and not streaming_mode:
-            print(i18n("并行推理模式已开启"))
-            self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_batch_infer
-        elif not parallel_infer and streaming_mode and not self.configs.use_vocoder:
-            print(i18n("流式推理模式已开启"))
-            self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_naive
-        elif streaming_mode and self.configs.use_vocoder:
+        if streaming_mode and self.configs.use_vocoder:
             print(i18n("SoVits V3/4模型不支持流式推理模式，已自动回退到分段返回模式"))
             streaming_mode = False
             return_fragment = True
+
+        if streaming_mode:
             if parallel_infer:
-                self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_batch_infer
+                print(i18n("不支持同时开启并行推理和流式推理模式，已自动关闭并行推理模式"))
+                parallel_infer = False
             else:
-                self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_naive_batched
-            # self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_naive
-        elif parallel_infer and streaming_mode:
-            print(i18n("不支持同时开启并行推理和流式推理模式，已自动关闭并行推理模式"))
-            parallel_infer = False
+                print(i18n("流式推理模式已开启"))
             self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_naive
+        elif parallel_infer:
+            print(i18n("并行推理模式已开启"))
+            self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_batch_infer
         else:
-            print(i18n("朴素推理模式已开启"))
+            print(i18n("串行推理模式已开启"))
             self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_naive_batched
 
         if return_fragment and streaming_mode:
@@ -1264,19 +1278,55 @@ class TTS:
 
                 if not streaming_mode:
                     print(f"############ {i18n('预测语义Token')} ############")
-                    pred_semantic_list, idx_list = self.t2s_model.model.infer_panel(
-                        all_phoneme_ids,
-                        all_phoneme_lens,
-                        prompt,
-                        all_bert_features,
-                        # prompt_phone_len=ph_offset,
-                        top_k=top_k,
-                        top_p=top_p,
-                        temperature=temperature,
-                        early_stop_num=self.configs.hz * self.configs.max_sec,
-                        max_len=max_len,
-                        repetition_penalty=repetition_penalty,
+                    accel_batch_size = batch_size if parallel_infer else 1
+                    if self.t2s_accel is not None and self.t2s_accel.max_batch_size != accel_batch_size:
+                        self.t2s_accel.close()
+                        self.t2s_accel = None
+                    if self.t2s_accel is None:
+                        self.t2s_accel = create_acceleration(
+                            self.configs.t2s_weights_path,
+                            device=torch.device(self.configs.device),
+                            dtype=self.precision,
+                            max_batch_size=accel_batch_size,
+                            use_cuda_graph=use_cuda_graph,
+                            use_flash_attention=use_flash_attention,
+                        )
+                    use_accel = self.t2s_accel is not None and self.t2s_accel.prepare(
+                        use_cuda_graph, use_flash_attention
                     )
+                    if use_accel:
+                        pred_semantic_list, idx_list = [], []
+                        for start in range(0, len(all_phoneme_ids), accel_batch_size):
+                            end = start + accel_batch_size
+                            tokens, token_lengths = self.t2s_accel.infer_batch(
+                                all_phoneme_ids[start:end],
+                                all_phoneme_lens[start:end],
+                                prompt[start:end] if prompt is not None else None,
+                                all_bert_features[start:end],
+                                parallel_infer=parallel_infer,
+                                use_cuda_graph=use_cuda_graph,
+                                use_flash_attention=use_flash_attention,
+                                top_k=top_k,
+                                top_p=top_p,
+                                temperature=temperature,
+                                early_stop_num=self.configs.hz * self.configs.max_sec,
+                                repetition_penalty=repetition_penalty,
+                            )
+                            pred_semantic_list.extend(tokens)
+                            idx_list.extend(token_lengths)
+                    else:
+                        pred_semantic_list, idx_list = self.t2s_model.model.infer_panel(
+                            all_phoneme_ids,
+                            all_phoneme_lens,
+                            prompt,
+                            all_bert_features,
+                            top_k=top_k,
+                            top_p=top_p,
+                            temperature=temperature,
+                            early_stop_num=self.configs.hz * self.configs.max_sec,
+                            max_len=max_len,
+                            repetition_penalty=repetition_penalty,
+                        )
                     t4 = time.perf_counter()
                     t_34 += t4 - t3
 
@@ -1297,7 +1347,7 @@ class TTS:
                     #     ))
                     print(f"############ {i18n('合成音频')} ############")
                     if not self.configs.use_vocoder:
-                        if speed_factor == 1.0:
+                        if speed_factor == 1.0 and parallel_infer:
                             print(f"{i18n('并行合成中')}...")
                             # ## vits并行推理 method 2
                             pred_semantic_list = [item[-idx:] for item, idx in zip(pred_semantic_list, idx_list)]
