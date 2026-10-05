@@ -1,0 +1,100 @@
+# GPT-SoVITS: Windows x64 / CPython 3.12 / PyTorch 2.7.1
+# CUDA: cu118; wheel source: Hugging Face
+# This is a Windows-only installation list, not a Linux CUDA recipe.
+# Both application package variants use this same file for the chosen CUDA version.
+# Step 1: install the matching Torch pair with the project interpreter:
+# runtime\python.exe -I -m pip --isolated install torch==2.7.1+cu118 torchaudio==2.7.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+# Step 2: install this dependency list (no extra-req.txt or local wheels needed):
+# runtime\python.exe -I -m pip --isolated install -r requirements_py312_win_cu118_overseas.txt
+# Existing packages are not automatically downgraded to the original tested runtime.
+# Network wheel links are explicit, not --find-links candidates.
+
+--index-url https://pypi.org/simple
+
+# Prebuilt FlashAttention for Windows CPython 3.12 / Torch 2.7.
+flash-attn @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu118/flash_attn-2.8.3%2Bcu12torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
+# Numerical, audio, training and WebUI stack.
+numpy>=1.26.4,<2.0
+scipy>=1.12,<2
+tensorboard>=2.16,<3
+librosa>=0.10.2,<0.11
+numba>=0.59,<1
+pytorch-lightning>=2.4,<3
+gradio>=4.44.1,<5
+ffmpeg-python>=0.2,<1
+tqdm>=4.66,<5
+soundfile>=0.12.1,<1
+pandas>=2.2,<3
+matplotlib>=3.8,<4
+einops>=0.8,<1
+opencv-python-headless>=4.10,<4.12
+requests>=2.32,<3
+
+# Metadata-only onnxruntime wheel delegates to the matching GPU package.
+onnxruntime @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu118/onnxruntime-1.18.0-py3-none-any.whl
+onnxruntime-gpu==1.18.0
+
+nvidia-cudnn-cu11>=8.9.5,<9; sys_platform == "win32"
+nvidia-cublas-cu11>=11.11,<12; sys_platform == "win32"
+nvidia-cuda-runtime-cu11>=11.8,<12; sys_platform == "win32"
+nvidia-cuda-nvrtc-cu11>=11.8,<12; sys_platform == "win32"
+nvidia-cufft-cu11>=10.9,<11; sys_platform == "win32"
+
+# Patched Faster-Whisper metadata accepts CT2 3.24 for CUDA 11.
+# The custom CT2 wheel uses cuDNN 8 DLLs from nvidia-cudnn-cu11.
+faster-whisper @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu118/faster_whisper-1.2.1-py3-none-any.whl
+ctranslate2 @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu118/ctranslate2-3.24.0-cp312-cp312-win_amd64.whl
+setuptools>=80,<81
+av>=16.1,<17
+huggingface-hub>=0.36.2,<1
+tokenizers>=0.21.4,<1
+safetensors>=0.8,<1
+packaging>=26.2,<27
+
+# ASR update bundle GSV-Code-Update-ASR-Encoding-PortPoll-20260721.zip.
+funasr>=1.3.22,<1.4
+modelscope>=1.37.1,<2
+rapidfuzz>=3.13,<4
+transformers>=4.51.3,<5
+regex>=2026.7.10,<2027
+websockets>=12,<13
+omegaconf>=2.3.1,<2.4
+hydra-core>=1.3.4,<1.4
+tiktoken>=0.13,<1
+kaldiio>=2.18.1,<3
+jamo>=0.4.1,<1
+jaconv>=0.5,<1
+umap-learn>=0.5.12,<0.6
+torch-complex>=0.4.4,<0.5
+tensorboardX>=2.6.5,<3
+oss2>=2.19.1,<3
+
+# Language, text and model helpers.
+cn2an>=0.5.22,<1
+pypinyin>=0.53,<1
+pyopenjtalk @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu118/pyopenjtalk-0.4.1-cp312-cp312-win_amd64.whl
+g2p_en>=2.1,<3
+sentencepiece>=0.2,<1
+peft>=0.14,<0.18
+chardet>=5,<6
+PyYAML>=6,<7
+psutil>=6,<8
+jieba-fast @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu118/jieba_fast-0.53-cp312-cp312-win_amd64.whl
+jieba>=0.42.1,<1
+split-lang>=2,<3
+fast_langdetect>=0.3.1,<1
+wordsegment>=1.3,<2
+rotary_embedding_torch>=0.6,<1
+ToJyutping>=3,<4
+g2pk2>=0.0.3,<1
+ko_pron>=1.3,<2
+opencc>=1.1.9,<2
+python_mecab_ko>=1.3,<2; sys_platform != "win32"
+
+# API, TTS and training helpers.
+fastapi[standard]>=0.115.2,<0.116
+starlette>=0.40,<0.41
+x_transformers>=2,<3
+torchmetrics>=1.2,<1.6
+pydantic>=2.8,<2.11
+openai-whisper>=20231117
