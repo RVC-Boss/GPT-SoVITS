@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
 from x_transformers.x_transformers import RotaryEmbedding
@@ -99,11 +100,12 @@ class DiT(nn.Module):
         text_dim=None,
         conv_layers=0,
         long_skip_connection=False,
+        use_step_embedding=True,
     ):
         super().__init__()
 
         self.time_embed = TimestepEmbedding(dim)
-        self.d_embed = TimestepEmbedding(dim)
+        self.d_embed = TimestepEmbedding(dim) if use_step_embedding else None
         if text_dim is None:
             text_dim = mel_dim
         self.text_embed = TextEmbedding(text_dim, conv_layers=conv_layers)
@@ -130,6 +132,28 @@ class DiT(nn.Module):
 
         return ckpt_forward
 
+    def prepare_static_cache(self, cond0, x_lens, text0):
+        text = text0.transpose(2, 1)
+        cond = cond0.transpose(2, 1)
+        seq_len = cond.shape[1]
+        text_embed = self.text_embed(text, seq_len, drop_text=False)
+        projection = self.input_embed.proj
+        mel_dim = cond.shape[-1]
+        static = F.linear(
+            torch.cat((cond, text_embed), dim=-1),
+            projection.weight[:, mel_dim:], projection.bias,
+        )
+        negative_static = F.linear(
+            torch.cat((torch.zeros_like(cond), text_embed), dim=-1),
+            projection.weight[:, mel_dim:], projection.bias,
+        )
+        return {
+            "condition": static,
+            "negative_condition": negative_static,
+            "mask": sequence_mask(x_lens, max_length=seq_len).to(cond.device),
+            "rope": self.rotary_embed.forward_from_seq_len(seq_len),
+        }
+
     def forward(  # x, prompt_x, x_lens, t, style,cond
         self,  # d is channel,n is T
         x0: float["b n d"],  # nosied input audio  # noqa: F722
@@ -146,11 +170,13 @@ class DiT(nn.Module):
         infer=False,  # bool
         text_cache=None,  # torch tensor as text_embed
         dt_cache=None,  # torch tensor as dt
+        static_cache=None,
     ):
         x = x0.transpose(2, 1)
         cond = cond0.transpose(2, 1)
         text = text0.transpose(2, 1)
-        mask = sequence_mask(x_lens, max_length=x.size(1)).to(x.device)
+        mask = (static_cache["mask"] if static_cache is not None
+                else sequence_mask(x_lens, max_length=x.size(1)).to(x.device))
 
         batch, seq_len = x.shape[0], x.shape[1]
         if time.ndim == 0:
@@ -158,20 +184,28 @@ class DiT(nn.Module):
 
         # t: conditioning time, c: context (text + masked cond audio), x: noised input audio
         t = self.time_embed(time)
-        if infer and dt_cache is not None:
+        if self.d_embed is None:
+            dt = None
+        elif infer and dt_cache is not None:
             dt = dt_cache
         else:
             dt = self.d_embed(dt_base_bootstrap)
-        t += dt
+        if dt is not None:
+            t += dt
 
-        if infer and text_cache is not None:
+        if static_cache is not None:
+            static = static_cache["negative_condition" if drop_audio_cond else "condition"]
+            x = F.linear(x, self.input_embed.proj.weight[:, :x.shape[-1]]) + static
+            x = self.input_embed.conv_pos_embed(x, mask=mask) + x
+        elif infer and text_cache is not None:
             text_embed = text_cache
+            x = self.input_embed(x, cond, text_embed, drop_audio_cond=drop_audio_cond)
         else:
             text_embed = self.text_embed(text, seq_len, drop_text=drop_text)  ###need to change
+            x = self.input_embed(x, cond, text_embed, drop_audio_cond=drop_audio_cond)
 
-        x = self.input_embed(x, cond, text_embed, drop_audio_cond=drop_audio_cond)
-
-        rope = self.rotary_embed.forward_from_seq_len(seq_len)
+        rope = (static_cache["rope"] if static_cache is not None
+                else self.rotary_embed.forward_from_seq_len(seq_len))
 
         if self.long_skip_connection is not None:
             residual = x
@@ -189,6 +223,6 @@ class DiT(nn.Module):
         output = self.proj_out(x)
 
         if infer:
-            return output, text_embed, dt
+            return output, text_embed if static_cache is None else None, dt
         else:
             return output

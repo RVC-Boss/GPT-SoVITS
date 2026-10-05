@@ -108,7 +108,7 @@ activate_portable_runtime(change_cwd=True)
 import os
 import sys
 import traceback
-from typing import Generator, Union
+from typing import Generator, Union, Optional
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -177,7 +177,8 @@ class TTS_Request(BaseModel):
     parallel_infer: bool = True
     use_cuda_graph: bool = True
     repetition_penalty: float = 1.35
-    sample_steps: int = 32
+    sample_steps: Optional[int] = None
+    cfg_rate: Optional[float] = None
     super_sampling: bool = False
     overlap_length: int = 2
     min_chunk_length: int = 16
@@ -479,7 +480,8 @@ async def tts_get_endpoint(
     parallel_infer: bool = True,
     use_cuda_graph: bool = True,
     repetition_penalty: float = 1.35,
-    sample_steps: int = 32,
+    sample_steps: Optional[int] = None,
+    cfg_rate: Optional[float] = None,
     super_sampling: bool = False,
     streaming_mode: Union[bool, int] = False,
     overlap_length: int = 2,
@@ -507,7 +509,8 @@ async def tts_get_endpoint(
         "parallel_infer": parallel_infer,
         "use_cuda_graph": use_cuda_graph,
         "repetition_penalty": float(repetition_penalty),
-        "sample_steps": int(sample_steps),
+        "sample_steps": None if sample_steps is None else int(sample_steps),
+        "cfg_rate": None if cfg_rate is None else float(cfg_rate),
         "super_sampling": super_sampling,
         "overlap_length": int(overlap_length),
         "min_chunk_length": int(min_chunk_length),

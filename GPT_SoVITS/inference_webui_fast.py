@@ -63,6 +63,7 @@ version = model_version = os.environ.get("version", "v2")
 import gradio as gr
 from TTS_infer_pack.text_segmentation_method import get_method
 from TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
+from module.v5_inference import V5_VERSIONS, sampling_defaults, resolve_sampling
 
 from tools.acceleration import cuda_graph_available, flash_attention_available
 from tools.assets import css, js, top_html
@@ -177,9 +178,11 @@ def inference(
     use_cuda_graph,
     use_flash_attention,
     repetition_penalty,
-    sample_steps,
-    super_sampling,
+    sample_steps=None,
+    super_sampling=False,
+    cfg_rate=None,
 ):
+    sample_steps, cfg_rate = resolve_sampling(tts_pipeline.configs.version, sample_steps, cfg_rate)
     seed = -1 if keep_random else seed
     actual_seed = seed if seed not in [-1, "", None] else random.randint(0, 2**32 - 1)
     inputs = {
@@ -204,6 +207,7 @@ def inference(
         "use_flash_attention": use_flash_attention,
         "repetition_penalty": repetition_penalty,
         "sample_steps": int(sample_steps),
+        "cfg_rate": float(cfg_rate),
         "super_sampling": super_sampling,
     }
     try:
@@ -239,7 +243,7 @@ with open("./weight.json", "r", encoding="utf-8") as file:
 
 from process_ckpt import get_sovits_version_from_path_fast
 
-v3v4set = {"v3", "v4"}
+v3v4set = {"v3", "v4"} | V5_VERSIONS
 
 
 def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
@@ -255,6 +259,9 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         gr.Warning(info)
         raise FileExistsError(info)
     dict_language = dict_language_v1 if version == "v1" else dict_language_v2
+    prompt_text_update = prompt_language_update = text_update = text_language_update = {"__type__": "update"}
+    visible_sample_steps = model_version in v3v4set
+    visible_inp_refs = not visible_sample_steps
     if prompt_language is not None and text_language is not None:
         if prompt_language in list(dict_language.keys()):
             prompt_text_update, prompt_language_update = (
@@ -282,10 +289,11 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             prompt_language_update,
             text_update,
             text_language_update,
-            {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
+            {"__type__": "update", "interactive": visible_sample_steps, "value": sampling_defaults(model_version)[0]},
             {"__type__": "update", "visible": visible_inp_refs},
             {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
             {"__type__": "update", "value": i18n("模型加载中，请等待"), "interactive": False},
+            {"__type__": "update", "visible": model_version in V5_VERSIONS, "value": sampling_defaults(model_version)[1]},
         )
 
     tts_pipeline.init_vits_weights(sovits_path)
@@ -296,10 +304,11 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         prompt_language_update,
         text_update,
         text_language_update,
-        {"__type__": "update", "interactive": visible_sample_steps, "value": 32},
+        {"__type__": "update", "interactive": visible_sample_steps, "value": sampling_defaults(model_version)[0]},
         {"__type__": "update", "visible": visible_inp_refs},
         {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
         {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
+        {"__type__": "update", "visible": model_version in V5_VERSIONS, "value": sampling_defaults(model_version)[1]},
     )
     with open("./weight.json") as f:
         data = f.read()
@@ -331,13 +340,13 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             GPT_dropdown = gr.Dropdown(
                 label=i18n("GPT模型列表"),
                 choices=sorted(GPT_names, key=custom_sort_key),
-                value=gpt_path,
+                value=next((name for name, path in name2gpt_path.items() if path == gpt_path), gpt_path),
                 interactive=True,
             )
             SoVITS_dropdown = gr.Dropdown(
                 label=i18n("SoVITS模型列表"),
                 choices=sorted(SoVITS_names, key=custom_sort_key),
-                value=sovits_path,
+                value=next((name for name, path in name2sovits_path.items() if path == sovits_path), sovits_path),
                 interactive=True,
             )
             refresh_button = gr.Button(i18n("刷新模型路径"), variant="primary")
@@ -356,20 +365,25 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             prompt_text = gr.Textbox(label=i18n("主参考音频的文本"), value="", lines=2)
             with gr.Row():
                 prompt_language = gr.Dropdown(
-                    label=i18n("主参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文")
+                    label=i18n("主参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文"), scale=1
                 )
-                with gr.Column():
-                    ref_text_free = gr.Checkbox(
-                        label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"),
-                        value=False,
-                        interactive=True if model_version != "v3" else False,
-                        show_label=True,
-                    )
-                    gr.Markdown(
-                        i18n("使用无参考文本模式时建议使用微调的GPT")
-                        + "<br>"
-                        + i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。")
-                    )
+                cfg_rate = gr.Slider(
+                    minimum=0, maximum=2, step=0.05,
+                    value=sampling_defaults(model_version)[1], label="CFG",
+                    visible=model_version in V5_VERSIONS, interactive=True, scale=1,
+                )
+            with gr.Column():
+                ref_text_free = gr.Checkbox(
+                    label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"),
+                    value=False,
+                    interactive=True if model_version != "v3" else False,
+                    show_label=True,
+                )
+                gr.Markdown(
+                    i18n("使用无参考文本模式时建议使用微调的GPT")
+                    + "<br>"
+                    + i18n("听不清参考音频说的啥(不晓得写啥)可以开。开启后无视填写的参考文本。")
+                )
 
         with gr.Column():
             gr.Markdown(value=i18n("*请填写需要合成的目标文本和语种模式"))
@@ -384,10 +398,11 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             with gr.Column():
                 with gr.Row():
                     batch_size = gr.Slider(
-                        minimum=1, maximum=200, step=1, label=i18n("batch_size"), value=20, interactive=True
+                        minimum=1, maximum=200, step=1, label=i18n("batch_size"),
+                        value=1 if model_version in V5_VERSIONS else 20, interactive=True
                     )
                     sample_steps = gr.Radio(
-                        label=i18n("采样步数(仅对V3/4生效)"), value=32, choices=[4, 8, 16, 32, 64, 128], visible=True
+                        label="Euler steps (V3/V4/V5)", value=sampling_defaults(model_version)[0], choices=[4, 8, 16, 32], visible=True
                     )
                 with gr.Row():
                     fragment_interval = gr.Slider(
@@ -476,6 +491,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 repetition_penalty,
                 sample_steps,
                 super_sampling,
+                cfg_rate,
             ],
             [output, seed],
         )
@@ -494,6 +510,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 inp_refs,
                 ref_text_free,
                 inference_button,
+                cfg_rate,
             ],
         )  #
         GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])

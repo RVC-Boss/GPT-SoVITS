@@ -1291,8 +1291,12 @@ class SynthesizerTrnV3(nn.Module):
         self.linear_mel = nn.Conv1d(inter_channels2, 100, 1, stride=1)
         self.cfm = CFM(
             100,
-            DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2, conv_layers=4)),
+            DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2,
+                       conv_layers=4, use_step_embedding=version not in {"v5", "v5dev", "v5turbo"})),
         )  # text_dim is condition feature dim
+        if version in {"v5", "v5dev", "v5turbo"}:
+            from module.v5_inference import CFMV5
+            self.cfm = CFMV5(100, self.cfm.estimator)
         if self.freeze_quantizer == True:
             set_no_grad(self.ssl_proj)
             set_no_grad(self.quantizer)

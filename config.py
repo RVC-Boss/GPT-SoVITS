@@ -14,6 +14,9 @@ pretrained_sovits_name = {
     "v2": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
     "v3": "GPT_SoVITS/pretrained_models/s2Gv3.pth",  ###v3v4还要检查vocoder，算了。。。
     "v4": "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
+    "v5": "GPT_SoVITS/pretrained_models/gsv-v5-pretrained/s2Gv5dev.pth",
+    "v5dev": "GPT_SoVITS/pretrained_models/gsv-v5-pretrained/s2Gv5dev.pth",
+    "v5turbo": "GPT_SoVITS/pretrained_models/gsv-v5-pretrained/s2Gv5turbo.pth",
     "v2Pro": "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth",
     "v2ProPlus": "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth",
 }
@@ -23,10 +26,15 @@ pretrained_gpt_name = {
     "v2": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
     "v3": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
     "v4": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "v5": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "v5dev": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
+    "v5turbo": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
     "v2Pro": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
     "v2ProPlus": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
 }
 name2sovits_path = {
+    i18n("不训练直接推v5dev底模！"): pretrained_sovits_name["v5dev"],
+    i18n("不训练直接推v5turbo底模！"): pretrained_sovits_name["v5turbo"],
     # i18n("不训练直接推v1底模！"): "GPT_SoVITS/pretrained_models/s2G488k.pth",
     i18n("不训练直接推v2底模！"): "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
     # i18n("不训练直接推v3底模！"): "GPT_SoVITS/pretrained_models/s2Gv3.pth",
