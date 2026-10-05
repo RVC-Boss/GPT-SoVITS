@@ -346,6 +346,20 @@ V1/V2/V3/V4 환경에서 V2Pro로 전환 방법:
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main)에서 V2Pro 사전 학습 모델(`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, 및 `sv/pretrained_eres2netv2w24s4ep4.ckpt`)을 다운로드하고 `GPT_SoVITS/pretrained_models` 디렉토리에 넣으세요.
 
+## V5 릴리스 노트
+
+신규 기능:
+
+1. SoVITS 미세 조정 없이도 음색 유사도가 크게 향상됩니다.
+
+2. 새로운 vocoder로 고주파 스펙트럼 미러링 및 앨리어싱 아티팩트를 크게 줄입니다.
+
+V2Pro에서 V5로 업데이트하는 방법:
+
+1. [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5)에서 최신 코드를 클론하세요.
+
+2. [Hugging Face](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v5-pretrained)에서 V5 사전 학습 모델을 다운로드하고 `gsv-v5-pretrained` 하위 디렉토리 구조를 유지한 채 `GPT_SoVITS/pretrained_models`에 넣으세요. 모델 디렉토리는 `GPT_SoVITS/pretrained_models/gsv-v5-pretrained`입니다.
+
 ## 할 일 목록
 
 - [x] **최우선순위:**
