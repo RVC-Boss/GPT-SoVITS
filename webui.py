@@ -98,7 +98,7 @@ gpu_infos = GPU_INFOS
 mem = memset
 is_gpu_ok = IS_GPU
 
-v3v4set = {"v3", "v4"}
+v3v4set = {"v3", "v4", "v5dev", "v5turbo"}
 
 
 def set_default():
@@ -167,14 +167,15 @@ from config import pretrained_gpt_name, pretrained_sovits_name
 def check_pretrained_is_exist(version):
     pretrained_model_list = (
         pretrained_sovits_name[version],
-        pretrained_sovits_name[version].replace("s2G", "s2D"),
         pretrained_gpt_name[version],
         "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
         "GPT_SoVITS/pretrained_models/chinese-hubert-base",
     )
+    if version not in v3v4set:
+        pretrained_model_list += (pretrained_sovits_name[version].replace("s2G", "s2D"),)
     _ = ""
     for i in pretrained_model_list:
-        if "s2Dv3" not in i and "s2Dv4" not in i and os.path.exists(i) == False:
+        if os.path.exists(i) == False:
             _ += f"\n    {i}"
     if _:
         print("warning: ", i18n("以下模型不存在:") + _)
@@ -1272,7 +1273,7 @@ def switch_version(version_):
     set_default()
     return (
         {"__type__": "update", "value": pretrained_sovits_name[version]},
-        {"__type__": "update", "value": pretrained_sovits_name[version].replace("s2G", "s2D")},
+        {"__type__": "update", "value": pretrained_sovits_name[version].replace("s2G", "s2D") if version not in v3v4set else "", "visible": version not in v3v4set},
         {"__type__": "update", "value": pretrained_gpt_name[version]},
         {"__type__": "update", "value": pretrained_gpt_name[version]},
         {"__type__": "update", "value": pretrained_sovits_name[version]},
@@ -1495,7 +1496,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         version_checkbox = gr.Radio(
                             label=i18n("训练模型的版本"),
                             value=version,
-                            choices=["v1", "v2", "v4", "v2Pro", "v2ProPlus"],
+                            choices=["v2", "v2Pro", "v2ProPlus", "v4", "v5dev", "v5turbo"],
                             scale=5,
                         )
             with gr.Accordion(label=i18n("预训练模型路径"), open=False):
@@ -1519,7 +1520,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         )
                         pretrained_s2D = gr.Textbox(
                             label=i18n("预训练SoVITS-D模型路径"),
-                            value=pretrained_sovits_name[version].replace("s2G", "s2D"),
+                            value=pretrained_sovits_name[version].replace("s2G", "s2D") if version not in v3v4set else "",
+                            visible=version not in v3v4set,
                             interactive=True,
                             lines=1,
                             max_lines=1,

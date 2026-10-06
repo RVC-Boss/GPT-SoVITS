@@ -63,7 +63,7 @@ version = model_version = os.environ.get("version", "v2")
 import gradio as gr
 from TTS_infer_pack.text_segmentation_method import get_method
 from TTS_infer_pack.TTS import NO_PROMPT_ERROR, TTS, TTS_Config
-from module.v5_inference import V5_VERSIONS, sampling_defaults, resolve_sampling
+from module.models_v5 import V5_VERSIONS
 
 from tools.acceleration import cuda_graph_available, flash_attention_available
 from tools.assets import css, js, top_html
@@ -127,11 +127,6 @@ from config import change_choices, get_weights_names, name2gpt_path, name2sovits
 SoVITS_names, GPT_names = get_weights_names()
 from config import pretrained_sovits_name
 
-path_sovits_v3 = pretrained_sovits_name["v3"]
-path_sovits_v4 = pretrained_sovits_name["v4"]
-is_exist_s2gv3 = os.path.exists(path_sovits_v3)
-is_exist_s2gv4 = os.path.exists(path_sovits_v4)
-
 tts_config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
 tts_config.device = device
 tts_config.is_half = is_half
@@ -182,7 +177,11 @@ def inference(
     super_sampling=False,
     cfg_rate=None,
 ):
-    sample_steps, cfg_rate = resolve_sampling(tts_pipeline.configs.version, sample_steps, cfg_rate)
+    if sample_steps is None:
+        sample_steps = 4 if tts_pipeline.configs.version == "v5turbo" else 32
+    if cfg_rate is None:
+        cfg_rate = 1.30 if tts_pipeline.configs.version == "v5dev" else 0.0
+    sample_steps, cfg_rate = int(sample_steps), float(cfg_rate)
     seed = -1 if keep_random else seed
     actual_seed = seed if seed not in [-1, "", None] else random.randint(0, 2**32 - 1)
     inputs = {
@@ -252,8 +251,8 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
     global version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
     # print(sovits_path,version, model_version, if_lora_v3)
-    is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
-    path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
+    path_sovits = pretrained_sovits_name[model_version]
+    is_exist = os.path.exists(path_sovits)
     if if_lora_v3 == True and is_exist == False:
         info = path_sovits + "SoVITS %s" % model_version + i18n("底模缺失，无法加载相应 LoRA 权重")
         gr.Warning(info)
@@ -289,11 +288,11 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             prompt_language_update,
             text_update,
             text_language_update,
-            {"__type__": "update", "interactive": visible_sample_steps, "value": sampling_defaults(model_version)[0]},
+            {"__type__": "update", "interactive": visible_sample_steps, "value": (4 if model_version == "v5turbo" else 32)},
             {"__type__": "update", "visible": visible_inp_refs},
             {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
             {"__type__": "update", "value": i18n("模型加载中，请等待"), "interactive": False},
-            {"__type__": "update", "visible": model_version in V5_VERSIONS, "value": sampling_defaults(model_version)[1]},
+            {"__type__": "update", "visible": model_version in V5_VERSIONS, "value": (1.30 if model_version == "v5dev" else 0.0)},
         )
 
     tts_pipeline.init_vits_weights(sovits_path)
@@ -304,11 +303,11 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         prompt_language_update,
         text_update,
         text_language_update,
-        {"__type__": "update", "interactive": visible_sample_steps, "value": sampling_defaults(model_version)[0]},
+        {"__type__": "update", "interactive": visible_sample_steps, "value": (4 if model_version == "v5turbo" else 32)},
         {"__type__": "update", "visible": visible_inp_refs},
         {"__type__": "update", "interactive": True if model_version not in v3v4set else False},
         {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
-        {"__type__": "update", "visible": model_version in V5_VERSIONS, "value": sampling_defaults(model_version)[1]},
+        {"__type__": "update", "visible": model_version in V5_VERSIONS, "value": (1.30 if model_version == "v5dev" else 0.0)},
     )
     with open("./weight.json") as f:
         data = f.read()
@@ -369,7 +368,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 )
                 cfg_rate = gr.Slider(
                     minimum=0, maximum=2, step=0.05,
-                    value=sampling_defaults(model_version)[1], label="CFG",
+                    value=(1.30 if model_version == "v5dev" else 0.0), label="CFG",
                     visible=model_version in V5_VERSIONS, interactive=True, scale=1,
                 )
             with gr.Column():
@@ -402,7 +401,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         value=1 if model_version in V5_VERSIONS else 20, interactive=True
                     )
                     sample_steps = gr.Radio(
-                        label="Euler steps (V3/V4/V5)", value=sampling_defaults(model_version)[0], choices=[4, 8, 16, 32], visible=True
+                        label="Euler steps (V3/V4/V5)", value=(4 if model_version == "v5turbo" else 32), choices=[4, 8, 16, 32], visible=True
                     )
                 with gr.Row():
                     fragment_interval = gr.Slider(

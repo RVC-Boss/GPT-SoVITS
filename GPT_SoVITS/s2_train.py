@@ -55,6 +55,10 @@ def main():
         n_gpus = torch.cuda.device_count()
     else:
         n_gpus = 1
+    if n_gpus <= 1:
+        run(0, n_gpus, hps)
+        return
+
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = str(randint(20000, 55555))
 
@@ -69,6 +73,22 @@ def main():
 
 
 def run(rank, n_gpus, hps):
+    use_ddp = torch.cuda.is_available() and n_gpus > 1
+    try:
+        if use_ddp:
+            dist.init_process_group(
+                backend="gloo" if os.name == "nt" else "nccl",
+                init_method="env://?use_libuv=False",
+                world_size=n_gpus,
+                rank=rank,
+            )
+        _run(rank, n_gpus, hps, use_ddp)
+    finally:
+        if use_ddp and dist.is_initialized():
+            dist.destroy_process_group()
+
+
+def _run(rank, n_gpus, hps, use_ddp):
     global global_step
     if rank == 0:
         logger = utils.get_logger(hps.data.exp_dir)
@@ -77,12 +97,6 @@ def run(rank, n_gpus, hps):
         writer = SummaryWriter(log_dir=hps.s2_ckpt_dir)
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.s2_ckpt_dir, "eval"))
 
-    dist.init_process_group(
-        backend="gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
-        init_method="env://?use_libuv=False",
-        world_size=n_gpus,
-        rank=rank,
-    )
     torch.manual_seed(hps.train.seed)
     if torch.cuda.is_available():
         torch.cuda.set_device(rank)
@@ -118,13 +132,13 @@ def run(rank, n_gpus, hps):
     collate_fn = TextAudioSpeakerCollate(version=hps.model.version)
     train_loader = DataLoader(
         train_dataset,
-        num_workers=5,
+        num_workers=4,
         shuffle=False,
         pin_memory=True,
         collate_fn=collate_fn,
         batch_sampler=train_sampler,
         persistent_workers=True,
-        prefetch_factor=3,
+        prefetch_factor=2,
     )
     # if rank == 0:
     #     eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps.data, val=True)
@@ -196,10 +210,10 @@ def run(rank, n_gpus, hps):
         betas=hps.train.betas,
         eps=hps.train.eps,
     )
-    if torch.cuda.is_available():
+    if use_ddp:
         net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
         net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
-    else:
+    elif not torch.cuda.is_available():
         net_g = net_g.to(device)
         net_d = net_d.to(device)
 
@@ -232,14 +246,10 @@ def run(rank, n_gpus, hps):
         ):
             if rank == 0:
                 logger.info("loaded pretrained %s" % hps.train.pretrained_s2G)
+            model_g = net_g.module if hasattr(net_g, "module") else net_g
             print(
                 "loaded pretrained %s" % hps.train.pretrained_s2G,
-                net_g.module.load_state_dict(
-                    torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
-                    strict=False,
-                )
-                if torch.cuda.is_available()
-                else net_g.load_state_dict(
+                model_g.load_state_dict(
                     torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
                     strict=False,
                 ),
@@ -251,14 +261,12 @@ def run(rank, n_gpus, hps):
         ):
             if rank == 0:
                 logger.info("loaded pretrained %s" % hps.train.pretrained_s2D)
+            model_d = net_d.module if hasattr(net_d, "module") else net_d
             print(
                 "loaded pretrained %s" % hps.train.pretrained_s2D,
-                net_d.module.load_state_dict(
-                    torch.load(hps.train.pretrained_s2D, map_location="cpu", weights_only=False)["weight"], strict=False
-                )
-                if torch.cuda.is_available()
-                else net_d.load_state_dict(
+                model_d.load_state_dict(
                     torch.load(hps.train.pretrained_s2D, map_location="cpu", weights_only=False)["weight"],
+                    strict=False,
                 ),
             )
 
@@ -581,6 +589,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
 
 def evaluate(hps, generator, eval_loader, writer_eval):
     generator.eval()
+    generator_to_infer = generator.module if hasattr(generator, "module") else generator
     image_dict = {}
     audio_dict = {}
     print("Evaluating ...")
@@ -607,24 +616,13 @@ def evaluate(hps, generator, eval_loader, writer_eval):
                 ssl = ssl.to(device)
                 text, text_lengths = text.to(device), text_lengths.to(device)
             for test in [0, 1]:
-                y_hat, mask, *_ = (
-                    generator.module.infer(
-                        ssl,
-                        spec,
-                        spec_lengths,
-                        text,
-                        text_lengths,
-                        test=test,
-                    )
-                    if torch.cuda.is_available()
-                    else generator.infer(
-                        ssl,
-                        spec,
-                        spec_lengths,
-                        text,
-                        text_lengths,
-                        test=test,
-                    )
+                y_hat, mask, *_ = generator_to_infer.infer(
+                    ssl,
+                    spec,
+                    spec_lengths,
+                    text,
+                    text_lengths,
+                    test=test,
                 )
                 y_hat_lengths = mask.sum([1, 2]).long() * hps.data.hop_length
 

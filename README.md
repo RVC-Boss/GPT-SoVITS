@@ -35,7 +35,7 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 3. **Cross-lingual Support:** Inference in languages different from the training dataset, currently supporting English, Japanese, Korean, Cantonese and Chinese.
 
-4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, multilingual ASR with [Fun-ASR-Nano](https://github.com/FunAudioLLM/Fun-ASR), [SenseVoice](https://github.com/FunAudioLLM/SenseVoice), and classic [FunASR](https://github.com/modelscope/FunASR), plus text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
+4. **WebUI Tools:** Integrated tools include voice accompaniment separation, automatic training set segmentation, Chinese ASR, and text labeling, assisting beginners in creating training datasets and GPT/SoVITS models.
 
 **Check out our [demo video](https://www.bilibili.com/video/BV12g4y1m7Uw) here!**
 
@@ -47,8 +47,6 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 0.028 tested in 4060Ti, 0.014 tested in 4090 (1400words~=4min, inference time is 3.36s), 0.526 in M4 CPU. You can test our [huggingface demo](https://lj1995-gpt-sovits-proplus.hf.space/) (half H200) to experience high-speed inference .
 
 请不要尬黑GPT-SoVITS推理速度慢，谢谢！
-
-CPU-Optimized Inference Version：https://github.com/baicai-1145/GPT-SoVITS-CPUFast
 
 **User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
@@ -208,7 +206,7 @@ docker exec -it <GPT-SoVITS-CU126-Lite|GPT-SoVITS-CU128-Lite|GPT-SoVITS-CU126|GP
 
    - The suggestion is to **directly specify the model type** in the model name and configuration file name, such as `mel_mand_roformer`, `bs_roformer`. If not specified, the features will be compared from the configuration file to determine which type of model it is. For example, the model `bs_roformer_ep_368_sdr_12.9628.ckpt` and its corresponding configuration file `bs_roformer_ep_368_sdr_12.9628.yaml` are a pair, `kim_mel_band_roformer.ckpt` and `kim_mel_band_roformer.yaml` are also a pair.
 
-4. FunASR models are downloaded automatically on first use. The WebUI offers [Fun-ASR-Nano](https://github.com/FunAudioLLM/Fun-ASR) for multilingual and dialect ASR, [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) for fast transcription, and classic Paraformer/UniASR through [FunASR](https://github.com/modelscope/FunASR) for Chinese and Cantonese. To preinstall the classic Chinese models for offline use, download the [ASR model](https://modelscope.cn/models/iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [VAD model](https://modelscope.cn/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [punctuation model](https://modelscope.cn/models/iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) into `tools/asr/models`.
+4. For Chinese ASR (additionally), download models from [Damo ASR Model](https://modelscope.cn/models/damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/files), [Damo VAD Model](https://modelscope.cn/models/damo/speech_fsmn_vad_zh-cn-16k-common-pytorch/files), and [Damo Punc Model](https://modelscope.cn/models/damo/punc_ct-transformer_zh-cn-common-vocab272727-pytorch/files) and place them in `tools/asr/models`.
 
 5. For English or Japanese ASR (additionally), download models from [Faster Whisper Large V3](https://huggingface.co/Systran/faster-whisper-large-v3) and place them in `tools/asr/models`. Also, [other models](https://huggingface.co/Systran) may have the similar effect with smaller disk footprint.
 
@@ -368,22 +366,6 @@ Use v2Pro from v1/v2/v3/v4 environment:
 
 3. Download v2Pro pretrained models (v2Pro/s2Dv2Pro.pth, v2Pro/s2Gv2Pro.pth, v2Pro/s2Dv2ProPlus.pth, v2Pro/s2Gv2ProPlus.pth, and sv/pretrained_eres2netv2w24s4ep4.ckpt) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS/pretrained_models`.
 
-## V5 Release Notes
-
-New Features:
-
-1. Significantly improved voice similarity without SoVITS fine-tuning.
-
-2. An updated vocoder significantly reduces high-frequency spectral mirroring and aliasing artifacts.
-
-3. Support for `cuda_graph` and `flash_attention` inference acceleration. Thanks to [@XXXXRT666](https://github.com/XXXXRT666) for the contribution.
-
-Upgrading from V2Pro to V5:
-
-1. Clone the latest code from [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5).
-
-2. Download the V5 pretrained models from [Hugging Face](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v5-pretrained) and place them in `GPT_SoVITS/pretrained_models`, preserving the `gsv-v5-pretrained` subdirectory so the model directory is `GPT_SoVITS/pretrained_models/gsv-v5-pretrained`.
-
 ## Todo List
 
 - [x] **High Priority:**
@@ -429,13 +411,13 @@ python audio_slicer.py \
     --hop_size <step_size_for_computing_volume_curve>
 ```
 
-Run dataset ASR with FunASR from the command line. Fun-ASR-Nano is the default for Chinese, English, Japanese, Korean, and automatic language detection; Cantonese keeps the classic FunASR backend.
+This is how dataset ASR processing is done using the command line(Only Chinese)
 
 ```bash
-python tools/asr/funasr_asr.py -i <input> -o <output> -l zh
+python tools/asr/funasr_asr.py -i <input> -o <output>
 ```
 
-Faster Whisper is also available as an ASR backend.
+ASR processing is performed through Faster_Whisper(ASR marking except Chinese)
 
 (No progress bars, GPU performance may cause time delays)
 
@@ -484,9 +466,7 @@ Special thanks to the following projects and contributors:
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - [gradio](https://github.com/gradio-app/gradio)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
-- [FunASR](https://github.com/modelscope/FunASR)
-- [Fun-ASR](https://github.com/FunAudioLLM/Fun-ASR)
-- [SenseVoice](https://github.com/FunAudioLLM/SenseVoice)
+- [FunASR](https://github.com/alibaba-damo-academy/FunASR)
 - [AP-BWE](https://github.com/yxlu-0102/AP-BWE)
 
 Thankful to @Naozumi520 for providing the Cantonese training set and for the guidance on Cantonese-related knowledge.

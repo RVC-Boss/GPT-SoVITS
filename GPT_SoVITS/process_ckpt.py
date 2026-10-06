@@ -24,7 +24,6 @@ model_version2byte = {
     "v4": b"04",
     "v2Pro": b"05",
     "v2ProPlus": b"06",
-    "v5": b"07",
     "v5dev": b"07",
     "v5turbo": b"08",
 }
@@ -64,6 +63,7 @@ def savee(ckpt, name, epoch, steps, hps, model_version=None, lora_rank=None):
 
 
 """
+finetune version
 00:v1
 01:v2
 02:v3
@@ -71,8 +71,8 @@ def savee(ckpt, name, epoch, steps, hps, model_version=None, lora_rank=None):
 04:v4lora
 05:v2Pro
 06:v2ProPlus
-07:v5dev
-08:v5turbo
+07:v5dev-lora
+08:v5turbo-lora
 """
 head2version = {
     b"00": ["v1", "v1", False],
@@ -82,8 +82,8 @@ head2version = {
     b"04": ["v2", "v4", True],
     b"05": ["v2", "v2Pro", False],
     b"06": ["v2", "v2ProPlus", False],
-    b"07": ["v2", "v5dev", False],
-    b"08": ["v2", "v5turbo", False],
+    b"07": ["v2", "v5dev", True],
+    b"08": ["v2", "v5turbo", True],
 }
 hash_pretrained_dict = {
     "dc3c97e17592963677a4a1681f30c653": ["v2", "v2", False],  # s2G488k.pth#sovits_v1_pretrained
@@ -92,8 +92,8 @@ hash_pretrained_dict = {
     "4f26b9476d0c5033e04162c486074374": ["v2", "v4", False],  # s2Gv4.pth#sovits_v4_pretrained
     "c7e9fce2223f3db685cdfa1e6368728a": ["v2", "v2Pro", False],  # s2Gv2Pro.pth#sovits_v2Pro_pretrained
     "66b313e39455b57ab1b0bc0b239c9d0a": ["v2", "v2ProPlus", False],  # s2Gv2ProPlus.pth#sovits_v2ProPlus_pretrained
-    "0e6e00af4104438346bda5344e6260e3": ["v2", "v5dev", False],  # s2Gv5dev.pth, 07 header
-    "695048a8e361076a54e6f32a21b949a3": ["v2", "v5turbo", False],  # s2Gv5turbo.pth, 08 header
+    "c4ce1f839a0d271e41963f9fb16ade76": ["v2", "v5dev", False],  # s2Gv5dev.pth
+    "6bc5cb2a195cc8ec22b2e723cd4d6f47": ["v2", "v5turbo", False],  # s2Gv5turbo.pth
 }
 import hashlib
 
@@ -116,16 +116,6 @@ def get_sovits_version_from_path_fast(sovits_path):
         version = f.read(2)
     if version != b"PK":
         return head2version[version]
-    filename = os.path.basename(sovits_path).lower()
-    if filename in {"s2gv5dev.pth", "s2gv5turbo.pth"}:
-        return ["v2", "v5turbo" if filename == "s2gv5turbo.pth" else "v5dev", False]
-    # Only unknown legacy PK checkpoints need full structural inspection.
-    if os.path.getsize(sovits_path) >= 700 * 1024 * 1024:
-        checkpoint = load_sovits_new(sovits_path)
-        weights = checkpoint.get("weight", {})
-        if ("cfm.estimator.time_embed.time_mlp.0.weight" in weights
-                and "cfm.estimator.d_embed.time_mlp.0.weight" not in weights):
-            return ["v2", "v5dev", False]
     ###3-old weights, by file size
     if_lora_v3 = False
     size = os.path.getsize(sovits_path)

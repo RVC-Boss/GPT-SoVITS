@@ -31,10 +31,7 @@ from BigVGAN.bigvgan import BigVGAN
 from feature_extractor.cnhubert import CNHubert
 from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
 from module.models import SynthesizerTrn, SynthesizerTrnV3, Generator
-from module.v5_inference import (
-    synthesize_v5_mel, V5_DEFAULT_CFG,
-    V5_REQUEST_DEFAULT_CFG, V5_VERSIONS, sampling_defaults, resolve_sampling,
-)
+from module.models_v5 import synthesize_v5_mel, V5_VERSIONS
 from peft import LoraConfig, get_peft_model
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -353,10 +350,9 @@ class TTS_Config:
         },
     }
     for v5_variant in V5_VERSIONS:
-        model_name = "v5dev" if v5_variant == "v5" else v5_variant
         default_configs[v5_variant] = dict(
             default_configs["v4"], version=v5_variant,
-            vits_weights_path=f"GPT_SoVITS/pretrained_models/gsv-v5-pretrained/s2G{model_name}.pth",
+            vits_weights_path=f"GPT_SoVITS/pretrained_models/gsv-v5-pretrained/s2G{v5_variant}.pth",
         )
     configs: dict = None
     v1_languages: list = ["auto", "en", "zh", "ja", "all_zh", "all_ja"]
@@ -369,7 +365,6 @@ class TTS_Config:
         "v2ProPlus": 486,
         "v3" : 486,
         "v4" : 486,
-        "v5" : 486,
         "v5dev": 486,
         "v5turbo": 486,
     }
@@ -420,7 +415,7 @@ class TTS_Config:
 
         version = self.configs.get("version", None)
         self.version = version
-        assert self.version in ["v1", "v2", "v3", "v4", "v5", "v5dev", "v5turbo", "v2Pro", "v2ProPlus"], "Invalid version!"
+        assert self.version in ["v1", "v2", "v3", "v4", "v5dev", "v5turbo", "v2Pro", "v2ProPlus"], "Invalid version!"
         self.t2s_weights_path = self.configs.get("t2s_weights_path", None)
         self.vits_weights_path = self.configs.get("vits_weights_path", None)
         self.bert_base_path = self.configs.get("bert_base_path", None)
@@ -1161,9 +1156,10 @@ class TTS:
         use_cuda_graph = inputs.get("use_cuda_graph", True)
         use_flash_attention = inputs.get("use_flash_attention", True)
         repetition_penalty = inputs.get("repetition_penalty", 1.35)
-        sample_steps, cfg_rate = resolve_sampling(
-            self.configs.version, inputs.get("sample_steps"), inputs.get("cfg_rate"),
-        )
+        sample_steps = inputs.get("sample_steps")
+        cfg_rate = inputs.get("cfg_rate")
+        sample_steps = (4 if self.configs.version == "v5turbo" else 32) if sample_steps is None else int(sample_steps)
+        cfg_rate = (1.30 if self.configs.version == "v5dev" else 0.0) if cfg_rate is None else float(cfg_rate)
         super_sampling = inputs.get("super_sampling", False)
         streaming_mode = inputs.get("streaming_mode", False)
         overlap_length = inputs.get("overlap_length", 2)
@@ -1744,7 +1740,8 @@ class TTS:
         self, semantic_tokens: torch.Tensor, phones: torch.Tensor, speed: float = 1.0,
         sample_steps: int = None, cfg_rate: float = None
     ):
-        sample_steps, cfg_rate = resolve_sampling(self.configs.version, sample_steps, cfg_rate)
+        sample_steps = (4 if self.configs.version == "v5turbo" else 32) if sample_steps is None else int(sample_steps)
+        cfg_rate = (1.30 if self.configs.version == "v5dev" else 0.0) if cfg_rate is None else float(cfg_rate)
         prompt_semantic_tokens = self.prompt_cache["prompt_semantic"].unsqueeze(0).unsqueeze(0).to(self.configs.device)
         prompt_phones = torch.LongTensor(self.prompt_cache["phones"]).unsqueeze(0).to(self.configs.device)
         raw_entry = self.prompt_cache["refer_spec"][0]
@@ -1823,7 +1820,8 @@ class TTS:
         sample_steps: int = None,
         cfg_rate: float = None,
     ) -> List[torch.Tensor]:
-        sample_steps, cfg_rate = resolve_sampling(self.configs.version, sample_steps, cfg_rate)
+        sample_steps = (4 if self.configs.version == "v5turbo" else 32) if sample_steps is None else int(sample_steps)
+        cfg_rate = (1.30 if self.configs.version == "v5dev" else 0.0) if cfg_rate is None else float(cfg_rate)
         if self.configs.version in V5_VERSIONS:
             return [
                 self.using_vocoder_synthesis(

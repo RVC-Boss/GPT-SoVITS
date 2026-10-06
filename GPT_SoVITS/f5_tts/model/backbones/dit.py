@@ -160,8 +160,8 @@ class DiT(nn.Module):
         cond0: float["b n d"],  # masked cond audio  # noqa: F722
         x_lens,
         time: float["b"] | float[""],  # time step  # noqa: F821 F722
-        dt_base_bootstrap,
-        text0,  # : int["b nt"]  # noqa: F722#####condition feature
+        dt_base_bootstrap=None,
+        text0=None,  # : int["b nt"]  # noqa: F722#####condition feature
         use_grad_ckpt=False,  # bool
         ###no-use
         drop_audio_cond=False,  # cfg for cond audio

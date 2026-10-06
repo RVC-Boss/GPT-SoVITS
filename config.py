@@ -14,7 +14,6 @@ pretrained_sovits_name = {
     "v2": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s2G2333k.pth",
     "v3": "GPT_SoVITS/pretrained_models/s2Gv3.pth",  ###v3v4还要检查vocoder，算了。。。
     "v4": "GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth",
-    "v5": "GPT_SoVITS/pretrained_models/gsv-v5-pretrained/s2Gv5dev.pth",
     "v5dev": "GPT_SoVITS/pretrained_models/gsv-v5-pretrained/s2Gv5dev.pth",
     "v5turbo": "GPT_SoVITS/pretrained_models/gsv-v5-pretrained/s2Gv5turbo.pth",
     "v2Pro": "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2Pro.pth",
@@ -26,7 +25,6 @@ pretrained_gpt_name = {
     "v2": "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
     "v3": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
     "v4": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
-    "v5": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
     "v5dev": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
     "v5turbo": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
     "v2Pro": "GPT_SoVITS/pretrained_models/s1v3.ckpt",
@@ -54,6 +52,8 @@ SoVITS_weight_root = [
     "SoVITS_weights_v2",
     "SoVITS_weights_v3",
     "SoVITS_weights_v4",
+    "SoVITS_weights_v5dev",
+    "SoVITS_weights_v5turbo",
     "SoVITS_weights_v2Pro",
     "SoVITS_weights_v2ProPlus",
 ]
@@ -62,6 +62,8 @@ GPT_weight_root = [
     "GPT_weights_v2",
     "GPT_weights_v3",
     "GPT_weights_v4",
+    "GPT_weights_v5dev",
+    "GPT_weights_v5turbo",
     "GPT_weights_v2Pro",
     "GPT_weights_v2ProPlus",
 ]
@@ -70,6 +72,8 @@ SoVITS_weight_version2root = {
     "v2": "SoVITS_weights_v2",
     "v3": "SoVITS_weights_v3",
     "v4": "SoVITS_weights_v4",
+    "v5dev": "SoVITS_weights_v5dev",
+    "v5turbo": "SoVITS_weights_v5turbo",
     "v2Pro": "SoVITS_weights_v2Pro",
     "v2ProPlus": "SoVITS_weights_v2ProPlus",
 }
@@ -78,6 +82,8 @@ GPT_weight_version2root = {
     "v2": "GPT_weights_v2",
     "v3": "GPT_weights_v3",
     "v4": "GPT_weights_v4",
+    "v5dev": "GPT_weights_v5dev",
+    "v5turbo": "GPT_weights_v5turbo",
     "v2Pro": "GPT_weights_v2Pro",
     "v2ProPlus": "GPT_weights_v2ProPlus",
 }
