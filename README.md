@@ -366,6 +366,22 @@ Use v2Pro from v1/v2/v3/v4 environment:
 
 3. Download v2Pro pretrained models (v2Pro/s2Dv2Pro.pth, v2Pro/s2Gv2Pro.pth, v2Pro/s2Dv2ProPlus.pth, v2Pro/s2Gv2ProPlus.pth, and sv/pretrained_eres2netv2w24s4ep4.ckpt) from [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) and put them into `GPT_SoVITS/pretrained_models`.
 
+## V5 Release Notes
+
+New Features:
+
+1. Significantly improved voice similarity without SoVITS fine-tuning.
+
+2. An updated vocoder significantly reduces high-frequency spectral mirroring and aliasing artifacts.
+
+3. Support for `cuda_graph` and `flash_attention` inference acceleration. Thanks to [@XXXXRT666](https://github.com/XXXXRT666) for the contribution.
+
+Upgrading from V2Pro to V5:
+
+1. Clone the latest code from [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5).
+
+2. Download the V5 pretrained models from [Hugging Face](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v5-pretrained) and place them in `GPT_SoVITS/pretrained_models`, preserving the `gsv-v5-pretrained` subdirectory so the model directory is `GPT_SoVITS/pretrained_models/gsv-v5-pretrained`.
+
 ## Todo List
 
 - [x] **High Priority:**
