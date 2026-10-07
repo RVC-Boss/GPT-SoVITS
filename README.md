@@ -62,6 +62,8 @@ For users in China, you can [click here](https://www.codewithgpu.com/i/RVC-Boss/
 | Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
 | Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 11.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.5.1    | Apple silicon |
 | Python 3.11    | PyTorch 2.7.0    | Apple silicon |
 | Python 3.9     | PyTorch 2.2.2    | CPU           |
