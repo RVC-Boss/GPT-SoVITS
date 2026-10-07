@@ -44,6 +44,10 @@
 
 **用户手册: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
+**SeedTTS Eval Testset_CN2020 零样本 TTS 音色相似度对比图**
+
+<img width="2400" height="1650" alt="v5pro-seedtts-img-v1" src="https://github.com/user-attachments/assets/8c2a0e0a-7212-4b77-b5ef-2d192e09127f" />
+
 ## 安装
 
 中国地区的用户可[点击此处](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official)使用 AutoDL 云端镜像进行体验.
@@ -56,6 +60,8 @@
 | Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
 | Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 11.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.5.1    | Apple silicon |
 | Python 3.11    | PyTorch 2.7.0    | Apple silicon |
 | Python 3.9     | PyTorch 2.2.2    | CPU           |
