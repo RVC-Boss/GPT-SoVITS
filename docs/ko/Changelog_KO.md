@@ -735,3 +735,23 @@
   - 내용: ONNX 스크립트에서 Optional 등 누락된 임포트 문제 수정
   - 유형: 수정
   - 기여자: RVC-Boss
+
+## 202608
+- 2026.08.18 [Commit#48b1a01](https://github.com/RVC-Boss/GPT-SoVITS/commit/48b1a0169a28582a8984402f82cf438d3bfa6aca)
+  - 내용: 새로운 ASR 모델 추가
+  - 유형: 최적화
+  - 기여자: LauraGPT
+- 2026.08.28 [PR#2832](https://github.com/RVC-Boss/GPT-SoVITS/pull/2832)
+  - 내용: 단일 GPU SoVITS 학습에서 DDP를 사용하지 않아 학습 속도 개선
+  - 유형: 최적화
+  - 기여자: xueshanlinghu
+
+## 202610
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/25937fe2d80a4b746b048f85a58f4b74d5a06792)
+  - 내용: CUDA Graph와 Flash Attention을 통한 GPT 추론 가속 지원
+  - 유형: 최적화
+  - 기여자: XXXXRT666
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/3b95794c49c796508e6687f4e0d12efad7281e56)
+  - 내용: 새로운 V5 버전 출시
+  - 유형: 최적화
+  - 기여자: RVC-Boss
