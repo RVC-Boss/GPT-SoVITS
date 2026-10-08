@@ -100,3 +100,4 @@ x_transformers>=2,<3
 torchmetrics>=1.2,<1.6
 pydantic>=2.8,<2.11
 openai-whisper>=20231117
+triton-windows>=3.3.1.post21,<3.4; sys_platform == "win32"
