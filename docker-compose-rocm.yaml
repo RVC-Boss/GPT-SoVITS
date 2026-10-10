@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  GPT-SoVITS-ROCm:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocm
+    image: gpt-sovits:rocm7.2.3
+    container_name: GPT-SoVITS-ROCm
+    ports:
+      - "9871:9871"
+      - "9872:9872"
+      - "9873:9873"
+      - "9874:9874"
+      - "9880:9880"
+    volumes:
+      - .:/workspace/GPT-SoVITS
+    environment:
+      - is_half=true
+      - ROCBLAS_USE_HIPBLASLT=0
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    tty: true
+    stdin_open: true
+    shm_size: "16g"
+    restart: unless-stopped
