@@ -1341,24 +1341,38 @@ async def control(command: str = None):
     return handle_control(command)
 
 
+def _is_safe_path(path: str) -> bool:
+    if not path:
+        return True
+    return ".." not in os.path.normpath(path).split(os.sep)
+
+
 @app.post("/change_refer")
 async def change_refer(request: Request):
     json_post_raw = await request.json()
+    refer_wav_path = json_post_raw.get("refer_wav_path")
+    if not _is_safe_path(refer_wav_path):
+        return JSONResponse({"code": 400, "message": "Invalid file path"}, status_code=400)
     return handle_change(
-        json_post_raw.get("refer_wav_path"), json_post_raw.get("prompt_text"), json_post_raw.get("prompt_language")
+        refer_wav_path, json_post_raw.get("prompt_text"), json_post_raw.get("prompt_language")
     )
 
 
 @app.get("/change_refer")
 async def change_refer(refer_wav_path: str = None, prompt_text: str = None, prompt_language: str = None):
+    if not _is_safe_path(refer_wav_path):
+        return JSONResponse({"code": 400, "message": "Invalid file path"}, status_code=400)
     return handle_change(refer_wav_path, prompt_text, prompt_language)
 
 
 @app.post("/")
 async def tts_endpoint(request: Request):
     json_post_raw = await request.json()
+    refer_wav_path = json_post_raw.get("refer_wav_path")
+    if not _is_safe_path(refer_wav_path):
+        return JSONResponse({"code": 400, "message": "Invalid file path"}, status_code=400)
     return handle(
-        json_post_raw.get("refer_wav_path"),
+        refer_wav_path,
         json_post_raw.get("prompt_text"),
         json_post_raw.get("prompt_language"),
         json_post_raw.get("text"),
@@ -1392,6 +1406,8 @@ async def tts_endpoint(
     if_sr: bool = False,
     cfg_rate: float = None,
 ):
+    if not _is_safe_path(refer_wav_path):
+        return JSONResponse({"code": 400, "message": "Invalid file path"}, status_code=400)
     return handle(
         refer_wav_path,
         prompt_text,
