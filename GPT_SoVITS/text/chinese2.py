@@ -14,7 +14,7 @@ normalizer = lambda x: cn2an.transform(x, "an2cn")
 current_file_path = os.path.dirname(__file__)
 pinyin_to_symbol_map = {
     line.split("\t")[0]: line.strip().split("\t")[1]
-    for line in open(os.path.join(current_file_path, "opencpop-strict.txt")).readlines()
+    for line in open(os.path.join(current_file_path, "opencpop-strict.txt"), encoding="utf-8").readlines()
 }
 
 import jieba_fast
