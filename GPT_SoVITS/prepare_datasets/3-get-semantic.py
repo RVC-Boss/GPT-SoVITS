@@ -35,6 +35,7 @@ import sys
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import logging
+from process_ckpt import load_sovits_new
 import utils
 
 if version != "v3":
@@ -82,7 +83,7 @@ if os.path.exists(semantic_path) == False:
     # utils.load_checkpoint(pretrained_s2G, vq_model, None, True)
     print(
         vq_model.load_state_dict(
-            torch.load(pretrained_s2G, map_location="cpu", weights_only=False)["weight"], strict=False
+            load_sovits_new(pretrained_s2G)["weight"], strict=False
         )
     )
 
