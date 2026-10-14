@@ -164,6 +164,7 @@ import numpy as np
 from feature_extractor import cnhubert
 from io import BytesIO
 from module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
+from module.models_v5 import V5_VERSIONS, synthesize_v5_mel
 from peft import LoraConfig, get_peft_model
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from text import cleaned_text_to_sequence
@@ -199,10 +200,11 @@ def is_full(*items):  # 任意一项为空返回False
 
 
 bigvgan_model = hifigan_model = sv_cn_model = None
+hifigan_version = None
 
 
 def clean_hifigan_model():
-    global hifigan_model
+    global hifigan_model, hifigan_version
     if hifigan_model:
         hifigan_model = hifigan_model.cpu()
         hifigan_model = None
@@ -210,6 +212,7 @@ def clean_hifigan_model():
             torch.cuda.empty_cache()
         except:
             pass
+    hifigan_version = None
 
 
 def clean_bigvgan_model():
@@ -240,7 +243,8 @@ def init_bigvgan():
 
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
         "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
-    )
+        use_cuda_kernel=False,
+    )  # if True, RuntimeError: Ninja is required to load C++ extensions
     # remove weight norm in the model and set to eval mode
     bigvgan_model.remove_weight_norm()
     bigvgan_model = bigvgan_model.eval()
@@ -251,8 +255,12 @@ def init_bigvgan():
         bigvgan_model = bigvgan_model.to(device)
 
 
-def init_hifigan():
-    global hifigan_model, bigvgan_model, sv_cn_model
+def init_hifigan(version="v4"):
+    global hifigan_model, hifigan_version, bigvgan_model, sv_cn_model
+    vocoder_version = "v5" if version in V5_VERSIONS else version
+    if hifigan_model is not None and hifigan_version == vocoder_version:
+        return
+    clean_hifigan_model()
     hifigan_model = Generator(
         initial_channel=100,
         resblock="1",
@@ -267,7 +275,7 @@ def init_hifigan():
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
     state_dict_g = torch.load(
-        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+        "%s/GPT_SoVITS/pretrained_models/gsv-%s-pretrained/vocoder.pth" % (now_dir, vocoder_version),
         map_location="cpu",
         weights_only=False,
     )
@@ -276,6 +284,7 @@ def init_hifigan():
         hifigan_model = hifigan_model.half().to(device)
     else:
         hifigan_model = hifigan_model.to(device)
+    hifigan_version = vocoder_version
 
 
 from sv import SV
@@ -380,14 +389,9 @@ from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 def get_sovits_weights(sovits_path):
     from config import pretrained_sovits_name
 
-    path_sovits_v3 = pretrained_sovits_name["v3"]
-    path_sovits_v4 = pretrained_sovits_name["v4"]
-    is_exist_s2gv3 = os.path.exists(path_sovits_v3)
-    is_exist_s2gv4 = os.path.exists(path_sovits_v4)
-
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
-    is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
-    path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
+    path_sovits = pretrained_sovits_name[model_version]
+    is_exist = os.path.exists(path_sovits)
 
     if if_lora_v3 == True and is_exist == False:
         logger.info("SoVITS %s 底模缺失，无法加载相应 LoRA 权重" % model_version)
@@ -404,7 +408,7 @@ def get_sovits_weights(sovits_path):
         hps.model.version = "v2"
 
     model_params_dict = vars(hps.model)
-    if model_version not in {"v3", "v4"}:
+    if model_version not in {"v3", "v4"} | V5_VERSIONS:
         if "Pro" in model_version:
             hps.model.version = model_version
             if sv_cn_model == None:
@@ -426,8 +430,8 @@ def get_sovits_weights(sovits_path):
         )
         if model_version == "v3":
             init_bigvgan()
-        if model_version == "v4":
-            init_hifigan()
+        else:
+            init_hifigan(model_version)
 
     model_version = hps.model.version
     logger.info(f"模型版本: {model_version}")
@@ -444,7 +448,6 @@ def get_sovits_weights(sovits_path):
     if if_lora_v3 == False:
         vq_model.load_state_dict(dict_s2["weight"], strict=False)
     else:
-        path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
         vq_model.load_state_dict(load_sovits_new(path_sovits)["weight"], strict=False)
         lora_rank = dict_s2["lora_rank"]
         lora_config = LoraConfig(
@@ -837,9 +840,10 @@ def get_tts_wav(
     temperature=0.6,
     speed=1,
     inp_refs=None,
-    sample_steps=32,
+    sample_steps=None,
     if_sr=False,
     spk="default",
+    cfg_rate=None,
 ):
     infer_sovits = speaker_list[spk].sovits
     vq_model = infer_sovits.vq_model
@@ -849,6 +853,12 @@ def get_tts_wav(
     infer_gpt = speaker_list[spk].gpt
     t2s_model = infer_gpt.t2s_model
     max_sec = infer_gpt.max_sec
+
+    if sample_steps is None:
+        sample_steps = 4 if version == "v5turbo" else 32
+    if cfg_rate is None:
+        cfg_rate = 1.30 if version == "v5dev" else 0.0
+    sample_steps, cfg_rate = int(sample_steps), float(cfg_rate)
 
     if version == "v3":
         if sample_steps not in [4, 8, 16, 32, 64, 128]:
@@ -884,7 +894,7 @@ def get_tts_wav(
         prompt = prompt_semantic.unsqueeze(0).to(device)
 
         is_v2pro = version in {"v2Pro", "v2ProPlus"}
-        if version not in {"v3", "v4"}:
+        if version not in {"v3", "v4"} | V5_VERSIONS:
             refers = []
             if is_v2pro:
                 sv_emb = []
@@ -945,7 +955,7 @@ def get_tts_wav(
             pred_semantic = pred_semantic[:, -idx:].unsqueeze(0)
         t3 = ttime()
 
-        if version not in {"v3", "v4"}:
+        if version not in {"v3", "v4"} | V5_VERSIONS:
             if is_v2pro:
                 audio = (
                     vq_model.decode(
@@ -983,41 +993,46 @@ def get_tts_wav(
                 ref_audio = resample(ref_audio, sr, tgt_sr, device)
             mel2 = mel_fn(ref_audio) if version == "v3" else mel_fn_v4(ref_audio)
             mel2 = norm_spec(mel2)
-            T_min = min(mel2.shape[2], fea_ref.shape[2])
-            mel2 = mel2[:, :, :T_min]
-            fea_ref = fea_ref[:, :, :T_min]
-            Tref = 468 if version == "v3" else 500
-            Tchunk = 934 if version == "v3" else 1000
-            if T_min > Tref:
-                mel2 = mel2[:, :, -Tref:]
-                fea_ref = fea_ref[:, :, -Tref:]
-                T_min = Tref
-            chunk_len = Tchunk - T_min
-            mel2 = mel2.to(dtype)
-            fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge, speed)
-            cfm_resss = []
-            idx = 0
-            while 1:
-                fea_todo_chunk = fea_todo[:, :, idx : idx + chunk_len]
-                if fea_todo_chunk.shape[-1] == 0:
-                    break
-                idx += chunk_len
-                fea = torch.cat([fea_ref, fea_todo_chunk], 2).transpose(2, 1)
-                cfm_res = vq_model.cfm.inference(
-                    fea, torch.LongTensor([fea.size(1)]).to(fea.device), mel2, sample_steps, inference_cfg_rate=0
-                )
-                cfm_res = cfm_res[:, :, mel2.shape[2] :]
-                mel2 = cfm_res[:, :, -T_min:]
-                fea_ref = fea_todo_chunk[:, :, -T_min:]
-                cfm_resss.append(cfm_res)
-            cfm_res = torch.cat(cfm_resss, 2)
+            if version in V5_VERSIONS:
+                fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge, speed)
+                cfm_res = synthesize_v5_mel(
+                    vq_model, fea_ref, fea_todo, mel2.to(dtype), sample_steps, cfg_rate
+                ).to(dtype)
+            else:
+                T_min = min(mel2.shape[2], fea_ref.shape[2])
+                mel2 = mel2[:, :, :T_min]
+                fea_ref = fea_ref[:, :, :T_min]
+                Tref = 468 if version == "v3" else 500
+                Tchunk = 934 if version == "v3" else 1000
+                if T_min > Tref:
+                    mel2 = mel2[:, :, -Tref:]
+                    fea_ref = fea_ref[:, :, -Tref:]
+                    T_min = Tref
+                chunk_len = Tchunk - T_min
+                mel2 = mel2.to(dtype)
+                fea_todo, ge = vq_model.decode_encp(pred_semantic, phoneme_ids1, refer, ge, speed)
+                cfm_resss = []
+                idx = 0
+                while 1:
+                    fea_todo_chunk = fea_todo[:, :, idx : idx + chunk_len]
+                    if fea_todo_chunk.shape[-1] == 0:
+                        break
+                    idx += chunk_len
+                    fea = torch.cat([fea_ref, fea_todo_chunk], 2).transpose(2, 1)
+                    cfm_res = vq_model.cfm.inference(
+                        fea, torch.LongTensor([fea.size(1)]).to(fea.device), mel2, sample_steps, inference_cfg_rate=0
+                    )
+                    cfm_res = cfm_res[:, :, mel2.shape[2] :]
+                    mel2 = cfm_res[:, :, -T_min:]
+                    fea_ref = fea_todo_chunk[:, :, -T_min:]
+                    cfm_resss.append(cfm_res)
+                cfm_res = torch.cat(cfm_resss, 2)
             cfm_res = denorm_spec(cfm_res)
             if version == "v3":
                 if bigvgan_model == None:
                     init_bigvgan()
-            else:  # v4
-                if hifigan_model == None:
-                    init_hifigan()
+            else:
+                init_hifigan(version)
             vocoder_model = bigvgan_model if version == "v3" else hifigan_model
             with torch.inference_mode():
                 wav_gen = vocoder_model(cfm_res)
@@ -1110,6 +1125,7 @@ def handle(
     inp_refs,
     sample_steps,
     if_sr,
+    cfg_rate=None,
 ):
     if (
         refer_wav_path == ""
@@ -1146,6 +1162,7 @@ def handle(
             inp_refs,
             sample_steps,
             if_sr,
+            cfg_rate=cfg_rate,
         ),
         media_type="audio/" + media_type,
     )
@@ -1352,8 +1369,9 @@ async def tts_endpoint(request: Request):
         json_post_raw.get("temperature", 1.0),
         json_post_raw.get("speed", 1.0),
         json_post_raw.get("inp_refs", []),
-        json_post_raw.get("sample_steps", 32),
+        json_post_raw.get("sample_steps"),
         json_post_raw.get("if_sr", False),
+        cfg_rate=json_post_raw.get("cfg_rate"),
     )
 
 
@@ -1370,8 +1388,9 @@ async def tts_endpoint(
     temperature: float = 1.0,
     speed: float = 1.0,
     inp_refs: list = Query(default=[]),
-    sample_steps: int = 32,
+    sample_steps: int = None,
     if_sr: bool = False,
+    cfg_rate: float = None,
 ):
     return handle(
         refer_wav_path,
@@ -1387,6 +1406,7 @@ async def tts_endpoint(
         inp_refs,
         sample_steps,
         if_sr,
+        cfg_rate=cfg_rate,
     )
 
 

@@ -735,3 +735,26 @@
   - 内容: 修复onnx脚本未导入Optional等的问题
   - 类型: 修复
   - 提交: RVC-Boss
+
+  
+## 202608
+- 2026.08.18 [Commit#48b1a01](https://github.com/RVC-Boss/GPT-SoVITS/commit/48b1a0169a28582a8984402f82cf438d3bfa6aca)
+  - 内容: 新ASR模型
+  - 类型: 优化
+  - 提交: LauraGPT
+- 2026.08.28 [PR#2832](https://github.com/RVC-Boss/GPT-SoVITS/pull/2832)
+  - 内容: SoVITS训练，单卡不用DDP，训练加速
+  - 类型: 优化
+  - 提交: xueshanlinghu
+  
+## 202610
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/25937fe2d80a4b746b048f85a58f4b74d5a06792)
+  - 内容: GPT推理加速支持CUDA Graph和Flash Attention
+  - 类型: 优化
+  - 提交: XXXXRT666
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/3b95794c49c796508e6687f4e0d12efad7281e56)
+  - 内容: V5新版本
+  - 类型: 优化
+  - 提交: RVC-Boss
+
+

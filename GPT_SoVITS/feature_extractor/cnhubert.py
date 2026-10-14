@@ -1,5 +1,9 @@
 import torch
 import os
+from tools.portable_runtime import prepare_transformers_flash_attention
+
+prepare_transformers_flash_attention()
+
 from transformers import logging as tf_logging
 
 tf_logging.set_verbosity_error()

@@ -44,6 +44,10 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 **ユーザーマニュアル: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
+**SeedTTS Eval Testset_CN2020 におけるゼロショット TTS の声質類似度比較図**
+
+<img width="2400" height="1650" alt="v5pro-seedtts-img-v1" src="https://github.com/user-attachments/assets/8c2a0e0a-7212-4b77-b5ef-2d192e09127f" />
+
 ## インストール
 
 ### テスト済みの環境
@@ -54,6 +58,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 | Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
 | Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 11.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.5.1    | Apple silicon |
 | Python 3.11    | PyTorch 2.7.0    | Apple silicon |
 | Python 3.9     | PyTorch 2.2.2    | CPU           |
@@ -339,6 +345,22 @@ V1/V2/V3/V4 環境から V2Pro への移行方法:
 2. GitHub から最新のコードをクローンします.
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) から V2Pro の事前学習済みモデル (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, および `sv/pretrained_eres2netv2w24s4ep4.ckpt`) をダウンロードし、`GPT_SoVITS/pretrained_models` ディレクトリへ配置してください.
+
+## V5 リリースノート
+
+新機能:
+
+1. SoVITS のファインチューニングを行わなくても、声質の類似度が大幅に向上します.
+
+2. 新しい vocoder により、高周波のスペクトルミラーリングおよびエイリアシングのアーティファクトを大幅に低減します.
+
+3. `cuda_graph` と `flash_attention` による推論の高速化をサポートします. [@XXXXRT666](https://github.com/XXXXRT666) の貢献に感謝します.
+
+V2Pro から V5 へのアップデート方法:
+
+1. [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5) から最新のコードをクローンします.
+
+2. [Hugging Face](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v5-pretrained) から V5 の事前学習済みモデルをダウンロードし、`gsv-v5-pretrained` サブディレクトリを保持したまま `GPT_SoVITS/pretrained_models` に配置してください. モデルの配置先は `GPT_SoVITS/pretrained_models/gsv-v5-pretrained` です.
 
 ## Todo リスト
 

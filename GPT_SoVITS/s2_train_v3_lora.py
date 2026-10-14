@@ -6,6 +6,7 @@ import os
 import utils
 
 hps = utils.get_hparams(stage=2)
+os.environ["version"] = hps.model.version
 os.environ["CUDA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
 import logging
 
@@ -73,6 +74,22 @@ def main():
 
 
 def run(rank, n_gpus, hps):
+    use_ddp = torch.cuda.is_available() and n_gpus > 1
+    try:
+        if use_ddp:
+            dist.init_process_group(
+                backend="gloo" if os.name == "nt" else "nccl",
+                init_method="env://?use_libuv=False",
+                world_size=n_gpus,
+                rank=rank,
+            )
+        _run(rank, n_gpus, hps, use_ddp)
+    finally:
+        if use_ddp and dist.is_initialized():
+            dist.destroy_process_group()
+
+
+def _run(rank, n_gpus, hps, use_ddp):
     global global_step, no_grad_names, save_root, lora_rank
     if rank == 0:
         logger = utils.get_logger(hps.data.exp_dir)
@@ -81,14 +98,6 @@ def run(rank, n_gpus, hps):
         writer = SummaryWriter(log_dir=hps.s2_ckpt_dir)
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.s2_ckpt_dir, "eval"))
 
-    use_ddp = n_gpus > 1
-    if use_ddp:
-        dist.init_process_group(
-            backend="gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
-            init_method="env://?use_libuv=False",
-            world_size=n_gpus,
-            rank=rank,
-        )
     torch.manual_seed(hps.train.seed)
     if torch.cuda.is_available():
         torch.cuda.set_device(rank)
@@ -124,7 +133,7 @@ def run(rank, n_gpus, hps):
         shuffle=True,
     )
     collate_fn = TextAudioSpeakerCollate()
-    worker_count = 0 if os.name == "nt" and n_gpus <= 1 else min(2 if os.name == "nt" else 5, os.cpu_count() or 1)
+    worker_count = 4
     loader_kwargs = dict(
         num_workers=worker_count,
         shuffle=False,
@@ -134,7 +143,7 @@ def run(rank, n_gpus, hps):
     )
     if worker_count > 0:
         loader_kwargs["persistent_workers"] = True
-        loader_kwargs["prefetch_factor"] = 2 if os.name == "nt" else 3
+        loader_kwargs["prefetch_factor"] = 2
     train_loader = DataLoader(
         train_dataset,
         **loader_kwargs,
@@ -255,8 +264,6 @@ def run(rank, n_gpus, hps):
                 None,
             )
         scheduler_g.step()
-    if use_ddp and dist.is_initialized():
-        dist.destroy_process_group()
     print("training done")
 
 

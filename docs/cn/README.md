@@ -44,6 +44,10 @@
 
 **用户手册: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
+**SeedTTS Eval Testset_CN2020 零样本 TTS 音色相似度对比图**
+
+<img width="2400" height="1650" alt="v5pro-seedtts-img-v1" src="https://github.com/user-attachments/assets/8c2a0e0a-7212-4b77-b5ef-2d192e09127f" />
+
 ## 安装
 
 中国地区的用户可[点击此处](https://www.codewithgpu.com/i/RVC-Boss/GPT-SoVITS/GPT-SoVITS-Official)使用 AutoDL 云端镜像进行体验.
@@ -56,6 +60,8 @@
 | Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
 | Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 11.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.5.1    | Apple silicon |
 | Python 3.11    | PyTorch 2.7.0    | Apple silicon |
 | Python 3.9     | PyTorch 2.2.2    | CPU           |
@@ -353,6 +359,22 @@ python webui.py
 2. 从 GitHub 克隆最新代码.
 
 3. 从 [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) 下载 V2Pro 预训练模型 (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, 和 `sv/pretrained_eres2netv2w24s4ep4.ckpt`), 并放入 `GPT_SoVITS/pretrained_models` 目录.
+
+## V5 更新说明
+
+新特性：
+
+1. 大幅提升无需 SoVITS 微调训练时的音色相似度.
+
+2. 更新新版 vocoder, 大幅降低高频镜像混叠伪影.
+
+3. 支持 `cuda_graph` 和 `flash_attention` 推理加速, 感谢 [@XXXXRT666](https://github.com/XXXXRT666) 的贡献.
+
+从 V2Pro 更新到 V5：
+
+1. 从 [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5) 克隆最新代码.
+
+2. 从 [Hugging Face](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v5-pretrained) 下载 V5 预训练模型, 并放入 `GPT_SoVITS/pretrained_models` 目录, 保留 `gsv-v5-pretrained` 子目录结构, 即模型目录为 `GPT_SoVITS/pretrained_models/gsv-v5-pretrained`.
 
 ## 待办事项清单
 

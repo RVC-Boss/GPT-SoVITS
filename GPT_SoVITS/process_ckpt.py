@@ -24,6 +24,8 @@ model_version2byte = {
     "v4": b"04",
     "v2Pro": b"05",
     "v2ProPlus": b"06",
+    "v5dev": b"07",
+    "v5turbo": b"08",
 }
 
 
@@ -61,6 +63,7 @@ def savee(ckpt, name, epoch, steps, hps, model_version=None, lora_rank=None):
 
 
 """
+finetune version
 00:v1
 01:v2
 02:v3
@@ -68,6 +71,8 @@ def savee(ckpt, name, epoch, steps, hps, model_version=None, lora_rank=None):
 04:v4lora
 05:v2Pro
 06:v2ProPlus
+07:v5dev-lora
+08:v5turbo-lora
 """
 head2version = {
     b"00": ["v1", "v1", False],
@@ -77,6 +82,8 @@ head2version = {
     b"04": ["v2", "v4", True],
     b"05": ["v2", "v2Pro", False],
     b"06": ["v2", "v2ProPlus", False],
+    b"07": ["v2", "v5dev", True],
+    b"08": ["v2", "v5turbo", True],
 }
 hash_pretrained_dict = {
     "dc3c97e17592963677a4a1681f30c653": ["v2", "v2", False],  # s2G488k.pth#sovits_v1_pretrained
@@ -85,6 +92,8 @@ hash_pretrained_dict = {
     "4f26b9476d0c5033e04162c486074374": ["v2", "v4", False],  # s2Gv4.pth#sovits_v4_pretrained
     "c7e9fce2223f3db685cdfa1e6368728a": ["v2", "v2Pro", False],  # s2Gv2Pro.pth#sovits_v2Pro_pretrained
     "66b313e39455b57ab1b0bc0b239c9d0a": ["v2", "v2ProPlus", False],  # s2Gv2ProPlus.pth#sovits_v2ProPlus_pretrained
+    "c4ce1f839a0d271e41963f9fb16ade76": ["v2", "v5dev", False],  # s2Gv5dev.pth
+    "6bc5cb2a195cc8ec22b2e723cd4d6f47": ["v2", "v5turbo", False],  # s2Gv5turbo.pth
 }
 import hashlib
 

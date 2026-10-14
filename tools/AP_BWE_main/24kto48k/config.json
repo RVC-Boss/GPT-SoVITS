@@ -1,0 +1,29 @@
+{
+    "num_gpus": 0,
+    "batch_size": 16,
+    "learning_rate": 0.0002,
+    "adam_b1": 0.8,
+    "adam_b2": 0.99,
+    "lr_decay": 0.999,
+    "seed": 1234,
+
+    "ConvNeXt_channels": 512,
+    "ConvNeXt_layers": 8,
+
+    "segment_size": 8000,
+    "n_fft": 1024,
+    "hop_size": 80,
+    "win_size": 320,
+
+    "hr_sampling_rate": 48000,
+    "lr_sampling_rate": 24000,
+    "subsampling_rate": 2,
+
+    "num_workers": 4,
+
+    "dist_config": {
+        "dist_backend": "nccl",
+        "dist_url": "tcp://localhost:54321",
+        "world_size": 1
+    }
+}
