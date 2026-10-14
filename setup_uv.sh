@@ -222,10 +222,11 @@ setup_venv() {
     python scripts/link_npp_for_torchcodec.py || true
   fi
 
-  # Ensure activate exports LD_LIBRARY_PATH for NPP
-  local activate_file="$VENV_DIR/bin/activate"
-  if [[ -f "$activate_file" ]] && ! grep -q 'nvidia/npp/lib' "$activate_file"; then
-    cat >> "$activate_file" <<'EOF'
+  if [[ "$DEVICE" != "CPU" ]]; then
+    # Ensure activate exports LD_LIBRARY_PATH for NPP
+    local activate_file="$VENV_DIR/bin/activate"
+    if [[ -f "$activate_file" ]] && ! grep -q 'nvidia/npp/lib' "$activate_file"; then
+      cat >> "$activate_file" <<'EOF'
 
 # GPT-SoVITS: expose CUDA12 NPP for torchcodec/torchaudio
 _NPP_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/python3.10/site-packages/nvidia/npp/lib"
@@ -239,7 +240,8 @@ if [ -d "$_NPP_LIB" ]; then
 fi
 unset _NPP_LIB _PYVER
 EOF
-    ok "Patched $activate_file with NPP LD_LIBRARY_PATH"
+      ok "Patched $activate_file with NPP LD_LIBRARY_PATH"
+    fi
   fi
 
   # Optional runtime data used by Japanese/English g2p
@@ -323,6 +325,4 @@ Next:
 
   # or without activating:
   uv run webui.py zh_CN
-
-See docs/LOCAL_SETUP_FIXES.md for details of applied fixes.
 EOF
