@@ -10,6 +10,17 @@ import traceback
 import librosa
 import numpy as np
 import torch
+import pathlib
+
+if hasattr(torch.serialization, "add_safe_globals"):
+    torch.serialization.add_safe_globals([
+        pathlib.Path,
+        pathlib.PosixPath,
+        pathlib.WindowsPath,
+        pathlib.PurePath,
+        pathlib.PurePosixPath,
+        pathlib.PureWindowsPath,
+    ])
 
 logging.getLogger("numba").setLevel(logging.ERROR)
 logging.getLogger("matplotlib").setLevel(logging.ERROR)
