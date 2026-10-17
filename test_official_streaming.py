@@ -27,6 +27,48 @@ v2_token_chunks = _streaming_module.v2_token_chunks
 validate_streaming_options = _streaming_module.validate_streaming_options
 PipelineStop = _streaming_module.PipelineStop
 stream_v5_windows = _streaming_module.stream_v5_windows
+StreamingWindowSchedule = _streaming_module.StreamingWindowSchedule
+
+
+class WindowScheduleTests(unittest.TestCase):
+    def test_progressive_windows_preserve_playback_lead_on_a_slower_device(self):
+        clock = [0.0]
+        with patch.object(_streaming_module.time, "perf_counter", side_effect=lambda: clock[0]):
+            schedule = StreamingWindowSchedule(200, 541)
+            self.assertEqual(schedule.choose(2000), 200)
+            clock[0] += 1.2
+            schedule.observe(200, 94080, 48000)
+            sizes = []
+            for _ in range(8):
+                size = schedule.choose(2000)
+                sizes.append(size)
+                elapsed = 0.2 + 0.5 * size / 100
+                available = schedule.audio_seconds - (clock[0]-schedule.first_pcm_at)
+                self.assertLess(elapsed, available)
+                clock[0] += elapsed
+                schedule.observe(size, size*480, 48000)
+            self.assertEqual(sizes[0], 200)
+            self.assertIn(300, sizes)
+            self.assertIn(541, sizes)
+            # Immediately switching to the largest window would stall despite RTF < 1.
+            self.assertGreater(0.2+0.5*5.41, 1.96)
+            self.assertLess(0.2+0.5*5.41, 5.41)
+
+    def test_backpressure_and_slower_observations_reduce_window_growth(self):
+        clock = [0.0]
+        with patch.object(_streaming_module.time, "perf_counter", side_effect=lambda: clock[0]):
+            schedule = StreamingWindowSchedule(16, 64)
+            clock[0] = 0.05
+            schedule.observe(16, 17920, 32000)
+            self.assertEqual(schedule.choose(1000), 24)
+            clock[0] += 0.5
+            self.assertEqual(schedule.choose(1000), 16)
+            schedule.observe(16, 20480, 32000)
+            self.assertEqual(schedule.choose(1000), 16)
+
+    def test_short_available_tail_is_flushed_without_padding(self):
+        schedule = StreamingWindowSchedule(200, 541)
+        self.assertEqual(schedule.choose(17), 17)
 
 
 class ReferenceTests(unittest.TestCase):
@@ -141,6 +183,28 @@ class AdapterTests(unittest.TestCase):
             timer.join()
         self.assertTrue(handle.cancelled.is_set())
 
+    def test_hybrid_heartbeat_rechecks_waiting_prefix_and_still_cancels(self):
+        a,handle,_ = self.adapter([[1,2]])
+        stop = threading.Event()
+        iterator = self.stream(a,stop=stop,stream_state={"poll_partial":True})
+        first,done = next(iterator)
+        heartbeat,done = next(iterator)
+        self.assertFalse(done)
+        self.assertTrue(torch.equal(first,heartbeat))
+        stop.set()
+        self.assertEqual(list(iterator),[])
+        self.assertTrue(handle.cancelled.is_set())
+
+    def test_stop_during_heartbeat_wait_does_not_yield_a_stale_prefix(self):
+        a,handle,_ = self.adapter([[1,2]])
+        stop = threading.Event()
+        iterator = self.stream(a,stop=stop,stream_state={"poll_partial":True})
+        next(iterator)
+        timer = threading.Timer(0.01,stop.set);timer.start()
+        try:self.assertEqual(list(iterator),[])
+        finally:timer.join()
+        self.assertTrue(handle.cancelled.is_set())
+
 
 class AcousticTests(unittest.TestCase):
     def fixture(self, frames):
@@ -207,6 +271,66 @@ class AcousticTests(unittest.TestCase):
         updates = iter([(torch.arange(80), False)])
         with self.assertRaisesRegex(RuntimeError, "without a final"):
             list(self.stream(w, updates, [], ref, req, threading.Event()))
+
+
+    def test_hybrid_preserves_short_and_exact_boundary_frames(self):
+        for frames in (4,196,200,204,400,404,856,1600):
+            w,ref,req,updates,calls,_,_ = self.fixture(frames)
+            req["streaming_window_mode"] = "hybrid"
+            pcm = np.concatenate(list(self.stream(w,updates,[],ref,req,threading.Event())))
+            expected = (torch.arange(frames).repeat_interleave(480).float()/2000*32767).to(torch.int16).numpy()
+            np.testing.assert_allclose(pcm.astype(float),expected.astype(float),atol=1)
+            self.assertTrue(all(n<=1000 for n in calls))
+
+    def test_hybrid_gradually_grows_without_receiver_underrun(self):
+        w,ref,req,_,calls,_,_ = self.fixture(2200)
+        req["streaming_window_mode"] = "hybrid"
+        clock = [0.0]
+        original = w.vq_model.cfm.inference
+        spans = []
+        def inference(mu,lengths,prompt,*args,**kwargs):
+            span = mu.shape[1]-prompt.shape[-1]
+            spans.append(span)
+            clock[0] += 0.2+0.5*span/100
+            return original(mu,lengths,prompt,*args,**kwargs)
+        w.vq_model.cfm.inference = inference
+        updates = iter([(torch.arange(80),False),(torch.arange(400),False),(torch.arange(550),True)])
+        with patch.object(_streaming_module.time,"perf_counter",side_effect=lambda:clock[0]):
+            chunks = [];first = None;playable = 0.0
+            for pcm in self.stream(w,updates,[],ref,req,threading.Event()):
+                if first is None:first=clock[0]
+                self.assertLessEqual(clock[0]-first,playable+1e-6)
+                playable += pcm.size/48000
+                chunks.append(pcm)
+        self.assertEqual(sum(x.size for x in chunks),2200*480)
+        self.assertIn(300,spans)
+        self.assertTrue(any(n>400 for n in spans))
+        self.assertTrue(all(n<=1000 for n in calls))
+
+    def test_waiting_for_a_larger_window_falls_back_on_heartbeat(self):
+        w,ref,req,_,_,_,_ = self.fixture(1000)
+        req["streaming_window_mode"] = "hybrid"
+        clock = [0.0];spans=[]
+        original = w.vq_model.cfm.inference
+        def inference(mu,lengths,prompt,*args,**kwargs):
+            span=mu.shape[1]-prompt.shape[-1];spans.append(span)
+            clock[0] += 0.2+0.5*span/100
+            return original(mu,lengths,prompt,*args,**kwargs)
+        w.vq_model.cfm.inference=inference
+        def updates():
+            yield torch.arange(80),False
+            yield torch.arange(128),False
+            yield torch.arange(184),False
+            clock[0] += 0.5
+            yield torch.arange(184),False
+            yield torch.arange(250),True
+        with patch.object(_streaming_module.time,"perf_counter",side_effect=lambda:clock[0]):
+            first=None;playable=0.
+            for pcm in self.stream(w,updates(),[],ref,req,threading.Event()):
+                if first is None:first=clock[0]
+                self.assertLessEqual(clock[0]-first,playable+1e-6)
+                playable+=pcm.size/48000
+        self.assertEqual(spans[:3],[212,200,200])
 
 
 class RNGTests(unittest.TestCase):
@@ -316,6 +440,29 @@ class TokenChunksTests(unittest.TestCase):
     def test_decreasing_prefix_is_rejected(self):
         with self.assertRaisesRegex(RuntimeError, "backwards"):
             list(v2_token_chunks(self.updates([32, 16]), 16))
+
+
+    def test_hybrid_eos_flush_is_bounded_and_silence_wait_does_not_stall(self):
+        clock = [0.0]
+        with patch.object(_streaming_module.time,"perf_counter",side_effect=lambda:clock[0]):
+            schedule = StreamingWindowSchedule(16,64)
+            output = [];playable = 0.0;first = None
+            iterator = v2_token_chunks(self.updates([32,200]),16,torch.full((220,),-1.),schedule=schedule)
+            for tokens,finished in iterator:
+                if tokens is None:continue
+                n = tokens.numel();clock[0] += 0.01+n*0.005
+                if first is None:first=clock[0]
+                self.assertLessEqual(clock[0]-first,playable+1e-6)
+                samples = int((n-(2 if not output else 0))*1280)
+                schedule.observe(n,samples,32000)
+                playable += samples/32000
+                output.append((tokens,finished))
+            self.assertEqual(self.flattened(output),list(range(200)))
+            self.assertTrue(output[-1][1])
+            self.assertEqual(sum(final for _,final in output),1)
+            self.assertEqual(output[0][0].numel(),16)
+            self.assertTrue(any(tokens.numel()>16 for tokens,_ in output))
+            self.assertTrue(all(tokens.numel()<=64 for tokens,_ in output))
 
 
 class ValidationTests(unittest.TestCase):

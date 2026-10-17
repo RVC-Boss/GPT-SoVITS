@@ -191,6 +191,12 @@ class AccelInference:
                 except Empty:
                     if engine._stop_event.is_set():
                         raise RuntimeError("GPT engine stopped during semantic streaming")
+                    # A hybrid consumer can recheck its playback budget while
+                    # waiting for a planned larger block, then fall back promptly.
+                    if stream_state is not None and stream_state.get("poll_partial") and cumulative is not None:
+                        if stop is not None and stop.is_set():
+                            break
+                        yield cumulative, False
                     continue
                 if response.ready_event is not None:
                     response.ready_event.wait(torch.cuda.current_stream(self.device))

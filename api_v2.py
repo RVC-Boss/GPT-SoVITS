@@ -46,6 +46,7 @@ POST:
     "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
     "gpt_streaming": false,       # bool. opt in to semantic-token streaming.
     "streaming_chunk_seconds": 2.0,
+    "streaming_window_mode": "fixed",
     "streaming_lookahead_seconds": 0.12,
     "streaming_overlap_seconds": 0.04,
     "gpt_streaming_lookahead_seconds": 0.5,
@@ -53,7 +54,7 @@ POST:
 }
 ```
 
-When `gpt_streaming` is enabled, use model `v2ProPlus`, `v5turbo` or `v5dev`, integer `streaming_mode` 2 or 3, `text_split_method="cut0"`, `batch_size=1`, and `media_type="raw"` or `"wav"`.
+When `gpt_streaming` is enabled, use model `v2ProPlus`, `v5turbo` or `v5dev`, integer `streaming_mode` 2 or 3, `text_split_method="cut0"`, `batch_size=1`, and `media_type="raw"` or `"wav"`. `streaming_window_mode` defaults to `fixed`; `hybrid` is supported for these models. On v2ProPlus, the first chunk retains `min_chunk_length` and later chunks can reach four times that token count; on V5, `streaming_chunk_seconds` controls the first chunk.
 
 RESP:
 成功: 直接返回 wav 音频流， http code 200
@@ -197,6 +198,7 @@ class TTS_Request(BaseModel):
     min_chunk_length: int = 16
     gpt_streaming: bool = False
     streaming_chunk_seconds: float = 2.0
+    streaming_window_mode: str = "fixed"
     streaming_lookahead_seconds: float = 0.12
     streaming_overlap_seconds: float = 0.04
     gpt_streaming_lookahead_seconds: float = 0.5
@@ -609,6 +611,7 @@ async def tts_get_endpoint(
     min_chunk_length: int = 16,
     gpt_streaming: bool = False,
     streaming_chunk_seconds: float = 2.0,
+    streaming_window_mode: str = "fixed",
     streaming_lookahead_seconds: float = 0.12,
     streaming_overlap_seconds: float = 0.04,
     gpt_streaming_lookahead_seconds: float = 0.5,
@@ -643,6 +646,7 @@ async def tts_get_endpoint(
         "min_chunk_length": int(min_chunk_length),
         "gpt_streaming": gpt_streaming,
         "streaming_chunk_seconds": float(streaming_chunk_seconds),
+        "streaming_window_mode": streaming_window_mode,
         "streaming_lookahead_seconds": float(streaming_lookahead_seconds),
         "streaming_overlap_seconds": float(streaming_overlap_seconds),
         "gpt_streaming_lookahead_seconds": float(gpt_streaming_lookahead_seconds),

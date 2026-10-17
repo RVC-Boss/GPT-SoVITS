@@ -1180,7 +1180,8 @@ class TTS:
         gpt_streaming = inputs.get("gpt_streaming", False)
         if gpt_streaming:
             from .streaming import (validate_streaming_options, PipelineStop, semantic_updates,
-                                    v2_token_chunks, v5_reference, stream_v5_windows)
+                                    v2_token_chunks, v5_reference, stream_v5_windows,
+                                    StreamingWindowSchedule)
             validate_streaming_options(inputs, self.configs.version)
             stream_stop = PipelineStop(self)
             stream_options = dict(inputs, sample_steps=sample_steps, cfg_rate=cfg_rate,
@@ -1551,12 +1552,15 @@ class TTS:
                     #     item.to(dtype=self.precision, device=self.configs.device)
                     #     for item in self.prompt_cache["refer_spec"]
                     # ]
+                    window_schedule = None
                     if gpt_streaming:
+                        if inputs.get("streaming_window_mode", "fixed") == "hybrid":
+                            window_schedule = StreamingWindowSchedule(min_chunk_length, min_chunk_length * 4)
                         streaming_tokens = semantic_updates(self, all_phoneme_ids[0], prompt,
                             all_bert_features[0], stream_options, stream_stop)
                         semantic_token_generator = v2_token_chunks(streaming_tokens, min_chunk_length,
                             self.configs.mute_emb_sim_matrix if not fixed_length_chunk else None,
-                            chunk_split_thershold)
+                            chunk_split_thershold, schedule=window_schedule)
                     else:
                         semantic_token_generator =self.t2s_model.model.infer_panel(
                             all_phoneme_ids[0].unsqueeze(0),
@@ -1663,7 +1667,7 @@ class TTS:
 
                         last_latent = latent
                         last_audio_chunk = audio_chunk
-                        yield self.audio_postprocess(
+                        audio_result = self.audio_postprocess(
                                 [[audio_chunk_]],
                                 output_sr,
                                 None,
@@ -1672,6 +1676,9 @@ class TTS:
                                 0.0,
                                 super_sampling if self.configs.use_vocoder and self.configs.version == "v3" else False,
                             )
+                        if window_schedule is not None:
+                            window_schedule.observe(semantic_tokens.numel(), audio_result[1].size, output_sr)
+                        yield audio_result
                         
                         if is_first_package: 
                             print(f"first_package_delay: {time.perf_counter()-t0:.3f}")

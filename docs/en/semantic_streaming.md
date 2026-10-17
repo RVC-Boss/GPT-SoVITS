@@ -22,6 +22,7 @@ Use the existing `GET /tts` or `POST /tts`, with these options:
   "gpt_streaming": true,
   "media_type": "raw",
   "streaming_chunk_seconds": 2.0,
+  "streaming_window_mode": "fixed",
   "streaming_lookahead_seconds": 0.12,
   "streaming_overlap_seconds": 0.04,
   "gpt_streaming_lookahead_seconds": 0.5
@@ -39,6 +40,36 @@ V5 uses the acoustic window options above. `sample_steps` and `cfg_rate` keep
 the existing model defaults (Turbo: 4/0; Dev: 32/1.3), unless explicitly set.
 A nonempty reference transcript and one reference audio are required for V5.
 Auxiliary references remain supported by the V2ProPlus path.
+
+### Fixed and progressive hybrid windows
+
+`streaming_window_mode` accepts `fixed` (the unchanged default) or `hybrid`.
+Both keep the complete text in one GPT session and preserve the requested
+sampling steps, CFG and speed.
+
+For V5, `streaming_chunk_seconds` sets every acoustic window in fixed mode,
+or only the first window in hybrid mode. Hybrid gradually grows later windows
+when recent delivery costs and estimated playable PCM leave enough time. The
+upper limit is the official `min(1000-reference_frames, 640)` acoustic frames.
+The first window is not delayed just to fill a larger later window.
+While waiting for a planned later window, the semantic stream rechecks the
+budget every 50 ms and can fall back to the initial window using its already
+available prefix. A larger block is never selected merely because it fits
+the model context.
+
+For V2ProPlus, `min_chunk_length` remains the first semantic block size
+(16 tokens by default). Hybrid can grow later blocks up to four times this
+size, using the same scheduler and the existing VITS decoder and audio
+overlap. In mode 2, silence-boundary search is bounded by the selected block;
+if no boundary is available, hybrid emits the selected block rather than
+waiting for the whole utterance. Fixed mode retains the old boundary logic.
+
+The scheduler times PCM delivery, estimates remaining playback from emitted
+samples and elapsed time, and leaves headroom before growing a block. It
+does not inspect GPU utilization or receive actual player progress. Clients
+must still consume PCM promptly and use a persistent playback queue. This
+reduces scheduling-induced stalls; it is not a guarantee against arbitrary
+device or network pauses. All block decisions are local to the request.
 
 The complete text enters one GPT session. Newlines are joined; inputs exceeding
 the frontend single-session limit are rejected rather than silently split.

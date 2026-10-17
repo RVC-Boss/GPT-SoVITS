@@ -196,6 +196,7 @@ class APIV2StreamingTests(unittest.TestCase):
         new_defaults = {
             "gpt_streaming": False,
             "streaming_chunk_seconds": 2.0,
+            "streaming_window_mode": "fixed",
             "streaming_lookahead_seconds": 0.12,
             "streaming_overlap_seconds": 0.04,
             "gpt_streaming_lookahead_seconds": 0.5,
@@ -235,8 +236,39 @@ class APIV2StreamingTests(unittest.TestCase):
         get_call = self.api.tts_pipeline.calls[-1]
         self.assertEqual(get_call, post_call)
         self.assertEqual(get_call["streaming_mode"], True)
+        self.assertEqual(get_call["streaming_window_mode"], "fixed")
         self.assertFalse(get_call["fixed_length_chunk"])
         self.assertFalse(get_call["use_flash_attention"])
+
+    def test_hybrid_window_mode_is_exposed_and_validated(self):
+        self.api.tts_pipeline.configs.version = "v5turbo"
+        request = self.request(
+            text_split_method="cut0",
+            streaming_mode=2,
+            gpt_streaming=True,
+            streaming_window_mode="hybrid",
+        )
+        post_response = self.client.post("/tts", json=request)
+        self.assertEqual(post_response.status_code, 200, post_response.text)
+        self.assertEqual(self.api.tts_pipeline.calls[-1]["streaming_window_mode"], "hybrid")
+
+        get_response = self.client.get("/tts", params=request)
+        self.assertEqual(get_response.status_code, 200, get_response.text)
+        self.assertEqual(self.api.tts_pipeline.calls[-1], self.api.tts_pipeline.calls[-2])
+
+        invalid_mode = dict(request, streaming_window_mode="unknown")
+        self.assertEqual(self.client.post("/tts", json=invalid_mode).status_code, 400)
+        self.api.tts_pipeline.configs.version = "v2ProPlus"
+        v2_request = dict(request, text="V2 hybrid", prompt_text="参考")
+        v2_response = self.client.post("/tts", json=v2_request)
+        self.assertEqual(v2_response.status_code, 200, v2_response.text)
+        self.assertEqual(self.api.tts_pipeline.calls[-1]["streaming_window_mode"], "hybrid")
+
+        disabled = dict(v2_request, gpt_streaming=False)
+        response = self.client.post("/tts", json=disabled)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(self.api.tts_pipeline.calls[-1]["gpt_streaming"])
+        self.assertEqual(self.api.tts_pipeline.calls[-1]["streaming_window_mode"], "hybrid")
 
     def test_old_streaming_modes_keep_their_mapping(self):
         expected = {
