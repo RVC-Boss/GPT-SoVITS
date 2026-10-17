@@ -7,6 +7,7 @@ from __future__ import annotations
 from collections.abc import Generator, MutableSequence
 from dataclasses import dataclass, field
 from queue import Empty, SimpleQueue
+from threading import Event
 from typing import TYPE_CHECKING, Literal, Optional, Protocol, Union
 
 import torch
@@ -50,6 +51,7 @@ class T2SRequest:
     stream_interval: Optional[int] = None
     return_partial: bool = True
     debug: bool = False
+    max_decode_steps: Optional[int] = None
 
 
 @dataclass
@@ -60,6 +62,7 @@ class T2SStreamResponse:
     finished: bool = False
     result: Optional[T2SResult] = None
     exception: Optional[Exception] = None
+    ready_event: Optional[torch.cuda.Event] = None
 
 
 @dataclass
@@ -67,6 +70,7 @@ class T2SRequestHandle:
     request_id: Union[str, int]
     queue: SimpleQueue[T2SStreamResponse] = field(default_factory=SimpleQueue)
     done: bool = False
+    cancelled: Event = field(default_factory=Event)
 
     def get_nowait(self) -> Optional[T2SStreamResponse]:
         try:
@@ -151,8 +155,13 @@ class T2SSession:
             self.prefill_len = self.x_lens + request.prompts.size(1)
 
             self.input_pos = self.prefill_len.clone().reshape(bsz)
-            self.max_decode_steps = min(int(decoder.max_seq_length - int(self.input_pos.max().item())), 640)
-            self.max_decode_steps = max(1, self.max_decode_steps)
+            limit = 640 if request.max_decode_steps is None else request.max_decode_steps
+            if limit <= 0:
+                raise ValueError("max_decode_steps must be positive")
+            available_steps = int(decoder.max_seq_length - int(self.input_pos.max().item()))
+            if available_steps <= 0:
+                raise ValueError("Text and reference exceed the GPT context capacity")
+            self.max_decode_steps = min(available_steps, limit)
 
             # EOS
             self.completed = torch.zeros(bsz, device=device, dtype=torch.bool)

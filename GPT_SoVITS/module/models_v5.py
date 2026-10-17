@@ -25,8 +25,8 @@ class CFMV5(CFM):
 
     @torch.inference_mode()
     def inference(self, mu, x_lens, prompt, n_timesteps, temperature=V5_TEMPERATURE,
-                  inference_cfg_rate=1.30):
-        return super().inference(mu, x_lens, prompt, n_timesteps, temperature, inference_cfg_rate)
+                  inference_cfg_rate=1.30, generator=None):
+        return super().inference(mu, x_lens, prompt, n_timesteps, temperature, inference_cfg_rate, generator=generator)
 
     def forward(self, x1, x_lens, prompt_lens, mu, use_grad_ckpt):
         b = x1.shape[0]

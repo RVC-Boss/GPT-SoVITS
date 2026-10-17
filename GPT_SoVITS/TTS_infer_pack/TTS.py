@@ -512,6 +512,7 @@ class TTS:
 
         self.t2s_model: Text2SemanticLightningModule = None
         self.t2s_accel = None
+        self.streaming_accel = None
         self.vits_model: Union[SynthesizerTrn, SynthesizerTrnV3] = None
         self.bert_tokenizer: AutoTokenizer = None
         self.bert_model: AutoModelForMaskedLM = None
@@ -678,6 +679,9 @@ class TTS:
 
 
     def init_t2s_weights(self, weights_path: str):
+        if self.streaming_accel is not None:
+            self.streaming_accel.close()
+            self.streaming_accel = None
         if self.t2s_accel is not None:
             self.t2s_accel.close()
             self.t2s_accel = None
@@ -791,6 +795,9 @@ class TTS:
             print("Half precision is not supported on CPU.")
             return
 
+        if self.streaming_accel is not None:
+            self.streaming_accel.close()
+            self.streaming_accel = None
         if self.t2s_accel is not None:
             self.t2s_accel.close()
             self.t2s_accel = None
@@ -827,6 +834,9 @@ class TTS:
         Args:
             device: torch.device, the device to use for all models.
         """
+        if self.streaming_accel is not None:
+            self.streaming_accel.close()
+            self.streaming_accel = None
         if self.t2s_accel is not None:
             self.t2s_accel.close()
             self.t2s_accel = None
@@ -1167,7 +1177,30 @@ class TTS:
         fixed_length_chunk = inputs.get("fixed_length_chunk", False)
         chunk_split_thershold = 0.0 # 该值代表语义token与mute token的余弦相似度阈值，若大于该阈值，则视为可切分点。
 
-        if streaming_mode and self.configs.use_vocoder:
+        gpt_streaming = inputs.get("gpt_streaming", False)
+        if gpt_streaming:
+            from .streaming import (validate_streaming_options, PipelineStop, semantic_updates,
+                                    v2_token_chunks, v5_reference, stream_v5_windows)
+            validate_streaming_options(inputs, self.configs.version)
+            stream_stop = PipelineStop(self)
+            stream_options = dict(inputs, sample_steps=sample_steps, cfg_rate=cfg_rate,
+                speed_factor=speed_factor,
+                streaming_chunk_seconds=inputs.get("streaming_chunk_seconds", 2.0),
+                streaming_lookahead_seconds=inputs.get("streaming_lookahead_seconds", 0.12),
+                streaming_overlap_seconds=inputs.get("streaming_overlap_seconds", 0.04),
+                gpt_streaming_lookahead_seconds=inputs.get("gpt_streaming_lookahead_seconds", 0.5))
+            acoustic_rng = torch.Generator(device=self.configs.device).manual_seed(actual_seed)
+            # Reference semantic codes depend on the active SoVITS model.
+            if getattr(self, "_streaming_ref_model", None) != id(self.vits_model):
+                ref_audio_path = ref_audio_path or self.prompt_cache["ref_audio_path"]
+                if not ref_audio_path:
+                    raise ValueError("A reloadable reference audio is required after model changes")
+                self.prompt_cache["ref_audio_path"] = None
+                self._streaming_ref_model = id(self.vits_model)
+            if self.prompt_cache["prompt_lang"] != prompt_lang:
+                self.prompt_cache["prompt_text"] = None
+
+        if streaming_mode and self.configs.use_vocoder and not gpt_streaming:
             print(i18n("SoVits V3/4模型不支持流式推理模式，已自动回退到分段返回模式"))
             streaming_mode = False
             return_fragment = True
@@ -1287,7 +1320,10 @@ class TTS:
             )
         else:
             print(f"############ {i18n('切分文本')} ############")
-            texts = self.text_preprocessor.pre_seg_text(text, text_lang, text_split_method)
+            texts = self.text_preprocessor.pre_seg_text(
+                text.replace("\n", " ") if gpt_streaming else text, text_lang, text_split_method)
+            if gpt_streaming and len(texts) > 1:
+                raise ValueError("Text exceeds the single-session frontend limit; shorten the input")
             data = []
             for i in range(len(texts)):
                 if i % batch_size == 0:
@@ -1323,6 +1359,7 @@ class TTS:
                 return batch[0]
 
         t2 = time.perf_counter()
+        streaming_tokens = streaming_audio = semantic_token_generator = None
         try:
             print("############ 推理 ############")
             ###### inference ######
@@ -1490,27 +1527,53 @@ class TTS:
                                 )
                                 batch_audio_fragment.append(audio_fragment)
 
+                elif gpt_streaming and self.configs.version in V5_VERSIONS:
+                    reference = v5_reference(self)
+                    # Validate the acoustic context before starting the AR owner thread.
+                    frames = round(stream_options["streaming_chunk_seconds"] * 100)
+                    future = round(stream_options["streaming_lookahead_seconds"] * 100)
+                    if reference[6].shape[-1] + frames + future > 1000:
+                        raise ValueError("Reference plus streaming window exceeds the V5 context")
+                    streaming_tokens = semantic_updates(self, all_phoneme_ids[0], prompt,
+                        all_bert_features[0], stream_options, stream_stop)
+                    streaming_audio = stream_v5_windows(self.vits_model, self.vocoder, denorm_spec,
+                        self.configs.device, streaming_tokens, batch_phones[0], reference,
+                        stream_options, stream_stop)
+                    for pcm in streaming_audio:
+                        yield output_sr, pcm
+                    streaming_audio.close()
+                    streaming_tokens.close()
+                    streaming_audio = streaming_tokens = None
+                    yield output_sr, np.zeros(int(output_sr * fragment_interval), dtype=np.int16)
+                    t4 = time.perf_counter()
                 else:
                     # refer_audio_spec: torch.Tensor = [
                     #     item.to(dtype=self.precision, device=self.configs.device)
                     #     for item in self.prompt_cache["refer_spec"]
                     # ]
-                    semantic_token_generator =self.t2s_model.model.infer_panel(
-                        all_phoneme_ids[0].unsqueeze(0),
-                        all_phoneme_lens,
-                        prompt,
-                        all_bert_features[0].unsqueeze(0),
-                        top_k=top_k,
-                        top_p=top_p,
-                        temperature=temperature,
-                        early_stop_num=self.configs.hz * self.configs.max_sec,
-                        max_len=max_len,
-                        repetition_penalty=repetition_penalty,
-                        streaming_mode=True,
-                        chunk_length=min_chunk_length,
-                        mute_emb_sim_matrix=self.configs.mute_emb_sim_matrix if not fixed_length_chunk else None,
-                        chunk_split_thershold=chunk_split_thershold,
-                    )
+                    if gpt_streaming:
+                        streaming_tokens = semantic_updates(self, all_phoneme_ids[0], prompt,
+                            all_bert_features[0], stream_options, stream_stop)
+                        semantic_token_generator = v2_token_chunks(streaming_tokens, min_chunk_length,
+                            self.configs.mute_emb_sim_matrix if not fixed_length_chunk else None,
+                            chunk_split_thershold)
+                    else:
+                        semantic_token_generator =self.t2s_model.model.infer_panel(
+                            all_phoneme_ids[0].unsqueeze(0),
+                            all_phoneme_lens,
+                            prompt,
+                            all_bert_features[0].unsqueeze(0),
+                            top_k=top_k,
+                            top_p=top_p,
+                            temperature=temperature,
+                            early_stop_num=self.configs.hz * self.configs.max_sec,
+                            max_len=max_len,
+                            repetition_penalty=repetition_penalty,
+                            streaming_mode=True,
+                            chunk_length=min_chunk_length,
+                            mute_emb_sim_matrix=self.configs.mute_emb_sim_matrix if not fixed_length_chunk else None,
+                            chunk_split_thershold=chunk_split_thershold,
+                        )
                     t4 = time.perf_counter()
                     t_34 += t4 - t3
                     phones = batch_phones[0].unsqueeze(0).to(self.configs.device)
@@ -1575,7 +1638,8 @@ class TTS:
                                                     result_length=semantic_tokens.shape[-1]+overlap_len if not is_first_chunk else None,
                                                     overlap_frames=last_latent[:,:,-overlap_len*(2 if self.vits_model.semantic_frame_rate == "25hz" else 1):] \
                                                     if last_latent is not None else None,
-                                                    padding_length=token_padding_length
+                                                    padding_length=token_padding_length,
+                                                    **({"generator": acoustic_rng} if gpt_streaming else {})
                                                 )
                             audio_chunk=audio_chunk.detach()[0, 0, :]
                         else:
@@ -1590,7 +1654,7 @@ class TTS:
                             audio_chunk_ = audio_chunk_[:-overlap_size]
                         elif is_first_chunk and is_final: 
                             is_first_chunk = False
-                        elif not is_first_chunk and not is_final:
+                        elif not is_first_chunk and (not is_final or gpt_streaming):
                             audio_chunk_ = self.sola_algorithm([last_audio_chunk, audio_chunk_], overlap_size)
                             audio_chunk_ = (
                                 audio_chunk_[last_audio_chunk.shape[0]-overlap_size:-overlap_size] if not is_final \
@@ -1614,6 +1678,10 @@ class TTS:
                             is_first_package = False
 
 
+                    if gpt_streaming:
+                        semantic_token_generator.close()
+                        streaming_tokens.close()
+                        streaming_tokens = None
                     yield output_sr, np.zeros(int(output_sr*fragment_interval), dtype=np.int16)
 
                 t5 = time.perf_counter()
@@ -1653,6 +1721,8 @@ class TTS:
                 )
 
         except Exception as e:
+            if gpt_streaming:
+                raise
             traceback.print_exc()
             # 必须返回一个空音频, 否则会导致显存不释放。
             yield 16000, np.zeros(int(16000), dtype=np.int16)
@@ -1665,6 +1735,11 @@ class TTS:
             self.init_vits_weights(self.configs.vits_weights_path)
             raise e
         finally:
+            if gpt_streaming:
+                stream_stop.set()
+                for iterator in (streaming_audio, semantic_token_generator, streaming_tokens):
+                    if iterator is not None:
+                        iterator.close()
             self.empty_cache()
 
     def empty_cache(self):

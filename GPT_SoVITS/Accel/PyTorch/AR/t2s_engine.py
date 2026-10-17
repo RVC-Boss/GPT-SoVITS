@@ -113,11 +113,28 @@ class T2SEngine(T2SEngineProtocol):
     def stream_generate(self, request: T2SRequest, show_progress: bool = False):
         """Generator yielding streaming responses until completion."""
         handle = self.add_request(request, stream_interval=request.stream_interval, show_progress=show_progress)
-        while True:
-            resp = handle.queue.get()
-            yield resp
-            if resp.finished:
-                break
+        try:
+            while True:
+                resp = handle.queue.get()
+                yield resp
+                if resp.finished:
+                    break
+        finally:
+            if not handle.done:
+                self.cancel_request(handle)
+
+    def cancel_request(self, handle: T2SRequestHandle, timeout: float = 5.0):
+        """Cancel on the runner owner thread and wait before reusing global RNG."""
+        handle.cancelled.set()
+        deadline = time.monotonic() + timeout
+        while not handle.done:
+            if self._stop_event.is_set():
+                return
+            if self._loop_thread is None or not self._loop_thread.is_alive():
+                raise RuntimeError("GPT owner thread stopped before cancellation completed")
+            if time.monotonic() >= deadline:
+                raise RuntimeError("GPT cancellation timed out")
+            time.sleep(0.001)
 
     def generate(self, request: T2SRequest, show_progress: bool = False):
         """Blocking generate that consumes the streaming queue until finished."""
@@ -158,10 +175,13 @@ class T2SEngine(T2SEngineProtocol):
             result=result,
             exception=exception,
         )
-        handle.queue.put(payload)
+        if tokens is not None and self.device.type == "cuda":
+            payload.ready_event = torch.cuda.Event()
+            payload.ready_event.record(torch.cuda.current_stream(self.device))
         if finished:
             handle.done = True
             self.handles.pop(session.request_id, None)
+        handle.queue.put(payload)
 
     def _maybe_stream_partial(self, session: T2SSession):
         if session.stream_interval <= 0:
@@ -179,13 +199,14 @@ class T2SEngine(T2SEngineProtocol):
         self,
         session: T2SSession,
         exception: Optional[Exception] = None,
+        cancelled: bool = False,
     ):
         request = session.request
         infer_time = max(time.perf_counter() - session.start_time, 1e-6)
         infer_speed = (session.total_tokens / infer_time if session.total_tokens else 0.0, infer_time)
         status: Literal["Success", "Error"] = "Error" if exception else "Success"
 
-        if exception:
+        if exception and not cancelled:
             logger.error(f"T2S request {session.request_id} failed: {exception}")
             traceback.print_exc()
 
@@ -229,6 +250,10 @@ class T2SEngine(T2SEngineProtocol):
             except Empty:
                 break
 
+            if handle.cancelled.is_set():
+                handle.done = True
+                self.handles.pop(request.request_id, None)
+                continue
             try:
                 session = self.model_runner.prefill(request)
             except Exception as e:
@@ -269,10 +294,21 @@ class T2SEngine(T2SEngineProtocol):
             new_added = True
         return new_added
 
+    @torch.inference_mode()
     def _background_loop(self):
         torch.set_grad_enabled(False)
         while not self._stop_event.is_set():
             self._drain_new_requests()
+
+            # Only this owner thread may mutate the runner or its session lists.
+            for session in list(self.waiting_bind) + list(self.model_runner.bound_sessions):
+                handle = self.handles.get(session.request_id)
+                if handle is not None and handle.cancelled.is_set():
+                    if session in self.waiting_bind:
+                        self.waiting_bind.remove(session)
+                    else:
+                        self.model_runner.unbind_session(session)
+                    self._finalize_session(session, RuntimeError("T2S request cancelled"), cancelled=True)
 
             if not self.model_runner.bound_sessions:
                 if not self.waiting_bind:
@@ -305,6 +341,7 @@ class T2SEngine(T2SEngineProtocol):
         max_batch_size: int = 1,
         backend: str = "Flash-Attn-Varlen-CUDAGraph",
         quantize_mode: Optional[Literal["Int8", "FP8", "FP8_E4M3FN"]] = None,
+        max_seq_length: Optional[int] = None,
     ) -> T2SDecoderABC:
         logger.info(f"Loading Text2Semantic Weights from {weights_path} with {backend} Backend")
         module_path = f".backends.{backend.lower().replace('-', '_').replace('cudagraph', 'cuda_graph')}"
@@ -316,7 +353,10 @@ class T2SEngine(T2SEngineProtocol):
             load_options["mmap"] = True
         dict_s1 = torch.load(weights_path, **load_options)
         config = dict_s1["config"]
-        decoder: T2SDecoderABC = decoder_cls(config, max_batch_size=max_batch_size)
+        decoder_options = {"max_batch_size": max_batch_size}
+        if max_seq_length is not None:
+            decoder_options["max_seq_length"] = max_seq_length
+        decoder: T2SDecoderABC = decoder_cls(config, **decoder_options)
         state_dict = dict_s1["weight"]
         decoder.load_state_dict(state_dict)
 
