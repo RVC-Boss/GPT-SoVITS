@@ -1321,9 +1321,14 @@ class TTS:
             )
         else:
             print(f"############ {i18n('切分文本')} ############")
+            # Preserve cut0's single-session behavior; other methods use the
+            # frontend's normal punctuation/newline and long-text handling.
             texts = self.text_preprocessor.pre_seg_text(
-                text.replace("\n", " ") if gpt_streaming else text, text_lang, text_split_method)
-            if gpt_streaming and len(texts) > 1:
+                text.replace("\n", " ") if gpt_streaming and text_split_method == "cut0" else text,
+                text_lang,
+                text_split_method,
+            )
+            if gpt_streaming and text_split_method == "cut0" and len(texts) > 1:
                 raise ValueError("Text exceeds the single-session frontend limit; shorten the input")
             data = []
             for i in range(len(texts)):
@@ -1361,6 +1366,7 @@ class TTS:
 
         t2 = time.perf_counter()
         streaming_tokens = streaming_audio = semantic_token_generator = None
+        streaming_reference = None
         try:
             print("############ 推理 ############")
             ###### inference ######
@@ -1370,6 +1376,8 @@ class TTS:
             is_first_package = True
             output_sr = self.configs.sampling_rate if not self.configs.use_vocoder else self.vocoder_configs["sr"]
             for item in data:
+                if gpt_streaming and stream_stop.is_set():
+                    break
                 t3 = time.perf_counter()
                 if return_fragment or streaming_mode:
                     item = make_batch(item)
@@ -1529,7 +1537,9 @@ class TTS:
                                 batch_audio_fragment.append(audio_fragment)
 
                 elif gpt_streaming and self.configs.version in V5_VERSIONS:
-                    reference = v5_reference(self)
+                    if streaming_reference is None:
+                        streaming_reference = v5_reference(self)
+                    reference = streaming_reference
                     # Validate the acoustic context before starting the AR owner thread.
                     frames = round(stream_options["streaming_chunk_seconds"] * 100)
                     future = round(stream_options["streaming_lookahead_seconds"] * 100)
@@ -1545,7 +1555,8 @@ class TTS:
                     streaming_audio.close()
                     streaming_tokens.close()
                     streaming_audio = streaming_tokens = None
-                    yield output_sr, np.zeros(int(output_sr * fragment_interval), dtype=np.int16)
+                    if not stream_stop.is_set() and fragment_interval:
+                        yield output_sr, np.zeros(int(output_sr * fragment_interval), dtype=np.int16)
                     t4 = time.perf_counter()
                 else:
                     # refer_audio_spec: torch.Tensor = [
@@ -1688,8 +1699,9 @@ class TTS:
                     if gpt_streaming:
                         semantic_token_generator.close()
                         streaming_tokens.close()
-                        streaming_tokens = None
-                    yield output_sr, np.zeros(int(output_sr*fragment_interval), dtype=np.int16)
+                        semantic_token_generator = streaming_tokens = None
+                    if not gpt_streaming or not stream_stop.is_set():
+                        yield output_sr, np.zeros(int(output_sr*fragment_interval), dtype=np.int16)
 
                 t5 = time.perf_counter()
                 t_45 += t5 - t4

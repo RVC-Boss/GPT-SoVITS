@@ -54,7 +54,15 @@ POST:
 }
 ```
 
-When `gpt_streaming` is enabled, use model `v2ProPlus`, `v5turbo` or `v5dev`, integer `streaming_mode` 2 or 3, `text_split_method="cut0"`, `batch_size=1`, and `media_type="raw"` or `"wav"`. `streaming_window_mode` defaults to `fixed`; `hybrid` is supported for these models. On v2ProPlus, the first chunk retains `min_chunk_length` and later chunks can reach four times that token count; on V5, `streaming_chunk_seconds` controls the first chunk.
+When `gpt_streaming` is enabled, use model `v2ProPlus`, `v5turbo` or `v5dev`,
+integer `streaming_mode` 2 or 3, `batch_size=1`, and `media_type="raw"` or `"wav"`.
+All existing text split methods (`cut0` through `cut5`) are supported: each text
+segment streams through its own GPT session within one HTTP response.
+`streaming_window_mode` defaults to `fixed`; `hybrid` is supported for these models.
+On v2ProPlus, `min_chunk_length` sets the initial semantic block size; hybrid
+windows can grow later blocks up to four times that token count. On V5,
+`streaming_chunk_seconds` sets every fixed window, or the first hybrid window
+of each text segment.
 
 RESP:
 成功: 直接返回 wav 音频流， http code 200

@@ -14,8 +14,10 @@ def validate_streaming_options(req, version, api_mode=False):
     mode = req.get("streaming_mode", False)
     if (api_mode and (type(mode) is not int or mode not in (2, 3))) or (not api_mode and mode not in (True, 2, 3)):
         raise ValueError("gpt_streaming requires streaming_mode=2 or 3")
-    if req.get("text_split_method", "cut5") != "cut0" or req.get("batch_size", 1) != 1:
-        raise ValueError("gpt_streaming requires text_split_method=cut0 and batch_size=1")
+    # Text methods are validated by the existing frontend/API registry.
+    # Each resulting segment uses its own semantic stream, served sequentially.
+    if req.get("batch_size", 1) != 1:
+        raise ValueError("gpt_streaming requires batch_size=1")
     if req.get("if_freeze", False):
         raise ValueError("gpt_streaming cannot freeze semantic tokens")
     if req.get("streaming_window_mode", "fixed") not in {"fixed", "hybrid"}:
@@ -60,6 +62,7 @@ class PipelineStop:
 
 
 def semantic_updates(pipeline, x, prompt, bert, req, stop):
+    """Stream one text segment without cancelling the enclosing request."""
     # A separate decoder leaves the ordinary context and cache unchanged.
     acceleration = pipeline.streaming_accel
     if acceleration is None:
@@ -84,7 +87,8 @@ def semantic_updates(pipeline, x, prompt, bert, req, stop):
     try:
         yield from updates
     finally:
-        stop.set()
+        # infer_stream closes/cancels this segment's handle. The TTS caller owns
+        # the request-wide stop signal, which must survive normal segment EOS.
         updates.close()
 
 

@@ -270,6 +270,21 @@ class APIV2StreamingTests(unittest.TestCase):
         self.assertFalse(self.api.tts_pipeline.calls[-1]["gpt_streaming"])
         self.assertEqual(self.api.tts_pipeline.calls[-1]["streaming_window_mode"], "hybrid")
 
+    def test_all_text_splitters_work_with_both_windows_over_get_and_post(self):
+        for version in ("v5turbo", "v5dev", "v2ProPlus"):
+            self.api.tts_pipeline.configs.version = version
+            for method in (f"cut{i}" for i in range(6)):
+                for window in ("fixed", "hybrid"):
+                    with self.subTest(version=version, method=method, window=window):
+                        request = self.request(text_split_method=method, streaming_mode=2,
+                                               gpt_streaming=True, streaming_window_mode=window)
+                        post = self.client.post("/tts", json=request)
+                        self.assertEqual(post.status_code, 200, post.text)
+                        get = self.client.get("/tts", params=request)
+                        self.assertEqual(get.status_code, 200, get.text)
+                        self.assertEqual(self.api.tts_pipeline.calls[-1], self.api.tts_pipeline.calls[-2])
+                        self.assertEqual(self.api.tts_pipeline.calls[-1]["text_split_method"], method)
+
     def test_old_streaming_modes_keep_their_mapping(self):
         expected = {
             0: (False, False, False),
@@ -301,7 +316,7 @@ class APIV2StreamingTests(unittest.TestCase):
             {"streaming_mode": 4},
             {"streaming_mode": 2.0},
             {"streaming_mode": "2"},
-            {"streaming_mode": 2, "text_split_method": "cut5"},
+            {"streaming_mode": 2, "text_split_method": "not-a-method"},
             {"streaming_mode": 2, "media_type": "ogg"},
             {"streaming_mode": 2, "streaming_chunk_seconds": 0},
         ):
