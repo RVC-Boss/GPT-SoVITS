@@ -1040,7 +1040,7 @@ class SynthesizerTrn(nn.Module):
 
 
     @torch.no_grad()
-    def decode_streaming(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
+    def decode_streaming(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None, generator=None):
         def get_ge(refer, sv_emb):
             ge = None
             if refer is not None:
@@ -1084,7 +1084,9 @@ class SynthesizerTrn(nn.Module):
             overlap_frames=overlap_frames, 
             padding_length=padding_length
             )
-        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+        noise = (torch.randn_like(m_p) if generator is None else
+                 torch.randn(m_p.shape, device=m_p.device, dtype=m_p.dtype, generator=generator))
+        z_p = m_p + noise * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
 
@@ -1115,13 +1117,13 @@ class CFM(torch.nn.Module):
         self.noise_temperature = None
 
     @torch.inference_mode()
-    def inference(self, mu, x_lens, prompt, n_timesteps, temperature=1.0, inference_cfg_rate=0):
+    def inference(self, mu, x_lens, prompt, n_timesteps, temperature=1.0, inference_cfg_rate=0, generator=None):
         """Forward diffusion"""
         n_timesteps, inference_cfg_rate = int(n_timesteps), float(inference_cfg_rate)
         B, T = mu.size(0), mu.size(1)
         if self.noise_temperature is not None:
             temperature = self.noise_temperature
-        x = torch.randn([B, self.in_channels, T], device=mu.device, dtype=mu.dtype) * temperature
+        x = torch.randn([B, self.in_channels, T], device=mu.device, dtype=mu.dtype, generator=generator) * temperature
         prompt_len = prompt.size(-1)
         prompt_x = torch.zeros_like(x, dtype=mu.dtype)
         prompt_x[..., :prompt_len] = prompt[..., :prompt_len]

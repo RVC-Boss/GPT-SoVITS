@@ -73,6 +73,7 @@ def create_acceleration(
     max_batch_size=32,
     use_cuda_graph=True,
     use_flash_attention=True,
+    max_seq_length=None,
 ):
     backend, _ = resolve_acceleration(device, dtype, use_cuda_graph, use_flash_attention)
     if backend is None:
@@ -90,4 +91,5 @@ def create_acceleration(
         max_batch_size=max_batch_size,
         use_cuda_graph=use_cuda_graph,
         use_flash_attention=use_flash_attention,
+        max_seq_length=max_seq_length,
     )
