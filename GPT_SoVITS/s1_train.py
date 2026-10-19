@@ -114,12 +114,18 @@ def main(args):
         # val_check_interval=9999999999999999999999,###不要验证
         # check_val_every_n_epoch=None,
         limit_val_batches=0,
-        devices=-1 if torch.cuda.is_available() else 1,
+        # On Windows, force single-device (no DDP) — see strategy comment below.
+        # Non-Windows preserves original "all GPUs" behaviour.
+        devices=(1 if platform.system() == "Windows" else -1) if torch.cuda.is_available() else 1,
         benchmark=False,
         fast_dev_run=False,
-        strategy=DDPStrategy(process_group_backend="nccl" if platform.system() != "Windows" else "gloo")
-        if torch.cuda.is_available()
-        else "auto",
+        # On Windows, DDPStrategy with the gloo backend crashes with native
+        # access violations on Blackwell (sm_120) / CUDA 12.8. Lightning's
+        # "auto" strategy picks `single_device` for 1 GPU which avoids DDP
+        # entirely. Non-Windows behaviour is preserved (NCCL DDP).
+        strategy="auto"
+        if (platform.system() == "Windows" or not torch.cuda.is_available())
+        else DDPStrategy(process_group_backend="nccl"),
         precision=config["train"]["precision"],
         logger=logger,
         num_sanity_val_steps=0,
