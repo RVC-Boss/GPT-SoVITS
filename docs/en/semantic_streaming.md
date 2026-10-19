@@ -29,8 +29,9 @@ Use the existing `GET /tts` or `POST /tts`, with these options:
 }
 ```
 
-Both HTTP methods expose the same new defaults. `streaming_mode` must be the
-integer 2 or 3; its existing meaning is preserved when the new switch is off.
+Both HTTP methods expose the same defaults. With `gpt_streaming=true`,
+`streaming_mode` must be the integer 2 or 3. With `gpt_streaming=false`,
+`streaming_mode` uses the standard API behavior.
 V2ProPlus uses `min_chunk_length` (16 semantic tokens by default),
 `overlap_length` and the existing VITS streaming decoder. Mode 2 chooses a
 silence boundary, while mode 3 uses fixed semantic chunks. Deltas never repeat
@@ -43,9 +44,9 @@ Auxiliary references remain supported by the V2ProPlus path.
 
 ### Fixed and progressive hybrid windows
 
-`streaming_window_mode` accepts `fixed` (the unchanged default) or `hybrid`.
-Both keep the complete text in one GPT session and preserve the requested
-sampling steps, CFG and speed.
+`streaming_window_mode` accepts `fixed` (default) or `hybrid`.
+Both preserve the selected text split method, sampling steps, CFG and speed.
+Window scheduling starts afresh for each text segment.
 
 For V5, `streaming_chunk_seconds` sets every acoustic window in fixed mode,
 or only the first window in hybrid mode. Hybrid gradually grows later windows
@@ -71,11 +72,23 @@ must still consume PCM promptly and use a persistent playback queue. This
 reduces scheduling-induced stalls; it is not a guarantee against arbitrary
 device or network pauses. All block decisions are local to the request.
 
-The complete text enters one GPT session. Newlines are joined; inputs exceeding
-the frontend single-session limit are rejected rather than silently split.
-This is not incremental LLM text input. A separate AR decoder has 2048 context
-positions; generated tokens are limited to 1500 and the remaining context.
-Reaching the limit is an error rather than successful truncation.
+### Text segmentation
+
+All existing `text_split_method` options (`cut0` through `cut5`) work with
+semantic streaming. `cut0` keeps the complete text in one GPT session, replacing
+newlines with spaces. Other methods use the text frontend and open one GPT
+session per resulting segment, sequentially within a single HTTP response.
+Every segment emits its audio windows as they become available; the next segment
+does not cancel or restart the HTTP stream. `fragment_interval` sets the
+pause after each segment, including the last one. The request seeds
+once and reuses the same reference and sampling options for all segments.
+
+This is not incremental LLM text input. Each GPT session still has 2048 context
+positions and at most 1500 generated tokens, further limited by the remaining
+context. `cut0` rejects input exceeding the single-session frontend limit;
+choose a splitting method for long text. Reaching a segment's token limit is an
+error rather than successful truncation. Disconnect cleanup cancels the active
+segment and prevents later segments from starting.
 
 ## Audio and resource lifetime
 

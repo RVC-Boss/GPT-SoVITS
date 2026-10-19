@@ -478,7 +478,7 @@ class ValidationTests(unittest.TestCase):
         for version in ["v5turbo", "v5dev", "v2ProPlus"]:
             validate_streaming_options(self.req(), version, api_mode=True)
         for patch in [dict(streaming_mode=True), dict(streaming_mode=0), dict(streaming_mode=2.0), dict(batch_size=2),
-                      dict(text_split_method="cut5"), dict(media_type="aac"),
+                      dict(media_type="aac"),
                       dict(streaming_chunk_seconds=float("nan")), dict(speed_factor=0),
                       dict(cfg_rate=float("inf")), dict(overlap_length=0)]:
             with self.subTest(patch=patch), self.assertRaises(ValueError):
@@ -488,6 +488,48 @@ class ValidationTests(unittest.TestCase):
         validate_streaming_options(self.req(aux_ref_audio_paths=["ref.wav"]), "v2ProPlus", api_mode=True)
         with self.assertRaises(ValueError):
             validate_streaming_options(self.req(), "v4", api_mode=True)
+
+    def test_semantic_streaming_preserves_the_registered_text_splitters(self):
+        for version in ("v5turbo", "v5dev", "v2ProPlus"):
+            for method in (f"cut{i}" for i in range(6)):
+                with self.subTest(version=version, method=method):
+                    validate_streaming_options(self.req(text_split_method=method), version, api_mode=True)
+
+    def test_finishing_one_segment_does_not_cancel_the_next(self):
+        closed = []
+        def infer_stream(*args, **kwargs):
+            index = len(closed)
+            try:
+                yield torch.tensor([index, 1]), False
+                yield torch.tensor([index, 1, 2]), True
+            finally:
+                closed.append(index)
+        pipeline = SimpleNamespace(streaming_accel=SimpleNamespace(infer_stream=infer_stream),
+                                   configs=SimpleNamespace(hz=50, max_sec=54))
+        stop = threading.Event()
+        for segment in range(3):
+            updates = list(_streaming_module.semantic_updates(pipeline, None, None, None, {}, stop))
+            self.assertEqual(updates[-1][0].tolist(), [segment, 1, 2])
+            self.assertFalse(stop.is_set())
+        self.assertEqual(closed, [0, 1, 2])
+
+    def test_closing_a_segment_releases_its_iterator(self):
+        closed = threading.Event()
+        def infer_stream(*args, **kwargs):
+            try:
+                yield torch.tensor([1]), False
+                yield torch.tensor([1, 2]), True
+            finally:
+                closed.set()
+        pipeline = SimpleNamespace(streaming_accel=SimpleNamespace(infer_stream=infer_stream),
+                                   configs=SimpleNamespace(hz=50, max_sec=54))
+        stop = threading.Event()
+        iterator = _streaming_module.semantic_updates(pipeline, None, None, None, {}, stop)
+        next(iterator)
+        stop.set()
+        iterator.close()
+        self.assertTrue(closed.is_set())
+        self.assertTrue(stop.is_set())
 
     def test_pipeline_stop_and_disconnect_share_a_stop_signal(self):
         pipeline = SimpleNamespace(stop_flag=False)
