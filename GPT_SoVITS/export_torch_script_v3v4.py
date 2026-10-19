@@ -27,7 +27,15 @@ logging.config.dictConfig(uvicorn.config.LOGGING_CONFIG)
 logger = logging.getLogger("uvicorn")
 
 is_half = True
-device = "cuda" if torch.cuda.is_available() else "cpu"
+# Detect the current accelerator (CUDA, NPU, XPU, MPS, …) in a device-agnostic way.
+# Using torch.accelerator (available since PyTorch 2.5) ensures the script works
+# out of the box on Ascend NPU, Intel XPU, Apple MPS, etc. without hard-coding
+# "cuda". Falls back to the traditional CUDA-or-CPU heuristic when torch.accelerator
+# is not available (PyTorch < 2.5).
+if hasattr(torch, "accelerator") and torch.accelerator.is_available():
+    device = str(torch.accelerator.current_accelerator())
+else:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 now_dir = os.getcwd()
 
 
