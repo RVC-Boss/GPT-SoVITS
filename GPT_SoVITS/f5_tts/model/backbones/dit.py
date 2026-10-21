@@ -51,7 +51,9 @@ class TextEmbedding(nn.Module):
         # possible extra modeling
         if self.extra_modeling:
             # sinus pos emb
-            batch_start = torch.zeros((batch,), dtype=torch.long)
+            # Keep positional indices on the model device. CPU indices trigger a
+            # host-to-device copy that cannot be captured by a CUDA Graph.
+            batch_start = torch.zeros((batch,), dtype=torch.long, device=text.device)
             pos_idx = get_pos_embed_indices(batch_start, seq_len, max_pos=self.precompute_max_pos)
             text_pos_embed = self.freqs_cis[pos_idx]
 
@@ -132,7 +134,7 @@ class DiT(nn.Module):
 
         return ckpt_forward
 
-    def prepare_static_cache(self, cond0, x_lens, text0):
+    def prepare_static_cache(self, cond0, x_lens, text0, all_valid=False, use_negative_condition=True):
         text = text0.transpose(2, 1)
         cond = cond0.transpose(2, 1)
         seq_len = cond.shape[1]
@@ -141,16 +143,24 @@ class DiT(nn.Module):
         mel_dim = cond.shape[-1]
         static = F.linear(
             torch.cat((cond, text_embed), dim=-1),
-            projection.weight[:, mel_dim:], projection.bias,
+            projection.weight[:, mel_dim:],
+            projection.bias,
         )
-        negative_static = F.linear(
-            torch.cat((torch.zeros_like(cond), text_embed), dim=-1),
-            projection.weight[:, mel_dim:], projection.bias,
+        negative_static = (
+            F.linear(
+                torch.cat((torch.zeros_like(cond), text_embed), dim=-1),
+                projection.weight[:, mel_dim:],
+                projection.bias,
+            )
+            if use_negative_condition
+            else static
         )
         return {
             "condition": static,
             "negative_condition": negative_static,
-            "mask": sequence_mask(x_lens, max_length=seq_len).to(cond.device),
+            # Equal-length buckets contain no padding. Omitting the all-True
+            # mask permits Flash SDPA; padded callers retain their original mask.
+            "mask": None if all_valid else sequence_mask(x_lens, max_length=seq_len).to(cond.device),
             "rope": self.rotary_embed.forward_from_seq_len(seq_len),
         }
 
