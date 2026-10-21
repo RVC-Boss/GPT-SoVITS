@@ -1,0 +1,59 @@
+server:
+  host: 127.0.0.1
+  port: 9881
+  tts_config: GPT_SoVITS/configs/tts_infer.yaml
+
+cors_allow_origins:
+  - "*"
+
+upload:
+  dir: runtime/uploads
+  min_ref_seconds: 3
+  max_ref_seconds: 10
+  max_upload_mb: 80
+
+default_voice: default
+
+defaults:
+  text_lang: zh
+  prompt_lang: zh
+  media_type: wav
+  text_split_method: cut5
+  batch_size: 1
+  batch_threshold: 0.75
+  split_bucket: true
+  speed_factor: 1.0
+  fragment_interval: 0.3
+  seed: -1
+  parallel_infer: true
+  repetition_penalty: 1.35
+  sample_steps: 32
+  super_sampling: false
+  overlap_length: 2
+  min_chunk_length: 16
+
+emotion_presets:
+  neutral: {}
+  happy:
+    temperature: 1.1
+    top_p: 0.95
+  calm:
+    temperature: 0.8
+    top_p: 0.85
+    speed_factor: 0.92
+  sad:
+    temperature: 0.75
+    top_p: 0.85
+    speed_factor: 0.9
+  angry:
+    temperature: 1.2
+    top_k: 20
+    repetition_penalty: 1.25
+
+voices:
+  default:
+    description: Replace this profile with your reference voice.
+    ref_audio_path: reference.wav
+    prompt_text: Replace this with the exact text spoken in reference.wav.
+    prompt_lang: zh
+    text_lang: zh
