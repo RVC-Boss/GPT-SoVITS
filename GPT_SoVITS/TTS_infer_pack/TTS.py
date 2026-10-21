@@ -32,6 +32,7 @@ from feature_extractor.cnhubert import CNHubert
 from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
 from module.models import SynthesizerTrn, SynthesizerTrnV3, Generator
 from module.models_v5 import synthesize_v5_mel, V5_VERSIONS
+from module.v5_acoustic import synthesize_v5_mel_batch, V5AcousticGraphRunner
 from peft import LoraConfig, get_peft_model
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -510,6 +511,19 @@ class TTS:
         else:
             self.configs: TTS_Config = TTS_Config(configs)
 
+        # These options affect non-streaming V5 acoustic synthesis only. Keep
+        # the existing path by default: batching changes FP16 rounding, while
+        # graph capture trades first-shape latency and memory for faster reuse.
+        self._v5_acoustic_batch_size = int(os.environ.get("GSVV5_ACOUSTIC_BATCH_SIZE", "0"))
+        graph_capacity = int(os.environ.get("GSVV5_ACOUSTIC_GRAPH_CAPACITY", "64"))
+        if self._v5_acoustic_batch_size < 0 or graph_capacity < 1:
+            raise ValueError("V5 acoustic batch size must be nonnegative and graph capacity positive")
+        self._v5_acoustic_graph_runner = (
+            V5AcousticGraphRunner(max_entries=graph_capacity)
+            if self._v5_acoustic_batch_size and os.environ.get("GSVV5_ACOUSTIC_CUDA_GRAPH", "0") == "1"
+            else None
+        )
+
         self.t2s_model: Text2SemanticLightningModule = None
         self.t2s_accel = None
         self.streaming_accel = None
@@ -578,6 +592,9 @@ class TTS:
             self.bert_model = self.bert_model.half()
 
     def init_vits_weights(self, weights_path: str):
+        # Release graph references to old acoustic weights before loading a replacement.
+        if self._v5_acoustic_graph_runner is not None:
+            self._v5_acoustic_graph_runner.clear()
         self.configs.vits_weights_path = weights_path
         version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(weights_path)
         if "Pro" in model_version:
@@ -1905,6 +1922,50 @@ class TTS:
 
         return audio
 
+    @torch.inference_mode()
+    def _using_v5_acoustic_batch(
+        self,
+        idx_list,
+        semantic_tokens_list,
+        batch_phones,
+        speed,
+        sample_steps,
+        cfg_rate,
+    ):
+        # Reference conditioning is identical across this request's text segments.
+        # Compute it once per batch; do not cache any target or generated features.
+        prompt_tokens = self.prompt_cache["prompt_semantic"].unsqueeze(0).unsqueeze(0).to(self.configs.device)
+        prompt_phones = torch.LongTensor(self.prompt_cache["phones"]).unsqueeze(0).to(self.configs.device)
+        spec = self.prompt_cache["refer_spec"][0]
+        if isinstance(spec, tuple):
+            spec = spec[0]
+        spec = spec.to(dtype=self.precision, device=self.configs.device)
+        reference_features, ge = self.vits_model.decode_encp(prompt_tokens, prompt_phones, spec)
+        audio = self.prompt_cache["raw_audio"].to(self.configs.device).float()
+        if audio.shape[0] == 2:
+            audio = audio.mean(0).unsqueeze(0)
+        if self.prompt_cache["raw_sr"] != 32000:
+            audio = resample(audio, self.prompt_cache["raw_sr"], 32000, self.configs.device)
+        reference_mel = norm_spec(mel_fn_v4(audio)).to(self.precision)
+        targets = []
+        for i, idx in enumerate(idx_list):
+            tokens = semantic_tokens_list[i][-idx:].unsqueeze(0).unsqueeze(0)
+            phones = batch_phones[i].unsqueeze(0).to(self.configs.device)
+            features, _ = self.vits_model.decode_encp(tokens, phones, spec, ge, speed)
+            targets.append(features)
+        mels = synthesize_v5_mel_batch(
+            self.vits_model,
+            reference_features,
+            targets,
+            reference_mel,
+            steps=sample_steps,
+            cfg=cfg_rate,
+            max_batch=self._v5_acoustic_batch_size,
+            runner=self._v5_acoustic_graph_runner,
+        )
+        # Preserve per-utterance vocoder boundaries and the caller's segment order.
+        return [self.vocoder(denorm_spec(mel).to(self.precision))[0, 0] for mel in mels]
+
     def using_vocoder_synthesis_batched_infer(
         self,
         idx_list: List[int],
@@ -1917,11 +1978,22 @@ class TTS:
         sample_steps = (4 if self.configs.version == "v5turbo" else 32) if sample_steps is None else int(sample_steps)
         cfg_rate = (1.30 if self.configs.version == "v5dev" else 0.0) if cfg_rate is None else float(cfg_rate)
         if self.configs.version in V5_VERSIONS:
+            if self._v5_acoustic_batch_size:
+                return self._using_v5_acoustic_batch(
+                    idx_list,
+                    semantic_tokens_list,
+                    batch_phones,
+                    speed,
+                    sample_steps,
+                    cfg_rate,
+                )
             return [
                 self.using_vocoder_synthesis(
                     semantic_tokens_list[i][-idx:].unsqueeze(0).unsqueeze(0),
                     batch_phones[i].unsqueeze(0).to(self.configs.device),
-                    speed=speed, sample_steps=sample_steps, cfg_rate=cfg_rate,
+                    speed=speed,
+                    sample_steps=sample_steps,
+                    cfg_rate=cfg_rate,
                 )
                 for i, idx in enumerate(idx_list)
             ]

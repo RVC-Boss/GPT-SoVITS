@@ -1117,13 +1117,34 @@ class CFM(torch.nn.Module):
         self.noise_temperature = None
 
     @torch.inference_mode()
-    def inference(self, mu, x_lens, prompt, n_timesteps, temperature=1.0, inference_cfg_rate=0, generator=None):
+    def inference(
+        self,
+        mu,
+        x_lens,
+        prompt,
+        n_timesteps,
+        temperature=1.0,
+        inference_cfg_rate=0,
+        generator=None,
+        initial_noise=None,
+        all_valid=False,
+    ):
         """Forward diffusion"""
         n_timesteps, inference_cfg_rate = int(n_timesteps), float(inference_cfg_rate)
         B, T = mu.size(0), mu.size(1)
         if self.noise_temperature is not None:
             temperature = self.noise_temperature
-        x = torch.randn([B, self.in_channels, T], device=mu.device, dtype=mu.dtype, generator=generator) * temperature
+        # Explicit per-window noise lets the V5 scheduler reorder independent
+        # windows without changing the RNG draws made in original segment order.
+        if initial_noise is None:
+            initial_noise = torch.randn([B, self.in_channels, T], device=mu.device, dtype=mu.dtype, generator=generator)
+        elif (
+            initial_noise.shape != (B, self.in_channels, T)
+            or initial_noise.device != mu.device
+            or initial_noise.dtype != mu.dtype
+        ):
+            raise ValueError("initial_noise must match the CFM input shape, device and dtype")
+        x = initial_noise * temperature
         prompt_len = prompt.size(-1)
         prompt_x = torch.zeros_like(x, dtype=mu.dtype)
         prompt_x[..., :prompt_len] = prompt[..., :prompt_len]
@@ -1134,12 +1155,17 @@ class CFM(torch.nn.Module):
         text_cache = None
         text_cfg_cache = None
         dt_cache = None
-        static_cache = (self.estimator.prepare_static_cache(prompt_x, x_lens, mu)
-                        if self.use_conditioner_cache and self.use_static_cache else None)
-        d_tensor = (torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * d
-                    if self.use_step_embedding else None)
+        cache_options = {"all_valid": True, "use_negative_condition": inference_cfg_rate > 1e-5} if all_valid else {}
+        static_cache = (
+            self.estimator.prepare_static_cache(prompt_x, x_lens, mu, **cache_options)
+            if self.use_conditioner_cache and self.use_static_cache
+            else None
+        )
+        d_tensor = torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * d if self.use_step_embedding else None
         for j in range(n_timesteps):
-            t_tensor = torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * (t if self.use_step_embedding else j * d)
+            t_tensor = torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * (
+                t if self.use_step_embedding else j * d
+            )
             step_condition = {"dt_base_bootstrap": d_tensor, "dt_cache": dt_cache} if self.use_step_embedding else {}
             v_pred, text_emb, dt = self.estimator(
                 x,
