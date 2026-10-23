@@ -20,9 +20,13 @@ def cleaned_text_to_sequence(cleaned_text, version=None):
     """
     if version is None:
         version = os.environ.get("version", "v2")
-    if version == "v1":
-        phones = [_symbol_to_id_v1[symbol] for symbol in cleaned_text]
-    else:
-        phones = [_symbol_to_id_v2[symbol] for symbol in cleaned_text]
+    symbol_to_id = _symbol_to_id_v1 if version == "v1" else _symbol_to_id_v2
+    unk_id = symbol_to_id.get("UNK")
+    phones = []
+    for symbol in cleaned_text:
+        if symbol in symbol_to_id:
+            phones.append(symbol_to_id[symbol])
+        elif unk_id is not None:
+            phones.append(unk_id)
 
     return phones
