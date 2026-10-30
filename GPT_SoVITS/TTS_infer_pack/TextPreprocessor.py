@@ -14,13 +14,12 @@ from text import chinese
 from typing import Dict, List, Tuple
 from text.cleaner import clean_text
 from text import cleaned_text_to_sequence
-from transformers import AutoModelForMaskedLM, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer
 from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from tools.i18n.i18n import I18nAuto
 
 language = os.environ.get("language", "Auto")
-language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
 punctuation = set(["!", "?", "…", ",", ".", "-"])
 
@@ -50,7 +49,7 @@ def merge_short_text_in_array(texts: str, threshold: int) -> list:
 
 
 class TextPreprocessor:
-    def __init__(self, bert_model: AutoModelForMaskedLM, tokenizer: AutoTokenizer, device: torch.device):
+    def __init__(self, bert_model: AutoModel, tokenizer: AutoTokenizer, device: torch.device):
         self.bert_model = bert_model
         self.tokenizer = tokenizer
         self.device = device

@@ -1,43 +1,50 @@
---no-binary=opencc
+# Core numerical and audio runtime
 numpy<2.0
 scipy
-tensorboard
-librosa==0.10.2
 numba
-pytorch-lightning>=2.4
-gradio<5
-ffmpeg-python
-onnxruntime; platform_machine == "aarch64" or platform_machine == "arm64"
-onnxruntime-gpu; platform_machine == "x86_64" or platform_machine == "AMD64"
+librosa==0.10.2
+soundfile
+torch==2.7.1
+torchaudio==2.7.1
+resampy
 tqdm
-funasr>=1.3.7
+PyYAML
+rich
+loguru
+
+# Text processing for all supported inference languages
 cn2an
 pypinyin
-pyopenjtalk>=0.4.1
+pyopenjtalk>=0.4.1; sys_platform != 'win32' or python_version != '3.12'
+pyopenjtalk @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu128/pyopenjtalk-0.4.1-cp312-cp312-win_amd64.whl ; sys_platform == 'win32' and python_version == '3.12'
 g2p_en
-torchaudio
-modelscope
-sentencepiece
-transformers>=4.51,<5
-peft<0.18.0
-chardet
-PyYAML
-psutil
-jieba_fast
+jieba_fast; sys_platform != 'win32' or python_version != '3.12'
+jieba_fast @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu128/jieba_fast-0.53-cp312-cp312-win_amd64.whl ; sys_platform == 'win32' and python_version == '3.12'
 jieba
 split-lang
 fast_langdetect>=0.3.1
 wordsegment
-rotary_embedding_torch
-ToJyutping 
+ToJyutping
 g2pk2
-ko_pron
 opencc
-python_mecab_ko; sys_platform != 'win32'
-fastapi[standard]>=0.115.2
+nltk
+inflect
+jamo
+python_mecab_ko>=1.3.7,<2
+
+# Model runtime
+transformers>=4.51,<5
+peft<0.18.0
 x_transformers
-torchmetrics<=1.5
+einops
+packaging
+huggingface_hub
+requests
+onnxruntime
+
+# HTTP service
+fastapi>=0.115.2
+uvicorn[standard]>=0.30
+httpx>=0.27,<1
+anyio
 pydantic<=2.10.6
-ctranslate2>=4.0,<5
-av>=11
-tqdm

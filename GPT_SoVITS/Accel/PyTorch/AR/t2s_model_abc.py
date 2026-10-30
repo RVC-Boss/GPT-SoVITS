@@ -5,19 +5,14 @@ Modified From https://github.com/XXXXRT666/GPT-SoVITS
 from __future__ import annotations
 
 import math
-import os
-import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, MutableSequence
-from contextlib import nullcontext
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 import torch.nn.functional as F
-from torch.profiler import ProfilerAction, tensorboard_trace_handler
 
 from .. import nn
-from .quantization import replace_all_linear_with_fp8
 from .structs import KVCache, KVCacheProtocol, T2SSession
 
 
@@ -422,9 +417,6 @@ class T2SDecoderABC(nn.Module, ABC):
         self.graph_applicable: bool = False
         self.extra_buffer_factory: Callable[[int, T2SDecoderABC], dict[str, torch.Tensor]] = lambda *_: {}
 
-        self.bits: int
-        self.group_size: int
-
         self._register_load_state_dict_pre_hook(self.load_hook)
 
     def load_hook(self, state_dict: dict[str, Tensor], prefix, *args):
@@ -535,94 +527,3 @@ class T2SDecoderABC(nn.Module, ABC):
             mask[:bsz, :, :, 0] = True
             kwds["attn_mask"] = mask
         return args, kwds
-
-    def quantize(self, mode: Optional[Literal["Int8", "FP8", "FP8_E4M3FN"]] = None) -> None:
-        if mode is None:
-            return
-        if mode not in {"Int8", "FP8", "FP8_E4M3FN"}:
-            raise ValueError(f"Unsupported quantization mode: {mode}")
-        if mode == "Int8":
-            self.bits = 8
-            self.group_size = 32
-            import torchao
-
-            torchao.quantization.quantize_(self.h, torchao.quantization.Int8WeightOnlyConfig(self.group_size))
-
-        elif mode == "FP8":
-            self.bits = 8
-            import torchao
-
-            torchao.quantization.quantize_(self.h, torchao.quantization.Float8WeightOnlyConfig())
-
-        elif mode == "FP8_E4M3FN":
-            self.bits = 8
-            replace_all_linear_with_fp8(self.h)
-
-        else:
-            raise ValueError(f"Unsupported Quantization Mode for PyTorch: {mode}")
-
-
-class TorchProfiler:
-    def __init__(self, debug: bool, log_dir: str = "./profiler/torch") -> None:
-        self.debug = debug and os.environ.get("TORCH_PROFILER") == "1"
-        self.log_dir = log_dir + "/" + str(time.time())
-        self.__profiler: torch.profiler.profile
-
-        if self.debug and not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir, exist_ok=True)
-
-        self.tensorboard_handler = tensorboard_trace_handler(self.log_dir)
-
-    def profiler_callback(self, prof: torch.profiler.profile):
-        print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=30))
-        print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=30))
-        self.tensorboard_handler(prof)
-
-    @staticmethod
-    def three_step_schedule(step: int) -> ProfilerAction:
-        if step == 0:
-            return ProfilerAction.NONE
-        elif step == 1:
-            return ProfilerAction.RECORD
-        elif step == 2:
-            return ProfilerAction.RECORD_AND_SAVE
-        else:
-            return ProfilerAction.RECORD_AND_SAVE
-
-    def start(self):
-        if not self.debug:
-            return
-        assert self.__profiler is not None
-        self.__profiler.step()
-
-    def end(self):
-        if not self.debug:
-            return
-        assert self.__profiler is not None
-        self.__profiler.step()
-
-    def profiler(self):
-        if self.debug:
-            activities_list = [torch.profiler.ProfilerActivity.CPU]
-            if torch.cuda.is_available():
-                activities_list.append(torch.profiler.ProfilerActivity.CUDA)
-
-            self.__profiler = torch.profiler.profile(
-                activities=activities_list,
-                record_shapes=True,
-                with_stack=True,
-                with_modules=True,
-                with_flops=True,
-                profile_memory=True,
-                schedule=self.three_step_schedule,
-                on_trace_ready=self.profiler_callback,
-            )
-            return self.__profiler
-        else:
-            return nullcontext()
-
-    def record(self, func_name: str):
-        if self.debug:
-            return torch.profiler.record_function(func_name)
-        else:
-            return nullcontext()

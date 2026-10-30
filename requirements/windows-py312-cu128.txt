@@ -1,0 +1,6 @@
+# Windows CPython 3.12 / CUDA 12.8 inference runtime.
+# Install torch==2.7.1 and torchaudio==2.7.1 from the cu128 index first.
+-r ../requirements.txt
+
+--index-url https://pypi.org/simple
+flash-attn @ https://huggingface.co/lj1995/GPT-SoVITS-windows-package/resolve/main/wheels/cu128/flash_attn-2.8.3%2Bcu12torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl

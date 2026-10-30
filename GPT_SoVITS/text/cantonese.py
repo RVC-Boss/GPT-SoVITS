@@ -194,29 +194,7 @@ def get_jyutping(text):
     return jyutping_array
 
 
-def get_bert_feature(text, word2ph):
-    from text import chinese_bert
-
-    return chinese_bert.get_bert_feature(text, word2ph)
-
-
 def g2p(text):
-    # word2ph = []
     jyuping = get_jyutping(text)
-    # print(jyuping)
-    # phones, tones, word2ph = jyuping_to_initials_finals_tones(jyuping)
     phones, word2ph = jyuping_to_initials_finals_tones(jyuping)
-    # phones = ["_"] + phones + ["_"]
-    # tones = [0] + tones + [0]
-    # word2ph = [1] + word2ph + [1]
     return phones, word2ph
-
-
-if __name__ == "__main__":
-    # text = "啊！但是《原神》是由,米哈\游自主，  [研发]的一款全.新开放世界.冒险游戏"
-    text = "佢個鋤頭太短啦。"
-    text = text_normalize(text)
-    # phones, tones, word2ph = g2p(text)
-    phones, word2ph = g2p(text)
-    # print(phones, tones, word2ph)
-    print(phones, word2ph)

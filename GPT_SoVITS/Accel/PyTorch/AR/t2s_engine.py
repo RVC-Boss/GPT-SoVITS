@@ -13,7 +13,7 @@ from typing import Literal, Optional, Union
 import torch
 from rich.progress import BarColumn, Progress, TextColumn
 
-from ...logger import SpeedColumnToken, Timer, console, logger
+from ...logger import SpeedColumnToken, console, logger
 
 from .runner import ModelRunner
 from .structs import (
@@ -26,8 +26,6 @@ from .structs import (
 )
 from .t2s_model_abc import T2SDecoderABC
 
-
-timer = Timer("T2S Engine Torch")
 
 cpu = torch.device("cpu")
 
@@ -340,7 +338,6 @@ class T2SEngine(T2SEngineProtocol):
         weights_path: os.PathLike,
         max_batch_size: int = 1,
         backend: str = "Flash-Attn-Varlen-CUDAGraph",
-        quantize_mode: Optional[Literal["Int8", "FP8", "FP8_E4M3FN"]] = None,
         max_seq_length: Optional[int] = None,
     ) -> T2SDecoderABC:
         logger.info(f"Loading Text2Semantic Weights from {weights_path} with {backend} Backend")
@@ -359,9 +356,5 @@ class T2SEngine(T2SEngineProtocol):
         decoder: T2SDecoderABC = decoder_cls(config, **decoder_options)
         state_dict = dict_s1["weight"]
         decoder.load_state_dict(state_dict)
-
-        if quantize_mode is not None:
-            decoder.quantize(quantize_mode)
-            logger.info(f"Quantized by {quantize_mode} Quantization")
 
         return decoder.eval()

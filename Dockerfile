@@ -1,60 +1,26 @@
-ARG CUDA_VERSION=12.6
-ARG TORCH_BASE=full
+ARG BASE_IMAGE=pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
+FROM ${BASE_IMAGE}
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
 
-FROM xxxxrt666/torch-base:cu${CUDA_VERSION}-${TORCH_BASE}
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    NLTK_DATA=/opt/nltk_data
 
-LABEL maintainer="XXXXRT"
-LABEL version="V2 Pro"
-LABEL description="Docker image for GPT-SoVITS"
+WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg libsndfile1 build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-ARG CUDA_VERSION=12.6
+COPY requirements.txt ./requirements.txt
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir torchaudio==2.7.1 --index-url ${TORCH_INDEX_URL} \
+    && python -m pip install --no-cache-dir -r requirements.txt \
+    && python -c "import nltk; [nltk.download(name, download_dir='/opt/nltk_data', quiet=True, raise_on_error=True) for name in ('cmudict', 'punkt', 'punkt_tab', 'averaged_perceptron_tagger', 'averaged_perceptron_tagger_eng')]" \
+    && python -c "import pyopenjtalk; pyopenjtalk.g2p('test')"
 
-ENV CUDA_VERSION=${CUDA_VERSION}
+COPY . .
+EXPOSE 9880
 
-SHELL ["/bin/bash", "-c"]
-
-WORKDIR /workspace/GPT-SoVITS
-
-COPY Docker /workspace/GPT-SoVITS/Docker/
-
-ARG LITE=false
-ENV LITE=${LITE}
-
-ARG WORKFLOW=false
-ENV WORKFLOW=${WORKFLOW}
-
-ARG TARGETPLATFORM
-ENV TARGETPLATFORM=${TARGETPLATFORM}
-
-COPY extra-req.txt /workspace/GPT-SoVITS/
-
-COPY requirements.txt /workspace/GPT-SoVITS/
-
-COPY install.sh /workspace/GPT-SoVITS/
-
-RUN bash Docker/install_wrapper.sh
-
-EXPOSE 9871 9872 9873 9874 9880
-
-ENV PYTHONPATH="/workspace/GPT-SoVITS"
-
-RUN conda init bash && echo "conda activate base" >> ~/.bashrc
-
-WORKDIR /workspace
-
-RUN rm -rf /workspace/GPT-SoVITS
-
-WORKDIR /workspace/GPT-SoVITS
-
-COPY . /workspace/GPT-SoVITS
-
-CMD ["/bin/bash", "-c", "\
-  rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
-  rm -rf /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel && \
-  rm -rf /workspace/GPT-SoVITS/tools/asr/models && \
-  rm -rf /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
-  ln -s /workspace/models/pretrained_models /workspace/GPT-SoVITS/GPT_SoVITS/pretrained_models && \
-  ln -s /workspace/models/G2PWModel /workspace/GPT-SoVITS/GPT_SoVITS/text/G2PWModel && \
-  ln -s /workspace/models/asr_models /workspace/GPT-SoVITS/tools/asr/models && \
-  ln -s /workspace/models/uvr5_weights /workspace/GPT-SoVITS/tools/uvr5/uvr5_weights && \
-  exec bash"]
+ENTRYPOINT ["python", "api_v2.py"]
+CMD ["-a", "0.0.0.0", "-p", "9880", "-c", "GPT_SoVITS/configs/tts_infer.yaml"]

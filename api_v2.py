@@ -1,180 +1,63 @@
-"""
-# WebAPI文档
+"""GPT-SoVITS HTTP inference service.
 
-` python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/tts_infer.yaml `
-
-## 执行参数:
-    `-a` - `绑定地址, 默认"127.0.0.1"`
-    `-p` - `绑定端口, 默认9880`
-    `-c` - `TTS配置文件路径, 默认"GPT_SoVITS/configs/tts_infer.yaml"`
-
-## 调用:
-
-### 推理
-
-endpoint: `/tts`
-GET:
-```
-http://127.0.0.1:9880/tts?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_lang=zh&ref_audio_path=archive_jingyuan_1.wav&prompt_lang=zh&prompt_text=我是「罗浮」云骑将军景元。不必拘谨，「将军」只是一时的身份，你称呼我景元便可&text_split_method=cut5&batch_size=1&media_type=wav&streaming_mode=true
-```
-
-POST:
-```json
-{
-    "text": "",                   # str.(required) text to be synthesized
-    "text_lang: "",               # str.(required) language of the text to be synthesized
-    "ref_audio_path": "",         # str.(required) reference audio path
-    "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
-    "prompt_text": "",            # str.(optional) prompt text for the reference audio
-    "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
-    "top_k": 15,                  # int. top k sampling
-    "top_p": 1,                   # float. top p sampling
-    "temperature": 1,             # float. temperature for sampling
-    "text_split_method": "cut5",  # str. text split method, see text_segmentation_method.py for details.
-    "batch_size": 1,              # int. batch size for inference
-    "batch_threshold": 0.75,      # float. threshold for batch splitting.
-    "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
-    "speed_factor":1.0,           # float. control the speed of the synthesized audio.
-    "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
-    "seed": -1,                   # int. random seed for reproducibility.
-    "parallel_infer": True,       # bool. whether to use parallel inference.
-    "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
-    "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-    "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
-    "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
-    "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-    "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
-    "gpt_streaming": false,       # bool. opt in to semantic-token streaming.
-    "streaming_chunk_seconds": 2.0,
-    "streaming_window_mode": "fixed",
-    "streaming_lookahead_seconds": 0.12,
-    "streaming_overlap_seconds": 0.04,
-    "gpt_streaming_lookahead_seconds": 0.5,
-    "use_flash_attention": true,
-}
-```
-
-When `gpt_streaming` is enabled, use model `v2ProPlus`, `v5turbo` or `v5dev`,
-integer `streaming_mode` 2 or 3, `batch_size=1`, and `media_type="raw"` or `"wav"`.
-All existing text split methods (`cut0` through `cut5`) are supported: each text
-segment streams through its own GPT session within one HTTP response.
-`streaming_window_mode` defaults to `fixed`; `hybrid` is supported for these models.
-On v2ProPlus, `min_chunk_length` sets the initial semantic block size; hybrid
-windows can grow later blocks up to four times that token count. On V5,
-`streaming_chunk_seconds` sets every fixed window, or the first hybrid window
-of each text segment.
-
-RESP:
-成功: 直接返回 wav 音频流， http code 200
-失败: 返回包含错误信息的 json, http code 400
-
-### 命令控制
-
-endpoint: `/control`
-
-command:
-"restart": 重新运行
-"exit": 结束运行
-
-GET:
-```
-http://127.0.0.1:9880/control?command=restart
-```
-POST:
-```json
-{
-    "command": "restart"
-}
-```
-
-RESP: 无
-
-
-### 切换GPT模型
-
-endpoint: `/set_gpt_weights`
-
-GET:
-```
-http://127.0.0.1:9880/set_gpt_weights?weights_path=GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
-```
-RESP:
-成功: 返回"success", http code 200
-失败: 返回包含错误信息的 json, http code 400
-
-
-### 切换Sovits模型
-
-endpoint: `/set_sovits_weights`
-
-GET:
-```
-http://127.0.0.1:9880/set_sovits_weights?weights_path=GPT_SoVITS/pretrained_models/s2G488k.pth
-```
-
-RESP:
-成功: 返回"success", http code 200
-失败: 返回包含错误信息的 json, http code 400
-
+Start: python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/tts_infer.yaml
+Usage and API reference: README.md and docs/api.md.
 """
 
 from tools.portable_runtime import FFMPEG_EXE, activate as activate_portable_runtime
 
 activate_portable_runtime(change_cwd=True)
 
-import os
-import sys
-import traceback
-from typing import Generator, Union, Optional
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
+from typing import Annotated, Union, Optional
 
 import argparse
 import asyncio
 import anyio
 import subprocess
 import wave
-import signal
 import numpy as np
 import soundfile as sf
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Query, Request, Response
 from fastapi.responses import StreamingResponse, JSONResponse
 from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 import uvicorn
 from io import BytesIO
-from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.streaming import validate_streaming_options
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from pydantic import BaseModel
 import threading
+from contextlib import asynccontextmanager
 
-# print(sys.path)
-i18n = I18nAuto()
 cut_method_names = get_cut_method_names()
 
-parser = argparse.ArgumentParser(description="GPT-SoVITS api")
-parser.add_argument("-c", "--tts_config", type=str, default="GPT_SoVITS/configs/tts_infer.yaml", help="tts_infer路径")
-parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 127.0.0.1")
-parser.add_argument("-p", "--port", type=int, default="9880", help="default: 9880")
-args = parser.parse_args()
-config_path = args.tts_config
-# device = args.device
-port = args.port
-host = args.bind_addr
-argv = sys.argv
+DEFAULT_CONFIG_PATH = "GPT_SoVITS/configs/tts_infer.yaml"
+tts_config = TTS_Config(DEFAULT_CONFIG_PATH)
+tts_pipeline = None
 
-if config_path in [None, ""]:
-    config_path = "GPT-SoVITS/configs/tts_infer.yaml"
 
-tts_config = TTS_Config(config_path)
-print(tts_config)
-tts_pipeline = TTS(tts_config)
+@asynccontextmanager
+async def lifespan(_app):
+    global tts_pipeline
+    if tts_pipeline is None:
+        print(tts_config)
+        tts_pipeline = await run_in_threadpool(TTS, tts_config)
+    try:
+        yield
+    finally:
+        for name in ("streaming_accel", "t2s_accel"):
+            accelerator = getattr(tts_pipeline, name, None)
+            if accelerator is not None:
+                await run_in_threadpool(accelerator.close)
+        tts_pipeline = None
 
-APP = FastAPI()
+
+APP = FastAPI(
+    title="GPT-SoVITS 推理 API",
+    description="使用已加载的 GPT/SoVITS 模型合成语音。模型和参考音频路径均由服务端读取；热切换仅作用于当前进程。",
+    lifespan=lifespan,
+)
 
 
 class TTS_Request(BaseModel):
@@ -366,14 +249,6 @@ def wave_header_chunk(frame_input=b"", channels=1, sample_width=2, sample_rate=3
     return wav_buf.read()
 
 
-def handle_control(command: str):
-    if command == "restart":
-        os.execl(sys.executable, sys.executable, "-I", *argv)
-    elif command == "exit":
-        os.kill(os.getpid(), signal.SIGTERM)
-        exit(0)
-
-
 def check_params(req: dict):
     text: str = req.get("text", "")
     text_lang: str = req.get("text_lang", "")
@@ -415,39 +290,7 @@ def check_params(req: dict):
 
 
 async def tts_handle(req: dict, raw_streaming_mode=None):
-    """
-    Text to speech handler.
-
-    Args:
-        req (dict):
-            {
-                "text": "",                   # str.(required) text to be synthesized
-                "text_lang: "",               # str.(required) language of the text to be synthesized
-                "ref_audio_path": "",         # str.(required) reference audio path
-                "aux_ref_audio_paths": [],    # list.(optional) auxiliary reference audio paths for multi-speaker tone fusion
-                "prompt_text": "",            # str.(optional) prompt text for the reference audio
-                "prompt_lang": "",            # str.(required) language of the prompt text for the reference audio
-                "top_k": 15,                  # int. top k sampling
-                "top_p": 1,                   # float. top p sampling
-                "temperature": 1,             # float. temperature for sampling
-                "text_split_method": "cut5",  # str. text split method, see text_segmentation_method.py for details.
-                "batch_size": 1,              # int. batch size for inference
-                "batch_threshold": 0.75,      # float. threshold for batch splitting.
-                "split_bucket": True,         # bool. whether to split the batch into multiple buckets.
-                "speed_factor":1.0,           # float. control the speed of the synthesized audio.
-                "fragment_interval":0.3,      # float. to control the interval of the audio fragment.
-                "seed": -1,                   # int. random seed for reproducibility.
-                "parallel_infer": True,       # bool. whether to use parallel inference.
-                "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
-                "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
-                "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
-                "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
-                "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
-                "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
-            }
-    returns:
-        StreamingResponse: audio stream response.
-    """
+    """Validate a request and serialize inference and stream cleanup for the shared pipeline."""
 
     await _tts_pipeline_lock.acquire()
     tts_generator = None
@@ -515,7 +358,6 @@ async def tts_handle(req: dict, raw_streaming_mode=None):
         req["return_fragment"] = return_fragment
         req["fixed_length_chunk"] = fixed_length_chunk
 
-        print(f"{streaming_mode} {return_fragment} {fixed_length_chunk}")
 
         streaming_mode = streaming_mode or return_fragment
         tts_generator = await _run_in_threadpool_shielded(tts_pipeline.run, req)
@@ -581,20 +423,13 @@ async def tts_handle(req: dict, raw_streaming_mode=None):
                 _tts_pipeline_lock.release()
 
 
-@APP.get("/control")
-async def control(command: str = None):
-    if command is None:
-        return JSONResponse(status_code=400, content={"message": "command is required"})
-    handle_control(command)
-
-
 @APP.get("/tts")
 async def tts_get_endpoint(
     request: Request,
     text: str = None,
     text_lang: str = None,
     ref_audio_path: str = None,
-    aux_ref_audio_paths: list = None,
+    aux_ref_audio_paths: Annotated[Optional[list[str]], Query()] = None,
     prompt_lang: str = None,
     prompt_text: str = "",
     top_k: int = 15,
@@ -625,13 +460,14 @@ async def tts_get_endpoint(
     gpt_streaming_lookahead_seconds: float = 0.5,
     use_flash_attention: bool = True,
 ):
+    """使用查询参数合成语音，响应体为音频字节。参考音频路径由服务端读取。"""
     req = {
         "text": text,
-        "text_lang": text_lang.lower(),
+        "text_lang": text_lang.lower() if text_lang else text_lang,
         "ref_audio_path": ref_audio_path,
         "aux_ref_audio_paths": aux_ref_audio_paths,
         "prompt_text": prompt_text,
-        "prompt_lang": prompt_lang.lower(),
+        "prompt_lang": prompt_lang.lower() if prompt_lang else prompt_lang,
         "top_k": top_k,
         "top_p": top_p,
         "temperature": temperature,
@@ -668,7 +504,8 @@ async def tts_get_endpoint(
 
 @APP.post("/tts")
 async def tts_post_endpoint(request: TTS_Request, raw_request: Request):
-    req = request.dict()
+    """使用 JSON 参数合成语音，响应体为音频字节。字段与 GET /tts 对应。"""
+    req = request.model_dump() if hasattr(request, "model_dump") else request.dict()
     request_body = await raw_request.json()
     raw_streaming_mode = request_body.get("streaming_mode", request.streaming_mode)
     return await tts_handle(req, raw_streaming_mode=raw_streaming_mode)
@@ -676,6 +513,7 @@ async def tts_post_endpoint(request: TTS_Request, raw_request: Request):
 
 @APP.get("/set_refer_audio")
 async def set_refer_aduio(refer_audio_path: str = None):
+    """预加载服务端参考音频。后续 /tts 仍须提供 ref_audio_path 和对应参考文本。"""
     try:
         async with _tts_pipeline_lock:
             await _run_in_threadpool_shielded(tts_pipeline.set_ref_audio, refer_audio_path)
@@ -684,27 +522,9 @@ async def set_refer_aduio(refer_audio_path: str = None):
     return JSONResponse(status_code=200, content={"message": "success"})
 
 
-# @APP.post("/set_refer_audio")
-# async def set_refer_aduio_post(audio_file: UploadFile = File(...)):
-#     try:
-#         # 检查文件类型，确保是音频文件
-#         if not audio_file.content_type.startswith("audio/"):
-#             return JSONResponse(status_code=400, content={"message": "file type is not supported"})
-
-#         os.makedirs("uploaded_audio", exist_ok=True)
-#         save_path = os.path.join("uploaded_audio", audio_file.filename)
-#         # 保存音频文件到服务器上的一个目录
-#         with open(save_path , "wb") as buffer:
-#             buffer.write(await audio_file.read())
-
-#         tts_pipeline.set_ref_audio(save_path)
-#     except Exception as e:
-#         return JSONResponse(status_code=400, content={"message": f"set refer audio failed", "Exception": str(e)})
-#     return JSONResponse(status_code=200, content={"message": "success"})
-
-
 @APP.get("/set_gpt_weights")
 async def set_gpt_weights(weights_path: str = None):
+    """加载匹配当前 SoVITS 版本的 GPT 权重；只影响当前进程。"""
     try:
         if weights_path in ["", None]:
             return JSONResponse(status_code=400, content={"message": "gpt weight path is required"})
@@ -718,6 +538,7 @@ async def set_gpt_weights(weights_path: str = None):
 
 @APP.get("/set_sovits_weights")
 async def set_sovits_weights(weights_path: str = None):
+    """加载 SoVITS 权重及对应版本。切换整套声音时，随后加载匹配 GPT 和参考音频。"""
     try:
         if weights_path in ["", None]:
             return JSONResponse(status_code=400, content={"message": "sovits weight path is required"})
@@ -729,11 +550,13 @@ async def set_sovits_weights(weights_path: str = None):
 
 
 if __name__ == "__main__":
-    try:
-        if host == "None":  # 在调用时使用 -a None 参数，可以让api监听双栈
-            host = None
-        uvicorn.run(app=APP, host=host, port=port, workers=1)
-    except Exception:
-        traceback.print_exc()
-        os.kill(os.getpid(), signal.SIGTERM)
-        exit(0)
+    parser = argparse.ArgumentParser(description="GPT-SoVITS inference API")
+    parser.add_argument("-c", "--tts_config", default=DEFAULT_CONFIG_PATH, help="TTS inference configuration")
+    parser.add_argument("-a", "--bind_addr", default="127.0.0.1", help="default: 127.0.0.1")
+    parser.add_argument("-p", "--port", type=int, default=9880, help="default: 9880")
+    args = parser.parse_args()
+    tts_config = TTS_Config(args.tts_config or DEFAULT_CONFIG_PATH)
+    host, port = args.bind_addr, args.port
+    if host == "None":
+        host = None
+    uvicorn.run(app=APP, host=host, port=port, workers=1)

@@ -12,7 +12,6 @@ from __future__ import annotations
 import torch
 from torch import nn
 import torch.nn.functional as F
-from torch.utils.checkpoint import checkpoint
 
 from x_transformers.x_transformers import RotaryEmbedding
 
@@ -99,7 +98,6 @@ class DiT(nn.Module):
         mel_dim=100,
         text_dim=None,
         conv_layers=0,
-        long_skip_connection=False,
         use_step_embedding=True,
     ):
         super().__init__()
@@ -119,18 +117,10 @@ class DiT(nn.Module):
         self.transformer_blocks = nn.ModuleList(
             [DiTBlock(dim=dim, heads=heads, dim_head=dim_head, ff_mult=ff_mult, dropout=dropout) for _ in range(depth)]
         )
-        self.long_skip_connection = nn.Linear(dim * 2, dim, bias=False) if long_skip_connection else None
 
         self.norm_out = AdaLayerNormZero_Final(dim)  # final modulation
         self.proj_out = nn.Linear(dim, mel_dim)
 
-    def ckpt_wrapper(self, module):
-        # https://github.com/chuanyangjin/fast-DiT/blob/main/models.py
-        def ckpt_forward(*inputs):
-            outputs = module(*inputs)
-            return outputs
-
-        return ckpt_forward
 
     def prepare_static_cache(self, cond0, x_lens, text0):
         text = text0.transpose(2, 1)
@@ -162,12 +152,10 @@ class DiT(nn.Module):
         time: float["b"] | float[""],  # time step  # noqa: F821 F722
         dt_base_bootstrap=None,
         text0=None,  # : int["b nt"]  # noqa: F722#####condition feature
-        use_grad_ckpt=False,  # bool
         ###no-use
         drop_audio_cond=False,  # cfg for cond audio
         drop_text=False,  # cfg for text
         # mask: bool["b n"] | None = None,  # noqa: F722
-        infer=False,  # bool
         text_cache=None,  # torch tensor as text_embed
         dt_cache=None,  # torch tensor as dt
         static_cache=None,
@@ -186,7 +174,7 @@ class DiT(nn.Module):
         t = self.time_embed(time)
         if self.d_embed is None:
             dt = None
-        elif infer and dt_cache is not None:
+        elif dt_cache is not None:
             dt = dt_cache
         else:
             dt = self.d_embed(dt_base_bootstrap)
@@ -197,7 +185,7 @@ class DiT(nn.Module):
             static = static_cache["negative_condition" if drop_audio_cond else "condition"]
             x = F.linear(x, self.input_embed.proj.weight[:, :x.shape[-1]]) + static
             x = self.input_embed.conv_pos_embed(x, mask=mask) + x
-        elif infer and text_cache is not None:
+        elif text_cache is not None:
             text_embed = text_cache
             x = self.input_embed(x, cond, text_embed, drop_audio_cond=drop_audio_cond)
         else:
@@ -207,22 +195,10 @@ class DiT(nn.Module):
         rope = (static_cache["rope"] if static_cache is not None
                 else self.rotary_embed.forward_from_seq_len(seq_len))
 
-        if self.long_skip_connection is not None:
-            residual = x
-
         for block in self.transformer_blocks:
-            if use_grad_ckpt:
-                x = checkpoint(self.ckpt_wrapper(block), x, t, mask, rope, use_reentrant=False)
-            else:
-                x = block(x, t, mask=mask, rope=rope)
-
-        if self.long_skip_connection is not None:
-            x = self.long_skip_connection(torch.cat((x, residual), dim=-1))
+            x = block(x, t, mask=mask, rope=rope)
 
         x = self.norm_out(x, t)
         output = self.proj_out(x)
 
-        if infer:
-            return output, text_embed if static_cache is None else None, dt
-        else:
-            return output
+        return output, text_embed if static_cache is None else None, dt

@@ -33,81 +33,6 @@ rep_map = {
 }
 
 
-arpa = {
-    "AH0",
-    "S",
-    "AH1",
-    "EY2",
-    "AE2",
-    "EH0",
-    "OW2",
-    "UH0",
-    "NG",
-    "B",
-    "G",
-    "AY0",
-    "M",
-    "AA0",
-    "F",
-    "AO0",
-    "ER2",
-    "UH1",
-    "IY1",
-    "AH2",
-    "DH",
-    "IY0",
-    "EY1",
-    "IH0",
-    "K",
-    "N",
-    "W",
-    "IY2",
-    "T",
-    "AA1",
-    "ER1",
-    "EH2",
-    "OY0",
-    "UH2",
-    "UW1",
-    "Z",
-    "AW2",
-    "AW1",
-    "V",
-    "UW2",
-    "AA2",
-    "ER",
-    "AW0",
-    "UW0",
-    "R",
-    "OW1",
-    "EH1",
-    "ZH",
-    "AE0",
-    "IH2",
-    "IH",
-    "Y",
-    "JH",
-    "P",
-    "AY1",
-    "EY0",
-    "OY2",
-    "TH",
-    "HH",
-    "D",
-    "ER0",
-    "CH",
-    "AO1",
-    "AE1",
-    "AO2",
-    "OY1",
-    "AY2",
-    "IH1",
-    "OW0",
-    "L",
-    "SH",
-}
-
-
 def replace_phs(phs):
     rep_map = {"'": "-"}
     phs_new = []
@@ -126,30 +51,6 @@ def replace_consecutive_punctuation(text):
     pattern = f"([{punctuations}\s])([{punctuations}])+"
     result = re.sub(pattern, r"\1", text)
     return result
-
-
-def read_dict():
-    g2p_dict = {}
-    start_line = 49
-    with open(CMU_DICT_PATH) as f:
-        line = f.readline()
-        line_index = 1
-        while line:
-            if line_index >= start_line:
-                line = line.strip()
-                word_split = line.split("  ")
-                word = word_split[0].lower()
-
-                syllable_split = word_split[1].split(" - ")
-                g2p_dict[word] = []
-                for syllable in syllable_split:
-                    phone_split = syllable.split(" ")
-                    g2p_dict[word].append(phone_split)
-
-            line_index = line_index + 1
-            line = f.readline()
-
-    return g2p_dict
 
 
 def read_dict_new():
@@ -366,9 +267,3 @@ def g2p(text):
     phones = [ph if ph != "<unk>" else "UNK" for ph in phone_list if ph not in [" ", "<pad>", "UW", "</s>", "<s>"]]
 
     return replace_phs(phones)
-
-
-if __name__ == "__main__":
-    print(g2p("hello"))
-    print(g2p(text_normalize("e.g. I used openai's AI tool to draw a picture.")))
-    print(g2p(text_normalize("In this; paper, we propose 1 DSPGAN, a GAN-based universal vocoder.")))

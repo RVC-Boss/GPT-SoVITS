@@ -4,10 +4,8 @@
 # Adapted from https://github.com/jik876/hifi-gan under the MIT license.
 #   LICENSE is in incl_licenses directory.
 
-import os
 import json
 from pathlib import Path
-from typing import Optional, Union, Dict
 
 import torch
 import torch.nn as nn
@@ -15,11 +13,22 @@ from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn.utils import weight_norm, remove_weight_norm
 
 from . import activations
-from .utils0 import init_weights, get_padding
 from .alias_free_activation.torch.act import Activation1d as TorchActivation1d
-from .env import AttrDict
 
-from huggingface_hub import PyTorchModelHubMixin, hf_hub_download
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+def init_weights(module, mean=0.0, std=0.01):
+    if "Conv" in module.__class__.__name__:
+        module.weight.data.normal_(mean, std)
+
+
+def get_padding(kernel_size, dilation=1):
+    return int((kernel_size * dilation - dilation) / 2)
 
 
 def load_hparams_from_json(path) -> AttrDict:
@@ -203,16 +212,7 @@ class AMPBlock2(torch.nn.Module):
             remove_weight_norm(l)
 
 
-class BigVGAN(
-    torch.nn.Module,
-    PyTorchModelHubMixin,
-    # library_name="bigvgan",
-    # repo_url="https://github.com/NVIDIA/BigVGAN",
-    # docs_url="https://github.com/NVIDIA/BigVGAN/blob/main/README.md",
-    # pipeline_tag="audio-to-audio",
-    # license="mit",
-    # tags=["neural-vocoder", "audio-generation", "arxiv:2206.04658"],
-):
+class BigVGAN(torch.nn.Module):
     """
     BigVGAN is a neural vocoder model that applies anti-aliased periodic activation for residual blocks (resblocks).
 
@@ -334,83 +334,17 @@ class BigVGAN(
             print("[INFO] Model already removed weight norm. Skipping!")
             pass
 
-    # Additional methods for huggingface_hub support
-    def _save_pretrained(self, save_directory: Path) -> None:
-        """Save weights and config.json from a Pytorch model to a local directory."""
-
-        model_path = save_directory / "bigvgan_generator.pt"
-        torch.save({"generator": self.state_dict()}, model_path)
-
-        config_path = save_directory / "config.json"
-        with open(config_path, "w") as config_file:
-            json.dump(self.h, config_file, indent=4)
-
     @classmethod
-    def _from_pretrained(
-        cls,
-        *,
-        model_id: str,
-        revision: str,
-        cache_dir: str,
-        force_download: bool,
-        proxies: Optional[Dict],
-        resume_download: bool,
-        local_files_only: bool,
-        token: Union[str, bool, None],
-        map_location: str = "cpu",  # Additional argument
-        strict: bool = False,  # Additional argument
-        **model_kwargs,
-    ):
-        """Load Pytorch pretrained weights and return the loaded model."""
-
-        # Download and load hyperparameters (h) used by BigVGAN
-        if os.path.isdir(model_id):
-            # print("Loading config.json from local directory")
-            config_file = os.path.join(model_id, "config.json")
-        else:
-            config_file = hf_hub_download(
-                repo_id=model_id,
-                filename="config.json",
-                revision=revision,
-                cache_dir=cache_dir,
-                force_download=force_download,
-                proxies=proxies,
-                resume_download=resume_download,
-                token=token,
-                local_files_only=local_files_only,
-            )
-        h = load_hparams_from_json(config_file)
-
-        # instantiate BigVGAN using h
-        model = cls(h)
-
-        # Download and load pretrained generator weight
-        if os.path.isdir(model_id):
-            # print("Loading weights from local directory")
-            model_file = os.path.join(model_id, "bigvgan_generator.pt")
-        else:
-            # print(f"Loading weights from {model_id}")
-            model_file = hf_hub_download(
-                repo_id=model_id,
-                filename="bigvgan_generator.pt",
-                revision=revision,
-                cache_dir=cache_dir,
-                force_download=force_download,
-                proxies=proxies,
-                resume_download=resume_download,
-                token=token,
-                local_files_only=local_files_only,
-            )
-
-        checkpoint_dict = torch.load(model_file, map_location=map_location)
-
+    def from_pretrained(cls, model_id, *, use_cuda_kernel=False, map_location="cpu"):
+        """Load the local config.json and bigvgan_generator.pt inference bundle."""
+        if use_cuda_kernel:
+            raise ValueError("This runtime uses the PyTorch BigVGAN activation kernels")
+        directory = Path(model_id)
+        model = cls(load_hparams_from_json(directory / "config.json"))
+        checkpoint = torch.load(directory / "bigvgan_generator.pt", map_location=map_location, weights_only=False)
         try:
-            model.load_state_dict(checkpoint_dict["generator"])
+            model.load_state_dict(checkpoint["generator"])
         except RuntimeError:
-            print(
-                "[INFO] the pretrained checkpoint does not contain weight norm. Loading the checkpoint after removing weight norm!"
-            )
             model.remove_weight_norm()
-            model.load_state_dict(checkpoint_dict["generator"])
-
+            model.load_state_dict(checkpoint["generator"])
         return model

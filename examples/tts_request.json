@@ -1,0 +1,12 @@
+{
+  "text": "你好，欢迎使用语音推理服务。",
+  "text_lang": "all_zh",
+  "ref_audio_path": "references/reference.wav",
+  "prompt_lang": "all_zh",
+  "prompt_text": "这里填写参考音频中实际说出的文字。",
+  "media_type": "wav",
+  "streaming_mode": false,
+  "batch_size": 1,
+  "parallel_infer": false,
+  "seed": 12345
+}

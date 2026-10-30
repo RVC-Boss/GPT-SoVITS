@@ -12,8 +12,7 @@ import torch
 import math
 import torch.nn as nn
 import torch.nn.functional as F
-import pooling_layers as pooling_layers
-from fusion import AFF
+from .fusion import AFF
 
 
 class ReLU(nn.Hardtanh):
@@ -156,20 +155,12 @@ class ERes2NetV2(nn.Module):
         block_fuse=BasicBlockERes2NetV2AFF,
         num_blocks=[3, 4, 6, 3],
         m_channels=64,
-        feat_dim=80,
-        embedding_size=192,
         baseWidth=26,
         scale=2,
         expansion=2,
-        pooling_func="TSTP",
-        two_emb_layer=False,
     ):
         super(ERes2NetV2, self).__init__()
         self.in_planes = m_channels
-        self.feat_dim = feat_dim
-        self.embedding_size = embedding_size
-        self.stats_dim = int(feat_dim / 8) * m_channels * 8
-        self.two_emb_layer = two_emb_layer
         self.baseWidth = baseWidth
         self.scale = scale
         self.expansion = expansion
@@ -194,16 +185,6 @@ class ERes2NetV2(nn.Module):
         # Bottom-up fusion module
         self.fuse34 = AFF(channels=m_channels * 8 * self.expansion, r=4)
 
-        self.n_stats = 1 if pooling_func == "TAP" or pooling_func == "TSDP" else 2
-        self.pool = getattr(pooling_layers, pooling_func)(in_dim=self.stats_dim * self.expansion)
-        self.seg_1 = nn.Linear(self.stats_dim * self.expansion * self.n_stats, embedding_size)
-        if self.two_emb_layer:
-            self.seg_bn_1 = nn.BatchNorm1d(embedding_size, affine=False)
-            self.seg_2 = nn.Linear(embedding_size, embedding_size)
-        else:
-            self.seg_bn_1 = nn.Identity()
-            self.seg_2 = nn.Identity()
-
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
@@ -216,27 +197,6 @@ class ERes2NetV2(nn.Module):
             self.in_planes = planes * self.expansion
         return nn.Sequential(*layers)
 
-    def forward(self, x):
-        x = x.permute(0, 2, 1)  # (B,T,F) => (B,F,T)
-        x = x.unsqueeze_(1)
-        out = F.relu(self.bn1(self.conv1(x)))
-        out1 = self.layer1(out)
-        out2 = self.layer2(out1)
-        out3 = self.layer3(out2)
-        out4 = self.layer4(out3)
-        out3_ds = self.layer3_ds(out3)
-        fuse_out34 = self.fuse34(out4, out3_ds)
-        stats = self.pool(fuse_out34)
-
-        embed_a = self.seg_1(stats)
-        if self.two_emb_layer:
-            out = F.relu(embed_a)
-            out = self.seg_bn_1(out)
-            embed_b = self.seg_2(out)
-            return embed_b
-        else:
-            return embed_a
-
     def forward3(self, x):
         x = x.permute(0, 2, 1)  # (B,T,F) => (B,F,T)
         x = x.unsqueeze_(1)
@@ -247,15 +207,4 @@ class ERes2NetV2(nn.Module):
         out4 = self.layer4(out3)
         out3_ds = self.layer3_ds(out3)
         fuse_out34 = self.fuse34(out4, out3_ds)
-        # print(111111111,fuse_out34.shape)#111111111 torch.Size([16, 2048, 10, 72])
         return fuse_out34.flatten(start_dim=1, end_dim=2).mean(-1)
-        # stats = self.pool(fuse_out34)
-        #
-        # embed_a = self.seg_1(stats)
-        # if self.two_emb_layer:
-        #     out = F.relu(embed_a)
-        #     out = self.seg_bn_1(out)
-        #     embed_b = self.seg_2(out)
-        #     return embed_b
-        # else:
-        #     return embed_a

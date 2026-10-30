@@ -1,7 +1,6 @@
 # This code is modified from https://github.com/mozillazg/pypinyin-g2pW
 
-import hashlib
-import pickle
+import ast
 import os
 
 from pypinyin.constants import RE_HANS
@@ -12,19 +11,8 @@ from pypinyin.contrib.tone_convert import to_tone
 from .onnx_api import G2PWOnnxConverter
 
 current_file_path = os.path.dirname(__file__)
-CACHE_PATH = os.path.join(current_file_path, "polyphonic.pickle")
 PP_DICT_PATH = os.path.join(current_file_path, "polyphonic.rep")
 PP_FIX_DICT_PATH = os.path.join(current_file_path, "polyphonic-fix.rep")
-MD5_PATH = os.path.join(current_file_path, "polyphonic.md5")
-
-def get_file_md5(file_path):
-    if not os.path.exists(file_path):
-        return ""
-    hasher = hashlib.md5()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 
 class G2PWPinyin(Pinyin):
@@ -120,47 +108,14 @@ def _remove_dup_and_empty(lst_list):
     return new_lst_list
 
 
-def cache_dict(polyphonic_dict, file_path):
-    with open(file_path, "wb") as pickle_file:
-        pickle.dump(polyphonic_dict, pickle_file)
-
-
-def get_dict():
-    new_md5 = get_file_md5(PP_DICT_PATH) + get_file_md5(PP_FIX_DICT_PATH)
-    old_md5 = ""
-    if os.path.exists(MD5_PATH):
-        with open(MD5_PATH, "r", encoding="utf-8") as f:
-            old_md5 = f.read().strip()
-    need_rebuild = (not os.path.exists(CACHE_PATH)) or (new_md5 != old_md5)
-
-    if not need_rebuild:
-        with open(CACHE_PATH, "rb") as pickle_file:
-            polyphonic_dict = pickle.load(pickle_file)
-    else:
-        print("Rebuilding Polyphonic Dictionary: " + f"{old_md5} -> {new_md5}")
-        polyphonic_dict = read_dict()
-        cache_dict(polyphonic_dict, CACHE_PATH)
-        with open(MD5_PATH, "w", encoding="utf-8") as f:
-            f.write(new_md5)
-    return polyphonic_dict
-
-
 def read_dict():
+    """Load pronunciation overrides once without writing into the source tree."""
     polyphonic_dict = {}
-    with open(PP_DICT_PATH, encoding="utf-8") as f:
-        line = f.readline()
-        while line:
-            key, value_str = line.split(":")
-            value = eval(value_str.strip())
-            polyphonic_dict[key.strip()] = value
-            line = f.readline()
-    with open(PP_FIX_DICT_PATH, encoding="utf-8") as f:
-        line = f.readline()
-        while line:
-            key, value_str = line.split(":")
-            value = eval(value_str.strip())
-            polyphonic_dict[key.strip()] = value
-            line = f.readline()
+    for path in (PP_DICT_PATH, PP_FIX_DICT_PATH):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                key, value_str = line.split(":", 1)
+                polyphonic_dict[key.strip()] = ast.literal_eval(value_str.strip())
     return polyphonic_dict
 
 
@@ -176,4 +131,4 @@ def correct_pronunciation(word, word_pinyins):
         return new_pinyins
 
 
-pp_dict = get_dict()
+pp_dict = read_dict()

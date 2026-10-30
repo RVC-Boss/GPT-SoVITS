@@ -28,24 +28,6 @@ class CFMV5(CFM):
                   inference_cfg_rate=1.30, generator=None):
         return super().inference(mu, x_lens, prompt, n_timesteps, temperature, inference_cfg_rate, generator=generator)
 
-    def forward(self, x1, x_lens, prompt_lens, mu, use_grad_ckpt):
-        b = x1.shape[0]
-        t = torch.rand([b], device=mu.device, dtype=x1.dtype)
-        x0 = torch.randn_like(x1, device=mu.device)
-        vt = x1 - x0
-        xt = x0 + t[:, None, None] * vt
-        prompt = torch.zeros_like(x1)
-        for i in range(b):
-            prompt[i, :, : prompt_lens[i]] = x1[i, :, : prompt_lens[i]]
-            xt[i, :, : prompt_lens[i]] = 0
-        vt_pred = self.estimator(
-            xt, prompt, x_lens, t, text0=mu, use_grad_ckpt=use_grad_ckpt,
-        ).transpose(2, 1)
-        loss = 0
-        for i in range(b):
-            loss += self.criterion(vt_pred[i, :, prompt_lens[i] : x_lens[i]], vt[i, :, prompt_lens[i] : x_lens[i]])
-        return loss / b
-
 
 @torch.inference_mode()
 def synthesize_v5_mel(model, reference_features, target_features, reference_mel,

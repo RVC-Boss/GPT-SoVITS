@@ -1,1 +1,3 @@
-from text.g2pw.g2pw import *
+from .g2pw import G2PWPinyin, correct_pronunciation
+
+__all__ = ["G2PWPinyin", "correct_pronunciation"]

@@ -4,14 +4,11 @@ from functools import lru_cache
 from importlib import import_module
 import logging
 import os
-from pathlib import Path
-import sys
 
 import torch
 
 
 _logger = logging.getLogger(__name__)
-_DLL_HANDLES = []
 
 
 def _cuda_available(device):
@@ -32,14 +29,9 @@ def cuda_graph_available(device):
 
 @lru_cache(maxsize=1)
 def _flash_attention_module():
-    if os.name == "nt":
-        root = Path(__file__).resolve().parents[1]
-        for directory in (
-            root / "GPT_SoVITS" / "Accel" / "vendor" / "cuda" / "bin",
-            Path(sys.executable).resolve().parent / "Lib" / "site-packages" / "torch" / "lib",
-        ):
-            if directory.is_dir():
-                _DLL_HANDLES.append(os.add_dll_directory(str(directory)))
+    from tools.portable_runtime import _prepare_dlls
+
+    _prepare_dlls()
     try:
         return import_module("flash_attn")
     except (ImportError, OSError, RuntimeError) as exc:

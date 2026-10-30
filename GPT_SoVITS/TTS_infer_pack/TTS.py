@@ -15,9 +15,8 @@ sys.path.append(now_dir)
 import os
 from typing import List, Tuple, Union
 
-import ffmpeg
 from tools.acceleration import create_acceleration
-from tools.portable_runtime import FFMPEG_EXE, prepare_transformers_flash_attention
+from tools.portable_runtime import prepare_transformers_flash_attention
 
 prepare_transformers_flash_attention()
 
@@ -26,18 +25,18 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import yaml
-from AR.models.t2s_lightning_module import Text2SemanticLightningModule
+from AR.models.t2s_inference import Text2SemanticInference
 from BigVGAN.bigvgan import BigVGAN
 from feature_extractor.cnhubert import CNHubert
 from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
 from module.models import SynthesizerTrn, SynthesizerTrnV3, Generator
 from module.models_v5 import synthesize_v5_mel, V5_VERSIONS
 from peft import LoraConfig, get_peft_model
-from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
-from transformers import AutoModelForMaskedLM, AutoTokenizer
+from inference_loader import get_sovits_version_from_path_fast, load_sovits_new
+from transformers import AutoModel, AutoTokenizer
 
 from tools.audio_sr import AP_BWE
-from tools.i18n.i18n import I18nAuto, scan_language_list
+from tools.i18n.i18n import I18nAuto
 from TTS_infer_pack.text_segmentation_method import splits
 from TTS_infer_pack.TextPreprocessor import TextPreprocessor
 from sv import SV
@@ -126,7 +125,6 @@ def load_audio_gpu(path, target_sr, device, mono=True, dtype=torch.float32, matc
 
 
 language = os.environ.get("language", "Auto")
-language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
 
 
@@ -169,27 +167,6 @@ mel_fn_v4 = lambda x: mel_spectrogram_torch(
         "center": False,
     },
 )
-
-
-def speed_change(input_audio: np.ndarray, speed: float, sr: int):
-    # 将 NumPy 数组转换为原始 PCM 流
-    raw_audio = input_audio.astype(np.int16).tobytes()
-
-    # 设置 ffmpeg 输入流
-    input_stream = ffmpeg.input("pipe:", format="s16le", acodec="pcm_s16le", ar=str(sr), ac=1)
-
-    # 变速处理
-    output_stream = input_stream.filter("atempo", speed)
-
-    # 输出流到管道
-    out, _ = output_stream.output("pipe:", format="s16le", acodec="pcm_s16le").run(
-        cmd=str(FFMPEG_EXE), input=raw_audio, capture_stdout=True, capture_stderr=True
-    )
-
-    # 将管道输出解码为 NumPy 数组
-    processed_audio = np.frombuffer(out, np.int16)
-
-    return processed_audio
 
 
 class DictToAttrRecursive(dict):
@@ -384,13 +361,9 @@ class TTS_Config:
     def __init__(self, configs: Union[dict, str] = None):
         # 设置默认配置文件路径
         configs_base_path: str = "GPT_SoVITS/configs/"
-        os.makedirs(configs_base_path, exist_ok=True)
         self.configs_path: str = os.path.join(configs_base_path, "tts_infer.yaml")
 
         if configs in ["", None]:
-            if not os.path.exists(self.configs_path):
-                self.save_configs()
-                print(f"Create default config file at {self.configs_path}")
             configs: dict = deepcopy(self.default_configs)
 
         if isinstance(configs, str):
@@ -441,33 +414,21 @@ class TTS_Config:
         self.max_sec = None
         self.hz: int = 50
         self.semantic_frame_rate: str = "25hz"
-        self.segment_size: int = 20480
         self.filter_length: int = 2048
         self.sampling_rate: int = 32000
         self.hop_length: int = 640
         self.win_length: int = 2048
-        self.n_speakers: int = 300
 
     def _load_configs(self, configs_path: str) -> dict:
         if os.path.exists(configs_path):
             ...
         else:
             print(i18n("路径不存在,使用默认配置"))
-            self.save_configs(configs_path)
+            return deepcopy(self.default_configs)
         with open(configs_path, "r", encoding="utf-8") as f:
             configs = yaml.load(f, Loader=yaml.FullLoader)
 
         return configs
-
-    def save_configs(self, configs_path: str = None) -> None:
-        configs = deepcopy(self.default_configs)
-        if self.configs is not None:
-            configs["custom"] = self.update_configs()
-
-        if configs_path is None:
-            configs_path = self.configs_path
-        with open(configs_path, "w") as f:
-            yaml.dump(configs, f)
 
     def update_configs(self):
         self.config = {
@@ -510,12 +471,12 @@ class TTS:
         else:
             self.configs: TTS_Config = TTS_Config(configs)
 
-        self.t2s_model: Text2SemanticLightningModule = None
+        self.t2s_model: Text2SemanticInference = None
         self.t2s_accel = None
         self.streaming_accel = None
         self.vits_model: Union[SynthesizerTrn, SynthesizerTrnV3] = None
         self.bert_tokenizer: AutoTokenizer = None
-        self.bert_model: AutoModelForMaskedLM = None
+        self.bert_model: AutoModel = None
         self.cnhuhbert_model: CNHubert = None
         self.vocoder = None
         self.sr_model: AP_BWE = None
@@ -558,7 +519,6 @@ class TTS:
         self.init_vits_weights(self.configs.vits_weights_path)
         self.init_bert_weights(self.configs.bert_base_path)
         self.init_cnhuhbert_weights(self.configs.cnhuhbert_base_path)
-        # self.enable_half_precision(self.configs.is_half)
 
     def init_cnhuhbert_weights(self, base_path: str):
         print(f"Loading CNHuBERT weights from {base_path}")
@@ -571,7 +531,7 @@ class TTS:
     def init_bert_weights(self, base_path: str):
         print(f"Loading BERT weights from {base_path}")
         self.bert_tokenizer = AutoTokenizer.from_pretrained(base_path)
-        self.bert_model = AutoModelForMaskedLM.from_pretrained(base_path)
+        self.bert_model = AutoModel.from_pretrained(base_path, add_pooling_layer=False)
         self.bert_model = self.bert_model.eval()
         self.bert_model = self.bert_model.to(self.configs.device)
         if self.configs.is_half and str(self.configs.device) != "cpu":
@@ -609,11 +569,9 @@ class TTS:
             hps["model"]["version"] = model_version
 
         self.configs.filter_length = hps["data"]["filter_length"]
-        self.configs.segment_size = hps["train"]["segment_size"]
         self.configs.sampling_rate = hps["data"]["sampling_rate"]
         self.configs.hop_length = hps["data"]["hop_length"]
         self.configs.win_length = hps["data"]["win_length"]
-        self.configs.n_speakers = hps["data"]["n_speakers"]
         self.configs.semantic_frame_rate = hps["model"]["semantic_frame_rate"]
         kwargs = hps["model"]
         # print(f"self.configs.sampling_rate:{self.configs.sampling_rate}")
@@ -625,8 +583,6 @@ class TTS:
         if model_version not in v3v4set:
             vits_model = SynthesizerTrn(
                 self.configs.filter_length // 2 + 1,
-                self.configs.segment_size // self.configs.hop_length,
-                n_speakers=self.configs.n_speakers,
                 **kwargs,
             )
             self.configs.use_vocoder = False
@@ -634,14 +590,10 @@ class TTS:
             kwargs["version"] = model_version
             vits_model = SynthesizerTrnV3(
                 self.configs.filter_length // 2 + 1,
-                self.configs.segment_size // self.configs.hop_length,
-                n_speakers=self.configs.n_speakers,
                 **kwargs,
             )
             self.configs.use_vocoder = True
             self.init_vocoder(model_version)
-            if "pretrained" not in weights_path and hasattr(vits_model, "enc_q"):
-                del vits_model.enc_q
 
         self.is_v2pro = model_version in {"v2Pro", "v2ProPlus"}
 
@@ -674,10 +626,6 @@ class TTS:
         if self.configs.is_half and str(self.configs.device) != "cpu":
             self.vits_model = self.vits_model.half()
 
-        self.configs.save_configs()
-
-
-
     def init_t2s_weights(self, weights_path: str):
         if self.streaming_accel is not None:
             self.streaming_accel.close()
@@ -687,12 +635,11 @@ class TTS:
             self.t2s_accel = None
         print(f"Loading Text2Semantic weights from {weights_path}")
         self.configs.t2s_weights_path = weights_path
-        self.configs.save_configs()
         self.configs.hz = 50
         dict_s1 = torch.load(weights_path, map_location=self.configs.device, weights_only=False)
         config = dict_s1["config"]
         self.configs.max_sec = config["data"]["max_sec"]
-        t2s_model = Text2SemanticLightningModule(config, "****", is_train=False)
+        t2s_model = Text2SemanticInference(config)
         t2s_model.load_state_dict(dict_s1["weight"])
         t2s_model = t2s_model.to(self.configs.device)
         t2s_model = t2s_model.eval()
@@ -783,78 +730,6 @@ class TTS:
         if self.sv_model is not None:
             return
         self.sv_model = SV(self.configs.device, self.configs.is_half)
-
-    def enable_half_precision(self, enable: bool = True, save: bool = True):
-        """
-        To enable half precision for the TTS model.
-        Args:
-            enable: bool, whether to enable half precision.
-
-        """
-        if str(self.configs.device) == "cpu" and enable:
-            print("Half precision is not supported on CPU.")
-            return
-
-        if self.streaming_accel is not None:
-            self.streaming_accel.close()
-            self.streaming_accel = None
-        if self.t2s_accel is not None:
-            self.t2s_accel.close()
-            self.t2s_accel = None
-        self.configs.is_half = enable
-        self.precision = torch.float16 if enable else torch.float32
-        if save:
-            self.configs.save_configs()
-        if enable:
-            if self.t2s_model is not None:
-                self.t2s_model = self.t2s_model.half()
-            if self.vits_model is not None:
-                self.vits_model = self.vits_model.half()
-            if self.bert_model is not None:
-                self.bert_model = self.bert_model.half()
-            if self.cnhuhbert_model is not None:
-                self.cnhuhbert_model = self.cnhuhbert_model.half()
-            if self.vocoder is not None:
-                self.vocoder = self.vocoder.half()
-        else:
-            if self.t2s_model is not None:
-                self.t2s_model = self.t2s_model.float()
-            if self.vits_model is not None:
-                self.vits_model = self.vits_model.float()
-            if self.bert_model is not None:
-                self.bert_model = self.bert_model.float()
-            if self.cnhuhbert_model is not None:
-                self.cnhuhbert_model = self.cnhuhbert_model.float()
-            if self.vocoder is not None:
-                self.vocoder = self.vocoder.float()
-
-    def set_device(self, device: torch.device, save: bool = True):
-        """
-        To set the device for all models.
-        Args:
-            device: torch.device, the device to use for all models.
-        """
-        if self.streaming_accel is not None:
-            self.streaming_accel.close()
-            self.streaming_accel = None
-        if self.t2s_accel is not None:
-            self.t2s_accel.close()
-            self.t2s_accel = None
-        self.configs.device = device
-        if save:
-            self.configs.save_configs()
-        if self.t2s_model is not None:
-            self.t2s_model = self.t2s_model.to(device)
-        if self.vits_model is not None:
-            self.vits_model = self.vits_model.to(device)
-        if self.bert_model is not None:
-            self.bert_model = self.bert_model.to(device)
-        if self.cnhuhbert_model is not None:
-            self.cnhuhbert_model = self.cnhuhbert_model.to(device)
-        if self.vocoder is not None:
-            self.vocoder = self.vocoder.to(device)
-        if self.sr_model is not None:
-            self.sr_model = self.sr_model.to(device)
 
     def set_ref_audio(self, ref_audio_path: str):
         """
@@ -1821,12 +1696,6 @@ class TTS:
             audio = audio.cpu().numpy()
             audio = (audio * 32768).astype(np.int16)
 
-
-        # try:
-        #     if speed_factor != 1.0:
-        #         audio = speed_change(audio, speed=speed_factor, sr=int(sr))
-        # except Exception as e:
-        #     print(f"Failed to change speed of audio: \n{e}")
 
         return sr, audio
 

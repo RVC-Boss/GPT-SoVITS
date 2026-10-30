@@ -1,0 +1,19 @@
+# Place a compatible existing GPT/SoVITS pair at these paths, or edit them.
+custom:
+  device: cpu
+  is_half: false
+  version: v4
+  t2s_weights_path: models/voice/model.ckpt
+  vits_weights_path: models/voice/model.pth
+  bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
+  cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
+
+# A v4 LoRA checkpoint in custom.vits_weights_path also needs this base model.
+v4:
+  device: cpu
+  is_half: false
+  version: v4
+  t2s_weights_path: GPT_SoVITS/pretrained_models/s1v3.ckpt
+  vits_weights_path: GPT_SoVITS/pretrained_models/gsv-v4-pretrained/s2Gv4.pth
+  bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
+  cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base

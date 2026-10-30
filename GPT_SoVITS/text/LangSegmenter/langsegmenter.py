@@ -1,14 +1,30 @@
 import logging
+import os
 import re
+from pathlib import Path
 
 # jieba静音
 import jieba
 jieba.setLogLevel(logging.CRITICAL)
 
-# 更改fast_langdetect大模型位置
-from pathlib import Path
 import fast_langdetect
-fast_langdetect.infer._default_detector = fast_langdetect.infer.LangDetector(fast_langdetect.infer.LangDetectConfig(cache_dir=Path(__file__).parent.parent.parent / "pretrained_models" / "fast_langdetect"))
+
+
+def _langdetect_config(project_root: Path):
+    configured_cache = os.environ.get("GPT_SOVITS_LANGDETECT_CACHE", "").strip()
+    cache_dir = Path(configured_cache).expanduser() if configured_cache else project_root / ".codex" / "runtime-cache" / "fast_langdetect"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    legacy_model = project_root / "GPT_SoVITS" / "pretrained_models" / "fast_langdetect" / "lid.176.bin"
+    local_model = legacy_model if legacy_model.is_file() and not (cache_dir / "lid.176.bin").is_file() else None
+    return fast_langdetect.infer.LangDetectConfig(
+        cache_dir=str(cache_dir),
+        custom_model_path=str(local_model) if local_model is not None else None,
+    )
+
+
+fast_langdetect.infer._default_detector = fast_langdetect.infer.LangDetector(
+    _langdetect_config(Path(__file__).resolve().parents[3])
+)
 
 
 from split_lang import LangSplitter
@@ -211,15 +227,3 @@ class LangSegmenter():
             lang_list = merge_lang(lang_list,temp_item)
 
         return lang_list
-    
-
-if __name__ == "__main__":
-    text = "MyGO?,你也喜欢まいご吗？"
-    print(LangSegmenter.getTexts(text))
-
-    text = "ねえ、知ってる？最近、僕は天文学を勉強してるんだ。君の瞳が星空みたいにキラキラしてるからさ。"
-    print(LangSegmenter.getTexts(text))
-
-    text = "当时ThinkPad T60刚刚发布，一同推出的还有一款名为Advanced Dock的扩展坞配件。这款扩展坞通过连接T60底部的插槽，扩展出包括PCIe在内的一大堆接口，并且自带电源，让T60可以安装桌面显卡来提升性能。"
-    print(LangSegmenter.getTexts(text,"zh"))
-    print(LangSegmenter.getTexts(text))

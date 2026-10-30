@@ -2,6 +2,14 @@
 import re
 import os
 import hashlib
+import shutil
+
+OPENJTALK_CACHE_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    ".codex", "runtime-cache", "openjtalk",
+)
+if os.name == "nt" and not re.match(r"^[A-Za-z0-9_/\\:.\-]*$", OPENJTALK_CACHE_DIR):
+    OPENJTALK_CACHE_DIR = os.path.relpath(OPENJTALK_CACHE_DIR)
 
 try:
     import pyopenjtalk
@@ -16,36 +24,27 @@ try:
             if OPEN_JTALK_DICT_DIR[: len(python_dir)].upper() == python_dir.upper():
                 OPEN_JTALK_DICT_DIR = os.path.join(os.path.relpath(OPEN_JTALK_DICT_DIR, python_dir))
             else:
-                import shutil
-
-                if not os.path.exists("TEMP"):
-                    os.mkdir("TEMP")
-                if not os.path.exists(os.path.join("TEMP", "ja")):
-                    os.mkdir(os.path.join("TEMP", "ja"))
-                if os.path.exists(os.path.join("TEMP", "ja", "open_jtalk_dic")):
-                    shutil.rmtree(os.path.join("TEMP", "ja", "open_jtalk_dic"))
+                os.makedirs(OPENJTALK_CACHE_DIR, exist_ok=True)
+                if os.path.exists(os.path.join(OPENJTALK_CACHE_DIR, "open_jtalk_dic")):
+                    shutil.rmtree(os.path.join(OPENJTALK_CACHE_DIR, "open_jtalk_dic"))
                 shutil.copytree(
                     pyopenjtalk.OPEN_JTALK_DICT_DIR.decode("utf-8"),
-                    os.path.join("TEMP", "ja", "open_jtalk_dic"),
+                    os.path.join(OPENJTALK_CACHE_DIR, "open_jtalk_dic"),
                 )
-                OPEN_JTALK_DICT_DIR = os.path.join("TEMP", "ja", "open_jtalk_dic")
+                OPEN_JTALK_DICT_DIR = os.path.join(OPENJTALK_CACHE_DIR, "open_jtalk_dic")
             pyopenjtalk.OPEN_JTALK_DICT_DIR = OPEN_JTALK_DICT_DIR.encode("utf-8")
 
         if not (re.match(r"^[A-Za-z0-9_/\\:.\-]*$", current_file_path)):
             if current_file_path[: len(python_dir)].upper() == python_dir.upper():
                 current_file_path = os.path.join(os.path.relpath(current_file_path, python_dir))
             else:
-                if not os.path.exists("TEMP"):
-                    os.mkdir("TEMP")
-                if not os.path.exists(os.path.join("TEMP", "ja")):
-                    os.mkdir(os.path.join("TEMP", "ja"))
-                if not os.path.exists(os.path.join("TEMP", "ja", "ja_userdic")):
-                    os.mkdir(os.path.join("TEMP", "ja", "ja_userdic"))
+                if not os.path.exists(os.path.join(OPENJTALK_CACHE_DIR, "ja_userdic")):
+                    os.makedirs(os.path.join(OPENJTALK_CACHE_DIR, "ja_userdic"), exist_ok=True)
                     shutil.copyfile(
                         os.path.join(current_file_path, "ja_userdic", "userdict.csv"),
-                        os.path.join("TEMP", "ja", "ja_userdic", "userdict.csv"),
+                        os.path.join(OPENJTALK_CACHE_DIR, "ja_userdic", "userdict.csv"),
                     )
-                current_file_path = os.path.join("TEMP", "ja")
+                current_file_path = OPENJTALK_CACHE_DIR
 
     def get_hash(fp: str) -> str:
         hash_md5 = hashlib.md5()
@@ -55,12 +54,14 @@ try:
         return hash_md5.hexdigest()
 
     USERDIC_CSV_PATH = os.path.join(current_file_path, "ja_userdic", "userdict.csv")
-    USERDIC_BIN_PATH = os.path.join(current_file_path, "ja_userdic", "user.dict")
-    USERDIC_HASH_PATH = os.path.join(current_file_path, "ja_userdic", "userdict.md5")
+    USERDIC_BIN_PATH = os.path.join(OPENJTALK_CACHE_DIR, "user.dict")
+    USERDIC_HASH_PATH = os.path.join(OPENJTALK_CACHE_DIR, "userdict.md5")
     # 如果没有用户词典，就生成一个；如果有，就检查md5，如果不一样，就重新生成
     if os.path.exists(USERDIC_CSV_PATH):
+        os.makedirs(OPENJTALK_CACHE_DIR, exist_ok=True)
         if (
             not os.path.exists(USERDIC_BIN_PATH)
+            or not os.path.exists(USERDIC_HASH_PATH)
             or get_hash(USERDIC_CSV_PATH) != open(USERDIC_HASH_PATH, "r", encoding="utf-8").read()
         ):
             pyopenjtalk.mecab_dict_index(USERDIC_CSV_PATH, USERDIC_BIN_PATH)
@@ -91,29 +92,6 @@ _japanese_marks = re.compile(
 
 # List of (symbol, Japanese) pairs for marks:
 _symbols_to_japanese = [(re.compile("%s" % x[0]), x[1]) for x in [("％", "パーセント")]]
-
-
-# List of (consonant, sokuon) pairs:
-_real_sokuon = [
-    (re.compile("%s" % x[0]), x[1])
-    for x in [
-        (r"Q([↑↓]*[kg])", r"k#\1"),
-        (r"Q([↑↓]*[tdjʧ])", r"t#\1"),
-        (r"Q([↑↓]*[sʃ])", r"s\1"),
-        (r"Q([↑↓]*[pb])", r"p#\1"),
-    ]
-]
-
-# List of (consonant, hatsuon) pairs:
-_real_hatsuon = [
-    (re.compile("%s" % x[0]), x[1])
-    for x in [
-        (r"N([↑↓]*[pbm])", r"m\1"),
-        (r"N([↑↓]*[ʧʥj])", r"n^\1"),
-        (r"N([↑↓]*[tdn])", r"n\1"),
-        (r"N([↑↓]*[kg])", r"ŋ\1"),
-    ]
-]
 
 
 def post_replace_ph(ph):
@@ -269,8 +247,3 @@ def g2p(norm_text, with_prosody=True):
     phones = [post_replace_ph(i) for i in phones]
     # todo: implement tones and word2ph
     return phones
-
-
-if __name__ == "__main__":
-    phones = g2p("Hello.こんにちは！今日もNiCe天気ですね！tokyotowerに行きましょう！")
-    print(phones)

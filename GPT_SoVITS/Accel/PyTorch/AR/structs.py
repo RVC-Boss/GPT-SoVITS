@@ -50,7 +50,6 @@ class T2SRequest:
     request_id: Union[str, int] = -1
     stream_interval: Optional[int] = None
     return_partial: bool = True
-    debug: bool = False
     max_decode_steps: Optional[int] = None
 
 

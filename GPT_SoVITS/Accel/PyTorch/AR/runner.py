@@ -10,11 +10,10 @@ from typing import Optional, TypeVar
 import torch
 
 from tools.acceleration import cuda_graph_available
-from ...logger import timer
 
 from .sample_funcs import sample_naive
 from .structs import KVCache, T2SRequest, T2SSession
-from .t2s_model_abc import T2SDecoderABC, TorchProfiler
+from .t2s_model_abc import T2SDecoderABC
 
 
 T = TypeVar("T")
@@ -34,17 +33,6 @@ def _slice_tensors(obj: T, bsz: int) -> T:
     return obj
 
 
-def _synchronize_device(device: torch.device) -> None:
-    if device.type == "cuda":
-        torch.cuda.synchronize()
-    elif device.type == "mps":
-        torch.mps.synchronize()
-    elif device.type == "xpu":
-        torch.xpu.synchronize()
-    elif device.type == "mtia":
-        torch.mtia.synchronize()
-    elif device.type == "cpu":
-        pass
 
 
 class ModelRunner:
@@ -180,14 +168,11 @@ class ModelRunner:
 
         kv_cache = self.decoder.init_cache(session.bsz)
 
-        torch_profiler = TorchProfiler(request.debug)
-        with torch_profiler.profiler(), timer("Torch.Prefill", debug=request.debug), torch.inference_mode():
-            torch_profiler.start()
+        with torch.inference_mode():
             xy_pos = self.decoder.embed(session.x, request.prompts, session.bert_feature)
             xy_dec = self.decoder.h.prefill(xy_pos, kv_cache, session.attn_mask)
             gather_index = (session.input_pos - 1).long().view(session.bsz, 1, 1)
             session.prefill_hidden = torch.take_along_dim(xy_dec, gather_index, dim=1)
-            torch_profiler.end()
 
         session.kv_cache = kv_cache
 
@@ -290,118 +275,109 @@ class ModelRunner:
 
         use_graph = self._should_use_graph() and bool(forward_slots)
 
-        debug = any(session.request.debug for session in self.bound_sessions)
+        with torch.inference_mode():
+            if forward_slots:
+                forward_len = max(forward_slots) + 1
+                model_len = self._select_bsz(forward_len) if use_graph else forward_len
+                kwds = decoder.pre_forward_slots_hook(list(range(model_len)), self)
+                if use_graph:
+                    graph = self._acquire_graph(model_len)
+                    graph.replay()
+                else:
+                    self.xy_dec_buf[:forward_len] = decoder.h(
+                        self.xy_pos_buf[:forward_len],
+                        self.input_pos_buf[:forward_len],
+                        _slice_tensors(self.kv_cache_buf, forward_len),
+                        **kwds,
+                    )
 
-        try:
-            with torch.inference_mode():
-                if forward_slots:
-                    forward_len = max(forward_slots) + 1
-                    model_len = self._select_bsz(forward_len) if use_graph else forward_len
-                    kwds = decoder.pre_forward_slots_hook(list(range(model_len)), self)
-                    if use_graph:
-                        graph = self._acquire_graph(model_len)
-                        graph.replay()
-                    else:
-                        self.xy_dec_buf[:forward_len] = decoder.h(
-                            self.xy_pos_buf[:forward_len],
-                            self.input_pos_buf[:forward_len],
-                            _slice_tensors(self.kv_cache_buf, forward_len),
-                            **kwds,
-                        )
+            # Bind any newly ready sessions after decode and before sampling
+            if self.waiting_bind and self.free_slots() > 0:
+                self._bind_waiting_sessions()
 
-                # Bind any newly ready sessions after decode and before sampling
-                if self.waiting_bind and self.free_slots() > 0:
-                    self._bind_waiting_sessions()
-                    if not debug:
-                        debug = any(session.request.debug for session in self.bound_sessions)
+            for slot_idx, session in enumerate(self.slot_sessions):
+                if session is None:
+                    continue
+                if session.step_count == 0:
+                    prefill_slots.append(slot_idx)
 
-                for slot_idx, session in enumerate(self.slot_sessions):
-                    if session is None:
-                        continue
-                    if session.step_count == 0:
-                        prefill_slots.append(slot_idx)
+            active_slots = forward_slots + prefill_slots
+            if not active_slots:
+                return []
 
-                active_slots = forward_slots + prefill_slots
-                if not active_slots:
-                    return []
+            idx_tensor = torch.tensor(active_slots, device=self.device, dtype=torch.long)
 
-                idx_tensor = torch.tensor(active_slots, device=self.device, dtype=torch.long)
+            logits_all = decoder.ar_predict_layer(self.xy_dec_buf[idx_tensor].squeeze(1))
 
-                logits_all = decoder.ar_predict_layer(self.xy_dec_buf[idx_tensor].squeeze(1))
+            first_step_mask = (self.step_buf[idx_tensor] == 0).bool()
 
-                first_step_mask = (self.step_buf[idx_tensor] == 0).bool()
+            if torch.any(first_step_mask):
+                logits_all[first_step_mask, -1] = float("-inf")
 
-                if torch.any(first_step_mask):
-                    logits_all[first_step_mask, -1] = float("-inf")
+            sampler = self.sampler
 
-                sampler = self.sampler
+            samples = sampler(
+                logits=logits_all,
+                valid_lens=self.prompt_len_buf[idx_tensor] + self.step_buf[idx_tensor],
+                previous_tokens=self.y_buf[idx_tensor],
+                repetition_penalty=self.repetition_penalty_buf[idx_tensor],
+                temperature=self.temperature_buf[idx_tensor],
+                top_k=self.top_k_buf[idx_tensor],
+                top_p=self.top_p_buf[idx_tensor],
+            )
 
-                samples = sampler(
-                    logits=logits_all,
-                    valid_lens=self.prompt_len_buf[idx_tensor] + self.step_buf[idx_tensor],
-                    previous_tokens=self.y_buf[idx_tensor],
-                    repetition_penalty=self.repetition_penalty_buf[idx_tensor],
-                    temperature=self.temperature_buf[idx_tensor],
-                    top_k=self.top_k_buf[idx_tensor],
-                    top_p=self.top_p_buf[idx_tensor],
-                )
+            argmax_token = torch.argmax(logits_all, dim=-1)
+            eos_mask_all = torch.logical_or((argmax_token == decoder.EOS), (samples.squeeze(1) == decoder.EOS))
 
-                argmax_token = torch.argmax(logits_all, dim=-1)
-                eos_mask_all = torch.logical_or((argmax_token == decoder.EOS), (samples.squeeze(1) == decoder.EOS))
+            y_emb_all = decoder.ar_audio_embedding(samples.clamp_max_(decoder.vocab_size - 2))
+            pos_offset = self.step_buf[idx_tensor] + self.prompt_len_buf[idx_tensor] + 1
+            next_xy_all = decoder.ar_audio_position(pos_offset, y_emb_all)
 
-                y_emb_all = decoder.ar_audio_embedding(samples.clamp_max_(decoder.vocab_size - 2))
-                pos_offset = self.step_buf[idx_tensor] + self.prompt_len_buf[idx_tensor] + 1
-                next_xy_all = decoder.ar_audio_position(pos_offset, y_emb_all)
+            sample_vals = samples.squeeze(1)
+            write_pos = self.prompt_len_buf[idx_tensor] + self.step_buf[idx_tensor]
 
-                sample_vals = samples.squeeze(1)
-                write_pos = self.prompt_len_buf[idx_tensor] + self.step_buf[idx_tensor]
+            # Only write for slots that are not already done and not EOS
+            write_mask = (~self.completed_buf[idx_tensor]) & (~eos_mask_all)
+            if torch.any(write_mask):
+                write_slots = idx_tensor[write_mask]
+                self.y_buf[write_slots, write_pos[write_mask]] = sample_vals[write_mask]
+                self.input_pos_buf[write_slots] += 1
 
-                # Only write for slots that are not already done and not EOS
-                write_mask = (~self.completed_buf[idx_tensor]) & (~eos_mask_all)
-                if torch.any(write_mask):
-                    write_slots = idx_tensor[write_mask]
-                    self.y_buf[write_slots, write_pos[write_mask]] = sample_vals[write_mask]
-                    self.input_pos_buf[write_slots] += 1
+            new_step = self.step_buf[idx_tensor].clone()
+            new_step[write_mask] += 1
+            forced_stop = new_step >= self.max_step_buf[idx_tensor]
+            self.step_buf[idx_tensor] = new_step
+            self.completed_buf[idx_tensor] |= eos_mask_all | forced_stop
+            done_slots = idx_tensor[self.completed_buf[idx_tensor]]
+            # Graph buckets also execute inactive rows, so their cache position must remain valid.
+            self.input_pos_buf[done_slots] = 1
 
-                new_step = self.step_buf[idx_tensor].clone()
-                new_step[write_mask] += 1
-                forced_stop = new_step >= self.max_step_buf[idx_tensor]
-                self.step_buf[idx_tensor] = new_step
-                self.completed_buf[idx_tensor] |= eos_mask_all | forced_stop
-                done_slots = idx_tensor[self.completed_buf[idx_tensor]]
-                # Graph buckets also execute inactive rows, so their cache position must remain valid.
-                self.input_pos_buf[done_slots] = 1
+            # Update next xy for continuing slots
+            continue_mask = ~(self.completed_buf[idx_tensor])
+            if torch.any(continue_mask):
+                cont_slots = idx_tensor[continue_mask]
+                cont_xy = next_xy_all[continue_mask]
+                self.xy_pos_buf[cont_slots] = cont_xy
 
-                # Update next xy for continuing slots
-                continue_mask = ~(self.completed_buf[idx_tensor])
-                if torch.any(continue_mask):
-                    cont_slots = idx_tensor[continue_mask]
-                    cont_xy = next_xy_all[continue_mask]
-                    self.xy_pos_buf[cont_slots] = cont_xy
+            # Sync back
+            for slots in list(self.session_slots.values()):
+                if not slots:
+                    continue
+                session = self.slot_sessions[slots[0]]
+                if session is None:
+                    continue
+                session.output_lengths = self.step_buf[slots].tolist()
+                session.step_count = max(session.output_lengths)
+                session.total_tokens = sum(session.output_lengths)
+                session.completed = self.completed_buf[slots].clone()
+                if bool(torch.all(session.completed)):
+                    session.y_results = [
+                        self.y_buf[slot, session.prompt_len : session.prompt_len + length].clone()
+                        for slot, length in zip(slots, session.output_lengths)
+                    ]
+                    finished_sessions.append(session)
+                    self.unbind_session(session)
 
-                # Sync back
-                for slots in list(self.session_slots.values()):
-                    if not slots:
-                        continue
-                    session = self.slot_sessions[slots[0]]
-                    if session is None:
-                        continue
-                    session.output_lengths = self.step_buf[slots].tolist()
-                    session.step_count = max(session.output_lengths)
-                    session.total_tokens = sum(session.output_lengths)
-                    session.completed = self.completed_buf[slots].clone()
-                    if bool(torch.all(session.completed)):
-                        session.y_results = [
-                            self.y_buf[slot, session.prompt_len : session.prompt_len + length].clone()
-                            for slot, length in zip(slots, session.output_lengths)
-                        ]
-                        finished_sessions.append(session)
-                        self.unbind_session(session)
-
-                decoder.post_forward_slots_hook(forward_slots, self)
-
-        finally:
-            if debug:
-                _synchronize_device(self.device)
+            decoder.post_forward_slots_hook(forward_slots, self)
 
         return finished_sessions

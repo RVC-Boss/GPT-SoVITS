@@ -15,7 +15,7 @@ from pypinyin import Style, pinyin
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 
 from ..zh_normalization.char_convert import tranditional_to_simplified
-from .dataset import get_char_phoneme_labels, get_phoneme_labels, prepare_onnx_input
+from .input_processing import get_char_phoneme_labels, get_phoneme_labels, prepare_onnx_input
 from .utils import load_config
 
 onnxruntime.set_default_logger_severity(3)
@@ -24,9 +24,6 @@ try:
 except Exception:
     pass
 warnings.filterwarnings("ignore")
-
-model_version = "1.1"
-
 
 def predict(session, onnx_input: Dict[str, Any], labels: List[str]) -> Tuple[List[str], List[float]]:
     all_preds = []
@@ -104,7 +101,7 @@ class _G2PWBaseOnnxConverter:
         enable_non_tradional_chinese: bool = False,
     ):
         self.model_dir = download_and_decompress(model_dir)
-        self.config = load_config(config_path=os.path.join(self.model_dir, "config.py"), use_default=True)
+        self.config = load_config(config_path=os.path.join(self.model_dir, "config.py"))
 
         self.model_source = model_source if model_source else self.config.model_source
         self.enable_opencc = enable_non_tradional_chinese
@@ -223,7 +220,6 @@ class _G2PWBaseOnnxConverter:
             texts=texts,
             query_ids=model_query_ids,
             use_mask=self.config.use_mask,
-            window_size=None,
             char2id=self.char2id,
             char_phoneme_masks=self.char_phoneme_masks,
         )

@@ -182,8 +182,3 @@ def cut5(inp):
 
     opt = [item for item in mergeitems if not set(item).issubset(punds)]
     return "\n".join(opt)
-
-
-if __name__ == "__main__":
-    method = get_method("cut5")
-    print(method("你好，我是小明。你好，我是小红。你好，我是小刚。你好，我是小张。"))

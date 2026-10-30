@@ -1,7 +1,4 @@
 import sys
-import time
-from collections import defaultdict
-from contextlib import nullcontext
 from typing import Optional
 
 from loguru import logger
@@ -10,7 +7,7 @@ from rich.highlighter import Highlighter
 from rich.logging import RichHandler
 from rich.progress import Task, TextColumn
 from rich.style import StyleType
-from rich.table import Column, Table
+from rich.table import Column
 from rich.text import Text
 from rich.traceback import Traceback, install
 
@@ -199,75 +196,3 @@ def tb(show_locals: bool = True):
 
 
 __all__ = ["logger", "console", "tb", "SpeedColumnToken", "SpeedColumnIteration"]
-
-
-class Timer:
-    def __init__(self, table_name: str = "Default Timer"):
-        self.records: dict[str, list[float]] = defaultdict(list)
-        self._stack: list[tuple[str, int]] = []
-        self.table_name = table_name
-
-    def __call__(self, category: str, debug=False):
-        timer = self
-
-        class _Ctx:
-            def __enter__(self):
-                timer._stack.append((category, time.perf_counter_ns()))
-                return timer
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                end = time.perf_counter_ns()
-                if not timer._stack:
-                    raise RuntimeError("Timer stack underflow: __exit__ without matching __enter__")
-                cat, start = timer._stack.pop()
-                if cat != category:
-                    raise RuntimeError(f"Mismatched timer context: expected '{cat}', got '{category}'")
-                elapsed_sec = (end - start) / 1e9
-                timer.records[cat].append(elapsed_sec)
-                return False
-
-        if debug:
-            return _Ctx()
-        else:
-            return nullcontext()
-
-    def clear(self):
-        self.records.clear()
-
-    def summary(self):
-        if self.records.items():
-            table = Table(title=self.table_name)
-
-            table.add_column("Category", justify="left", style="cyan", no_wrap=True)
-            table.add_column("Count", justify="right", style="magenta")
-            table.add_column("Total (s)", justify="right", style="green")
-            table.add_column("Average (s)", justify="right", style="yellow")
-
-            for cat, times in self.records.items():
-                total = sum(times)
-                avg = total / len(times) if times else 0.0
-                table.add_row(cat, str(len(times)), f"{total:.6f}", f"{avg:.6f}")
-
-            console.print(table)
-
-
-timer = Timer()
-
-
-def format_sig(x: float, sig=4):
-    if x > 10**sig:
-        s = f"{x:.{sig + 1}g}"
-    elif x < 1:
-        s = f"{x:.{sig}f}"
-    else:
-        s = f"{x:.{sig}g}"
-    if "e" in s or "E" in s:
-        s = f"{float(s):f}"
-    return s
-
-
-if __name__ == "__main__":
-    try:
-        raise RuntimeError()
-    except Exception:
-        logger.bind(show_locals=False).exception("TEST")

@@ -302,17 +302,6 @@ def _g2p(segments):
     return phones_list, word2ph
 
 
-def replace_punctuation_with_en(text):
-    text = text.replace("嗯", "恩").replace("呣", "母")
-    pattern = re.compile("|".join(re.escape(p) for p in rep_map.keys()))
-
-    replaced_text = pattern.sub(lambda x: rep_map[x.group()], text)
-
-    replaced_text = re.sub(r"[^\u4e00-\u9fa5A-Za-z" + "".join(punctuation) + r"]+", "", replaced_text)
-
-    return replaced_text
-
-
 def replace_consecutive_punctuation(text):
     punctuations = "".join(re.escape(p) for p in punctuation)
     pattern = f"([{punctuations}])([{punctuations}])+"
@@ -331,16 +320,3 @@ def text_normalize(text):
     # 避免重复标点引起的参考泄露
     dest_text = replace_consecutive_punctuation(dest_text)
     return dest_text
-
-
-if __name__ == "__main__":
-    text = "啊——但是《原神》是由,米哈\游自主，研发的一款全.新开放世界.冒险游戏"
-    text = "呣呣呣～就是…大人的鼹鼠党吧？"
-    text = "你好"
-    text = text_normalize(text)
-    print(g2p(text))
-
-
-# # 示例用法
-# text = "这是一个示例文本：,你好！这是一个测试..."
-# print(g2p_paddle(text))  # 输出: 这是一个示例文本你好这是一个测试

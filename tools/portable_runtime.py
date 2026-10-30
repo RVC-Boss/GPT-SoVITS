@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from importlib import import_module
 from importlib.machinery import ModuleSpec
@@ -14,8 +15,17 @@ from types import ModuleType
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_DIR = PROJECT_ROOT / "runtime"
 SITE_PACKAGES = RUNTIME_DIR / "Lib" / "site-packages"
-FFMPEG_EXE = RUNTIME_DIR / "ffmpeg.exe"
-FFPROBE_EXE = RUNTIME_DIR / "ffprobe.exe"
+
+
+def _resolve_binary(bundled_name: str, system_name: str) -> str:
+    bundled = RUNTIME_DIR / bundled_name
+    if bundled.exists():
+        return str(bundled)
+    return shutil.which(system_name) or system_name
+
+
+FFMPEG_EXE = _resolve_binary("ffmpeg.exe", "ffmpeg")
+FFPROBE_EXE = _resolve_binary("ffprobe.exe", "ffprobe")
 _DLL_HANDLES = []
 _DLL_READY = False
 _ACTIVE = False
@@ -27,13 +37,15 @@ def _prepare_dlls() -> None:
     global _DLL_READY
     if _DLL_READY or os.name != "nt":
         return
+    package_directories = [SITE_PACKAGES, Path(sys.prefix) / "Lib" / "site-packages"]
     directories = [
         RUNTIME_DIR,
-        SITE_PACKAGES / "torch" / "lib",
+        *(packages / "torch" / "lib" for packages in package_directories),
         PROJECT_ROOT / "GPT_SoVITS" / "Accel" / "vendor" / "cuda" / "bin",
-        *sorted((SITE_PACKAGES / "nvidia").glob("*/bin")),
+        *(directory for packages in package_directories
+          for directory in sorted((packages / "nvidia").glob("*/bin"))),
     ]
-    for directory in directories:
+    for directory in dict.fromkeys(directories):
         if directory.is_dir():
             _DLL_HANDLES.append(os.add_dll_directory(str(directory)))
             # cuDNN dynamically loads its component DLLs through the process PATH.
@@ -84,9 +96,14 @@ def activate(*, change_cwd: bool = False) -> None:
     if not _ACTIVE:
         sys.path.insert(0, str(PROJECT_ROOT))
         sys.path.insert(0, str(PROJECT_ROOT / "GPT_SoVITS"))
-        os.environ["PATH"] = str(RUNTIME_DIR) + os.pathsep + os.environ.get("PATH", "")
+        if RUNTIME_DIR.is_dir():
+            os.environ["PATH"] = str(RUNTIME_DIR) + os.pathsep + os.environ.get("PATH", "")
         os.environ.setdefault("G2PW", "0")
-        os.environ["NLTK_DATA"] = str(RUNTIME_DIR / "nltk_data")
+        nltk_data = RUNTIME_DIR / "nltk_data"
+        if not nltk_data.is_dir():
+            nltk_data = PROJECT_ROOT / ".codex" / "runtime-cache" / "nltk_data"
+        if nltk_data.is_dir():
+            os.environ.setdefault("NLTK_DATA", str(nltk_data))
         try:
             import _distutils_hack
             _distutils_hack.add_shim()
