@@ -213,7 +213,7 @@ def inference(
         for item in tts_pipeline.run(inputs):
             yield item, actual_seed
     except NO_PROMPT_ERROR:
-        gr.Warning(i18n("V3不支持无参考文本模式，请填写参考文本！"))
+        gr.Warning(i18n("v3、v4、v5 均不支持无参考文本模式，请填写参考文本！"))
 
 
 def custom_sort_key(s):
@@ -373,7 +373,8 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 )
             with gr.Column():
                 ref_text_free = gr.Checkbox(
-                    label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。"),
+                    label=i18n("开启无参考文本模式。不填参考文本亦相当于开启。")
+                    + i18n("v3、v4、v5 均不支持无参考文本模式，请填写参考文本！"),
                     value=False,
                     interactive=True if model_version != "v3" else False,
                     show_label=True,

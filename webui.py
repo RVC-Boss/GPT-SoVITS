@@ -1496,7 +1496,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         version_checkbox = gr.Radio(
                             label=i18n("训练模型的版本"),
                             value=version,
-                            choices=["v2", "v2Pro", "v2ProPlus", "v4", "v5dev", "v5turbo"],
+                            choices=["v2", "v2Pro", "v2ProPlus", "v4"],
                             scale=5,
                         )
             with gr.Accordion(label=i18n("预训练模型路径"), open=False):
