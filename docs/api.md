@@ -330,4 +330,4 @@ curl --get --fail-with-body --show-error \
 - **普通推理不做完整数值范围校验。** 类型能被解析不代表任意数值组合都有效；GPT 语义流式表中的范围检查不应当视为所有模式的统一校验。固定 `seed` 也不保证不同硬件、精度、后端或窗口模式下得到逐字节相同的音频。
 - **v3 超采样权重缺失时会跳过超采样。** 请求中的 `super_sampling=true` 不保证输出为 48000 Hz，应以实际模型配置或 WAV 采样率为准。
 
-本页依据当前 [API 路由](../api_v2.py)、[TTS pipeline](../GPT_SoVITS/TTS_infer_pack/TTS.py)、[语义流式实现](../GPT_SoVITS/TTS_infer_pack/streaming.py) 和 [文本切分实现](../GPT_SoVITS/TTS_infer_pack/text_segmentation_method.py) 描述。
+本页依据当前 [兼容入口](../api_v2.py)、[HTTP 路由](../GPT_SoVITS/service/routes.py)、[请求模型](../GPT_SoVITS/service/schemas.py)、[TTS pipeline](../GPT_SoVITS/inference/pipeline.py)、[语义流式实现](../GPT_SoVITS/inference/streaming.py) 和 [文本切分实现](../GPT_SoVITS/inference/segmentation.py) 描述。

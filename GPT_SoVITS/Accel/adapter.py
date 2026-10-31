@@ -6,7 +6,7 @@ from queue import Empty
 
 import torch
 
-from tools.acceleration import resolve_acceleration
+from .capabilities import resolve_acceleration
 from .PyTorch.AR.structs import T2SRequest
 from .PyTorch.AR.t2s_engine import T2SEngine
 

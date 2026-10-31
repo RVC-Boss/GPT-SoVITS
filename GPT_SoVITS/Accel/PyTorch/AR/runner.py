@@ -9,7 +9,7 @@ from typing import Optional, TypeVar
 
 import torch
 
-from tools.acceleration import cuda_graph_available
+from GPT_SoVITS.Accel.capabilities import cuda_graph_available
 
 from .sample_funcs import sample_naive
 from .structs import KVCache, T2SRequest, T2SSession

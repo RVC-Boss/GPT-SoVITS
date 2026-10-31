@@ -15,9 +15,9 @@ from typing import Dict, List, Tuple
 from text.cleaner import clean_text
 from text import cleaned_text_to_sequence
 from transformers import AutoModel, AutoTokenizer
-from TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
+from .segmentation import split_big_text, splits, get_method as get_seg_method
 
-from tools.i18n.i18n import I18nAuto
+from GPT_SoVITS.runtime.i18n import I18nAuto
 
 language = os.environ.get("language", "Auto")
 i18n = I18nAuto(language=language)
@@ -97,7 +97,7 @@ class TextPreprocessor:
             # 解决输入目标文本的空行导致报错的问题
             if len(text.strip()) == 0:
                 continue
-            if not re.sub("\W+", "", text):
+            if not re.sub(r"\W+", "", text):
                 # 检测一下，如果是纯符号，就跳过。
                 continue
             if text[-1] not in splits:

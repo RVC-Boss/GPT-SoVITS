@@ -1,6 +1,6 @@
 import torch
 import os
-from tools.portable_runtime import prepare_transformers_flash_attention
+from GPT_SoVITS.runtime.portable import prepare_transformers_flash_attention
 
 prepare_transformers_flash_attention()
 

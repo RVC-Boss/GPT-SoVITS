@@ -2,8 +2,9 @@ import torch
 
 from GPT_SoVITS.eres2net.ERes2NetV2 import ERes2NetV2
 from GPT_SoVITS.eres2net import kaldi as Kaldi
+from GPT_SoVITS.runtime.paths import SPEAKER_MODEL_PATH
 
-sv_path = "GPT_SoVITS/pretrained_models/sv/pretrained_eres2netv2w24s4ep4.ckpt"
+sv_path = str(SPEAKER_MODEL_PATH)
 
 
 class SV:

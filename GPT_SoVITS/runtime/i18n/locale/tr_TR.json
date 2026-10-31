@@ -1,0 +1,22 @@
+{
+  "你没有下载超分模型的参数，因此不进行超分。如想超分请先参照教程把文件下载好": "Süper çözünürlük model parametrelerini indirmediniz, bu yüzden süper çözünürlük yapılmaz. Süper çözünürlük yapmak için önce kılavuzu takip ederek dosyaları indirin.",
+  "分桶处理模式已关闭": "Kovaya İşleme Modu Kapalı",
+  "分桶处理模式已开启": "Kovaya İşleme Modu Etkin",
+  "切分文本": "Metni Bölümle",
+  "前端处理后的文本(每句):": "Ön işleme tabi tutulan metin (her cümle):",
+  "参考音频在3~10秒范围外，请更换！": "Referans ses dosyası 3~10 saniye aralığının dışında, lütfen değiştirin!",
+  "合成音频": "Ses Sentezleme",
+  "实际输入的参考文本:": "Gerçekten girilen referans metin:",
+  "实际输入的目标文本(切句后):": "Gerçekten girilen hedef metin (cümleler kesildikten sonra):",
+  "实际输入的目标文本:": "Gerçekten girilen hedef metin:",
+  "并行合成中": "Paralel Sentezleme Yapılıyor",
+  "并行推理模式已开启": "Paralel Çıkarım Modu Etkin",
+  "当开启并行推理模式时，SoVits V3/4模型不支持分桶处理，已自动关闭分桶处理": "Paralel çıkarım modu etkinleştirildiğinde, SoVITS V3/4 modelleri bölme işlemeyi desteklemez ve bu işlem otomatik olarak devre dışı bırakılır.",
+  "提取文本Bert特征": "Metin BERT Özelliklerini Çıkar",
+  "语速调节不支持分桶处理，已自动关闭分桶处理": "Konuşma Hızı Ayarlaması Kovaya İşlemeyi Desteklemediği İçin Kovaya İşleme Otomatik Olarak Kapatılmıştır",
+  "请输入有效文本": "Geçerli metin girin",
+  "路径不存在,使用默认配置": "Yol Bulunamadı, Varsayılan Yapılandırma Kullanılıyor",
+  "音频文件不存在，跳过：": "Ses dosyası bulunamadı, atlanıyor: ",
+  "音频超采样": "Ses Üst-örnekleme",
+  "预测语义Token": "Anlamsal Token Tahmini"
+}

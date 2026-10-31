@@ -1,0 +1,22 @@
+{
+  "你没有下载超分模型的参数，因此不进行超分。如想超分请先参照教程把文件下载好": "Non hai scaricato i parametri del modello di super-risoluzione, quindi l'upscaling non verrà eseguito. Segui il tutorial per scaricare i file necessari.",
+  "分桶处理模式已关闭": "Modalità di elaborazione per bucket disabilitata",
+  "分桶处理模式已开启": "Modalità di elaborazione per bucket abilitata",
+  "切分文本": "Segmenta il testo",
+  "前端处理后的文本(每句):": "Testo elaborato dal front-end (per frase):",
+  "参考音频在3~10秒范围外，请更换！": "L'audio di riferimento è al di fuori dell'intervallo di 3-10 secondi. Si prega di cambiarlo!",
+  "合成音频": "Sintesi audio",
+  "实际输入的参考文本:": "Testo di riferimento effettivamente inserito:",
+  "实际输入的目标文本(切句后):": "Testo di destinazione effettivamente inserito (dopo il taglio delle frasi):",
+  "实际输入的目标文本:": "Testo di destinazione effettivamente inserito:",
+  "并行合成中": "Sintesi parallela in corso",
+  "并行推理模式已开启": "Modalità di inferenza parallela abilitata",
+  "当开启并行推理模式时，SoVits V3/4模型不支持分桶处理，已自动关闭分桶处理": "Quando la modalità di inferenza parallela è attiva, i modelli SoVITS V3/4 non supportano l'elaborazione suddivisa in gruppi e questa è stata automaticamente disattivata.",
+  "提取文本Bert特征": "Estrai caratteristiche Bert dal testo",
+  "语速调节不支持分桶处理，已自动关闭分桶处理": "Il controllo della velocità del discorso non supporta l'elaborazione per bucket, l'elaborazione per bucket è stata disabilitata automaticamente",
+  "请输入有效文本": "Inserisci un testo valido",
+  "路径不存在,使用默认配置": "Percorso non trovato, utilizzo della configurazione predefinita",
+  "音频文件不存在，跳过：": "File audio non trovato, salto: ",
+  "音频超采样": "Upsampling audio",
+  "预测语义Token": "Predici token semantico"
+}

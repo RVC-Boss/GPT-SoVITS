@@ -3,13 +3,20 @@ import math
 import threading
 import time
 import torch
-from tools.acceleration import create_acceleration
+from GPT_SoVITS.Accel.factory import create_acceleration
+from GPT_SoVITS.module.models_v5 import (
+    V5_MAX_TARGET_CHUNK_FRAMES,
+    V5_REFERENCE_FRAMES,
+    V5_ROLLING_TAIL_FRAMES,
+    V5_TOTAL_CHUNK_FRAMES,
+    V5_VERSIONS,
+)
 
 
 def validate_streaming_options(req, version, api_mode=False):
     if not req.get("gpt_streaming", False):
         return
-    if version not in {"v2ProPlus", "v5turbo", "v5dev"}:
+    if version not in ({"v2ProPlus"} | V5_VERSIONS):
         raise ValueError("gpt_streaming supports v2ProPlus, v5turbo and v5dev")
     mode = req.get("streaming_mode", False)
     if (api_mode and (type(mode) is not int or mode not in (2, 3))) or (not api_mode and mode not in (True, 2, 3)):
@@ -190,7 +197,7 @@ def v2_token_chunks(updates, chunk_length, mute_emb_sim_matrix=None, threshold=0
 
 
 def v5_reference(pipeline):
-    from .TTS import resample, mel_fn_v4, norm_spec
+    from .audio import resample, mel_fn_v4, norm_spec
     cache = pipeline.prompt_cache
     spec = cache["refer_spec"][0][0].to(pipeline.configs.device, dtype=pipeline.precision)
     prompt = cache["prompt_semantic"].reshape(1, 1, -1).to(pipeline.configs.device)
@@ -201,7 +208,7 @@ def v5_reference(pipeline):
         audio = resample(audio, cache["raw_sr"], 32000, pipeline.configs.device)
     mel = norm_spec(mel_fn_v4(audio)).to(pipeline.precision)
     limit = min(mel.shape[-1], features.shape[-1])
-    count = min(500, limit)
+    count = min(V5_REFERENCE_FRAMES, limit)
     return (cache["phones"], cache["bert_features"], prompt,
             spec, features[..., :limit][..., -count:], ge, mel[..., :limit][..., -count:])
 
@@ -221,9 +228,9 @@ def stream_v5_windows(vq_model, vocoder, denorm_spec, device, token_updates, pho
     fade = fade_frames * 480
     left_frames = max(24, fade_frames)
     ref_features, ref_mel = reference[4], reference[6]
-    count = min(500, ref_features.shape[-1], ref_mel.shape[-1])
+    count = min(V5_REFERENCE_FRAMES, ref_features.shape[-1], ref_mel.shape[-1])
     ref_features, ref_mel = ref_features[..., -count:], ref_mel[..., -count:]
-    if count + core + future > 1000:
+    if count + core + future > V5_TOTAL_CHUNK_FRAMES:
         raise ValueError("Reference plus streaming window exceeds the V5 1000-frame context")
     # The AR sampler uses the global CUDA RNG. CFM must not advance that RNG
     # while AR is still decoding on its owner thread.
@@ -234,7 +241,7 @@ def stream_v5_windows(vq_model, vocoder, denorm_spec, device, token_updates, pho
     feature_history = ref_features[..., :0]
     pending = None
     cursor = previous_tokens = 0
-    schedule = StreamingWindowSchedule(core, min(1000-count, 640)) if hybrid else None
+    schedule = StreamingWindowSchedule(core, min(V5_TOTAL_CHUNK_FRAMES-count, V5_MAX_TARGET_CHUNK_FRAMES)) if hybrid else None
     for tokens, finished in token_updates:
         if stop.is_set():
             return
@@ -265,7 +272,7 @@ def stream_v5_windows(vq_model, vocoder, denorm_spec, device, token_updates, pho
             if cursor == 0:
                 prompt, features = ref_mel, ref_features
             else:
-                tail = min(32, count, history.shape[-1])
+                tail = min(V5_ROLLING_TAIL_FRAMES, count, history.shape[-1])
                 prefix = count - tail
                 prompt = torch.cat((ref_mel[..., :prefix], history[..., -tail:]), -1)
                 tail_features = feature_history[..., -tail:] if hybrid else target[..., cursor-tail:cursor]
@@ -292,8 +299,8 @@ def stream_v5_windows(vq_model, vocoder, denorm_spec, device, token_updates, pho
             else:
                 emitted = torch.cat((prefix_audio, current))
                 pending = None
-            history = torch.cat((history, accepted), -1)[..., -max(left_frames, 32):]
-            feature_history = torch.cat((feature_history, target[..., cursor:end]), -1)[..., -max(left_frames, 32):]
+            history = torch.cat((history, accepted), -1)[..., -max(left_frames, V5_ROLLING_TAIL_FRAMES):]
+            feature_history = torch.cat((feature_history, target[..., cursor:end]), -1)[..., -max(left_frames, V5_ROLLING_TAIL_FRAMES):]
             units = end-cursor
             cursor = end
             if stop.is_set():

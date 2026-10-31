@@ -19,9 +19,10 @@ from module.models import CFM, SynthesizerTrn
 
 # Load the official helper file directly so importing its package does not
 # eagerly import the full TTS stack (and its optional librosa/numba cache).
-_streaming_path = Path(__file__).resolve().parents[1] / "GPT_SoVITS" / "TTS_infer_pack" / "streaming.py"
-_streaming_spec = importlib.util.spec_from_file_location("GPT_SoVITS.TTS_infer_pack.streaming", _streaming_path)
+_streaming_path = Path(__file__).resolve().parents[1] / "GPT_SoVITS" / "inference" / "streaming.py"
+_streaming_spec = importlib.util.spec_from_file_location("GPT_SoVITS.inference.streaming", _streaming_path)
 _streaming_module = importlib.util.module_from_spec(_streaming_spec)
+sys.modules[_streaming_spec.name] = _streaming_module
 _streaming_spec.loader.exec_module(_streaming_module)
 v2_token_chunks = _streaming_module.v2_token_chunks
 validate_streaming_options = _streaming_module.validate_streaming_options
@@ -81,8 +82,8 @@ class ReferenceTests(unittest.TestCase):
         pipeline = SimpleNamespace(prompt_cache=cache, precision=torch.float32,
             configs=SimpleNamespace(device=torch.device("cpu")),
             vits_model=SimpleNamespace(decode_encp=lambda *args: (features, None)))
-        stub = SimpleNamespace(resample=None, mel_fn_v4=lambda _: mel, norm_spec=lambda x: x)
-        with patch.dict(sys.modules, {"GPT_SoVITS.TTS_infer_pack.TTS": stub}):
+        with patch.dict(sys.modules, {"GPT_SoVITS.inference.audio": SimpleNamespace(
+                resample=lambda *_args: torch.zeros(1, 10), mel_fn_v4=lambda _: mel, norm_spec=lambda x: x)}):
             reference = _streaming_module.v5_reference(pipeline)
         torch.testing.assert_close(reference[4], features[..., :5])
         torch.testing.assert_close(reference[6], mel)

@@ -1,0 +1,22 @@
+{
+  "你没有下载超分模型的参数，因此不进行超分。如想超分请先参照教程把文件下载好": "No has descargado los parámetros del modelo de superresolución, por lo que no se realizará la superresolución. Si deseas habilitarla, sigue el tutorial y descarga los archivos necesarios",
+  "分桶处理模式已关闭": "Modo de procesamiento por lotes deshabilitado",
+  "分桶处理模式已开启": "Modo de procesamiento por lotes habilitado",
+  "切分文本": "Segmentar texto",
+  "前端处理后的文本(每句):": "Texto después del procesamiento previo (por frase):",
+  "参考音频在3~10秒范围外，请更换！": "El audio de referencia está fuera del rango de 3 a 10 segundos, ¡por favor cámbielo!",
+  "合成音频": "Sintetizar Audio",
+  "实际输入的参考文本:": "Texto de referencia realmente ingresado:",
+  "实际输入的目标文本(切句后):": "Texto objetivo realmente ingresado (después de dividir en frases):",
+  "实际输入的目标文本:": "Texto objetivo realmente ingresado:",
+  "并行合成中": "Síntesis en paralelo en curso",
+  "并行推理模式已开启": "Modo de inferencia paralela habilitado",
+  "当开启并行推理模式时，SoVits V3/4模型不支持分桶处理，已自动关闭分桶处理": "Al activar el modo de inferencia paralela, los modelos SoVITS V3/4 no admiten el procesamiento por lotes, por lo que este ha sido desactivado automáticamente.",
+  "提取文本Bert特征": "Extraer características de texto con BERT",
+  "语速调节不支持分桶处理，已自动关闭分桶处理": "El ajuste de velocidad de voz no es compatible con el procesamiento por lotes, se ha deshabilitado automáticamente",
+  "请输入有效文本": "Por favor, introduzca un texto válido",
+  "路径不存在,使用默认配置": "Ruta no encontrada, usando configuración predeterminada",
+  "音频文件不存在，跳过：": "Archivo de audio no encontrado, omitiendo: ",
+  "音频超采样": "Muestreo superior del audio",
+  "预测语义Token": "Predecir token semántico"
+}

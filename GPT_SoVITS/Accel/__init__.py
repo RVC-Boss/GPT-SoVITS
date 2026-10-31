@@ -2,7 +2,7 @@
 
 import os
 
-from tools.portable_runtime import _prepare_dlls
+from GPT_SoVITS.runtime.portable import _prepare_dlls
 
 
 os.environ.setdefault("G2PW", "0")

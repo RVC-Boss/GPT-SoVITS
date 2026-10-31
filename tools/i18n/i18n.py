@@ -1,28 +1,5 @@
-import json
-import locale
-from pathlib import Path
+"""Compatibility shim for GPT_SoVITS.runtime.i18n."""
 
-I18N_JSON_DIR = Path(__file__).resolve().parent / "locale"
+from GPT_SoVITS.runtime.i18n.i18n import I18N_JSON_DIR, I18nAuto, load_language_list
 
-
-def load_language_list(language):
-    with open(I18N_JSON_DIR / f"{language}.json", "r", encoding="utf-8") as f:
-        language_list = json.load(f)
-    return language_list
-
-
-class I18nAuto:
-    def __init__(self, language=None):
-        if language in ["Auto", None]:
-            language = locale.getdefaultlocale()[0]
-            # getlocale can't identify the system's language ((None, None))
-        if not (I18N_JSON_DIR / f"{language}.json").exists():
-            language = "en_US"
-        self.language = language
-        self.language_map = load_language_list(language)
-
-    def __call__(self, key):
-        return self.language_map.get(key, key)
-
-    def __repr__(self):
-        return "Use Language: " + self.language
+__all__ = ["I18N_JSON_DIR", "I18nAuto", "load_language_list"]

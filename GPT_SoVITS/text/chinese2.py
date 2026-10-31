@@ -5,6 +5,7 @@ import cn2an
 from pypinyin import lazy_pinyin, Style
 from pypinyin.contrib.tone_convert import to_finals_tone3, to_initials
 
+from GPT_SoVITS.runtime.paths import BERT_MODEL_DIR, G2PW_MODEL_DIR
 from text.symbols import punctuation
 from text.tone_sandhi import ToneSandhi
 from text.zh_normalization.text_normlization import TextNormalizer
@@ -32,8 +33,8 @@ if is_g2pw:
 
     parent_directory = os.path.dirname(current_file_path)
     g2pw = G2PWPinyin(
-        model_dir="GPT_SoVITS/text/G2PWModel",
-        model_source=os.environ.get("bert_path", "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"),
+        model_dir=str(G2PW_MODEL_DIR),
+        model_source=os.environ.get("bert_path", str(BERT_MODEL_DIR)),
         v_to_u=False,
         neutral_tone_with_five=True,
     )

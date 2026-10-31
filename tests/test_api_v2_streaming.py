@@ -68,16 +68,14 @@ def _load_api_module(argv=None):
         activate=lambda **_kwargs: None,
     )
     i18n = _module("tools.i18n.i18n", I18nAuto=lambda: object())
-    tts = _module("GPT_SoVITS.TTS_infer_pack.TTS", TTS=_FakePipeline, TTS_Config=_FakeConfig)
+    inference = _module("GPT_SoVITS.inference", package=True, TTS=_FakePipeline, TTS_Config=_FakeConfig)
     segmentation = _module(
-        "GPT_SoVITS.TTS_infer_pack.text_segmentation_method",
+        "GPT_SoVITS.inference.segmentation",
         get_method_names=lambda: [f"cut{index}" for index in range(6)],
     )
-    streaming_name = "GPT_SoVITS.TTS_infer_pack.streaming"
-    streaming_spec = importlib.util.spec_from_file_location(
-        streaming_name, root / "GPT_SoVITS" / "TTS_infer_pack" / "streaming.py"
-    )
-    streaming = importlib.util.module_from_spec(streaming_spec)
+    streaming_name = "GPT_SoVITS.inference.streaming"
+    from GPT_SoVITS.inference.streaming import validate_streaming_options
+    streaming = _module(streaming_name, validate_streaming_options=validate_streaming_options)
     replacements = {
         "tools": _module("tools", package=True),
         "tools.portable_runtime": portable,
@@ -86,16 +84,18 @@ def _load_api_module(argv=None):
         "tools.acceleration": _module("tools.acceleration", create_acceleration=lambda *_args, **_kwargs: None),
         "torch": _module("torch", inference_mode=lambda: lambda function: function),
         "GPT_SoVITS": _module("GPT_SoVITS", package=True),
-        "GPT_SoVITS.TTS_infer_pack": _module("GPT_SoVITS.TTS_infer_pack", package=True),
-        "GPT_SoVITS.TTS_infer_pack.TTS": tts,
-        "GPT_SoVITS.TTS_infer_pack.text_segmentation_method": segmentation,
+        "GPT_SoVITS.Accel": _module("GPT_SoVITS.Accel", package=True),
+        "GPT_SoVITS.Accel.factory": _module(
+            "GPT_SoVITS.Accel.factory", create_acceleration=lambda *_args, **_kwargs: None
+        ),
+        "GPT_SoVITS.inference": inference,
+        "GPT_SoVITS.inference.segmentation": segmentation,
         streaming_name: streaming,
     }
     spec = importlib.util.spec_from_file_location("api_v2_streaming_test_module", root / "api_v2.py")
     api = importlib.util.module_from_spec(spec)
     replacements[spec.name] = api
     with patch.dict(sys.modules, replacements), patch.object(sys, "argv", argv or [sys.argv[0]]):
-        streaming_spec.loader.exec_module(streaming)
         spec.loader.exec_module(api)
     return api
 

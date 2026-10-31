@@ -14,7 +14,7 @@
 
 优先使用模型提供者说明中配套的 `.ckpt` 和 `.pth`。参考音频建议为单人、清晰、无配乐的 WAV；服务按重采样到 16 kHz 后的长度检查 3–10 秒范围。`prompt_lang` 对应参考转写的语言，`text_lang` 对应生成文本的语言。v3、v4 和 v5 的请求必须提供非空 `prompt_text`。
 
-保留下载文件的原始 checkpoint 格式。服务可直接加载受支持的已有模型及其兼容配置；修改文件名或 YAML 中的 `version` 不会转换模型版本。实际 SoVITS 类型由加载器根据权重标识和内容确定。
+保留下载文件的原始 checkpoint 格式。服务可直接加载受支持的已有模型及其兼容配置；修改文件名或 YAML 中的 `version` 不会转换模型版本。实际 SoVITS 类型由 [`inference/checkpoints.py`](../GPT_SoVITS/inference/checkpoints.py) 根据权重标识和内容确定。
 
 ## 共享资源与模型来源
 
@@ -64,14 +64,14 @@ GPT_SoVITS/pretrained_models/
 └── sv/
     └── pretrained_eres2netv2w24s4ep4.ckpt         # v2Pro/v2ProPlus
 
-tools/AP_BWE_main/24kto48k/
+GPT_SoVITS/vendor/ap_bwe/24kto48k/
 ├── config.json
 └── g_24kto48k.zip                               # 可选的 v3 超采样
 ```
 
 v3 的 BigVGAN 资源可取模型库中的同名目录，或取 [NVIDIA BigVGAN 模型](https://huggingface.co/nvidia/bigvgan_v2_24khz_100band_256x/tree/main) 中的 `config.json` 和 `bigvgan_generator.pt`，直接放入上述本地目录。运行时读取这两个本地文件，目录名不表示需要额外的 Hugging Face 缓存层级。v3 默认输出 24 kHz；v4 与两个 v5 版本的声码器输出 48 kHz。
 
-v3 的可选超采样使用 [AP-BWE](https://github.com/yxlu-0102/AP-BWE) 提供的 [预训练资源](https://drive.google.com/drive/folders/1IIYTf2zbJWzelu4IftKD6ooHloJ8mnZF?usp=share_link)。将 `g_24kto48k.zip` 与对应 `config.json` 放在同一目录；这里的 ZIP 文件由加载器直接读取，不需解压为其他权重文件。请求设置 `super_sampling: true` 后才会加载，当前该选项用于 v3 的 24→48 kHz 输出。缺少超采样权重时，服务记录提示并保留原采样率输出。
+v3 的可选超采样使用 [AP-BWE](https://github.com/yxlu-0102/AP-BWE) 提供的 [预训练资源](https://drive.google.com/drive/folders/1IIYTf2zbJWzelu4IftKD6ooHloJ8mnZF?usp=share_link)。将 `g_24kto48k.zip` 与对应 `config.json` 放在规范目录 `GPT_SoVITS/vendor/ap_bwe/24kto48k/`；ZIP 由加载器直接读取，不需解压。运行时优先使用该目录，若权重不存在，再检查旧部署位置 `tools/AP_BWE_main/24kto48k/`。请求设置 `super_sampling: true` 后才会加载，当前该选项用于 v3 的 24→48 kHz 输出；缺少权重时记录提示并保留原采样率输出。
 
 ## 可复制的 v4 CPU 配置
 
@@ -144,7 +144,7 @@ python api_v2.py -c models/voice/tts-default-v4.yaml
 | `v4.vits_weights_path` 等版本默认路径 | 可使用相对路径或绝对路径，LoRA 用它查找基座 |
 | `/tts` 的参考音频、辅助参考音频与 `/set_*` 路径 | 指向服务进程可访问的本地文件，可使用相对路径或绝对路径 |
 | G2PW 模型目录、BigVGAN、v4/v5 声码器、Pro 声纹模型 | 当前按上面的项目固定布局查找，YAML 没有单独的重定位字段 |
-| AP-BWE 超采样 | 固定在 `tools/AP_BWE_main/24kto48k/`，相对于该工具源码位置 |
+| AP-BWE 超采样 | 规范位置为 `GPT_SoVITS/vendor/ap_bwe/24kto48k/`；为兼容已有挂载，缺失时回退 `tools/AP_BWE_main/24kto48k/` |
 
 相对路径以服务的工作目录为基准，不以 YAML 文件所在目录为基准。Windows 的绝对路径建议在 YAML 中使用正斜杠或单引号，避免反斜杠被双引号当作转义字符。
 

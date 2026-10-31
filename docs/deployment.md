@@ -83,7 +83,7 @@ bash install.sh --device CPU
 | v3 声码器 | `GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x/` 下的 `config.json`、`bigvgan_generator.pt` |
 | v4 声码器 | `GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth` |
 | v5dev / v5turbo 声码器 | `GPT_SoVITS/pretrained_models/gsv-v5-pretrained/vocoder.pth` |
-| 可选超采样 | `tools/AP_BWE_main/24kto48k/g_24kto48k.zip` 及同目录的 `config.json` |
+| 可选超采样 | 规范位置 `GPT_SoVITS/vendor/ap_bwe/24kto48k/g_24kto48k.zip` 及同目录 `config.json`；旧 `tools/AP_BWE_main/24kto48k/` 仍作为回退 |
 | 参考音频 | 例如 `references/reference.wav`，请求指定其本地路径 |
 
 LoRA 权重还需要相应版本的基础 SoVITS 权重。准备实际使用版本所需的资源即可。
@@ -119,7 +119,7 @@ python .\api_v2.py -c GPT_SoVITS/configs/tts_infer.yaml -a 127.0.0.1 -p 9880
 
 `-c/--tts_config` 指定配置文件，`-a/--bind_addr` 指定监听地址，`-p/--port` 指定端口。默认地址为 `127.0.0.1:9880`；需要外部客户端访问时使用 `-a 0.0.0.0`。
 
-模型在服务启动阶段加载，日志出现 `Application startup complete` 后再发送请求。权重缺失会导致启动失败；单独运行 `python -c "import api_v2"` 不加载 TTS 权重，不能替代完整启动检查。服务默认使用一个 worker；请求、参考音频设置和模型切换共享该进程的模型状态。
+模型在服务启动阶段加载，日志出现 `Application startup complete` 后再发送请求。权重缺失会导致启动失败；单独运行 `python -c "import api_v2"` 不加载 TTS 权重，不能替代完整启动检查。`api_v2.py` 是稳定兼容入口，实际应用和 CLI 位于 `GPT_SoVITS/service/`，推理实现位于 `GPT_SoVITS/inference/`。服务固定使用一个 worker；请求、参考音频设置和模型切换共享该进程的模型状态。
 
 日志默认输出到控制台。Linux 保存日志：
 
@@ -165,7 +165,7 @@ PowerShell 设置 `$env:API_PORT = '19880'` 后执行 `docker compose up -d`。�
 
 ### 挂载自定义权重
 
-Compose 已挂载默认预训练资源、G2PW、推理配置、参考音频和超采样目录，挂载为只读；`.codex/runtime-cache/` 为可写持久化缓存。自定义权重若放在 `models/`，在服务的 `volumes` 中追加：
+Compose 已将默认预训练资源、G2PW、推理配置、参考音频和 AP-BWE 目录挂载到原有 `/app/...` 路径，均为只读；`.codex/runtime-cache/` 为可写持久化缓存。AP-BWE 同时挂载规范目录 `/app/GPT_SoVITS/vendor/ap_bwe/24kto48k` 和旧目录 `/app/tools/AP_BWE_main/24kto48k`：运行时优先规范目录，保留旧挂载是为了已有部署在迁移权重前仍可运行。自定义权重若放在 `models/`，在服务的 `volumes` 中追加：
 
 ```yaml
 services:
@@ -195,7 +195,7 @@ docker compose down
 
 ## 缓存和离线准备
 
-离线机器需要先具备运行依赖、FFmpeg 和所用版本的全部模型。可在相同平台、Python 版本及设备后端的环境完成安装和资源准备后迁移部署材料；安装脚本自身会访问 PyPI/PyTorch 和语言资源下载站点。
+离线机器需要先具备运行依赖、FFmpeg 和所用版本的全部模型。可在相同平台、Python 版本及设备后端的环境完成安装和资源准备后迁移部署材料；安装脚本自身会访问 PyPI/PyTorch 和语言资源下载站点。规范运行资源由 `GPT_SoVITS/runtime/paths.py` 定位，顶层 `runtime/` 仅用于可选便携 FFmpeg、DLL、site-packages 和 NLTK 数据。
 
 | 资源 | 准备方法与运行位置 |
 | --- | --- |
@@ -209,14 +209,14 @@ docker compose down
 
 设置 `NLTK_DATA` 可指向预先准备的 NLTK 目录；运行时也会依次查找项目便携包的 `runtime/nltk_data/` 和 `.codex/runtime-cache/nltk_data/`。便携包中存在 `runtime/ffmpeg.exe` / `runtime/ffprobe.exe` 时优先使用它们，否则从系统 `PATH` 查找。
 
-本地 Hugging Face 模型及 tokenizer 准备完整后，可设置 `HF_HUB_OFFLINE=1` 验证离线启动和一次真实请求。该变量只控制 Hugging Face 的访问，G2PW、语言检测和 NLTK 等资源仍须分别准备。Docker 离线运行需要提前构建或导入完整镜像，并准备宿主机挂载目录；`.dockerignore` 排除了默认预训练权重、G2PW 和 `.codex` 缓存目录，镜像构建不会自动包含这些资源。容器内 NLTK 默认使用镜像预置的 `/opt/nltk_data`。
+本地 Hugging Face 模型及 tokenizer 准备完整后，可设置 `HF_HUB_OFFLINE=1` 验证离线启动和一次真实请求。该变量只控制 Hugging Face 的访问，G2PW、语言检测和 NLTK 等资源仍须分别准备。Docker 离线运行需要提前构建或导入完整镜像，并准备宿主机挂载目录；`.dockerignore` 排除了默认预训练权重、G2PW、AP-BWE ZIP 和 `.codex` 缓存目录，镜像构建不会自动包含这些资源。容器内 NLTK 默认使用镜像预置的 `/opt/nltk_data`。
 
 ## 检查和 CI
 
 先检查入口可导入，再运行回归：
 
 ```bash
-python -c "import api_v2; assert api_v2.tts_pipeline is None"
+python -c "import api_v2; from GPT_SoVITS.service.app import APP; from GPT_SoVITS.inference import TTS, TTS_Config; assert api_v2.APP is APP and api_v2.tts_pipeline is None"
 python -m unittest discover -s tests -t . -p "test_*.py"
 ```
 

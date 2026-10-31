@@ -4,10 +4,9 @@ import os
 import hashlib
 import shutil
 
-OPENJTALK_CACHE_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    ".codex", "runtime-cache", "openjtalk",
-)
+from GPT_SoVITS.runtime.paths import cache_path
+
+OPENJTALK_CACHE_DIR = str(cache_path("openjtalk"))
 if os.name == "nt" and not re.match(r"^[A-Za-z0-9_/\\:.\-]*$", OPENJTALK_CACHE_DIR):
     OPENJTALK_CACHE_DIR = os.path.relpath(OPENJTALK_CACHE_DIR)
 

@@ -66,10 +66,10 @@ class InferenceSurfaceTests(unittest.TestCase):
 
 
     def test_api_v2_exposes_inference_routes_only(self):
-        source = (ROOT / "api_v2.py").read_text(encoding="utf-8")
-        self.assertIn('@APP.get("/tts")', source)
-        self.assertIn('@APP.post("/tts")', source)
-        self.assertIn('@APP.get("/set_refer_audio")', source)
-        self.assertIn('@APP.get("/set_gpt_weights")', source)
-        self.assertIn('@APP.get("/set_sovits_weights")', source)
-        self.assertNotIn('@APP.get("/control")', source)
+        source = (ROOT / "GPT_SoVITS" / "service" / "routes.py").read_text(encoding="utf-8")
+        self.assertIn('application.add_api_route("/tts", tts_get_endpoint, methods=["GET"])', source)
+        self.assertIn('application.add_api_route("/tts", tts_post_endpoint, methods=["POST"])', source)
+        self.assertIn('application.add_api_route("/set_refer_audio", set_refer_aduio, methods=["GET"])', source)
+        self.assertIn('application.add_api_route("/set_gpt_weights", set_gpt_weights, methods=["GET"])', source)
+        self.assertIn('application.add_api_route("/set_sovits_weights", set_sovits_weights, methods=["GET"])', source)
+        self.assertNotIn('application.add_api_route("/control"', source)

@@ -9,12 +9,17 @@ jieba.setLogLevel(logging.CRITICAL)
 
 import fast_langdetect
 
+from GPT_SoVITS.runtime.paths import cache_path, pretrained_path
+
 
 def _langdetect_config(project_root: Path):
-    configured_cache = os.environ.get("GPT_SOVITS_LANGDETECT_CACHE", "").strip()
-    cache_dir = Path(configured_cache).expanduser() if configured_cache else project_root / ".codex" / "runtime-cache" / "fast_langdetect"
+    cache_dir = cache_path(
+        "fast_langdetect",
+        project_root=project_root,
+        env_var="GPT_SOVITS_LANGDETECT_CACHE",
+    )
     cache_dir.mkdir(parents=True, exist_ok=True)
-    legacy_model = project_root / "GPT_SoVITS" / "pretrained_models" / "fast_langdetect" / "lid.176.bin"
+    legacy_model = pretrained_path("fast_langdetect", "lid.176.bin", project_root=project_root)
     local_model = legacy_model if legacy_model.is_file() and not (cache_dir / "lid.176.bin").is_file() else None
     return fast_langdetect.infer.LangDetectConfig(
         cache_dir=str(cache_dir),

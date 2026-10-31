@@ -10,6 +10,7 @@ services:
       - ./GPT_SoVITS/text/G2PWModel:/app/GPT_SoVITS/text/G2PWModel:ro
       - ./GPT_SoVITS/configs/tts_infer.yaml:/app/GPT_SoVITS/configs/tts_infer.yaml:ro
       - ./references:/app/references:ro
+      - ./GPT_SoVITS/vendor/ap_bwe/24kto48k:/app/GPT_SoVITS/vendor/ap_bwe/24kto48k:ro
       - ./tools/AP_BWE_main/24kto48k:/app/tools/AP_BWE_main/24kto48k:ro
       - ./.codex/runtime-cache:/app/.codex/runtime-cache
     gpus: all

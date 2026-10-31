@@ -12,9 +12,10 @@ from torchaudio.compliance.kaldi import fbank as reference_fbank
 from GPT_SoVITS.BigVGAN.bigvgan import AttrDict, BigVGAN
 from GPT_SoVITS.eres2net.ERes2NetV2 import ERes2NetV2
 from GPT_SoVITS.eres2net.kaldi import fbank
-from GPT_SoVITS.sv import SV
-from tools.AP_BWE_main.models.model import APNet_BWE_Model
-from tools.audio_sr import AP_BWE
+from GPT_SoVITS.inference.super_resolution import AP_BWE
+from GPT_SoVITS.runtime.paths import resolve_ap_bwe_checkpoint
+from GPT_SoVITS.inference.speaker import SV
+from GPT_SoVITS.vendor.ap_bwe.models.model import APNet_BWE_Model
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +53,7 @@ class InferenceComponentTests(unittest.TestCase):
         model = self._speaker_model()
         state = dict(model.state_dict())
         state.update({"seg_1.weight": torch.zeros(2, 2), "seg_1.bias": torch.zeros(2)})
-        with patch("GPT_SoVITS.sv.ERes2NetV2", return_value=model), patch("GPT_SoVITS.sv.torch.load", return_value=state):
+        with patch("GPT_SoVITS.inference.speaker.ERes2NetV2", return_value=model), patch("GPT_SoVITS.inference.speaker.torch.load", return_value=state):
             speaker = SV("cpu", False)
         self.assertFalse(hasattr(model, "pool"))
         self.assertFalse(hasattr(model, "seg_1"))
@@ -70,7 +71,7 @@ class InferenceComponentTests(unittest.TestCase):
                     state.pop("conv1.weight")
                 else:
                     state["seg_2.weight"] = torch.zeros(1)
-                with patch("GPT_SoVITS.sv.ERes2NetV2", return_value=model), patch("GPT_SoVITS.sv.torch.load", return_value=state):
+                with patch("GPT_SoVITS.inference.speaker.ERes2NetV2", return_value=model), patch("GPT_SoVITS.inference.speaker.torch.load", return_value=state):
                     with self.assertRaises(RuntimeError):
                         SV("cpu", False)
 
@@ -118,6 +119,21 @@ class InferenceComponentTests(unittest.TestCase):
         self.assertEqual(sampling_rate, 48000)
         self.assertEqual(output.shape, (4800,))
         self.assertTrue(torch.isfinite(torch.from_numpy(output)).all())
+
+    def test_bandwidth_extension_checkpoint_prefers_vendor_and_falls_back_to_legacy_mount(self):
+        with tempfile.TemporaryDirectory(dir=TEMP_ROOT) as directory:
+            directory = Path(directory)
+            canonical = directory / "vendor" / "g_24kto48k.zip"
+            legacy = directory / "tools" / "g_24kto48k.zip"
+            legacy.parent.mkdir(parents=True)
+            legacy.write_bytes(b"legacy")
+            with patch("GPT_SoVITS.runtime.paths.AP_BWE_CHECKPOINT_PATH", canonical), patch(
+                "GPT_SoVITS.runtime.paths.LEGACY_AP_BWE_CHECKPOINT_PATH", legacy
+            ):
+                self.assertEqual(resolve_ap_bwe_checkpoint(), legacy)
+                canonical.parent.mkdir(parents=True)
+                canonical.write_bytes(b"vendor")
+                self.assertEqual(resolve_ap_bwe_checkpoint(), canonical)
 
 
 if __name__ == "__main__":

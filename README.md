@@ -2,7 +2,7 @@
 
 这是从 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) 裁剪得到的语音推理服务。给定一组模型权重、参考音频和待合成文字，服务生成对应音色的语音，供其他程序通过 HTTP 调用。
 
-唯一服务入口是 `api_v2.py`，默认地址为 `http://127.0.0.1:9880`。仓库提供推理代码、配置样例、安装脚本和 Docker 部署文件；模型权重需要另行准备。训练、微调、数据集处理、ASR、音频分离和 WebUI 已移除。
+唯一服务入口是 `api_v2.py`，默认地址为 `http://127.0.0.1:9880`。该文件保留原 CLI 和导出兼容，实际 HTTP 服务位于 `GPT_SoVITS/service/`，推理编排位于 `GPT_SoVITS/inference/`。仓库提供推理代码、配置样例、安装脚本和 Docker 部署文件；模型权重需要另行准备。训练、微调、数据集处理、ASR、音频分离和 WebUI 已移除。
 
 - 模型版本：v1、v2、v2Pro、v2ProPlus、v3、v4、v5dev、v5turbo。
 - 语言：中文、英文、日文、韩文、粤语及混合语言模式；具体取决于模型版本。
@@ -75,7 +75,7 @@ GPT_SoVITS/pretrained_models/
 GPT_SoVITS/text/G2PWModel/
 ```
 
-参考音频用于提供音色和说话方式；`prompt_text` 必须填写该音频实际说出的内容，`text` 才是希望模型生成的新内容。
+参考音频用于提供音色和说话方式；`prompt_text` 必须填写该音频实际说出的内容，`text` 才是希望模型生成的新内容。v3 需要 24→48 kHz 超采样时，将 AP-BWE 权重放在 `GPT_SoVITS/vendor/ap_bwe/24kto48k/`；旧的 `tools/AP_BWE_main/24kto48k/` 仍作为兼容回退。
 
 ### 3. 配置要加载的模型
 
@@ -136,7 +136,18 @@ curl --fail-with-body -X POST http://127.0.0.1:9880/tts -H 'Content-Type: applic
 
 需要流式输出时，先按上述步骤确认普通 WAV 推理正常，再根据 [API 文档的流式说明](docs/api.md) 选择模式。普通流式使用 `batch_size=1`；GPT 语义流式仅适用于 v2ProPlus、v5dev、v5turbo，需要可用的 CUDA 加速后端，并有额外参数限制。
 
-## 文档与验证
+## 代码布局、文档与验证
+
+```text
+api_v2.py                   # 稳定启动器与兼容导出
+GPT_SoVITS/service/         # FastAPI、请求模型、响应编码、锁和 CLI
+GPT_SoVITS/inference/       # 模型加载、参考/文本处理、合成和流式
+GPT_SoVITS/runtime/         # 资源路径、便携环境和日志本地化
+GPT_SoVITS/vendor/ap_bwe/   # AP-BWE 实现、许可证和规范权重目录
+GPT_SoVITS/{AR,module,text}/ # 检查点/动态导入敏感的底层实现
+```
+
+顶层 `tools/` 当前只保留旧导入包装和旧 AP-BWE 资源路径兼容；新代码应使用上述 `GPT_SoVITS.*` 模块。完整职责与兼容边界见 [目录与架构](docs/architecture.md)。
 
 | 文档 | 内容 |
 | --- | --- |
@@ -148,10 +159,11 @@ curl --fail-with-body -X POST http://127.0.0.1:9880/tts -H 'Content-Type: applic
 安装好语言资源后，可执行回归测试：
 
 ```bash
+python -c "import api_v2; from GPT_SoVITS.service.app import APP; from GPT_SoVITS.inference import TTS, TTS_Config; assert api_v2.APP is APP and api_v2.tts_pipeline is None"
 python -m unittest discover -s tests -t . -p "test_*.py"
 ```
 
-仅检查入口导入时使用 `python -c "import api_v2"`；这个命令不会加载 TTS 权重，不能代替真实服务启动与语音生成检查。
+第一条命令检查兼容入口和规范模块可导入，且不会加载 TTS 权重；它不能代替真实服务启动与语音生成检查。
 
 ## Limitations / Known Issues
 

@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT / "GPT_SoVITS"))
 
 from AR.models.t2s_inference import Text2SemanticInference
 from AR.models.t2s_model import Text2SemanticDecoder
-from inference_loader import get_sovits_version_from_path_fast, load_sovits_new
+from GPT_SoVITS.inference.checkpoints import get_sovits_version_from_path_fast, load_sovits_new
 
 
 class InferenceModelTests(unittest.TestCase):
