@@ -124,6 +124,14 @@ activate_portable_runtime(change_cwd=True)
 
 import os
 import sys
+
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
 import traceback
 from typing import Generator, Union, Optional
 
