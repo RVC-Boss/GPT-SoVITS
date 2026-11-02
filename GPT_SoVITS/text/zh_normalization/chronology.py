@@ -78,7 +78,7 @@ def replace_time(match) -> str:
         result += "至"
         result += f"{num2str(hour_2)}点"
         if minute_2.lstrip("0"):
-            if int(minute) == 30:
+            if int(minute_2) == 30:
                 result += "半"
             else:
                 result += f"{_time_num2str(minute_2)}分"
