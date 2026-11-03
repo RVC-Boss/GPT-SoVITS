@@ -116,7 +116,8 @@ def replace_date(match) -> str:
 
 
 # 用 / 或者 - 分隔的 YY/MM/DD 或者 YY-MM-DD 日期
-RE_DATE2 = re.compile(r"(\d{4})([- /.])(0[1-9]|1[012])\2(0[1-9]|[12][0-9]|3[01])")
+# 月和日也可以是一位数，如 2024/1/1
+RE_DATE2 = re.compile(r"(\d{4})([- /.])(0[1-9]|1[012]|[1-9])\2(0[1-9]|[12][0-9]|3[01]|[1-9](?!\d))")
 
 
 def replace_date2(match) -> str:
