@@ -36,14 +36,16 @@ class DistributedBucketSampler(Sampler[T_co]):
         drop_last: bool = False,
         batch_size: int = 32,
     ) -> None:
+        # Patched: support non-DDP single-GPU runs (Lightning strategy='auto' on
+        # Windows). When the distributed group isn't initialized, fall back to
+        # a single-replica configuration.
+        _dist_ready = (
+            dist.is_available() and dist.is_initialized() and torch.cuda.is_available()
+        )
         if num_replicas is None:
-            if not dist.is_available():
-                raise RuntimeError("Requires distributed package to be available")
-            num_replicas = dist.get_world_size() if torch.cuda.is_available() else 1
+            num_replicas = dist.get_world_size() if _dist_ready else 1
         if rank is None:
-            if not dist.is_available():
-                raise RuntimeError("Requires distributed package to be available")
-            rank = dist.get_rank() if torch.cuda.is_available() else 0
+            rank = dist.get_rank() if _dist_ready else 0
             if torch.cuda.is_available():
                 torch.cuda.set_device(rank)
         if rank >= num_replicas or rank < 0:
