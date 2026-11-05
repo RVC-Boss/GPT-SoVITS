@@ -19,14 +19,34 @@ class CFMV5(CFM):
         self.use_step_embedding = False
         self.cfg_drop_text = False
         self.noise_temperature = V5_TEMPERATURE
-        self.use_static_cache = os.environ.get(
-            "GSVV5_CFM_STATIC_CACHE", os.environ.get("GSVV4_CFM_STATIC_CACHE", "1")
-        ) != "0"
+        self.use_static_cache = (
+            os.environ.get("GSVV5_CFM_STATIC_CACHE", os.environ.get("GSVV4_CFM_STATIC_CACHE", "1")) != "0"
+        )
 
     @torch.inference_mode()
-    def inference(self, mu, x_lens, prompt, n_timesteps, temperature=V5_TEMPERATURE,
-                  inference_cfg_rate=1.30, generator=None):
-        return super().inference(mu, x_lens, prompt, n_timesteps, temperature, inference_cfg_rate, generator=generator)
+    def inference(
+        self,
+        mu,
+        x_lens,
+        prompt,
+        n_timesteps,
+        temperature=V5_TEMPERATURE,
+        inference_cfg_rate=1.30,
+        generator=None,
+        initial_noise=None,
+        all_valid=False,
+    ):
+        return super().inference(
+            mu,
+            x_lens,
+            prompt,
+            n_timesteps,
+            temperature,
+            inference_cfg_rate,
+            generator=generator,
+            initial_noise=initial_noise,
+            all_valid=all_valid,
+        )
 
     def forward(self, x1, x_lens, prompt_lens, mu, use_grad_ckpt):
         b = x1.shape[0]
