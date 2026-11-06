@@ -735,3 +735,23 @@
   - Content: Fix missing imports (e.g., Optional) in ONNX script
   - Type: Fix
   - Contributor: RVC-Boss
+
+## 202608
+- 2026.08.18 [Commit#48b1a01](https://github.com/RVC-Boss/GPT-SoVITS/commit/48b1a0169a28582a8984402f82cf438d3bfa6aca)
+  - Content: New ASR models
+  - Type: Optimization
+  - Contributor: LauraGPT
+- 2026.08.28 [PR#2832](https://github.com/RVC-Boss/GPT-SoVITS/pull/2832)
+  - Content: Speed up SoVITS training by skipping DDP for single-GPU training
+  - Type: Optimization
+  - Contributor: xueshanlinghu
+
+## 202610
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/25937fe2d80a4b746b048f85a58f4b74d5a06792)
+  - Content: Accelerate GPT inference with CUDA Graph and Flash Attention
+  - Type: Optimization
+  - Contributor: XXXXRT666
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/3b95794c49c796508e6687f4e0d12efad7281e56)
+  - Content: Release the new V5 version
+  - Type: Optimization
+  - Contributor: RVC-Boss

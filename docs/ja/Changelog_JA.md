@@ -735,3 +735,23 @@
   - 内容: ONNXスクリプトでの（Optionalなどの）不足インポートを修正
   - タイプ: 修正
   - 貢献者: RVC-Boss
+
+## 202608
+- 2026.08.18 [Commit#48b1a01](https://github.com/RVC-Boss/GPT-SoVITS/commit/48b1a0169a28582a8984402f82cf438d3bfa6aca)
+  - 内容: 新しい ASR モデルを追加
+  - タイプ: 最適化
+  - 貢献者: LauraGPT
+- 2026.08.28 [PR#2832](https://github.com/RVC-Boss/GPT-SoVITS/pull/2832)
+  - 内容: 単一 GPU の SoVITS 学習では DDP を使用せず、学習を高速化
+  - タイプ: 最適化
+  - 貢献者: xueshanlinghu
+
+## 202610
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/25937fe2d80a4b746b048f85a58f4b74d5a06792)
+  - 内容: CUDA Graph と Flash Attention による GPT 推論の高速化をサポート
+  - タイプ: 最適化
+  - 貢献者: XXXXRT666
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/3b95794c49c796508e6687f4e0d12efad7281e56)
+  - 内容: 新バージョン V5 をリリース
+  - タイプ: 最適化
+  - 貢献者: RVC-Boss

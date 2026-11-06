@@ -74,7 +74,9 @@ def get_models(device, dim_f, dim_t, n_fft):
 class Predictor:
     def __init__(self, args):
         import onnxruntime as ort
+        from tools.portable_runtime import _prepare_dlls
 
+        _prepare_dlls()
         logger.info(ort.get_available_providers())
         self.args = args
         self.model_ = get_models(device=cpu, dim_f=args.dim_f, dim_t=args.dim_t, n_fft=args.n_fft)

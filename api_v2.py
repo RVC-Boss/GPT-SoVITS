@@ -44,8 +44,25 @@ POST:
     "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
     "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
     "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+    "gpt_streaming": false,       # bool. opt in to semantic-token streaming.
+    "streaming_chunk_seconds": 2.0,
+    "streaming_window_mode": "fixed",
+    "streaming_lookahead_seconds": 0.12,
+    "streaming_overlap_seconds": 0.04,
+    "gpt_streaming_lookahead_seconds": 0.5,
+    "use_flash_attention": true,
 }
 ```
+
+When `gpt_streaming` is enabled, use model `v2ProPlus`, `v5turbo` or `v5dev`,
+integer `streaming_mode` 2 or 3, `batch_size=1`, and `media_type="raw"` or `"wav"`.
+All existing text split methods (`cut0` through `cut5`) are supported: each text
+segment streams through its own GPT session within one HTTP response.
+`streaming_window_mode` defaults to `fixed`; `hybrid` is supported for these models.
+On v2ProPlus, `min_chunk_length` sets the initial semantic block size; hybrid
+windows can grow later blocks up to four times that token count. On V5,
+`streaming_chunk_seconds` sets every fixed window, or the first hybrid window
+of each text segment.
 
 RESP:
 成功: 直接返回 wav 音频流， http code 200
@@ -101,27 +118,36 @@ RESP:
 
 """
 
+from tools.portable_runtime import FFMPEG_EXE, activate as activate_portable_runtime
+
+activate_portable_runtime(change_cwd=True)
+
 import os
 import sys
 import traceback
-from typing import Generator, Union
+from typing import Generator, Union, Optional
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
 
 import argparse
+import asyncio
+import anyio
 import subprocess
 import wave
 import signal
 import numpy as np
 import soundfile as sf
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import StreamingResponse, JSONResponse
+from starlette.background import BackgroundTask
+from starlette.concurrency import run_in_threadpool
 import uvicorn
 from io import BytesIO
 from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
+from GPT_SoVITS.TTS_infer_pack.streaming import validate_streaming_options
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from pydantic import BaseModel
 import threading
@@ -171,11 +197,57 @@ class TTS_Request(BaseModel):
     media_type: str = "wav"
     streaming_mode: Union[bool, int] = False
     parallel_infer: bool = True
+    use_cuda_graph: bool = True
     repetition_penalty: float = 1.35
-    sample_steps: int = 32
+    sample_steps: Optional[int] = None
+    cfg_rate: Optional[float] = None
     super_sampling: bool = False
     overlap_length: int = 2
     min_chunk_length: int = 16
+    gpt_streaming: bool = False
+    streaming_chunk_seconds: float = 2.0
+    streaming_window_mode: str = "fixed"
+    streaming_lookahead_seconds: float = 0.12
+    streaming_overlap_seconds: float = 0.04
+    gpt_streaming_lookahead_seconds: float = 0.5
+    use_flash_attention: bool = True
+
+
+_tts_pipeline_lock = asyncio.Lock()
+_STREAM_END = object()
+
+
+async def _await_shielded(awaitable):
+    task = asyncio.ensure_future(awaitable)
+    try:
+        return await asyncio.shield(task)
+    except asyncio.CancelledError:
+        # AnyIO cancellation is level-triggered. Shield the in-flight worker call
+        # until it finishes, then let the original cancellation unwind the stream.
+        with anyio.CancelScope(shield=True):
+            try:
+                await task
+            except BaseException:
+                pass
+        raise
+
+
+async def _run_in_threadpool_shielded(function, *args):
+    return await _await_shielded(run_in_threadpool(function, *args))
+
+
+def _next_or_end(iterator):
+    try:
+        return next(iterator)
+    except StopIteration:
+        return _STREAM_END
+
+
+async def _next_tts_chunk(iterator, skip_empty=False):
+    while True:
+        item = await _run_in_threadpool_shielded(_next_or_end, iterator)
+        if item is _STREAM_END or not skip_empty or item[1].size > 0:
+            return item
 
 
 def pack_ogg(io_buffer: BytesIO, data: np.ndarray, rate: int):
@@ -238,7 +310,7 @@ def pack_wav(io_buffer: BytesIO, data: np.ndarray, rate: int):
 def pack_aac(io_buffer: BytesIO, data: np.ndarray, rate: int):
     process = subprocess.Popen(
         [
-            "ffmpeg",
+            str(FFMPEG_EXE),
             "-f",
             "s16le",  # 输入16位有符号小端整数PCM
             "-ar",
@@ -296,7 +368,7 @@ def wave_header_chunk(frame_input=b"", channels=1, sample_width=2, sample_rate=3
 
 def handle_control(command: str):
     if command == "restart":
-        os.execl(sys.executable, sys.executable, *argv)
+        os.execl(sys.executable, sys.executable, "-I", *argv)
     elif command == "exit":
         os.kill(os.getpid(), signal.SIGTERM)
         exit(0)
@@ -342,7 +414,7 @@ def check_params(req: dict):
     return None
 
 
-async def tts_handle(req: dict):
+async def tts_handle(req: dict, raw_streaming_mode=None):
     """
     Text to speech handler.
 
@@ -377,72 +449,136 @@ async def tts_handle(req: dict):
         StreamingResponse: audio stream response.
     """
 
-    streaming_mode = req.get("streaming_mode", False)
-    return_fragment = req.get("return_fragment", False)
-    media_type = req.get("media_type", "wav")
+    await _tts_pipeline_lock.acquire()
+    tts_generator = None
+    response_owns_lock = False
+    stream_cleanup_task = None
 
-    check_res = check_params(req)
-    if check_res is not None:
-        return check_res
-    
-    if streaming_mode == 0:
-        streaming_mode = False
-        return_fragment = False
-        fixed_length_chunk = False
-    elif streaming_mode == 1:
-        streaming_mode = False
-        return_fragment = True
-        fixed_length_chunk = False
-    elif streaming_mode == 2:
-        streaming_mode = True
-        return_fragment = False
-        fixed_length_chunk = False
-    elif streaming_mode == 3:
-        streaming_mode = True
-        return_fragment = False
-        fixed_length_chunk = True
+    async def cleanup_stream():
+        nonlocal stream_cleanup_task
+        if stream_cleanup_task is None:
+            async def close_and_release():
+                try:
+                    if tts_generator is not None:
+                        close = getattr(tts_generator, "close", None)
+                        if callable(close):
+                            await _run_in_threadpool_shielded(close)
+                finally:
+                    _tts_pipeline_lock.release()
 
-    else:
-        return JSONResponse(status_code=400, content={"message": f"the value of streaming_mode must be 0, 1, 2, 3(int) or true/false(bool)"})
-
-    req["streaming_mode"] = streaming_mode
-    req["return_fragment"] = return_fragment
-    req["fixed_length_chunk"] = fixed_length_chunk
-
-    print(f"{streaming_mode} {return_fragment} {fixed_length_chunk}")
-
-    streaming_mode = streaming_mode or return_fragment
-
+            stream_cleanup_task = asyncio.create_task(close_and_release())
+        await _await_shielded(stream_cleanup_task)
 
     try:
-        tts_generator = tts_pipeline.run(req)
+        check_res = check_params(req)
+        if check_res is not None:
+            return check_res
+
+        gpt_streaming = req.get("gpt_streaming", False)
+        if gpt_streaming:
+            try:
+                validation_req = dict(req)
+                if raw_streaming_mode is not None:
+                    validation_req["streaming_mode"] = raw_streaming_mode
+                validate_streaming_options(
+                    validation_req,
+                    getattr(tts_pipeline.configs, "version", tts_config.version),
+                    api_mode=True,
+                )
+            except (TypeError, ValueError) as e:
+                return JSONResponse(status_code=400, content={"message": str(e)})
+
+        streaming_mode = req.get("streaming_mode", False)
+        return_fragment = req.get("return_fragment", False)
+        media_type = req.get("media_type", "wav")
+
+        if streaming_mode == 0:
+            streaming_mode = False
+            return_fragment = False
+            fixed_length_chunk = False
+        elif streaming_mode == 1:
+            streaming_mode = False
+            return_fragment = True
+            fixed_length_chunk = False
+        elif streaming_mode == 2:
+            streaming_mode = True
+            return_fragment = False
+            fixed_length_chunk = False
+        elif streaming_mode == 3:
+            streaming_mode = True
+            return_fragment = False
+            fixed_length_chunk = True
+        else:
+            return JSONResponse(status_code=400, content={"message": f"the value of streaming_mode must be 0, 1, 2, 3(int) or true/false(bool)"})
+
+        req["streaming_mode"] = streaming_mode
+        req["return_fragment"] = return_fragment
+        req["fixed_length_chunk"] = fixed_length_chunk
+
+        print(f"{streaming_mode} {return_fragment} {fixed_length_chunk}")
+
+        streaming_mode = streaming_mode or return_fragment
+        tts_generator = await _run_in_threadpool_shielded(tts_pipeline.run, req)
 
         if streaming_mode:
+            first_chunk = _STREAM_END
+            if gpt_streaming:
+                first_chunk = await _next_tts_chunk(tts_generator, skip_empty=True)
+                if first_chunk is _STREAM_END:
+                    return JSONResponse(
+                        status_code=400,
+                        content={"message": "tts failed", "Exception": "stream produced no PCM audio"},
+                    )
 
-            def streaming_generator(tts_generator: Generator, media_type: str):
-                if_frist_chunk = True
-                for sr, chunk in tts_generator:
-                    if if_frist_chunk and media_type == "wav":
-                        yield wave_header_chunk(sample_rate=sr)
-                        media_type = "raw"
-                        if_frist_chunk = False
-                    yield pack_audio(BytesIO(), chunk, sr, media_type).getvalue()
+            async def streaming_generator():
+                nonlocal media_type
+                first_audio = True
+                item = first_chunk
+                try:
+                    while True:
+                        if item is _STREAM_END:
+                            item = await _next_tts_chunk(tts_generator, skip_empty=gpt_streaming)
+                        if item is _STREAM_END:
+                            break
 
-            # _media_type = f"audio/{media_type}" if not (streaming_mode and media_type in ["wav", "raw"]) else f"audio/x-{media_type}"
-            return StreamingResponse(
-                streaming_generator(
-                    tts_generator,
-                    media_type,
-                ),
+                        sr, chunk = item
+                        if first_audio and media_type == "wav":
+                            yield wave_header_chunk(sample_rate=sr)
+                            media_type = "raw"
+                        first_audio = False
+                        packed = await _run_in_threadpool_shielded(
+                            pack_audio, BytesIO(), chunk, sr, media_type
+                        )
+                        yield packed.getvalue()
+                        item = _STREAM_END
+                finally:
+                    await cleanup_stream()
+
+            response = StreamingResponse(
+                streaming_generator(),
                 media_type=f"audio/{media_type}",
+                background=BackgroundTask(cleanup_stream),
             )
+            response_owns_lock = True
+            return response
 
-        else:
-            sr, audio_data = next(tts_generator)
-            audio_data = pack_audio(BytesIO(), audio_data, sr, media_type).getvalue()
-            return Response(audio_data, media_type=f"audio/{media_type}")
+        item = await _next_tts_chunk(tts_generator)
+        if item is _STREAM_END:
+            raise RuntimeError("TTS produced no audio")
+        sr, audio_data = item
+        packed = await _run_in_threadpool_shielded(pack_audio, BytesIO(), audio_data, sr, media_type)
+        return Response(packed.getvalue(), media_type=f"audio/{media_type}")
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "tts failed", "Exception": str(e)})
+    finally:
+        if not response_owns_lock:
+            try:
+                if tts_generator is not None:
+                    close = getattr(tts_generator, "close", None)
+                    if callable(close):
+                        await _run_in_threadpool_shielded(close)
+            finally:
+                _tts_pipeline_lock.release()
 
 
 @APP.get("/control")
@@ -454,6 +590,7 @@ async def control(command: str = None):
 
 @APP.get("/tts")
 async def tts_get_endpoint(
+    request: Request,
     text: str = None,
     text_lang: str = None,
     ref_audio_path: str = None,
@@ -472,12 +609,21 @@ async def tts_get_endpoint(
     seed: int = -1,
     media_type: str = "wav",
     parallel_infer: bool = True,
+    use_cuda_graph: bool = True,
     repetition_penalty: float = 1.35,
-    sample_steps: int = 32,
+    sample_steps: Optional[int] = None,
+    cfg_rate: Optional[float] = None,
     super_sampling: bool = False,
     streaming_mode: Union[bool, int] = False,
     overlap_length: int = 2,
     min_chunk_length: int = 16,
+    gpt_streaming: bool = False,
+    streaming_chunk_seconds: float = 2.0,
+    streaming_window_mode: str = "fixed",
+    streaming_lookahead_seconds: float = 0.12,
+    streaming_overlap_seconds: float = 0.04,
+    gpt_streaming_lookahead_seconds: float = 0.5,
+    use_flash_attention: bool = True,
 ):
     req = {
         "text": text,
@@ -499,25 +645,40 @@ async def tts_get_endpoint(
         "media_type": media_type,
         "streaming_mode": streaming_mode,
         "parallel_infer": parallel_infer,
+        "use_cuda_graph": use_cuda_graph,
         "repetition_penalty": float(repetition_penalty),
-        "sample_steps": int(sample_steps),
+        "sample_steps": None if sample_steps is None else int(sample_steps),
+        "cfg_rate": None if cfg_rate is None else float(cfg_rate),
         "super_sampling": super_sampling,
         "overlap_length": int(overlap_length),
         "min_chunk_length": int(min_chunk_length),
+        "gpt_streaming": gpt_streaming,
+        "streaming_chunk_seconds": float(streaming_chunk_seconds),
+        "streaming_window_mode": streaming_window_mode,
+        "streaming_lookahead_seconds": float(streaming_lookahead_seconds),
+        "streaming_overlap_seconds": float(streaming_overlap_seconds),
+        "gpt_streaming_lookahead_seconds": float(gpt_streaming_lookahead_seconds),
+        "use_flash_attention": use_flash_attention,
     }
-    return await tts_handle(req)
+    raw_streaming_mode = request.query_params.get("streaming_mode")
+    if raw_streaming_mode in {"2", "3"}:
+        raw_streaming_mode = int(raw_streaming_mode)
+    return await tts_handle(req, raw_streaming_mode=raw_streaming_mode)
 
 
 @APP.post("/tts")
-async def tts_post_endpoint(request: TTS_Request):
+async def tts_post_endpoint(request: TTS_Request, raw_request: Request):
     req = request.dict()
-    return await tts_handle(req)
+    request_body = await raw_request.json()
+    raw_streaming_mode = request_body.get("streaming_mode", request.streaming_mode)
+    return await tts_handle(req, raw_streaming_mode=raw_streaming_mode)
 
 
 @APP.get("/set_refer_audio")
 async def set_refer_aduio(refer_audio_path: str = None):
     try:
-        tts_pipeline.set_ref_audio(refer_audio_path)
+        async with _tts_pipeline_lock:
+            await _run_in_threadpool_shielded(tts_pipeline.set_ref_audio, refer_audio_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "set refer audio failed", "Exception": str(e)})
     return JSONResponse(status_code=200, content={"message": "success"})
@@ -547,7 +708,8 @@ async def set_gpt_weights(weights_path: str = None):
     try:
         if weights_path in ["", None]:
             return JSONResponse(status_code=400, content={"message": "gpt weight path is required"})
-        tts_pipeline.init_t2s_weights(weights_path)
+        async with _tts_pipeline_lock:
+            await _run_in_threadpool_shielded(tts_pipeline.init_t2s_weights, weights_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "change gpt weight failed", "Exception": str(e)})
 
@@ -559,7 +721,8 @@ async def set_sovits_weights(weights_path: str = None):
     try:
         if weights_path in ["", None]:
             return JSONResponse(status_code=400, content={"message": "sovits weight path is required"})
-        tts_pipeline.init_vits_weights(weights_path)
+        async with _tts_pipeline_lock:
+            await _run_in_threadpool_shielded(tts_pipeline.init_vits_weights, weights_path)
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "change sovits weight failed", "Exception": str(e)})
     return JSONResponse(status_code=200, content={"message": "success"})

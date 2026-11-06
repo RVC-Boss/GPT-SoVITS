@@ -43,6 +43,10 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 
 **Kullanıcı Kılavuzu: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 
+**SeedTTS Eval Testset_CN2020 Üzerinde Sıfır Örnekli TTS Konuşmacı Benzerliği Karşılaştırma Grafiği**
+
+<img width="2400" height="1650" alt="v5pro-seedtts-img-v1" src="https://github.com/user-attachments/assets/8c2a0e0a-7212-4b77-b5ef-2d192e09127f" />
+
 ## Kurulum
 
 ### Test Edilmiş Ortamlar
@@ -53,6 +57,8 @@ https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-
 | Python 3.11    | PyTorch 2.5.1    | CUDA 12.4     |
 | Python 3.11    | PyTorch 2.7.0    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.8.0dev | CUDA 12.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 11.8     |
+| Python 3.12    | PyTorch 2.7.1    | CUDA 12.8     |
 | Python 3.9     | PyTorch 2.5.1    | Apple silicon |
 | Python 3.11    | PyTorch 2.7.0    | Apple silicon |
 | Python 3.9     | PyTorch 2.2.2    | CPU           |
@@ -346,6 +352,22 @@ V1/V2/V3/V4 ortamından V2Pro'ya geçiş:
 2. GitHub'dan en son kodları klonlayın.
 
 3. [huggingface](https://huggingface.co/lj1995/GPT-SoVITS/tree/main) üzerinden V2Pro ön eğitilmiş modelleri indirin (`v2Pro/s2Dv2Pro.pth`, `v2Pro/s2Gv2Pro.pth`, `v2Pro/s2Dv2ProPlus.pth`, `v2Pro/s2Gv2ProPlus.pth`, ve `sv/pretrained_eres2netv2w24s4ep4.ckpt`) ve bunları `GPT_SoVITS/pretrained_models` dizinine koyun.
+
+## V5 Sürüm Notları
+
+Yeni Özellikler:
+
+1. SoVITS ince ayar eğitimi olmadan ses benzerliği önemli ölçüde iyileştirildi.
+
+2. Yeni vocoder, yüksek frekanslı spektral aynalama ve aliasing artefaktlarını önemli ölçüde azaltır.
+
+3. `cuda_graph` ve `flash_attention` ile çıkarım hızlandırma desteği eklendi. Katkısı için [@XXXXRT666](https://github.com/XXXXRT666)'ya teşekkür ederiz.
+
+V2Pro'dan V5'e geçiş:
+
+1. [GitHub](https://github.com/RVC-Boss/GPT-SoVITS/tree/cuda_graph_accel_v5) üzerinden en son kodları klonlayın.
+
+2. V5 ön eğitilmiş modellerini [Hugging Face](https://huggingface.co/lj1995/GPT-SoVITS/tree/main/gsv-v5-pretrained) üzerinden indirin ve `gsv-v5-pretrained` alt dizin yapısını koruyarak `GPT_SoVITS/pretrained_models` dizinine koyun. Model dizini `GPT_SoVITS/pretrained_models/gsv-v5-pretrained` olmalıdır.
 
 ## Yapılacaklar Listesi
 

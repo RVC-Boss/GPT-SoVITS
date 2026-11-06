@@ -1040,7 +1040,7 @@ class SynthesizerTrn(nn.Module):
 
 
     @torch.no_grad()
-    def decode_streaming(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None):
+    def decode_streaming(self, codes, text, refer, noise_scale=0.5, speed=1, sv_emb=None, result_length:int=None, overlap_frames:torch.Tensor=None, padding_length:int=None, generator=None):
         def get_ge(refer, sv_emb):
             ge = None
             if refer is not None:
@@ -1084,7 +1084,9 @@ class SynthesizerTrn(nn.Module):
             overlap_frames=overlap_frames, 
             padding_length=padding_length
             )
-        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+        noise = (torch.randn_like(m_p) if generator is None else
+                 torch.randn(m_p.shape, device=m_p.device, dtype=m_p.dtype, generator=generator))
+        z_p = m_p + noise * torch.exp(logs_p) * noise_scale
 
         z = self.flow(z_p, y_mask, g=ge, reverse=True)
 
@@ -1109,12 +1111,19 @@ class CFM(torch.nn.Module):
         self.criterion = torch.nn.MSELoss()
 
         self.use_conditioner_cache = True
+        self.use_static_cache = False
+        self.use_step_embedding = True
+        self.cfg_drop_text = True
+        self.noise_temperature = None
 
     @torch.inference_mode()
-    def inference(self, mu, x_lens, prompt, n_timesteps, temperature=1.0, inference_cfg_rate=0):
+    def inference(self, mu, x_lens, prompt, n_timesteps, temperature=1.0, inference_cfg_rate=0, generator=None):
         """Forward diffusion"""
+        n_timesteps, inference_cfg_rate = int(n_timesteps), float(inference_cfg_rate)
         B, T = mu.size(0), mu.size(1)
-        x = torch.randn([B, self.in_channels, T], device=mu.device, dtype=mu.dtype) * temperature
+        if self.noise_temperature is not None:
+            temperature = self.noise_temperature
+        x = torch.randn([B, self.in_channels, T], device=mu.device, dtype=mu.dtype, generator=generator) * temperature
         prompt_len = prompt.size(-1)
         prompt_x = torch.zeros_like(x, dtype=mu.dtype)
         prompt_x[..., :prompt_len] = prompt[..., :prompt_len]
@@ -1125,42 +1134,47 @@ class CFM(torch.nn.Module):
         text_cache = None
         text_cfg_cache = None
         dt_cache = None
-        d_tensor = torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * d
+        static_cache = (self.estimator.prepare_static_cache(prompt_x, x_lens, mu)
+                        if self.use_conditioner_cache and self.use_static_cache else None)
+        d_tensor = (torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * d
+                    if self.use_step_embedding else None)
         for j in range(n_timesteps):
-            t_tensor = torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * t
-            # v_pred = model(x, t_tensor, d_tensor, **extra_args)
+            t_tensor = torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * (t if self.use_step_embedding else j * d)
+            step_condition = {"dt_base_bootstrap": d_tensor, "dt_cache": dt_cache} if self.use_step_embedding else {}
             v_pred, text_emb, dt = self.estimator(
                 x,
                 prompt_x,
                 x_lens,
                 t_tensor,
-                d_tensor,
-                mu,
+                text0=mu,
                 use_grad_ckpt=False,
                 drop_audio_cond=False,
                 drop_text=False,
                 infer=True,
                 text_cache=text_cache,
-                dt_cache=dt_cache,
+                static_cache=static_cache,
+                **step_condition,
             )
             v_pred = v_pred.transpose(2, 1)
             if self.use_conditioner_cache:
                 text_cache = text_emb
                 dt_cache = dt
+                if self.use_step_embedding:
+                    step_condition["dt_cache"] = dt_cache
             if inference_cfg_rate > 1e-5:
                 neg, text_cfg_emb, _ = self.estimator(
                     x,
                     prompt_x,
                     x_lens,
                     t_tensor,
-                    d_tensor,
-                    mu,
+                    text0=mu,
                     use_grad_ckpt=False,
                     drop_audio_cond=True,
-                    drop_text=True,
+                    drop_text=self.cfg_drop_text,
                     infer=True,
-                    text_cache=text_cfg_cache,
-                    dt_cache=dt_cache,
+                    text_cache=text_cfg_cache if self.cfg_drop_text else text_cache,
+                    static_cache=static_cache,
+                    **step_condition,
                 )
                 neg = neg.transpose(2, 1)
                 if self.use_conditioner_cache:
@@ -1289,10 +1303,13 @@ class SynthesizerTrnV3(nn.Module):
         self.bridge = nn.Sequential(nn.Conv1d(inter_channels, inter_channels2, 1, stride=1), nn.LeakyReLU())
         self.wns1 = Encoder(inter_channels2, inter_channels2, inter_channels2, 5, 1, 8, gin_channels=gin_channels)
         self.linear_mel = nn.Conv1d(inter_channels2, 100, 1, stride=1)
-        self.cfm = CFM(
-            100,
-            DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2, conv_layers=4)),
-        )  # text_dim is condition feature dim
+        dit = DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2,
+                         conv_layers=4, use_step_embedding=version not in {"v5dev", "v5turbo"}))
+        if version in {"v5dev", "v5turbo"}:
+            from module.models_v5 import CFMV5
+            self.cfm = CFMV5(100, dit)
+        else:
+            self.cfm = CFM(100, dit)
         if self.freeze_quantizer == True:
             set_no_grad(self.ssl_proj)
             set_no_grad(self.quantizer)

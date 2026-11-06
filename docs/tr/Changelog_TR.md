@@ -735,3 +735,23 @@
   - İçerik: ONNX betiğinde (Optional vb.) eksik içe aktarmaları düzelt
   - Tür: Düzeltme
   - Katkıda Bulunan: RVC-Boss
+
+## 202608
+- 2026.08.18 [Commit#48b1a01](https://github.com/RVC-Boss/GPT-SoVITS/commit/48b1a0169a28582a8984402f82cf438d3bfa6aca)
+  - İçerik: Yeni ASR modelleri eklendi
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: LauraGPT
+- 2026.08.28 [PR#2832](https://github.com/RVC-Boss/GPT-SoVITS/pull/2832)
+  - İçerik: Tek GPU ile SoVITS eğitiminde DDP kullanılmayarak eğitim hızlandırıldı
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: xueshanlinghu
+
+## 202610
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/25937fe2d80a4b746b048f85a58f4b74d5a06792)
+  - İçerik: CUDA Graph ve Flash Attention ile GPT çıkarım hızlandırma desteği eklendi
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: XXXXRT666
+- 2026.10.05 [Commit#02425ea](https://github.com/RVC-Boss/GPT-SoVITS/commit/3b95794c49c796508e6687f4e0d12efad7281e56)
+  - İçerik: Yeni V5 sürümü yayımlandı
+  - Tür: Optimizasyon
+  - Katkıda Bulunan: RVC-Boss
