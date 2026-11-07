@@ -1094,6 +1094,41 @@ class TTS:
         """
         self.stop_flag = True
 
+    def apply_cache_dit(self, inputs: dict = None, sample_steps: int = 32):
+        """cache-dit / DBCache switch for the DiT sampler.  **Default: off.**
+
+        Reads the same field names as the HTTP API, so a request, an environment variable and
+        a direct call give the same result:
+
+            cache_dit: off | auto | f4 | f8 | f16        (alias: dbcache)
+            dbcache_fn, dbcache_threshold, dbcache_warmup, dbcache_downsample
+            dbcache_warmup_interval, dbcache_max_cached, dbcache_max_cont, dbcache_max_accum
+
+        Env fallbacks: ``GSV_DBCACHE``, ``GSV_DBCACHE_THRESHOLD``, ``GSV_DBCACHE_WARMUP``,
+        ``GSV_DBCACHE_DOWNSAMPLE`` (and the other ``GSV_DBCACHE_*`` in module/cache_dit.py).
+        ``auto`` = F8 when ``sample_steps >= 16`` and off below that, so a 4-step run is never
+        cached by accident (its warmup budget already covers the whole run, so there is nothing
+        to gain and the quality risk is real).
+        """
+        cfm = getattr(self.vits_model, "cfm", None)
+        if cfm is None or not hasattr(cfm, "set_dbcache"):
+            return None
+        from module.cache_dit import config_from_params
+
+        cfg = config_from_params(dict(inputs or {}), int(sample_steps),
+                                 getattr(cfm, "cache_depth", 0) or None)
+        if cfg.enabled and str(getattr(self.configs, "version", "")) == "v5turbo" and not cfg.force:
+            # 4-step turbo: nothing to cache, keep it off
+            print(i18n("cache-dit: not supported for v5turbo (4 steps), staying off"))
+            cfg.fn = 0
+        cfm.set_dbcache(cfg)
+        if cfg.enabled:
+            if int(sample_steps) < 16:
+                print(i18n("cache-dit: only %d sampling steps, expect a quality drop "
+                           "(4-step v5turbo should keep cache-dit off)" % int(sample_steps)))
+            print(i18n("cache-dit: %s" % cfg))
+        return cfg
+
     @torch.no_grad()
     def run(self, inputs: dict):
         """
@@ -1121,6 +1156,13 @@ class TTS:
                     "parallel_infer": True,       # bool. whether to use parallel inference.
                     "repetition_penalty": 1.35,   # float. repetition penalty for T2S model.
                     "sample_steps": 32,           # int. number of sampling steps for VITS model V3.
+                    "cfg_rate": 1.30,             # float. classifier-free-guidance rate for V5dev/V5.
+                    "cache_dit": "off",           # str. off|auto|f4|f8|f16. DBCache for the V3/V4/V5 DiT:
+                                                  #   fewer DiT forwards, near-identical audio. off by default.
+                    "dbcache_fn": 8,              # int. front blocks (auto = F8 when sample_steps >= 16).
+                    "dbcache_threshold": 0.02,    # float. relative residual-diff threshold.
+                    "dbcache_warmup": 8,          # int. forced full-compute steps at the start.
+                    "dbcache_downsample": 4,      # int. time downsample of the cached Fn residual.
                     "super_sampling": False,      # bool. whether to use super-sampling for audio when using VITS model V3.
                     "return_fragment": False,     # bool. step by step return the audio fragment. (Best Quality, Slowest response speed. old version of streaming mode)
                     "streaming_mode": False,      # bool. return audio chunk by chunk. (Medium quality, Slow response speed)
@@ -1160,6 +1202,8 @@ class TTS:
         cfg_rate = inputs.get("cfg_rate")
         sample_steps = (4 if self.configs.version == "v5turbo" else 32) if sample_steps is None else int(sample_steps)
         cfg_rate = (1.30 if self.configs.version == "v5dev" else 0.0) if cfg_rate is None else float(cfg_rate)
+        # cache-dit (DBCache): off unless the request asks for it, see module/cache_dit.py
+        self.apply_cache_dit(inputs, sample_steps)
         super_sampling = inputs.get("super_sampling", False)
         streaming_mode = inputs.get("streaming_mode", False)
         overlap_length = inputs.get("overlap_length", 2)
