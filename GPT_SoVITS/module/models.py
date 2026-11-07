@@ -10,6 +10,7 @@ from torch.nn import functional as F
 from module import commons
 from module import modules
 from module import attentions
+from module.cache_dit import DBCacheMixin
 from f5_tts.model import DiT
 from torch.nn import Conv1d, ConvTranspose1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
@@ -1099,7 +1100,7 @@ class SynthesizerTrn(nn.Module):
         return codes.transpose(0, 1)
 
 
-class CFM(torch.nn.Module):
+class CFM(DBCacheMixin, torch.nn.Module):
     def __init__(self, in_channels, dit):
         super().__init__()
         self.sigma_min = 1e-6
@@ -1138,7 +1139,11 @@ class CFM(torch.nn.Module):
                         if self.use_conditioner_cache and self.use_static_cache else None)
         d_tensor = (torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * d
                     if self.use_step_embedding else None)
+        # cache-dit: one fresh state per sampling run; None when the switch is off
+        dbcache = self._dbcache_begin(n_timesteps, T, prompt_len, x_lens, x.device)
         for j in range(n_timesteps):
+            if dbcache is not None:
+                dbcache.step_begin(j)
             t_tensor = torch.ones(x.shape[0], device=x.device, dtype=mu.dtype) * (t if self.use_step_embedding else j * d)
             step_condition = {"dt_base_bootstrap": d_tensor, "dt_cache": dt_cache} if self.use_step_embedding else {}
             v_pred, text_emb, dt = self.estimator(
@@ -1153,6 +1158,8 @@ class CFM(torch.nn.Module):
                 infer=True,
                 text_cache=text_cache,
                 static_cache=static_cache,
+                dbcache=dbcache,
+                dbcache_branch=0,
                 **step_condition,
             )
             v_pred = v_pred.transpose(2, 1)
@@ -1174,6 +1181,8 @@ class CFM(torch.nn.Module):
                     infer=True,
                     text_cache=text_cfg_cache if self.cfg_drop_text else text_cache,
                     static_cache=static_cache,
+                    dbcache=dbcache,
+                    dbcache_branch=1,
                     **step_condition,
                 )
                 neg = neg.transpose(2, 1)
@@ -1183,6 +1192,7 @@ class CFM(torch.nn.Module):
             x = x + d * v_pred
             t = t + d
             x[:, :, :prompt_len] = 0
+        self._dbcache_end(dbcache)
         return x
 
     def forward(self, x1, x_lens, prompt_lens, mu, use_grad_ckpt):

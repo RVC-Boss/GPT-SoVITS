@@ -44,6 +44,11 @@ POST:
     "streaming_mode": False,      # bool or int. return audio chunk by chunk.T he available options are: 0,1,2,3 or True/False (0/False: Disabled | 1/True: Best Quality, Slowest response speed (old version streaming_mode) | 2: Medium Quality, Slow response speed | 3: Lower Quality, Faster response speed )
     "overlap_length": 2,          # int. overlap length of semantic tokens for streaming mode.
     "min_chunk_length": 16,       # int. The minimum chunk length of semantic tokens for streaming mode. (affects audio chunk size)
+    "cache_dit": "off",           # str.(optional) off|auto|f4|f8|f16. cache-dit/DBCache for the V3/V4/V5 DiT: fewer DiT forwards, near-identical audio. Off by default; 4-step runs are refused.
+    "dbcache_fn": 8,              # int.(optional) front blocks (default 8; auto = F8 when sample_steps >= 16).
+    "dbcache_threshold": 0.02,    # float.(optional) relative residual-diff threshold (default 0.02).
+    "dbcache_warmup": 8,          # int.(optional) forced full-compute steps at the start (default 8).
+    "dbcache_downsample": 4,      # int.(optional) time downsample of the cached Fn residual (default 4).
     "gpt_streaming": false,       # bool. opt in to semantic-token streaming.
     "streaming_chunk_seconds": 2.0,
     "streaming_window_mode": "fixed",
@@ -201,6 +206,13 @@ class TTS_Request(BaseModel):
     repetition_penalty: float = 1.35
     sample_steps: Optional[int] = None
     cfg_rate: Optional[float] = None
+    # cache-dit (DBCache) for the V3/V4/V5 DiT sampler; off by default. Field names match
+    # the ones the TTS pipeline and the CLI use.
+    cache_dit: str = "off"                 # off | auto | f4 | f8 | f16
+    dbcache_fn: Optional[int] = None       # front blocks (overrides cache_dit)
+    dbcache_threshold: Optional[float] = None
+    dbcache_warmup: Optional[int] = None
+    dbcache_downsample: Optional[int] = None
     super_sampling: bool = False
     overlap_length: int = 2
     min_chunk_length: int = 16
@@ -613,6 +625,11 @@ async def tts_get_endpoint(
     repetition_penalty: float = 1.35,
     sample_steps: Optional[int] = None,
     cfg_rate: Optional[float] = None,
+    cache_dit: str = "off",
+    dbcache_fn: Optional[int] = None,
+    dbcache_threshold: Optional[float] = None,
+    dbcache_warmup: Optional[int] = None,
+    dbcache_downsample: Optional[int] = None,
     super_sampling: bool = False,
     streaming_mode: Union[bool, int] = False,
     overlap_length: int = 2,
@@ -649,6 +666,11 @@ async def tts_get_endpoint(
         "repetition_penalty": float(repetition_penalty),
         "sample_steps": None if sample_steps is None else int(sample_steps),
         "cfg_rate": None if cfg_rate is None else float(cfg_rate),
+        "cache_dit": cache_dit,
+        "dbcache_fn": dbcache_fn,
+        "dbcache_threshold": dbcache_threshold,
+        "dbcache_warmup": dbcache_warmup,
+        "dbcache_downsample": dbcache_downsample,
         "super_sampling": super_sampling,
         "overlap_length": int(overlap_length),
         "min_chunk_length": int(min_chunk_length),
