@@ -1,0 +1,52 @@
+ARG ROCM_VERSION=7.2.3
+ARG PYTORCH_IMAGE=rocm/pytorch:rocm${ROCM_VERSION}_ubuntu24.04_py3.12_pytorch_release_2.9.1
+
+FROM ${PYTORCH_IMAGE}
+
+LABEL maintainer="AMD Community"
+LABEL description="GPT-SoVITS with ROCm support (RDNA3/RDNA4)"
+
+SHELL ["/bin/bash", "-c"]
+
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+        git ffmpeg unzip wget cmake make gcc g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/GPT-SoVITS
+
+COPY requirements.txt extra-req.txt /workspace/GPT-SoVITS/
+
+RUN pip install --no-cache-dir soundfile && \
+    sed 's/onnxruntime-gpu.*/onnxruntime_migraphx/' requirements.txt > /tmp/requirements-rocm.txt && \
+    pip install --no-cache-dir -r extra-req.txt --no-deps && \
+    pip install --no-cache-dir -r /tmp/requirements-rocm.txt \
+        -f https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.3/ && \
+    pip install --no-cache-dir "starlette>=0.40.0,<1.0.0" && \
+    python -c "import nltk; nltk.download('averaged_perceptron_tagger_eng'); nltk.download('averaged_perceptron_tagger'); nltk.download('cmudict')" && \
+    rm -rf /tmp/* /root/.cache/pip
+
+ARG HF_SOURCE=https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main
+RUN wget -q "${HF_SOURCE}/pretrained_models.zip" && \
+    unzip -q -o pretrained_models.zip -d GPT_SoVITS && \
+    rm pretrained_models.zip && \
+    wget -q "${HF_SOURCE}/G2PWModel.zip" && \
+    unzip -q -o G2PWModel.zip -d GPT_SoVITS/text && \
+    rm G2PWModel.zip && \
+    wget -q "${HF_SOURCE}/nltk_data.zip" -O nltk_data.zip && \
+    PY_PREFIX=$(python -c "import sys; print(sys.prefix)") && \
+    unzip -q -o nltk_data.zip -d "$PY_PREFIX" && \
+    rm nltk_data.zip && \
+    wget -q "${HF_SOURCE}/open_jtalk_dic_utf_8-1.11.tar.gz" && \
+    PYOPENJTALK_DIR=$(python -c "import os, pyopenjtalk; print(os.path.dirname(pyopenjtalk.__file__))") && \
+    tar -xzf open_jtalk_dic_utf_8-1.11.tar.gz -C "$PYOPENJTALK_DIR" && \
+    rm open_jtalk_dic_utf_8-1.11.tar.gz
+
+COPY . /workspace/GPT-SoVITS
+
+ENV PYTHONPATH="/workspace/GPT-SoVITS:/workspace/GPT-SoVITS/GPT_SoVITS"
+ENV ROCBLAS_USE_HIPBLASLT=0
+
+EXPOSE 9871 9872 9873 9874 9880
+
+CMD ["/bin/bash"]
