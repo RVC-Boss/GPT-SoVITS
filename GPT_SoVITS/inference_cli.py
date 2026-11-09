@@ -3,6 +3,7 @@ import os
 import soundfile as sf
 
 from tools.i18n.i18n import I18nAuto
+import GPT_SoVITS.inference_webui as webui_ui
 from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, get_tts_wav
 
 i18n = I18nAuto()
@@ -67,8 +68,24 @@ def main():
         help="Language of the target text",
     )
     parser.add_argument("--output_path", required=True, help="Path to the output directory")
+    parser.add_argument(
+        "--cache_dit",
+        default="off",
+        choices=["off", "auto", "f4", "f8", "f16"],
+        help="cache-dit (DBCache) for the V3/V4/V5dev DiT, off by default; "
+             "fewer DiT forwards with near-identical audio",
+    )
+    parser.add_argument("--dbcache_fn", type=int, default=-1, help="front blocks (default 8)")
+    parser.add_argument("--dbcache_threshold", type=float, default=0.02, help="residual-diff threshold")
+    parser.add_argument("--dbcache_warmup", type=int, default=8, help="full-compute steps first")
+    parser.add_argument("--dbcache_downsample", type=int, default=4, help="residual time downsample")
 
     args = parser.parse_args()
+
+    webui_ui.update_cache_dit(
+        args.cache_dit, args.dbcache_fn, args.dbcache_threshold,
+        args.dbcache_warmup, args.dbcache_downsample,
+    )
 
     synthesize(
         args.gpt_model,

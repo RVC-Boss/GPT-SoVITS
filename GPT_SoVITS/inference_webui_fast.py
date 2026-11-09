@@ -73,6 +73,19 @@ language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
 
+# cache-dit (DBCache) for the DiT sampler: off by default. The UI writes here, tts_infer
+# forwards it to TTS_infer_pack; the GSV_DBCACHE* environment variables work too.
+CACHE_DIT = {"cache_dit": "off", "dbcache_fn": None, "dbcache_threshold": 0.02,
+             "dbcache_warmup": 8, "dbcache_downsample": 4}
+
+
+def update_cache_dit(mode, fn, thr, warmup, ds):
+    CACHE_DIT["cache_dit"] = str(mode or "off")
+    CACHE_DIT["dbcache_fn"] = None if fn in (None, "") or int(fn) < 0 else int(fn)
+    CACHE_DIT["dbcache_threshold"] = float(thr) if thr not in (None, "") else 0.02
+    CACHE_DIT["dbcache_warmup"] = int(warmup) if warmup not in (None, "") else 8
+    CACHE_DIT["dbcache_downsample"] = int(ds) if ds not in (None, "") else 4
+
 
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
 
@@ -209,6 +222,7 @@ def inference(
         "cfg_rate": float(cfg_rate),
         "super_sampling": super_sampling,
     }
+    inputs.update(CACHE_DIT)   # cache-dit (DBCache), off unless the UI / env enables it
     try:
         for item in tts_pipeline.run(inputs):
             yield item, actual_seed
@@ -421,6 +435,25 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                     repetition_penalty = gr.Slider(
                         minimum=0, maximum=2, step=0.05, label=i18n("重复惩罚"), value=1.35, interactive=True
                     )
+                with gr.Accordion(i18n("DiT 加速 cache-dit（默认关闭）"), open=False):
+                    with gr.Row():
+                        cache_dit_mode = gr.Dropdown(
+                            label=i18n("cache-dit"), choices=["off", "auto", "f4", "f8", "f16"],
+                            value="off", interactive=True, scale=2,
+                        )
+                        dbcache_fn = gr.Number(label="fn", value=-1, precision=0, scale=1)
+                        dbcache_threshold = gr.Number(label="thr", value=0.02, scale=1)
+                        dbcache_warmup = gr.Number(label="warmup", value=8, precision=0, scale=1)
+                        dbcache_downsample = gr.Number(label="ds", value=4, precision=0, scale=1)
+                    gr.Markdown(i18n("DBCache：只算前 fn 个 block，残差变化小于 thr 时跳过中间 block。"
+                                     "fn=-1 表示跟随模式（auto = 步数>=16 时 F8）。v5turbo 4 步不支持。"))
+                    for _cd in (cache_dit_mode, dbcache_fn, dbcache_threshold,
+                                dbcache_warmup, dbcache_downsample):
+                        _cd.change(
+                            update_cache_dit,
+                            [cache_dit_mode, dbcache_fn, dbcache_threshold,
+                             dbcache_warmup, dbcache_downsample],
+                        )
 
             with gr.Column():
                 with gr.Row():

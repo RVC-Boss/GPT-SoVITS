@@ -829,6 +829,28 @@ splits = {
 }
 
 
+def apply_cache_dit(vq_model, params: dict, sample_steps: int):
+    """cache-dit (DBCache) switch for the DiT sampler; off unless configured.
+
+    Field names match api_v2.py:
+    ``cache_dit`` = off|auto|f4|f8|f16, ``dbcache_fn``, ``dbcache_threshold``,
+    ``dbcache_warmup``, ``dbcache_downsample``.  The ``GSV_DBCACHE*`` env vars work too,
+    also on the paths that never go through these request fields.
+    """
+    cfm = getattr(vq_model, "cfm", None)
+    if cfm is None or not hasattr(cfm, "set_dbcache"):
+        return None
+    from module.cache_dit import config_from_params
+
+    cfg = config_from_params(params, int(sample_steps), getattr(cfm, "cache_depth", 0) or None)
+    if cfg.enabled and str(getattr(vq_model, "version", "")) == "v5turbo" and not cfg.force:
+        cfg.fn = 0  # 4-step turbo: no gain and unstable quality, keep it off
+    cfm.set_dbcache(cfg)
+    if cfg.enabled:
+        print("cache-dit:", cfg)
+    return cfg
+
+
 def get_tts_wav(
     ref_wav_path,
     prompt_text,
@@ -844,6 +866,11 @@ def get_tts_wav(
     if_sr=False,
     spk="default",
     cfg_rate=None,
+    cache_dit=None,
+    dbcache_fn=None,
+    dbcache_threshold=None,
+    dbcache_warmup=None,
+    dbcache_downsample=None,
 ):
     infer_sovits = speaker_list[spk].sovits
     vq_model = infer_sovits.vq_model
@@ -866,6 +893,12 @@ def get_tts_wav(
     elif version == "v4":
         if sample_steps not in [4, 8, 16, 32]:
             sample_steps = 8
+
+    # cache-dit (DBCache) for the DiT sampler: off unless asked for
+    apply_cache_dit(vq_model, dict(
+        cache_dit=cache_dit, dbcache_fn=dbcache_fn, dbcache_threshold=dbcache_threshold,
+        dbcache_warmup=dbcache_warmup, dbcache_downsample=dbcache_downsample,
+    ), sample_steps)
 
     if if_sr and version != "v3":
         if_sr = False
@@ -1126,6 +1159,11 @@ def handle(
     sample_steps,
     if_sr,
     cfg_rate=None,
+    cache_dit=None,
+    dbcache_fn=None,
+    dbcache_threshold=None,
+    dbcache_warmup=None,
+    dbcache_downsample=None,
 ):
     if (
         refer_wav_path == ""
@@ -1163,6 +1201,11 @@ def handle(
             sample_steps,
             if_sr,
             cfg_rate=cfg_rate,
+            cache_dit=cache_dit,
+            dbcache_fn=dbcache_fn,
+            dbcache_threshold=dbcache_threshold,
+            dbcache_warmup=dbcache_warmup,
+            dbcache_downsample=dbcache_downsample,
         ),
         media_type="audio/" + media_type,
     )
@@ -1372,6 +1415,11 @@ async def tts_endpoint(request: Request):
         json_post_raw.get("sample_steps"),
         json_post_raw.get("if_sr", False),
         cfg_rate=json_post_raw.get("cfg_rate"),
+        cache_dit=json_post_raw.get("cache_dit"),
+        dbcache_fn=json_post_raw.get("dbcache_fn"),
+        dbcache_threshold=json_post_raw.get("dbcache_threshold"),
+        dbcache_warmup=json_post_raw.get("dbcache_warmup"),
+        dbcache_downsample=json_post_raw.get("dbcache_downsample"),
     )
 
 
@@ -1391,6 +1439,11 @@ async def tts_endpoint(
     sample_steps: int = None,
     if_sr: bool = False,
     cfg_rate: float = None,
+    cache_dit: str = None,
+    dbcache_fn: int = None,
+    dbcache_threshold: float = None,
+    dbcache_warmup: int = None,
+    dbcache_downsample: int = None,
 ):
     return handle(
         refer_wav_path,
@@ -1407,6 +1460,11 @@ async def tts_endpoint(
         sample_steps,
         if_sr,
         cfg_rate=cfg_rate,
+        cache_dit=cache_dit,
+        dbcache_fn=dbcache_fn,
+        dbcache_threshold=dbcache_threshold,
+        dbcache_warmup=dbcache_warmup,
+        dbcache_downsample=dbcache_downsample,
     )
 
 
