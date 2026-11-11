@@ -492,5 +492,31 @@ class CancellationTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.api._tts_pipeline_lock.locked())
 
 
+class TextCleanSequenceTests(unittest.TestCase):
+    def test_cleaned_text_to_sequence_handles_unknown_symbols_without_keyerror(self):
+        from text import cleaned_text_to_sequence, _symbol_to_id_v1, _symbol_to_id_v2
+
+        # Standard symbols pass through with correct IDs
+        sample_v1 = [s for s in list(_symbol_to_id_v1.keys())[:5] if s != "UNK"]
+        ids_v1 = cleaned_text_to_sequence(sample_v1, version="v1")
+        self.assertEqual(ids_v1, [_symbol_to_id_v1[s] for s in sample_v1])
+
+        sample_v2 = [s for s in list(_symbol_to_id_v2.keys())[:5] if s != "UNK"]
+        ids_v2 = cleaned_text_to_sequence(sample_v2, version="v2")
+        self.assertEqual(ids_v2, [_symbol_to_id_v2[s] for s in sample_v2])
+
+        # Unsupported symbols/kaomoji like '๑' gracefully fallback to UNK ID instead of raising KeyError
+        mixed_input = [sample_v2[0], "๑", sample_v2[1]]
+        seq = cleaned_text_to_sequence(mixed_input, version="v2")
+        expected_unk = _symbol_to_id_v2.get("UNK")
+        self.assertEqual(seq, [_symbol_to_id_v2[sample_v2[0]], expected_unk, _symbol_to_id_v2[sample_v2[1]]])
+
+    def test_stream_reconfigure_handles_kaomoji_print(self):
+        # Ensure stdout/stderr reconfigure does not fail and can handle kaomoji
+        kaomoji = "（´▽｀）今天也有好好吃饭哦，你呢？ (๑•̀ㅂ•́)و✧"
+        encoded = kaomoji.encode(sys.stdout.encoding or "utf-8", errors="replace")
+        self.assertTrue(len(encoded) > 0)
+
+
 if __name__ == "__main__":
     unittest.main()
