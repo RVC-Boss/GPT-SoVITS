@@ -86,7 +86,7 @@ def text_to_sequence(text, language, version=None):
     version = os.environ.get("version", version)
     if version is None:
         version = "v2"
-    phones = clean_text(text)
+    phones, _, _ = clean_text(text, language, version)
     return cleaned_text_to_sequence(phones, version)
 
 
