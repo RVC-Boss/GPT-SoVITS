@@ -10,9 +10,20 @@ def get_models():
 
 
 asr_dict = {
-    "Fun-ASR-Nano (31语种+方言, 推荐)": {"lang": ["zh", "en", "ja", "ko", "yue", "auto"], "size": ["large"], "path": "funasr_asr.py", "precision": ["float32"]},
-    "SenseVoice (极速, 5语种)": {"lang": ["zh", "en", "ja", "ko", "yue", "auto"], "size": ["large"], "path": "funasr_asr.py", "precision": ["float32"]},
-    "达摩 ASR (中文经典)": {"lang": ["zh", "yue"], "size": ["large"], "path": "funasr_asr.py", "precision": ["float32"]},
+    "达摩 ASR (中文经典)": {
+        "lang": ["zh"],
+        "size": ["large"],
+        "path": "funasr_asr.py",
+        "backend": "damo",
+        "precision": ["float32"],
+    },
+    "Fun-ASR-Nano（速度更慢，更准）": {
+        "lang": ["zh", "en", "ja", "ko", "yue", "auto"],
+        "size": ["large"],
+        "path": "funasr_asr.py",
+        "backend": "fun-asr-nano",
+        "precision": ["float32"],
+    },
     "Faster Whisper (多语种)": {
         "lang": ["auto", "en", "ja", "ko"],
         "size": get_models(),
