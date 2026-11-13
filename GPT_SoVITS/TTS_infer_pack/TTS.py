@@ -1634,7 +1634,7 @@ class TTS:
                             audio_chunk_ = audio_chunk_[:-overlap_size]
                         elif is_first_chunk and is_final: 
                             is_first_chunk = False
-                        elif not is_first_chunk and not is_final:
+                        elif not is_first_chunk:
                             audio_chunk_ = self.sola_algorithm([last_audio_chunk, audio_chunk_], overlap_size)
                             audio_chunk_ = (
                                 audio_chunk_[last_audio_chunk.shape[0]-overlap_size:-overlap_size] if not is_final \
