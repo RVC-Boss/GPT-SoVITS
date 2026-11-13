@@ -23,7 +23,35 @@ import logging
 jieba_fast.setLogLevel(logging.CRITICAL)
 import jieba_fast.posseg as psg
 
-# is_g2pw_str = os.environ.get("is_g2pw", "True")##默认开启
+# English letter → Chinese pinyin text (how native speakers naturally read abbreviations)
+EN_CHAR_TO_CN = {
+    'A': '诶', 'B': '必', 'C': '西', 'D': '迪', 'E': '伊',
+    'F': '艾弗', 'G': '基', 'H': '艾尺', 'I': '艾',
+    'J': '杰', 'K': '开', 'L': '勒', 'M': '艾姆', 'N': '恩',
+    'O': '欧', 'P': '批', 'Q': '丘', 'R': '艾尔', 'S': '艾斯',
+    'T': '替', 'U': '优', 'V': '维', 'W': '达不溜', 'X': '克斯',
+    'Y': '歪', 'Z': '贼',
+}
+
+
+def _replace_en_abbrevs(text):
+    """Replace runs of 2+ uppercase English letters with Chinese phonetic equivalents."""
+    result = []
+    i = 0
+    while i < len(text):
+        if text[i].isupper() and text[i].isalpha():
+            start = i
+            while i < len(text) and text[i].isupper() and text[i].isalpha():
+                i += 1
+            abbr = text[start:i]
+            if len(abbr) >= 2:
+                result.append(''.join(EN_CHAR_TO_CN.get(ch, ch) for ch in abbr))
+            else:
+                result.append(abbr)
+        else:
+            result.append(text[i])
+            i += 1
+    return ''.join(result)
 # is_g2pw = False#True if is_g2pw_str.lower() == 'true' else False
 is_g2pw = True  # True if is_g2pw_str.lower() == 'true' else False
 if is_g2pw:
@@ -71,6 +99,7 @@ def replace_punctuation(text):
 
 
 def g2p(text):
+    text = _replace_en_abbrevs(text)          # English abbrevs → Chinese chars
     pattern = r"(?<=[{0}])\s*".format("".join(punctuation))
     sentences = [i for i in re.split(pattern, text) if i.strip() != ""]
     phones, word2ph = _g2p(sentences)
@@ -187,7 +216,7 @@ def _g2p(segments):
         batch_inputs = [seg for seg in processed_segments if seg]
         g2pw_batch_results = g2pw._g2pw(batch_inputs) if batch_inputs else []
 
-    for seg in processed_segments:
+    for seg in segments:  # 用原始文本（含英文字母）做 jieba 分词
         pinyins = []
         seg_cut = psg.lcut(seg)
         seg_cut = tone_modifier.pre_merge_for_modify(seg_cut)
@@ -197,6 +226,12 @@ def _g2p(segments):
         if not is_g2pw:
             for word, pos in seg_cut:
                 if pos == "eng":
+                    # 英文字母直接转 ARPAbet 音素
+                    for char in word:
+                        if char.isalpha():
+                            eng_phones = _g2p_english_char(char.upper())
+                            phones_list += eng_phones
+                            word2ph.append(len(eng_phones))
                     continue
                 sub_initials, sub_finals = _get_initials_finals(word)
                 sub_finals = tone_modifier.modified_tone(word, pos, sub_finals)
@@ -210,20 +245,30 @@ def _g2p(segments):
             print("pypinyin结果", initials, finals)
         else:
             # g2pw采用整句推理（批量推理，逐句取结果）
-            if seg:
+            seg_stripped = processed_segments[g2pw_batch_cursor] if seg else ""
+            if seg_stripped:
                 pinyins = g2pw_batch_results[g2pw_batch_cursor]
+            else:
+                pinyins = []
+            if seg:
                 g2pw_batch_cursor += 1
 
             pre_word_length = 0
             for word, pos in seg_cut:
                 sub_initials = []
                 sub_finals = []
-                now_word_length = pre_word_length + len(word)
 
                 if pos == "eng":
-                    pre_word_length = now_word_length
+                    # 英文字母缩写 → 逐字母读 ARPAbet 音素
+                    for char in word:
+                        if char.isalpha():
+                            eng_phones = _g2p_english_char(char.upper())
+                            phones_list += eng_phones
+                            word2ph.append(len(eng_phones))
+                    # 英文字母不在 g2pw 的 pinyin 数组里，不推进 pre_word_length
                     continue
 
+                now_word_length = pre_word_length + len(word)
                 word_pinyins = pinyins[pre_word_length:now_word_length]
 
                 # 多音字消歧
@@ -302,6 +347,27 @@ def _g2p(segments):
     return phones_list, word2ph
 
 
+def _g2p_english_char(char):
+    """英文字母 → ARPAbet 音素（字母读音，单字母缩写字面读法）
+
+    示例: N → ['EH1', 'N'], O → ['OW1'], A → ['EY1']
+    这些音素在 symbols2.py 符号表里都有定义。
+    """
+    mapping = {
+        'A': ['EY1'], 'B': ['B', 'IY1'], 'C': ['S', 'IY1'],
+        'D': ['D', 'IY1'], 'E': ['IY1'], 'F': ['EH1', 'F'],
+        'G': ['JH', 'IY1'], 'H': ['EY1', 'CH'], 'I': ['AY1'],
+        'J': ['JH', 'EY1'], 'K': ['K', 'EY1'], 'L': ['EH1', 'L'],
+        'M': ['EH1', 'M'], 'N': ['EH1', 'N'], 'O': ['OW1'],
+        'P': ['P', 'IY1'], 'Q': ['K', 'Y', 'UW1'], 'R': ['AA1', 'R'],
+        'S': ['EH1', 'S'], 'T': ['T', 'IY1'], 'U': ['Y', 'UW1'],
+        'V': ['V', 'IY1'], 'W': ['D', 'AH1', 'B', 'AH0', 'L', 'Y', 'UW0'],
+        'X': ['EH1', 'K', 'S'], 'Y': ['W', 'AY1'],
+        'Z': ['Z', 'IY1'],
+    }
+    return mapping.get(char, ['UNK'])
+
+
 def replace_punctuation_with_en(text):
     text = text.replace("嗯", "恩").replace("呣", "母")
     pattern = re.compile("|".join(re.escape(p) for p in rep_map.keys()))
@@ -326,7 +392,8 @@ def text_normalize(text):
     sentences = tx.normalize(text)
     dest_text = ""
     for sentence in sentences:
-        dest_text += replace_punctuation(sentence)
+        # 使用保留英文字母的版本，让英文字母缩写在中文管道中存活
+        dest_text += replace_punctuation_with_en(sentence)
 
     # 避免重复标点引起的参考泄露
     dest_text = replace_consecutive_punctuation(dest_text)
