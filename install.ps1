@@ -52,6 +52,9 @@ function Invoke-Conda {
         [string[]]$Args
     )
 
+    # Windows PowerShell 5.1 turns stderr lines into errors, so under 'Stop' a mere warning
+    # would end the script. The exit code below decides success.
+    $ErrorActionPreference = 'Continue'
     $output = & conda install -y -q -c conda-forge @Args 2>&1
     $exitCode = $LASTEXITCODE
 
@@ -79,6 +82,9 @@ function Invoke-Pip {
         [string[]]$Args
     )
     
+    # Windows PowerShell 5.1 turns stderr lines into errors, so under 'Stop' a mere warning
+    # would end the script. The exit code below decides success.
+    $ErrorActionPreference = 'Continue'
     $output = & pip install @Args 2>&1
     $exitCode = $LASTEXITCODE
     
