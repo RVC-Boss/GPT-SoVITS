@@ -31,7 +31,7 @@ def get_first(text: str) -> str:
     return text
 
 
-def merge_short_text_in_array(texts: str, threshold: int) -> list:
+def merge_short_text_in_array(texts: List[str], threshold: int) -> list:
     if (len(texts)) < 2:
         return texts
     result = []
