@@ -265,6 +265,12 @@ def process_info(process_name="", indicator=""):
         return process_name
 
 
+def train_process_status(process_name, return_code):
+    if return_code != 0:
+        return process_info(process_name, "failed")
+    return process_info(process_name, "finish")
+
+
 process_name_subfix = i18n("音频标注WebUI")
 
 
@@ -553,12 +559,14 @@ def open1Ba(
             {"__type__": "update"},
         )
         print(cmd)
-        p_train_SoVITS = Popen(cmd, shell=True)
-        p_train_SoVITS.wait()
-        p_train_SoVITS = None
+        process = Popen(cmd, shell=True)
+        p_train_SoVITS = process
+        return_code = process.wait()
+        if p_train_SoVITS is process:
+            p_train_SoVITS = None
         SoVITS_dropdown_update, GPT_dropdown_update = change_choices()
         yield (
-            process_info(process_name_sovits, "finish"),
+            train_process_status(process_name_sovits, return_code),
             {"__type__": "update", "visible": True},
             {"__type__": "update", "visible": False},
             SoVITS_dropdown_update,
@@ -645,12 +653,14 @@ def open1Bb(
             {"__type__": "update"},
         )
         print(cmd)
-        p_train_GPT = Popen(cmd, shell=True)
-        p_train_GPT.wait()
-        p_train_GPT = None
+        process = Popen(cmd, shell=True)
+        p_train_GPT = process
+        return_code = process.wait()
+        if p_train_GPT is process:
+            p_train_GPT = None
         SoVITS_dropdown_update, GPT_dropdown_update = change_choices()
         yield (
-            process_info(process_name_gpt, "finish"),
+            train_process_status(process_name_gpt, return_code),
             {"__type__": "update", "visible": True},
             {"__type__": "update", "visible": False},
             SoVITS_dropdown_update,
