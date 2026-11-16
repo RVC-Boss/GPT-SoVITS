@@ -75,7 +75,8 @@ def replace_percentage(match) -> str:
 
 # 整数表达式
 # 带负号的整数 -10
-RE_INTEGER = re.compile(r"(-)" r"(\d+)")
+# 不匹配负小数（如 -1.5）的整数部分
+RE_INTEGER = re.compile(r"(-)" r"(\d+)" r"(?!\.?\d)")
 
 
 def replace_negative_num(match) -> str:
