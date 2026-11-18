@@ -1,5 +1,6 @@
 # This code is modified from https://github.com/ZFTurbo/
 import os
+import subprocess
 import warnings
 
 import librosa
@@ -253,7 +254,7 @@ class Roformer_Loader:
             sf.write(path, data, sr)
         else:
             sf.write(path, data, sr)
-            os.system('ffmpeg -i "{}" -vn "{}" -q:a 2 -y'.format(path, path[:-3] + format))
+            subprocess.run(["ffmpeg", "-i", path, "-vn", path[:-3] + format, "-q:a", "2", "-y"])
             try:
                 os.remove(path)
             except:
