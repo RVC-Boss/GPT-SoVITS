@@ -273,19 +273,15 @@ def change_label(path_list):
     if p_label is None:
         check_for_existance([path_list])
         path_list = my_utils.clean_path(path_list)
-        cmd = '"%s" -s tools/subfix_webui.py --load_list "%s" --webui_port %s --is_share %s' % (
-            python_exec,
-            path_list,
-            webui_port_subfix,
-            is_share,
-        )
+        cmd = [python_exec, "-s", "tools/subfix_webui.py", "--load_list", path_list]
+        cmd += ["--webui_port", str(webui_port_subfix), "--is_share", str(is_share)]
         yield (
             process_info(process_name_subfix, "opened"),
             {"__type__": "update", "visible": False},
             {"__type__": "update", "visible": True},
         )
         print(cmd)
-        p_label = Popen(cmd, shell=True)
+        p_label = Popen(cmd)
     else:
         kill_process(p_label.pid, process_name_subfix)
         p_label = None
@@ -375,14 +371,14 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_
         asr_inp_dir = my_utils.clean_path(asr_inp_dir)
         asr_opt_dir = my_utils.clean_path(asr_opt_dir)
         check_for_existance([asr_inp_dir])
-        cmd = f'"{python_exec}" -s tools/asr/{asr_dict[asr_model]["path"]}'
-        cmd += f' -i "{asr_inp_dir}"'
-        cmd += f' -o "{asr_opt_dir}"'
-        cmd += f" -s {asr_model_size}"
-        cmd += f" -l {asr_lang}"
-        cmd += f" -p {asr_precision}"
+        cmd = [python_exec, "-s", f"tools/asr/{asr_dict[asr_model]['path']}"]
+        cmd += ["-i", asr_inp_dir]
+        cmd += ["-o", asr_opt_dir]
+        cmd += ["-s", str(asr_model_size)]
+        cmd += ["-l", str(asr_lang)]
+        cmd += ["-p", str(asr_precision)]
         if "backend" in asr_dict[asr_model]:
-            cmd += f" --backend {asr_dict[asr_model]['backend']}"
+            cmd += ["--backend", asr_dict[asr_model]["backend"]]
         output_file_name = os.path.basename(asr_inp_dir)
         output_folder = asr_opt_dir or "output/asr_opt"
         output_file_path = os.path.abspath(f"{output_folder}/{output_file_name}.list")
@@ -395,7 +391,7 @@ def open_asr(asr_inp_dir, asr_opt_dir, asr_model, asr_model_size, asr_lang, asr_
             {"__type__": "update"},
         )
         print(cmd)
-        p_asr = Popen(cmd, shell=True)
+        p_asr = Popen(cmd)
         p_asr.wait()
         p_asr = None
         yield (
@@ -438,12 +434,8 @@ def open_denoise(denoise_inp_dir, denoise_opt_dir):
         denoise_inp_dir = my_utils.clean_path(denoise_inp_dir)
         denoise_opt_dir = my_utils.clean_path(denoise_opt_dir)
         check_for_existance([denoise_inp_dir])
-        cmd = '"%s" -s tools/cmd-denoise.py -i "%s" -o "%s" -p %s' % (
-            python_exec,
-            denoise_inp_dir,
-            denoise_opt_dir,
-            "float16" if is_half == True else "float32",
-        )
+        cmd = [python_exec, "-s", "tools/cmd-denoise.py", "-i", denoise_inp_dir, "-o", denoise_opt_dir]
+        cmd += ["-p", "float16" if is_half == True else "float32"]
 
         yield (
             process_info(process_name_denoise, "opened"),
@@ -453,7 +445,7 @@ def open_denoise(denoise_inp_dir, denoise_opt_dir):
             {"__type__": "update"},
         )
         print(cmd)
-        p_denoise = Popen(cmd, shell=True)
+        p_denoise = Popen(cmd)
         p_denoise.wait()
         p_denoise = None
         yield (
@@ -713,22 +705,11 @@ def open_slice(inp, opt_root, threshold, min_length, min_interval, hop_size, max
         return
     if ps_slice == []:
         for i_part in range(n_parts):
-            cmd = '"%s" -s tools/slice_audio.py "%s" "%s" %s %s %s %s %s %s %s %s %s' % (
-                python_exec,
-                inp,
-                opt_root,
-                threshold,
-                min_length,
-                min_interval,
-                hop_size,
-                max_sil_kept,
-                _max,
-                alpha,
-                i_part,
-                n_parts,
-            )
+            cmd = [python_exec, "-s", "tools/slice_audio.py", inp, opt_root]
+            cmd += [str(x) for x in (threshold, min_length, min_interval, hop_size, max_sil_kept, _max, alpha)]
+            cmd += [str(i_part), str(n_parts)]
             print(cmd)
-            p = Popen(cmd, shell=True)
+            p = Popen(cmd)
             ps_slice.append(p)
         yield (
             process_info(process_name_slice, "opened"),
