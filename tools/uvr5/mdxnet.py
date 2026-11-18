@@ -1,5 +1,6 @@
 import os
 import logging
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -192,14 +193,14 @@ class Predictor:
             opt_path_vocal = path_vocal[:-4] + ".%s" % format
             opt_path_other = path_other[:-4] + ".%s" % format
             if os.path.exists(path_vocal):
-                os.system('ffmpeg -i "%s" -vn "%s" -q:a 2 -y' % (path_vocal, opt_path_vocal))
+                subprocess.run(["ffmpeg", "-i", path_vocal, "-vn", opt_path_vocal, "-q:a", "2", "-y"])
                 if os.path.exists(opt_path_vocal):
                     try:
                         os.remove(path_vocal)
                     except:
                         pass
             if os.path.exists(path_other):
-                os.system('ffmpeg -i "%s" -vn "%s" -q:a 2 -y' % (path_other, opt_path_other))
+                subprocess.run(["ffmpeg", "-i", path_other, "-vn", opt_path_other, "-q:a", "2", "-y"])
                 if os.path.exists(opt_path_other):
                     try:
                         os.remove(path_other)

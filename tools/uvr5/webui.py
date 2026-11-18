@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 import traceback
 
 import gradio as gr
@@ -19,6 +20,7 @@ from mdxnet import MDXNetDereverb
 from vr import AudioPre, AudioPreDeEcho
 
 weight_uvr5_root = "tools/uvr5/uvr5_weights"
+export_formats = ["wav", "flac", "mp3", "m4a"]
 uvr5_names = []
 for name in os.listdir(weight_uvr5_root):
     if name.endswith(".pth") or name.endswith(".ckpt") or "onnx" in name:
@@ -44,6 +46,10 @@ def html_center(text, label="p"):
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
     infos = []
+    # The Radio choices are not enforced server-side, so reject anything else before it is used in a file name.
+    if format0 not in export_formats:
+        yield "Unsupported export format: %s" % format0
+        return
     try:
         inp_root = clean_path(inp_root)
         save_root_vocal = clean_path(save_root_vocal)
@@ -96,7 +102,8 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                     os.path.join(os.environ["TEMP"]),
                     os.path.basename(inp_path),
                 )
-                os.system(f'ffmpeg -i "{inp_path}" -vn -acodec pcm_s16le -ac 2 -ar 44100 "{tmp_path}" -y')
+                reformat_opts = ["-vn", "-acodec", "pcm_s16le", "-ac", "2", "-ar", "44100"]
+                subprocess.run(["ffmpeg", "-i", inp_path, *reformat_opts, tmp_path, "-y"])
                 inp_path = tmp_path
             try:
                 if done == 0:
@@ -192,7 +199,7 @@ with gr.Blocks(title="UVR5 WebUI", analytics_enabled=False) as app:
                     opt_ins_root = gr.Textbox(label=i18n("指定输出非主人声文件夹"), value="output/uvr5_opt")
                     format0 = gr.Radio(
                         label=i18n("导出文件格式"),
-                        choices=["wav", "flac", "mp3", "m4a"],
+                        choices=export_formats,
                         value="flac",
                         interactive=True,
                     )
