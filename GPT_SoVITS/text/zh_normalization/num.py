@@ -337,3 +337,116 @@ def num2str(value_string: str) -> str:
         result = result if result else "零"
         result += "点" + verbalize_digit(decimal)
     return result
+
+RE_CNY_PREFIX = re.compile(r"(?:¥|￥)\s*(-?\d[\d,]*(?:\.\d+)?)")
+RE_CNY_SUFFIX = re.compile(r"(-?\d[\d,]*(?:\.\d+)?)(?:\s*(?:人民币|元|CNY|cny|¥|￥))")
+
+def _strip_commas(s: str) -> str:
+    return s.replace(",", "")
+
+def _split_amount(amount: str):
+    neg = amount.startswith("-")
+    if neg:
+        amount = amount[1:]
+    amount = _strip_commas(amount) or "0"
+
+    if "." in amount:
+        integer, frac = amount.split(".", 1)
+        had_frac = True
+    else:
+        integer, frac, had_frac = amount, "", False
+
+    integer = integer or "0"
+    frac = (frac + "00")[:2]
+    return neg, integer, frac, had_frac
+
+#人民币和美元的处理都在cleaner那边，防吞
+def replace_cny_amount(amount: str, num2str) -> str:
+    neg, integer, frac, had_frac = _split_amount(amount)
+
+    integer_cn = num2str(integer) if integer != "0" else "零"
+
+    jiao, fen = frac[0], frac[1]
+    parts = []
+
+    if integer != "0":
+        parts.append(integer_cn + "元")
+    else:
+        parts.append("零元")
+
+    if jiao != "0" or fen != "0":
+        if jiao != "0":
+            parts.append(num2str(jiao) + "角")
+        if fen != "0":
+            parts.append(num2str(fen) + "分")
+    elif had_frac:
+        parts.append("整")
+
+    res = "".join(parts)
+    if neg and res and res[0] != "负":
+        res = "负" + res
+    return res
+
+def replace_cny_prefix(m, num2str=num2str):
+    return replace_cny_amount(m.group(1), num2str)
+
+def replace_cny_suffix(m, num2str=num2str):
+    return replace_cny_amount(m.group(1), num2str)
+
+#我知道美元符也可能是加拿大元什么的，但是就当它美元吧whatever
+RE_USD_SYMBOL = re.compile(r"(?:\$|＄)\s*(-?\d[\d,]*(?:\.\d+)?)")
+RE_USD_SUFFIX = re.compile(r"(-?\d[\d,]*(?:\.\d+)?)(?:\s*(?:美元|USD|usd|\$|＄))")
+
+def _strip_commas(s: str) -> str:
+    return s.replace(",", "")
+
+def _split_amount(amount: str):
+    neg = amount.startswith("-")
+    if neg:
+        amount = amount[1:]
+    amount = _strip_commas(amount) or "0"
+
+    if "." in amount:
+        integer, frac = amount.split(".", 1)
+        had_frac = True
+    else:
+        integer, frac, had_frac = amount, "", False
+
+    integer = integer or "0"
+    # 只保留两位小数用来读美分
+    frac = (frac + "00")[:2]
+    return neg, integer, frac, had_frac
+
+def replace_usd_amount(amount: str, num2str) -> str:
+    neg, integer, frac, had_frac = _split_amount(amount)
+
+    integer_cn = num2str(integer) if integer != "0" else "零"
+
+    jiao, fen = frac[0], frac[1]
+    parts = []
+    if integer != "0":
+        parts.append(integer_cn + "美元")
+
+    if jiao != "0" or fen != "0":
+        cents = ""
+        if jiao != "0":
+            cents += num2str(jiao) + "十"
+        if fen != "0":
+            cents += num2str(fen)
+        cents = cents.replace("一十", "十")
+        parts.append(cents + "美分")
+    elif had_frac:
+        parts.append("整")
+    elif integer == "0":
+        parts = ["零美元"]
+
+    res = "".join(parts)
+    if neg and res and res[0] != "负":
+        res = "负" + res
+    return res
+
+def replace_usd_symbol(m, num2str=num2str):
+    return replace_usd_amount(m.group(1), num2str)
+
+def replace_usd_suffix(m, num2str=num2str):
+    return replace_usd_amount(m.group(1), num2str)
