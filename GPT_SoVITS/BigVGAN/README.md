@@ -261,6 +261,6 @@ We thank Vijay Anand Korthikanti and Kevin J. Shih for their generous support in
 - [Snake](https://github.com/EdwardDixon/snake) (for periodic activation)
 - [Alias-free-torch](https://github.com/junjun3518/alias-free-torch) (for anti-aliasing)
 - [Julius](https://github.com/adefossez/julius) (for low-pass filter)
-- [UnivNet](https://github.com/mindslab-ai/univnet) (for multi-resolution discriminator)
+- [UnivNet](https://github.com/maum-ai/univnet) (for multi-resolution discriminator)
 - [descript-audio-codec](https://github.com/descriptinc/descript-audio-codec) and [vocos](https://github.com/gemelo-ai/vocos) (for multi-band multi-scale STFT discriminator and multi-scale mel spectrogram loss)
 - [Amphion](https://github.com/open-mmlab/Amphion) (for multi-scale sub-band CQT discriminator)
