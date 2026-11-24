@@ -60,14 +60,11 @@ class Encoder(nn.Module):
         #  self.cond_layer = weight_norm(cond_layer, name='weight')
         #  self.gin_channels = 256
         self.cond_layer_idx = self.n_layers
-        self.spk_emb_linear = nn.Linear(256, self.hidden_channels)
         if "gin_channels" in kwargs:
             self.gin_channels = kwargs["gin_channels"]
             if self.gin_channels != 0:
-                self.spk_emb_linear = nn.Linear(self.gin_channels, self.hidden_channels)
                 # vits2 says 3rd block, so idx is 2 by default
                 self.cond_layer_idx = kwargs["cond_layer_idx"] if "cond_layer_idx" in kwargs else 2
-                logging.debug(self.gin_channels, self.cond_layer_idx)
                 assert self.cond_layer_idx < self.n_layers, "cond_layer_idx should be less than n_layers"
         self.drop = nn.Dropout(p_dropout)
         self.attn_layers = nn.ModuleList()
@@ -244,14 +241,17 @@ class MultiHeadAttention(nn.Module):
         pad_l = torch.zeros((1), dtype=torch.int64) + length - (self.window_size + 1)
         pad_s = torch.zeros((1), dtype=torch.int64) + (self.window_size + 1) - length
         pad_length = torch.max(pad_l, other=torch.zeros((1), dtype=torch.int64))
-        slice_start_position = torch.max(pad_s, other=torch.zeros((1), dtype=torch.int64))
+        slice_start_position = torch.max(
+            pad_s, other=torch.zeros((1), dtype=torch.int64)
+        ).reshape(())
 
-        slice_end_position = slice_start_position + 2 * length - 1
         padded_relative_embeddings = F.pad(
             relative_embeddings,
             commons.convert_pad_shape([[0, 0], [pad_length, pad_length], [0, 0]]),
         )
-        used_relative_embeddings = padded_relative_embeddings[:, slice_start_position:slice_end_position]
+        used_relative_embeddings = torch.narrow(
+            padded_relative_embeddings, 1, slice_start_position, 2 * length - 1
+        )
         return used_relative_embeddings
 
     def _relative_position_to_absolute_position(self, x):

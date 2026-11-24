@@ -330,10 +330,9 @@ class Encoder(nn.Module):
         self.enc = modules.WN(hidden_channels, kernel_size, dilation_rate, n_layers, gin_channels=gin_channels)
         self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
 
-    def forward(self, x, x_lengths, g=None):
-        if g != None:
+    def forward(self, x, x_mask, g=None):
+        if g is not None:
             g = g.detach()
-        x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
         x = self.pre(x) * x_mask
         x = self.enc(x, x_mask, g=g)
         stats = self.proj(x) * x_mask
@@ -968,16 +967,78 @@ def set_no_grad(net_g):
         param.requires_grad = False
 
 
-@torch.jit.script_if_tracing
-def compile_codes_length(codes):
-    y_lengths1 = torch.LongTensor([codes.size(2)]).to(codes.device)
-    return y_lengths1 * 2.5 * 1.5
+class _UnitLayerNorm(nn.Module):
+    """Parameter-free LayerNorm expressed in opset-17 arithmetic."""
+
+    def __init__(self, normalized_shape, eps):
+        super().__init__()
+        self.normalized_shape = normalized_shape
+        self.eps = eps
+
+    def forward(self, x):
+        mean = x.mean(-1, keepdim=True)
+        var = (x - mean).pow(2).mean(-1, keepdim=True)
+        return (x - mean) * torch.rsqrt(var + self.eps)
 
 
-@torch.jit.script_if_tracing
-def compile_ref_length(refer):
-    refer_lengths = torch.LongTensor([refer.size(2)]).to(refer.device)
-    return refer_lengths
+class _OnnxDiTAttnProcessor:
+    def __call__(self, attn, x, mask=None, rope=None):
+        from x_transformers.x_transformers import apply_rotary_pos_emb
+
+        batch = x.shape[0]
+        query, key, value = attn.to_q(x), attn.to_k(x), attn.to_v(x)
+        if rope is not None:
+            freqs, xpos_scale = rope
+            q_scale, k_scale = (xpos_scale, xpos_scale ** -1.0) if xpos_scale is not None else (1.0, 1.0)
+            query = apply_rotary_pos_emb(query, freqs, q_scale)
+            key = apply_rotary_pos_emb(key, freqs, k_scale)
+        head_dim = attn.inner_dim // attn.heads
+        query = query.view(batch, -1, attn.heads, head_dim).transpose(1, 2)
+        key = key.view(batch, -1, attn.heads, head_dim).transpose(1, 2)
+        value = value.view(batch, -1, attn.heads, head_dim).transpose(1, 2)
+        scores = torch.matmul(query * (head_dim ** -0.5), key.transpose(-2, -1))
+        if mask is not None:
+            scores = scores.masked_fill(~mask[:, None, None, :], float("-inf"))
+        x = torch.matmul(torch.softmax(scores, dim=-1), value)
+        x = x.transpose(1, 2).reshape(batch, -1, attn.inner_dim)
+        x = attn.to_out[1](attn.to_out[0](x))
+        if mask is not None:
+            x = x.masked_fill(~mask.unsqueeze(-1), 0.0)
+        return x
+
+
+def _prepare_dit_for_onnx(dit: nn.Module) -> nn.Module:
+    for parent in dit.modules():
+        for name, child in parent.named_children():
+            if isinstance(child, nn.LayerNorm) and not child.elementwise_affine:
+                setattr(parent, name, _UnitLayerNorm(child.normalized_shape, child.eps))
+    for block in dit.transformer_blocks:
+        block.attn.processor = _OnnxDiTAttnProcessor()
+    return dit
+
+
+class CFMV5Onnx(nn.Module):
+    """Single unpadded v5 velocity evaluation; integration and CFG stay in runtime."""
+
+    def __init__(self, in_channels, dit):
+        super().__init__()
+        self.in_channels = in_channels
+        self.estimator = _prepare_dit_for_onnx(dit)
+
+    def forward(self, x, cond, t, mu):
+        dit = self.estimator
+        x = x.transpose(2, 1)
+        t = dit.time_embed(t)
+        text = dit.text_embed(mu.transpose(2, 1), x.shape[1])
+        x = dit.input_embed(x, cond.transpose(2, 1), text)
+        rope = dit.rotary_embed.forward_from_seq_len(x.shape[1])
+        if dit.long_skip_connection is not None:
+            residual = x
+        for block in dit.transformer_blocks:
+            x = block(x, t, mask=None, rope=rope)
+        if dit.long_skip_connection is not None:
+            x = dit.long_skip_connection(torch.cat((x, residual), dim=-1))
+        return dit.proj_out(dit.norm_out(x, t)).transpose(2, 1)
 
 
 class SynthesizerTrnV3(nn.Module):
@@ -1052,38 +1113,37 @@ class SynthesizerTrnV3(nn.Module):
             self.ssl_proj = nn.Conv1d(ssl_dim, ssl_dim, 1, stride=1)
 
         self.quantizer = ResidualVectorQuantizer(dimension=ssl_dim, n_q=1, bins=1024)
-        freeze_quantizer
         inter_channels2 = 512
         self.bridge = nn.Sequential(nn.Conv1d(inter_channels, inter_channels2, 1, stride=1), nn.LeakyReLU())
         self.wns1 = Encoder(inter_channels2, inter_channels2, inter_channels2, 5, 1, 8, gin_channels=gin_channels)
         self.linear_mel = nn.Conv1d(inter_channels2, 100, 1, stride=1)
-        self.cfm = CFM(
-            100,
-            DiT(**dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2, conv_layers=4)),
-        )  # text_dim is condition feature dim
+        if version in {"v5dev", "v5turbo"}:
+            dit = DiT(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=inter_channels2,
+                      conv_layers=4, use_step_embedding=False)
+            self.cfm = CFMV5Onnx(100, dit)
+        else:
+            self.cfm = CFM(100, DiT(dim=1024, depth=22, heads=16, ff_mult=2,
+                                  text_dim=inter_channels2, conv_layers=4))
         if freeze_quantizer == True:
             set_no_grad(self.ssl_proj)
             set_no_grad(self.quantizer)
             set_no_grad(self.enc_p)
 
-    def create_ge(self, refer):
-        refer_lengths = compile_ref_length(refer)
-        refer_mask = torch.unsqueeze(commons.sequence_mask(refer_lengths, refer.size(2)), 1).to(refer.dtype)
+    def forward(self, codes, text, refer):
+        refer_mask = torch.ones_like(refer[:1, :1, :])
         ge = self.ref_enc(refer[:, :704] * refer_mask, refer_mask)
-        return ge
-
-    def forward(self, codes, text, ge, speed=1):
-        y_lengths1 = compile_codes_length(codes)
-
         quantized = self.quantizer.decode(codes)
         if self.semantic_frame_rate == "25hz":
-            quantized = F.interpolate(quantized, scale_factor=2, mode="nearest")  ##BCT
-        x, m_p, logs_p, y_mask = self.enc_p(quantized, text, ge, speed)
+            quantized = torch.stack((quantized, quantized), dim=-1).reshape(1, 768, -1)
+        x, _m_p, _logs_p, _y_mask = self.enc_p(quantized, text, ge, 1)
         fea = self.bridge(x)
-        fea = F.interpolate(fea, scale_factor=1.875, mode="nearest")  ##BCT
-        ####more wn paramter to learn mel
-        fea, y_mask_ = self.wns1(fea, y_lengths1, ge)
-        return fea
+        if self.version != "v3":
+            fea = torch.stack((fea, fea), dim=-1).reshape(1, 512, -1)
+        else:
+            fea = F.interpolate(fea, scale_factor=1.875, mode="nearest")
+        fea_mask = torch.ones_like(fea[:1, :1, :])
+        fea, _ = self.wns1(fea, fea_mask, g=ge)
+        return fea, ge
 
     def extract_latent(self, x):
         ssl = self.ssl_proj(x)
