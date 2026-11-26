@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
 import warnings
@@ -18,6 +19,7 @@ from .t2s_model_abc import T2SDecoderABC, TorchProfiler
 
 
 T = TypeVar("T")
+_logger = logging.getLogger(__name__)
 
 
 def _slice_tensors(obj: T, bsz: int) -> T:
@@ -273,9 +275,85 @@ class ModelRunner:
         if session in self.bound_sessions:
             self.bound_sessions.remove(session)
 
+    def _batch1_readback_session(self) -> Optional[T2SSession]:
+        if self.max_batch_size != 1 or self.device.type != "cuda" or 1 not in self.graph_cache:
+            return None
+        session = self.slot_sessions[0]
+        if session is None and self.waiting_bind:
+            session = self.waiting_bind[0]
+        if session is None:
+            return None
+        request = session.request
+        if (not request.batch1_readback or not request.use_cuda_graph or session.bsz != 1
+                or request.valid_length != 1 or request.debug or request.return_partial
+                or session.stream_interval or not self._should_use_graph()):
+            return None
+        from .backends.torch_static_cuda_graph import T2SDecoder
+
+        return session if type(self.decoder) is T2SDecoder else None
+
+    @torch.inference_mode()
+    def _decode_one(self, session: T2SSession) -> list[T2SSession]:
+        if self.slot_sessions[0] is None:
+            self._bind_waiting_sessions()
+            if self.slot_sessions[0] is None:
+                return []
+
+        decoder = self.decoder
+        step = session.step_count
+        forward_slots = [0] if step else []
+        if forward_slots:
+            decoder.pre_forward_slots_hook(forward_slots, self)
+            self._acquire_graph(1).replay()
+
+        logits = decoder.ar_predict_layer(self.xy_dec_buf.squeeze(1))
+        if not step:
+            logits[:, -1] = float("-inf")
+        valid_lens = self.prompt_len_buf + self.step_buf
+        next_position = valid_lens + 1
+        samples = self.sampler(
+            logits=logits,
+            valid_lens=valid_lens,
+            previous_tokens=self.y_buf.clone(),
+            repetition_penalty=self.repetition_penalty_buf.clone(),
+            temperature=self.temperature_buf.clone(),
+            top_k=self.top_k_buf.clone(),
+            top_p=self.top_p_buf.clone(),
+        )
+        eos = (logits.argmax(dim=-1) == decoder.EOS) | (samples.squeeze(1) == decoder.EOS)
+        embedding = decoder.ar_audio_embedding(samples.clamp_max_(decoder.vocab_size - 2))
+        next_xy = decoder.ar_audio_position(next_position, embedding)
+
+        self.step_buf.add_(~eos)
+        done = eos | (self.step_buf >= self.max_step_buf)
+        self.completed_buf.copy_(done)
+        # The runner owns this slot. Its CPU step count also determines the write position.
+        length, hit_eos, finished = torch.cat((self.step_buf, eos, done)).tolist()
+        start = session.prompt_len
+        if length != step:
+            self.y_buf[:, start + step : start + length].copy_(samples)
+        session.output_lengths = [length]
+        session.step_count = session.total_tokens = length
+        session.completed = done
+        if finished:
+            session.stop_reason = "eos" if hit_eos else "step_limit"
+            session.y_results = [self.y_buf[0, start : start + length].clone()]
+            self.unbind_session(session)
+            _logger.info("v5turbo batch1 Graph %s: termination=%s tokens=%d samples=%d",
+                         session.request_id, session.stop_reason, length, length + hit_eos)
+        else:
+            self.input_pos_buf.add_(1)
+            self.xy_pos_buf.copy_(next_xy)
+        decoder.post_forward_slots_hook(forward_slots, self)
+        return [session] if finished else []
+
     def decode_step(self) -> list[T2SSession]:
         if not self.bound_sessions and not self.waiting_bind:
             return []
+
+        batch1_session = self._batch1_readback_session()
+        if batch1_session is not None:
+            return self._decode_one(batch1_session)
 
         decoder = self.decoder
         finished_sessions: list[T2SSession] = []

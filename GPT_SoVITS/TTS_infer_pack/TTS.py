@@ -1,4 +1,5 @@
 import gc
+import logging
 import math
 import os
 import random
@@ -16,7 +17,7 @@ import os
 from typing import List, Tuple, Union
 
 import ffmpeg
-from tools.acceleration import create_acceleration
+from tools.acceleration import create_acceleration, resolve_acceleration
 from tools.portable_runtime import FFMPEG_EXE, prepare_transformers_flash_attention
 
 prepare_transformers_flash_attention()
@@ -41,6 +42,8 @@ from tools.i18n.i18n import I18nAuto, scan_language_list
 from TTS_infer_pack.text_segmentation_method import splits
 from TTS_infer_pack.TextPreprocessor import TextPreprocessor
 from sv import SV
+
+_logger = logging.getLogger(__name__)
 
 resample_transform_dict = {}
 resampy_filter_cache = {}
@@ -1206,6 +1209,16 @@ class TTS:
         self.apply_cache_dit(inputs, sample_steps)
         super_sampling = inputs.get("super_sampling", False)
         streaming_mode = inputs.get("streaming_mode", False)
+        batch1_readback = (
+            inputs.get("v5turbo_batch1_readback", False)
+            and self.configs.version == "v5turbo"
+            and batch_size == 1
+            and not (streaming_mode or return_fragment)
+            and use_cuda_graph
+            and resolve_acceleration(
+                self.configs.device, self.precision, use_cuda_graph, use_flash_attention
+            )[0] == "torch_static_cuda_graph"
+        )
         overlap_length = inputs.get("overlap_length", 2)
         min_chunk_length = inputs.get("min_chunk_length", 16)
         fixed_length_chunk = inputs.get("fixed_length_chunk", False)
@@ -1411,10 +1424,29 @@ class TTS:
                 if not streaming_mode:
                     print(f"############ {i18n('预测语义Token')} ############")
                     accel_batch_size = batch_size if parallel_infer else 1
-                    if self.t2s_accel is not None and self.t2s_accel.max_batch_size != accel_batch_size:
+                    # Check the full decode budget per segment before preparing or
+                    # submitting to Graph. A fallback leaves the existing graph warm.
+                    prefix_fallback = False
+                    if batch1_readback:
+                        from GPT_SoVITS.Accel.PyTorch.AR.backends.torch_static_cuda_graph import DEFAULT_KV_CAPACITY
+                        from GPT_SoVITS.Accel.PyTorch.AR.structs import DEFAULT_MAX_DECODE_STEPS
+
+                        adapter = self.t2s_accel
+                        capacity = DEFAULT_KV_CAPACITY
+                        if (adapter is not None and adapter.backend == "torch_static_cuda_graph"
+                                and adapter.max_batch_size == accel_batch_size):
+                            capacity = adapter.decoder.max_seq_length
+                        prefix = all_phoneme_ids[0].numel() + (0 if prompt is None else prompt.shape[-1])
+                        budget = min(DEFAULT_MAX_DECODE_STEPS, self.configs.hz * self.configs.max_sec)
+                        prefix_fallback = prefix + budget > capacity
+                        if prefix_fallback:
+                            _logger.info("v5turbo batch1 Graph fallback: prefix=%d budget=%d capacity=%d",
+                                         prefix, budget, capacity)
+                    if (not prefix_fallback and self.t2s_accel is not None
+                            and self.t2s_accel.max_batch_size != accel_batch_size):
                         self.t2s_accel.close()
                         self.t2s_accel = None
-                    if self.t2s_accel is None:
+                    if not prefix_fallback and self.t2s_accel is None:
                         self.t2s_accel = create_acceleration(
                             self.configs.t2s_weights_path,
                             device=torch.device(self.configs.device),
@@ -1423,8 +1455,9 @@ class TTS:
                             use_cuda_graph=use_cuda_graph,
                             use_flash_attention=use_flash_attention,
                         )
-                    use_accel = self.t2s_accel is not None and self.t2s_accel.prepare(
-                        use_cuda_graph, use_flash_attention
+                    use_accel = (
+                        not prefix_fallback and self.t2s_accel is not None
+                        and self.t2s_accel.prepare(use_cuda_graph, use_flash_attention)
                     )
                     if use_accel:
                         pred_semantic_list, idx_list = [], []
@@ -1438,6 +1471,7 @@ class TTS:
                                 parallel_infer=parallel_infer,
                                 use_cuda_graph=use_cuda_graph,
                                 use_flash_attention=use_flash_attention,
+                                batch1_readback=batch1_readback,
                                 top_k=top_k,
                                 top_p=top_p,
                                 temperature=temperature,

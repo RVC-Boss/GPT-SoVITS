@@ -56,6 +56,7 @@ POST:
     "streaming_overlap_seconds": 0.04,
     "gpt_streaming_lookahead_seconds": 0.5,
     "use_flash_attention": true,
+    "v5turbo_batch1_readback": false,  # v5turbo, batch 1, whole response, static CUDA Graph only.
 }
 ```
 
@@ -68,6 +69,11 @@ On v2ProPlus, `min_chunk_length` sets the initial semantic block size; hybrid
 windows can grow later blocks up to four times that token count. On V5,
 `streaming_chunk_seconds` sets every fixed window, or the first hybrid window
 of each text segment.
+
+Enable `v5turbo_batch1_readback` with `use_cuda_graph=true`, `batch_size=1`,
+and `streaming_mode=0` on the v5turbo static CUDA Graph backend. The option
+is off by default. A segment whose effective prefix and decode budget do
+not fit in the static KV cache uses ordinary AR.
 
 RESP:
 成功: 直接返回 wav 音频流， http code 200
@@ -203,6 +209,7 @@ class TTS_Request(BaseModel):
     streaming_mode: Union[bool, int] = False
     parallel_infer: bool = True
     use_cuda_graph: bool = True
+    v5turbo_batch1_readback: bool = False
     repetition_penalty: float = 1.35
     sample_steps: Optional[int] = None
     cfg_rate: Optional[float] = None
@@ -622,6 +629,7 @@ async def tts_get_endpoint(
     media_type: str = "wav",
     parallel_infer: bool = True,
     use_cuda_graph: bool = True,
+    v5turbo_batch1_readback: bool = False,
     repetition_penalty: float = 1.35,
     sample_steps: Optional[int] = None,
     cfg_rate: Optional[float] = None,
@@ -663,6 +671,7 @@ async def tts_get_endpoint(
         "streaming_mode": streaming_mode,
         "parallel_infer": parallel_infer,
         "use_cuda_graph": use_cuda_graph,
+        "v5turbo_batch1_readback": v5turbo_batch1_readback,
         "repetition_penalty": float(repetition_penalty),
         "sample_steps": None if sample_steps is None else int(sample_steps),
         "cfg_rate": None if cfg_rate is None else float(cfg_rate),
