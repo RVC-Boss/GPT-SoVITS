@@ -14,6 +14,7 @@ from ..t2s_model_abc import (
 
 
 Tensor = torch.Tensor
+DEFAULT_KV_CAPACITY = 1024
 
 
 class Attention(AttentionABC):
@@ -80,7 +81,7 @@ class T2SDecoder(T2SDecoderABC):
     def __init__(
         self,
         config,
-        max_seq_length=1024,
+        max_seq_length=DEFAULT_KV_CAPACITY,
         max_batch_size=10,
     ) -> None:
         super().__init__(config, max_seq_length, max_batch_size)

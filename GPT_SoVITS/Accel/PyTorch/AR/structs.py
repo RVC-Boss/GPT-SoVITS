@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 Tensor = torch.Tensor
 device = torch.device
 dtype = torch.dtype
+DEFAULT_MAX_DECODE_STEPS = 640
 
 
 @dataclass
@@ -52,6 +53,7 @@ class T2SRequest:
     return_partial: bool = True
     debug: bool = False
     max_decode_steps: Optional[int] = None
+    batch1_readback: bool = False
 
 
 @dataclass
@@ -155,7 +157,7 @@ class T2SSession:
             self.prefill_len = self.x_lens + request.prompts.size(1)
 
             self.input_pos = self.prefill_len.clone().reshape(bsz)
-            limit = 640 if request.max_decode_steps is None else request.max_decode_steps
+            limit = DEFAULT_MAX_DECODE_STEPS if request.max_decode_steps is None else request.max_decode_steps
             if limit <= 0:
                 raise ValueError("max_decode_steps must be positive")
             available_steps = int(decoder.max_seq_length - int(self.input_pos.max().item()))
@@ -166,6 +168,7 @@ class T2SSession:
             # EOS
             self.completed = torch.zeros(bsz, device=device, dtype=torch.bool)
             self.output_lengths = [0] * bsz
+            self.stop_reason: Optional[Literal["eos", "step_limit"]] = None
             self.y_results: list[Tensor] = [None] * len(self.x)  # type: ignore
 
             max_len = int(self.prefill_len.max().item())

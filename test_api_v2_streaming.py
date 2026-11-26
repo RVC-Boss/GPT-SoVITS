@@ -201,6 +201,7 @@ class APIV2StreamingTests(unittest.TestCase):
             "streaming_overlap_seconds": 0.04,
             "gpt_streaming_lookahead_seconds": 0.5,
             "use_flash_attention": True,
+            "v5turbo_batch1_readback": False,
         }
         for name, expected in new_defaults.items():
             self.assertEqual(fields[name].default, expected, name)
@@ -239,6 +240,17 @@ class APIV2StreamingTests(unittest.TestCase):
         self.assertEqual(get_call["streaming_window_mode"], "fixed")
         self.assertFalse(get_call["fixed_length_chunk"])
         self.assertFalse(get_call["use_flash_attention"])
+
+    def test_batch1_readback_opt_in_reaches_pipeline_over_get_and_post(self):
+        self.api.tts_pipeline.configs.version = "v5turbo"
+        for enabled in (None, True):
+            request = self.request(use_flash_attention=False, streaming_mode=0)
+            if enabled is not None:
+                request["v5turbo_batch1_readback"] = enabled
+            for method, field in ((self.client.post, "json"), (self.client.get, "params")):
+                response = method("/tts", **{field: request})
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertIs(self.api.tts_pipeline.calls[-1]["v5turbo_batch1_readback"], bool(enabled))
 
     def test_hybrid_window_mode_is_exposed_and_validated(self):
         self.api.tts_pipeline.configs.version = "v5turbo"

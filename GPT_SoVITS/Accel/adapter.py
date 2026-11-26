@@ -96,6 +96,7 @@ class AccelInference:
         early_stop_num=-1,
         repetition_penalty=1.35,
         use_flash_attention=True,
+        batch1_readback=False,
         **kwargs,
     ):
         with self._mode_lock:
@@ -126,6 +127,7 @@ class AccelInference:
                         use_cuda_graph=self.graph_enabled,
                         request_id=f"tts-{next(self._request_ids)}",
                         return_partial=False,
+                        batch1_readback=batch1_readback,
                     )
                 )
             engine = self.engine
